@@ -18,7 +18,8 @@ import { sitesService, expensesService } from '@/services/api';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { config } from '@/utils/config';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ExpenseReportModalProps {
   visible: boolean;
@@ -31,6 +32,8 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
   onClose,
   isRecurrent = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const authStore = useAuthStore();
   const tenantStore = useTenantStore();
 
@@ -301,7 +304,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
               {/* Header */}
               <View style={styles.header}>
                 <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-                  <Ionicons name="close" size={24} color={colors.neutral[500]} />
+                  <Ionicons name="close" size={24} color={theme.color.icon.subtle} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>
                   {isRecurrent ? 'Reporte Gastos Recurrentes' : 'Reporte de Gastos'}
@@ -376,7 +379,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                 <View style={styles.section}>
                   <Text style={styles.sectionLabel}>Sede (Opcional)</Text>
                   {loadingSites ? (
-                    <ActivityIndicator size="small" color={colors.accent[500]} />
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   ) : (
                     <ScrollView
                       horizontal
@@ -423,7 +426,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                 <View style={styles.section}>
                   <Text style={styles.sectionLabel}>Categoría (Opcional)</Text>
                   {loadingCategories ? (
-                    <ActivityIndicator size="small" color={colors.accent[500]} />
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   ) : (
                     <ScrollView
                       horizontal
@@ -472,25 +475,25 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                   {isRecurrent ? (
                     <>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                        <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                         <Text style={styles.exampleText}>
                           Todas las plantillas activas: Deja todos los filtros vacíos
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                        <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                         <Text style={styles.exampleText}>
                           Plantillas de una sede: Selecciona la sede específica
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                        <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                         <Text style={styles.exampleText}>
                           Todas las plantillas (incluyendo inactivas): Activa "Todas"
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                        <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                         <Text style={styles.exampleText}>
                           Plantillas por categoría: Selecciona la categoría deseada
                         </Text>
@@ -499,25 +502,25 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                   ) : (
                     <>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                        <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                         <Text style={styles.exampleText}>
                           Todos los gastos del 2024: Selecciona 01/01/2024 - 31/12/2024
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                        <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                         <Text style={styles.exampleText}>
                           Gastos de una sede: Selecciona la sede específica
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                        <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                         <Text style={styles.exampleText}>
                           Gastos por categoría: Selecciona la categoría deseada
                         </Text>
                       </View>
                       <View style={styles.exampleItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                        <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                         <Text style={styles.exampleText}>
                           Todos los gastos: Deja todos los filtros vacíos
                         </Text>
@@ -531,7 +534,7 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
               <View style={styles.footer}>
                 {hasFilters && (
                   <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-                    <Ionicons name="refresh" size={18} color={colors.accent[500]} />
+                    <Ionicons name="refresh" size={18} color={theme.color.brand.accent} />
                     <Text style={styles.clearButtonText}>Limpiar Filtros</Text>
                   </TouchableOpacity>
                 )}
@@ -541,10 +544,10 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
                   disabled={downloading}
                 >
                   {downloading ? (
-                    <ActivityIndicator size="small" color={colors.neutral[0]} />
+                    <ActivityIndicator size="small" color={theme.color.text.inverse} />
                   ) : (
                     <>
-                      <Ionicons name="download" size={20} color={colors.neutral[0]} />
+                      <Ionicons name="download" size={20} color={theme.color.text.inverse} />
                       <Text style={styles.downloadButtonText}>Descargar Excel</Text>
                     </>
                   )}
@@ -575,184 +578,185 @@ export const ExpenseReportModal: React.FC<ExpenseReportModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  container: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    height: '90%',
-  },
-  content: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-    paddingBottom: spacing[8],
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[6],
-  },
-  section: {
-    marginBottom: spacing[6],
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[3],
-  },
-  filterChipsContainer: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    paddingRight: spacing[4],
-  },
-  filterChip: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  filterChipActive: {
-    backgroundColor: colors.accent[500],
-    borderColor: colors.accent[500],
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  filterChipTextActive: {
-    color: colors.neutral[0],
-  },
-  examplesContainer: {
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginTop: spacing[2],
-  },
-  examplesTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.success[800],
-    marginBottom: spacing[3],
-  },
-  exampleItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing[2],
-    gap: spacing[2],
-  },
-  exampleText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.success[800],
-    lineHeight: 18,
-  },
-  footer: {
-    padding: spacing[4],
-    paddingBottom: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-    gap: spacing[3],
-    backgroundColor: colors.surface.primary,
-  },
-  clearButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    gap: spacing[2],
-  },
-  clearButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  downloadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.success[500],
-    gap: spacing[2],
-  },
-  downloadButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  downloadButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  switchOption: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    alignItems: 'center',
-  },
-  switchOptionActive: {
-    backgroundColor: colors.accent[500],
-    borderColor: colors.accent[500],
-  },
-  switchOptionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  switchOptionTextActive: {
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    container: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      height: '90%',
+    },
+    content: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: theme.space[4],
+      paddingBottom: theme.space[8],
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    sectionSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[6],
+    },
+    section: {
+      marginBottom: theme.space[6],
+    },
+    sectionLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[3],
+    },
+    filterChipsContainer: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingRight: theme.space[4],
+    },
+    filterChip: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    filterChipActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    filterChipText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterChipTextActive: {
+      color: theme.color.text.inverse,
+    },
+    examplesContainer: {
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginTop: theme.space[2],
+    },
+    examplesTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.success.text,
+      marginBottom: theme.space[3],
+    },
+    exampleItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[2],
+      gap: theme.space[2],
+    },
+    exampleText: {
+      flex: 1,
+      fontSize: 12,
+      color: theme.color.state.success.text,
+      lineHeight: 18,
+    },
+    footer: {
+      padding: theme.space[4],
+      paddingBottom: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+      gap: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    clearButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      gap: theme.space[2],
+    },
+    clearButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    downloadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[3.5],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.action.success.background,
+      gap: theme.space[2],
+    },
+    downloadButtonDisabled: {
+      backgroundColor: theme.color.action.success.backgroundDisabled,
+    },
+    downloadButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.action.success.text,
+    },
+    switchContainer: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    switchOption: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+    },
+    switchOptionActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    switchOptionText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    switchOptionTextActive: {
+      color: theme.color.text.inverse,
+    },
+  });
 
 export default ExpenseReportModal;
