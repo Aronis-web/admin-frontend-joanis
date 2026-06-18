@@ -16,7 +16,8 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system/legacy';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { activeOpacity, borderRadius, colors, shadows, spacing } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { photoCampaignsApi } from '@/services/api';
 import priceProfilesApi from '@/services/api/price-profiles';
 import { productsApi, Product } from '@/services/api/products';
@@ -138,6 +139,8 @@ const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
 };
 
 export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const campaignIdFromRoute = route?.params?.campaignId;
 
   const [loading, setLoading] = useState(true);
@@ -1158,7 +1161,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loaderText}>Cargando campañas de fotos...</Text>
         </View>
       </SafeAreaView>
@@ -1168,7 +1171,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={activeOpacity.medium}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={theme.motion.activeOpacity.medium}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestión de Campaña de Fotos</Text>
@@ -1217,7 +1220,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 }
               }}
               placeholder="Buscar producto de campaña por SKU, nombre o descripción..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
           </View>
 
@@ -1225,7 +1228,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
             <View style={styles.suggestionsContainerInline}>
               {campaignSearchLoading ? (
                 <View style={styles.suggestionsLoadingWrap}>
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   <Text style={styles.suggestionsLoadingText}>Buscando productos...</Text>
                 </View>
               ) : campaignSearchResults.length > 0 ? (
@@ -1362,7 +1365,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                               disabled={referenceUploading || submitting}
                             >
                               {referenceUploading ? (
-                                <ActivityIndicator size="small" color="#2563EB" style={styles.photoActionIndicator} />
+                                <ActivityIndicator size="small" color={theme.color.brand.accent} style={styles.photoActionIndicator} />
                               ) : (
                                 <Text style={styles.photoActionText}>{referencePhoto ? 'Reemplazar' : 'Subir'}</Text>
                               )}
@@ -1411,7 +1414,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
 
                   {isLoadingPhotos && (
                     <View style={styles.inlineLoadingRow}>
-                      <ActivityIndicator size="small" color="#2563EB" />
+                      <ActivityIndicator size="small" color={theme.color.brand.accent} />
                       <Text style={styles.inlineLoadingText}>Cargando fotos...</Text>
                     </View>
                   )}
@@ -1453,7 +1456,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               <Text style={styles.inputLabel}>Contacto destino</Text>
               {whatsappContactsLoading ? (
                 <View style={styles.inlineLoadingRow}>
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   <Text style={styles.inlineLoadingText}>Cargando contactos...</Text>
                 </View>
               ) : (
@@ -1510,7 +1513,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                     value={whatsappProductSearchQuery}
                     onChangeText={setWhatsappProductSearchQuery}
                     placeholder="Buscar producto por nombre o SKU"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                   <ScrollView style={styles.whatsappProductsList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                     {selectedCampaignProducts
@@ -1564,7 +1567,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 value={whatsappCaption}
                 onChangeText={setWhatsappCaption}
                 placeholder="Ej: Hola, te compartimos las fotos de la campaña"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
             </ScrollView>
 
@@ -1603,7 +1606,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.name}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, name: value }))}
               placeholder="Nombre *"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
             <Text style={styles.inputLabel}>Descripción</Text>
             <TextInput
@@ -1611,7 +1614,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.description}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, description: value }))}
               placeholder="Descripción"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
             <Text style={styles.inputLabel}>Fecha inicio</Text>
             <TextInput
@@ -1619,7 +1622,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.startDate}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, startDate: value }))}
               placeholder="Fecha inicio (YYYY-MM-DD)"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
             <Text style={styles.inputLabel}>Fecha fin</Text>
             <TextInput
@@ -1627,7 +1630,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.endDate}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, endDate: value }))}
               placeholder="Fecha fin (YYYY-MM-DD)"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
             <Text style={styles.inputLabel}>Notas</Text>
             <TextInput
@@ -1636,7 +1639,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.notes}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, notes: value }))}
               placeholder="Notas"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <View style={styles.modalActions}>
@@ -1679,7 +1682,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 value={designPrompt}
                 onChangeText={setDesignPrompt}
                 placeholder="Describe cómo quieres generar la foto de diseño..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
 
               <View style={styles.geminiModalActionsTop}>
@@ -1750,7 +1753,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 value={pricePhotoForm.name}
                 onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, name: value }))}
                 placeholder="Nombre"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
               <Text style={styles.inputLabel}>SKU</Text>
               <TextInput
@@ -1758,12 +1761,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 value={pricePhotoForm.sku}
                 onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, sku: value }))}
                 placeholder="SKU"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
               <Text style={styles.inputLabel}>Perfil de precio</Text>
               {priceProfilesLoading ? (
                 <View style={styles.inlineLoadingRow}>
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   <Text style={styles.inlineLoadingText}>Cargando perfiles...</Text>
                 </View>
               ) : (
@@ -1801,7 +1804,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 keyboardType="numeric"
                 onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, price: value }))}
                 placeholder="Precio"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
 
               <Text style={styles.inputLabel}>Template</Text>
@@ -1918,10 +1921,10 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   loaderWrap: {
     flex: 1,
@@ -1929,37 +1932,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loaderText: {
-    marginTop: spacing[3],
-    color: colors.text.secondary,
+    marginTop: theme.space[3],
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backText: {
     fontSize: 22,
-    color: colors.text.primary,
+    color: theme.color.text.body,
   },
   headerTitle: {
     flex: 1,
-    marginHorizontal: spacing[2],
+    marginHorizontal: theme.space[2],
     fontSize: 18,
     fontWeight: '700',
-    color: colors.text.primary,
+    color: theme.color.text.body,
   },
   headerSpacer: {
     width: 40,
@@ -1967,23 +1970,23 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    backgroundColor: colors.surface.primary,
-    padding: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    padding: theme.space[3],
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: colors.border.medium,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.secondary,
-    color: colors.text.primary,
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[2],
-    marginBottom: spacing[2.5],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.background.subtle,
+    color: theme.color.text.body,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[2],
+    marginBottom: theme.space[2.5],
   },
   inputLabel: {
-    marginTop: spacing[0.5],
-    marginBottom: spacing[1.5],
-    color: colors.text.secondary,
+    marginTop: theme.space[0.5],
+    marginBottom: theme.space[1.5],
+    color: theme.color.text.muted,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -1996,15 +1999,15 @@ const styles = StyleSheet.create({
   },
   campaignCard: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 10,
     padding: 10,
     marginBottom: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   campaignCardSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
+    borderColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.accentSoft,
   },
   campaignCardTop: {
     flexDirection: 'row',
@@ -2013,22 +2016,22 @@ const styles = StyleSheet.create({
   },
   campaignCode: {
     fontSize: 12,
-    color: '#475569',
+    color: theme.color.text.muted,
     fontWeight: '700',
   },
   campaignStatus: {
     fontSize: 12,
-    color: '#2563EB',
+    color: theme.color.brand.accent,
     fontWeight: '700',
   },
   campaignName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: theme.color.text.heading,
   },
   campaignDescription: {
     marginTop: 4,
-    color: '#475569',
+    color: theme.color.text.muted,
     fontSize: 12,
   },
   sectionHeader: {
@@ -2040,11 +2043,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0F172A',
+    color: theme.color.text.heading,
   },
   sectionSubtitle: {
     marginTop: 2,
-    color: '#475569',
+    color: theme.color.text.muted,
     fontSize: 12,
   },
   headerActions: {
@@ -2069,18 +2072,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: '#2563EB',
+    backgroundColor: theme.color.brand.accent,
     minWidth: 120,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 5,
   },
   floatingSecondaryButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontWeight: '700',
     fontSize: 12,
   },
@@ -2088,18 +2091,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: theme.color.state.success.background,
     minWidth: 120,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 5,
   },
   floatingWhatsappButtonText: {
-    color: '#166534',
+    color: theme.color.state.success.text,
     fontWeight: '700',
     fontSize: 12,
   },
@@ -2109,12 +2112,12 @@ const styles = StyleSheet.create({
   },
   productItemCard: {
     borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    padding: spacing[2.5],
-    marginBottom: spacing[2],
-    backgroundColor: colors.surface.primary,
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[2.5],
+    marginBottom: theme.space[2],
+    backgroundColor: theme.color.surface.base,
+    ...theme.shadow.sm,
   },
   productHeaderRow: {
     flexDirection: 'row',
@@ -2127,16 +2130,16 @@ const styles = StyleSheet.create({
   productTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   productMeta: {
-    color: '#475569',
+    color: theme.color.text.muted,
     fontSize: 12,
   },
   photoCompletionText: {
     marginTop: 6,
-    color: '#2563EB',
+    color: theme.color.brand.accent,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -2161,9 +2164,9 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 145,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     padding: 10,
     alignItems: 'center',
   },
@@ -2172,9 +2175,9 @@ const styles = StyleSheet.create({
   },
   geminiGenerateButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.accentSoft,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.state.info.border,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -2182,15 +2185,15 @@ const styles = StyleSheet.create({
   },
   geminiGenerateButtonText: {
     textAlign: 'center',
-    color: '#4338CA',
+    color: theme.color.brand.accent,
     fontWeight: '700',
     fontSize: 12,
   },
   priceDesignButton: {
     alignSelf: 'flex-start',
-    backgroundColor: '#ECFDF5',
+    backgroundColor: theme.color.state.success.background,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: theme.color.state.success.border,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -2198,21 +2201,21 @@ const styles = StyleSheet.create({
   },
   priceDesignButtonText: {
     textAlign: 'center',
-    color: '#047857',
+    color: theme.color.state.success.text,
     fontWeight: '700',
     fontSize: 12,
   },
   photoTypeLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#334155',
+    color: theme.color.text.muted,
     marginBottom: 6,
   },
   photoThumb: {
     width: '100%',
     aspectRatio: 1.35,
     borderRadius: 6,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
   },
   photoMissingBox: {
     width: '100%',
@@ -2220,25 +2223,25 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
+    borderColor: theme.color.border.strong,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   photoMissingText: {
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     fontSize: 11,
     fontWeight: '600',
   },
   photoActionText: {
     marginTop: 6,
-    color: '#2563EB',
+    color: theme.color.brand.accent,
     fontSize: 12,
     fontWeight: '700',
   },
   photoActionTextMuted: {
     marginTop: 6,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
@@ -2255,31 +2258,31 @@ const styles = StyleSheet.create({
   },
   inlineLoadingText: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   primaryButton: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[900],
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.brand.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonText: {
-    color: colors.text.inverse,
+    color: theme.color.text.inverse,
     fontWeight: '700',
     fontSize: 12,
   },
   secondaryButton: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: colors.text.primary,
+    color: theme.color.text.body,
     fontWeight: '700',
     fontSize: 12,
   },
@@ -2287,12 +2290,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dangerButtonText: {
-    color: '#B91C1C',
+    color: theme.color.state.danger.text,
     fontWeight: '700',
     fontSize: 12,
   },
@@ -2300,23 +2303,23 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: theme.color.state.success.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   whatsappButtonText: {
-    color: '#166534',
+    color: theme.color.state.success.text,
     fontWeight: '700',
     fontSize: 12,
   },
   emptyText: {
     textAlign: 'center',
-    color: colors.text.tertiary,
-    marginTop: spacing[4],
+    color: theme.color.text.subtle,
+    marginTop: theme.space[4],
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.45)',
+    backgroundColor: theme.color.overlay.medium,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
@@ -2324,12 +2327,12 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 560,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
-    padding: spacing[3.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.base,
+    padding: theme.space[3.5],
     borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.md,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.md,
   },
   modalScroll: {
     width: '100%',
@@ -2343,7 +2346,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0F172A',
+    color: theme.color.text.heading,
     marginBottom: 10,
   },
   whatsappModalCard: {
@@ -2359,50 +2362,50 @@ const styles = StyleSheet.create({
   whatsappProductsList: {
     maxHeight: 220,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     marginBottom: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   whatsappProductRow: {
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   whatsappProductRowSelected: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: theme.color.brand.accentSoft,
   },
   whatsappProductTitle: {
-    color: '#0F172A',
+    color: theme.color.text.heading,
     fontSize: 12,
     fontWeight: '600',
   },
   whatsappProductMeta: {
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontSize: 11,
     marginTop: 2,
   },
   whatsappModalFooter: {
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
     paddingTop: 10,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border.medium,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
-    color: colors.text.primary,
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[2],
-    marginBottom: spacing[2],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.base,
+    color: theme.color.text.body,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[2],
+    marginBottom: theme.space[2],
   },
   multiline: {
     minHeight: 74,
@@ -2415,7 +2418,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   geminiModalSubtitle: {
-    color: '#475569',
+    color: theme.color.text.muted,
     marginBottom: 8,
     fontSize: 12,
   },
@@ -2444,27 +2447,27 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
+    borderColor: theme.color.border.strong,
+    backgroundColor: theme.color.background.subtle,
   },
   templateChipSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#DBEAFE',
+    borderColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.accentSoft,
   },
   templateChipText: {
-    color: '#334155',
+    color: theme.color.text.muted,
     fontSize: 12,
     fontWeight: '600',
   },
   templateChipTextSelected: {
-    color: '#1D4ED8',
+    color: theme.color.text.link,
     fontWeight: '700',
   },
   geminiPreviewImage: {
     width: '100%',
     aspectRatio: 1.35,
     borderRadius: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
     marginBottom: 8,
   },
   geminiPreviewPlaceholder: {
@@ -2473,10 +2476,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
+    borderColor: theme.color.border.strong,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     marginBottom: 8,
   },
   inlineLoader: {
@@ -2484,17 +2487,17 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     maxHeight: 240,
     marginBottom: 8,
   },
   suggestionsContainerInline: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     height: 180,
     marginBottom: 8,
     overflow: 'hidden',
@@ -2510,34 +2513,34 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   suggestionsLoadingText: {
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontSize: 12,
   },
   searchResultItem: {
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
     padding: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   searchResultTitle: {
-    color: '#0F172A',
+    color: theme.color.text.heading,
     fontWeight: '600',
   },
   searchResultMeta: {
     marginTop: 2,
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   emptySuggestionsText: {
     paddingHorizontal: 10,
     paddingVertical: 10,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     textAlign: 'center',
     fontSize: 12,
   },
   imageViewerBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.95)',
+    backgroundColor: theme.color.overlay.strong,
   },
   imageViewerHeader: {
     paddingTop: 44,
@@ -2548,7 +2551,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   imageViewerTitle: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -2556,10 +2559,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: theme.color.brand.headerBadge,
   },
   imageViewerCloseText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontWeight: '700',
     fontSize: 12,
   },
