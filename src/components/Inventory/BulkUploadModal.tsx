@@ -15,8 +15,8 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { getDocumentAsync } from '@/utils/filePicker';
 
-// Design System
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Title,
   Body,
@@ -39,6 +39,8 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, currentSite } = useAuthStore();
   const { selectedSite } = useTenantStore();
   const [loading, setLoading] = useState(false);
@@ -352,13 +354,13 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                     <Caption color="secondary">Total Filas</Caption>
                   </View>
                   <View style={[styles.resultStatItem, styles.successStat]}>
-                    <Numeric size="large" weight="bold" color={colors.success[600]}>
+                    <Numeric size="large" weight="bold" color={theme.color.state.success.text}>
                       {uploadResult.updatedRows}
                     </Numeric>
                     <Caption color="secondary">Actualizados</Caption>
                   </View>
                   <View style={[styles.resultStatItem, styles.errorStat]}>
-                    <Numeric size="large" weight="bold" color={colors.danger[600]}>
+                    <Numeric size="large" weight="bold" color={theme.color.state.danger.text}>
                       {uploadResult.errors.length}
                     </Numeric>
                     <Caption color="secondary">Errores</Caption>
@@ -368,13 +370,13 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                 {/* Errors List */}
                 {uploadResult.errors.length > 0 && (
                   <View style={styles.errorsSection}>
-                    <Label size="medium" color={colors.danger[600]} style={styles.errorsTitle}>
+                    <Label size="medium" color={theme.color.state.danger.text} style={styles.errorsTitle}>
                       ⚠️ Errores Encontrados ({uploadResult.errors.length})
                     </Label>
                     <ScrollView style={styles.errorsList} nestedScrollEnabled>
                       {uploadResult.errors.map((error, index) => (
                         <View key={index} style={styles.errorItem}>
-                          <Label size="small" color={colors.danger[600]}>Fila {error.row}</Label>
+                          <Label size="small" color={theme.color.state.danger.text}>Fila {error.row}</Label>
                           <Caption color="tertiary">SKU: {error.sku}</Caption>
                           <Body size="small">{error.error}</Body>
                         </View>
@@ -387,22 +389,22 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
             {/* Important Notes */}
             <View style={styles.notesSection}>
-              <Label size="medium" color={colors.accent[700]} style={styles.notesTitle}>
+              <Label size="medium" color={theme.color.state.info.text} style={styles.notesTitle}>
                 💡 Notas Importantes
               </Label>
-              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
+              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
                 • El formato incluye el stock actual de todos los productos
               </Body>
-              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
+              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
                 • Solo edita la columna "NUEVO STOCK BASE" (resaltada en amarillo)
               </Body>
-              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
+              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
                 • No modifiques las columnas de IDs (están ocultas en gris)
               </Body>
-              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
+              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
                 • Cada actualización se registra automáticamente en el historial de movimientos
               </Body>
-              <Body size="small" color={colors.accent[700]} style={styles.noteText}>
+              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
                 • El stock disponible se calcula automáticamente (Stock Base - Stock Reservado)
               </Body>
             </View>
@@ -413,104 +415,105 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    width: '90%',
-    maxWidth: 600,
-    maxHeight: '85%',
-    ...shadows.xl,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  content: {
-    padding: spacing[5],
-  },
-  section: {
-    marginBottom: spacing[5],
-  },
-  sectionTitle: {
-    marginBottom: spacing[3],
-  },
-  instructionText: {
-    marginBottom: spacing[2],
-    lineHeight: 20,
-  },
-  primaryButton: {
-    marginBottom: spacing[3],
-  },
-  secondaryButton: {
-    marginBottom: spacing[5],
-  },
-  resultSection: {
-    marginBottom: spacing[5],
-  },
-  resultTitle: {
-    marginBottom: spacing[4],
-  },
-  resultStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: spacing[4],
-  },
-  resultStatItem: {
-    alignItems: 'center',
-    padding: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.md,
-    minWidth: 80,
-  },
-  successStat: {
-    backgroundColor: colors.success[50],
-  },
-  errorStat: {
-    backgroundColor: colors.danger[50],
-  },
-  errorsSection: {
-    marginTop: spacing[4],
-  },
-  errorsTitle: {
-    marginBottom: spacing[3],
-  },
-  errorsList: {
-    maxHeight: 200,
-  },
-  errorItem: {
-    backgroundColor: colors.surface.primary,
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
-    marginBottom: spacing[2],
-    borderLeftWidth: 3,
-    borderLeftColor: colors.danger[500],
-  },
-  notesSection: {
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.accent[200],
-  },
-  notesTitle: {
-    marginBottom: spacing[3],
-  },
-  noteText: {
-    marginBottom: spacing[1.5],
-    lineHeight: 18,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '90%',
+      maxWidth: 600,
+      maxHeight: '85%',
+      ...theme.shadow.xl,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    content: {
+      padding: theme.space[5],
+    },
+    section: {
+      marginBottom: theme.space[5],
+    },
+    sectionTitle: {
+      marginBottom: theme.space[3],
+    },
+    instructionText: {
+      marginBottom: theme.space[2],
+      lineHeight: 20,
+    },
+    primaryButton: {
+      marginBottom: theme.space[3],
+    },
+    secondaryButton: {
+      marginBottom: theme.space[5],
+    },
+    resultSection: {
+      marginBottom: theme.space[5],
+    },
+    resultTitle: {
+      marginBottom: theme.space[4],
+    },
+    resultStats: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: theme.space[4],
+    },
+    resultStatItem: {
+      alignItems: 'center',
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.md,
+      minWidth: 80,
+    },
+    successStat: {
+      backgroundColor: theme.color.state.success.background,
+    },
+    errorStat: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    errorsSection: {
+      marginTop: theme.space[4],
+    },
+    errorsTitle: {
+      marginBottom: theme.space[3],
+    },
+    errorsList: {
+      maxHeight: 200,
+    },
+    errorItem: {
+      backgroundColor: theme.color.surface.base,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      marginBottom: theme.space[2],
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.state.danger.border,
+    },
+    notesSection: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    notesTitle: {
+      marginBottom: theme.space[3],
+    },
+    noteText: {
+      marginBottom: theme.space[1.5],
+      lineHeight: 18,
+    },
+  });
 
 export default BulkUploadModal;
