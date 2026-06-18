@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ExpenseProject, ProjectStatusLabels, ProjectStatusColors } from '@/types/expenses';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ProjectCardProps {
   project: ExpenseProject;
@@ -19,6 +20,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onAddExpense,
   onViewExpenses,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const formatDate = (dateString?: string | null) => {
     if (!dateString) {
       return '-';
@@ -105,7 +108,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <View style={styles.footer}>
           {project.site && (
             <View style={styles.footerItem}>
-              <Ionicons name="business" size={12} color={colors.primary[500]} />
+              <Ionicons name="business" size={12} color={theme.color.icon.accent} />
               <Text style={styles.footerValue}>{project.site.name}</Text>
             </View>
           )}
@@ -133,7 +136,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               requiredPermissions={['expenses.read']}
               hideIfNoPermission={true}
             >
-              <Ionicons name="receipt-outline" size={18} color={colors.primary[500]} />
+              <Ionicons name="receipt-outline" size={18} color={theme.color.icon.accent} />
               <Text style={styles.actionButtonText}>Gastos</Text>
             </ProtectedTouchableOpacity>
           )}
@@ -147,7 +150,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               requiredPermissions={['expenses.create']}
               hideIfNoPermission={true}
             >
-              <Ionicons name="add-circle" size={18} color={colors.neutral[0]} />
+              <Ionicons name="add-circle" size={18} color={theme.color.text.onAction} />
               <Text style={styles.actionButtonTextPrimary}>Agregar Gasto</Text>
             </ProtectedTouchableOpacity>
           )}
@@ -157,165 +160,166 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  projectCode: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary[500],
-    marginBottom: spacing[0.5],
-  },
-  projectName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.default,
-    marginBottom: spacing[3],
-  },
-  content: {
-    gap: spacing[3],
-  },
-  description: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    lineHeight: 18,
-  },
-  budgetContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    gap: spacing[1.5],
-  },
-  budgetRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  budgetLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  budgetValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  budgetLabelSecondary: {
-    fontSize: 11,
-    color: colors.neutral[500],
-  },
-  budgetValueSecondary: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  underBudget: {
-    color: colors.success[500],
-  },
-  overBudget: {
-    color: colors.danger[500],
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: colors.border.default,
-    borderRadius: borderRadius.sm,
-    overflow: 'hidden',
-    marginTop: spacing[1],
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.sm,
-  },
-  progressOverBudget: {
-    backgroundColor: colors.danger[500],
-  },
-  progressText: {
-    fontSize: 10,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    marginTop: spacing[0.5],
-  },
-  footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-    paddingTop: spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-  },
-  footerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  footerLabel: {
-    fontSize: 11,
-    color: colors.neutral[400],
-  },
-  footerValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[1.5],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  actionButtonPrimary: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  actionButtonTextPrimary: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    projectCode: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+      marginBottom: theme.space[0.5],
+    },
+    projectName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.color.border.default,
+      marginBottom: theme.space[3],
+    },
+    content: {
+      gap: theme.space[3],
+    },
+    description: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      lineHeight: 18,
+    },
+    budgetContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      gap: theme.space[1.5],
+    },
+    budgetRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    budgetLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    budgetValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    budgetLabelSecondary: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+    },
+    budgetValueSecondary: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    underBudget: {
+      color: theme.color.text.success,
+    },
+    overBudget: {
+      color: theme.color.text.danger,
+    },
+    progressBar: {
+      height: 8,
+      backgroundColor: theme.color.border.default,
+      borderRadius: theme.radii.sm,
+      overflow: 'hidden',
+      marginTop: theme.space[1],
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.sm,
+    },
+    progressOverBudget: {
+      backgroundColor: theme.color.icon.danger,
+    },
+    progressText: {
+      fontSize: 10,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+      marginTop: theme.space[0.5],
+    },
+    footer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+      paddingTop: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.surface.muted,
+    },
+    footerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1],
+    },
+    footerLabel: {
+      fontSize: 11,
+      color: theme.color.text.placeholder,
+    },
+    footerValue: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.surface.muted,
+    },
+    actionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[1.5],
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    actionButtonPrimary: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    actionButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    actionButtonTextPrimary: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });
 
 export default ProjectCard;
