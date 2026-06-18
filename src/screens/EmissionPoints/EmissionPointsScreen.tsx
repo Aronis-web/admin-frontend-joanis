@@ -15,6 +15,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { emissionPointsApi, EmissionPoint, EmissionType } from '@/services/api/emission-points';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 
 interface EmissionPointsScreenProps {
@@ -22,6 +24,8 @@ interface EmissionPointsScreenProps {
 }
 
 export const EmissionPointsScreen: React.FC<EmissionPointsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [emissionPoints, setEmissionPoints] = useState<EmissionPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -150,10 +154,21 @@ export const EmissionPointsScreen: React.FC<EmissionPointsScreenProps> = ({ navi
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: point.isActive ? '#10B98120' : '#EF444420' },
+            {
+              backgroundColor: point.isActive
+                ? theme.color.state.success.background
+                : theme.color.state.danger.background,
+            },
           ]}
         >
-          <Text style={[styles.statusText, { color: point.isActive ? '#10B981' : '#EF4444' }]}>
+          <Text
+            style={[
+              styles.statusText,
+              {
+                color: point.isActive ? theme.color.text.success : theme.color.text.danger,
+              },
+            ]}
+          >
             {point.isActive ? '✅ Activo' : '❌ Inactivo'}
           </Text>
         </View>
@@ -219,7 +234,7 @@ export const EmissionPointsScreen: React.FC<EmissionPointsScreenProps> = ({ navi
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando puntos de emisión...</Text>
           </View>
         </SafeAreaView>
@@ -279,229 +294,230 @@ export const EmissionPointsScreen: React.FC<EmissionPointsScreenProps> = ({ navi
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTablet: {
-    padding: 24,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  headerTitleTablet: {
-    fontSize: 32,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  headerSubtitleTablet: {
-    fontSize: 16,
-  },
-  createButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  createButtonTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-  },
-  createButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  createButtonTextTablet: {
-    fontSize: 16,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  cardsContainer: {
-    gap: 16,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardTablet: {
-    padding: 20,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  typeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  typeIcon: {
-    fontSize: 24,
-  },
-  typeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    textTransform: 'uppercase',
-  },
-  typeLabelTablet: {
-    fontSize: 14,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  pointName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  pointNameTablet: {
-    fontSize: 20,
-  },
-  description: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  descriptionTablet: {
-    fontSize: 16,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E5E7EB',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#6366F1',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  actionButton: {
-    flex: 1,
-    minWidth: 100,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    backgroundColor: '#6366F1',
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  secondaryButtonText: {
-    color: '#374151',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 32,
-  },
-  emptyButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      padding: 24,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    headerTitleTablet: {
+      fontSize: 32,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    headerSubtitleTablet: {
+      fontSize: 16,
+    },
+    createButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    createButtonTablet: {
+      paddingHorizontal: 24,
+      paddingVertical: 14,
+    },
+    createButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    createButtonTextTablet: {
+      fontSize: 16,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    cardsContainer: {
+      gap: 16,
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    cardTablet: {
+      padding: 20,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    typeContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    typeIcon: {
+      fontSize: 24,
+    },
+    typeLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+    },
+    typeLabelTablet: {
+      fontSize: 14,
+    },
+    statusBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    pointName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    pointNameTablet: {
+      fontSize: 20,
+    },
+    description: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 12,
+    },
+    descriptionTablet: {
+      fontSize: 16,
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      marginBottom: 12,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statDivider: {
+      width: 1,
+      height: 40,
+      backgroundColor: theme.color.border.subtle,
+    },
+    statValue: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.brand.accent,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    cardActions: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    actionButton: {
+      flex: 1,
+      minWidth: 100,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    primaryButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    primaryButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    secondaryButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    secondaryButtonText: {
+      color: theme.color.text.body,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 60,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginBottom: 24,
+      paddingHorizontal: 32,
+    },
+    emptyButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    emptyButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });
