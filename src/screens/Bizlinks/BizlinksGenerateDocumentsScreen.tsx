@@ -2,9 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 export const BizlinksGenerateDocumentsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const styles = useThemedStyles(createStyles);
 
   const menuOptions = [
     {
@@ -137,10 +140,10 @@ export const BizlinksGenerateDocumentsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -148,21 +151,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 8,
   },
   backButtonText: {
     fontSize: 24,
-    color: '#6366F1',
+    color: theme.color.icon.accent,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   placeholder: {
     width: 40,
@@ -185,13 +188,13 @@ const styles = StyleSheet.create({
   introTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 8,
     textAlign: 'center',
   },
   introDescription: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     textAlign: 'center',
     paddingHorizontal: 20,
   },
@@ -202,10 +205,10 @@ const styles = StyleSheet.create({
   menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -236,11 +239,11 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginRight: 8,
   },
   comingSoonBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.color.state.warning.background,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -248,16 +251,16 @@ const styles = StyleSheet.create({
   comingSoonText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#92400E',
+    color: theme.color.state.warning.text,
   },
   menuDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     lineHeight: 20,
   },
   arrow: {
     fontSize: 28,
-    color: '#D1D5DB',
+    color: theme.color.text.disabled,
     marginLeft: 8,
   },
   infoSection: {
@@ -266,24 +269,24 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   infoCard: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.state.info.background,
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#6366F1',
+    borderLeftColor: theme.color.state.info.border,
   },
   infoText: {
     fontSize: 14,
-    color: '#4B5563',
+    color: theme.color.text.body,
     marginBottom: 12,
     lineHeight: 20,
   },
   infoBold: {
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
 });
