@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,8 @@ import {
 } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface AddProductScreenProps {
   navigation: any;
@@ -37,6 +39,8 @@ interface AddProductScreenProps {
 }
 
 export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { campaignId } = route.params;
   const [sourceType, setSourceType] = useState<ProductSourceType>(ProductSourceType.INVENTORY);
   const [products, setProducts] = useState<any[]>([]);
@@ -128,16 +132,16 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     setLoadingData(true);
     try {
       if (sourceType === ProductSourceType.INVENTORY) {
-        console.log('📦 Loading products and stock...');
+        console.log('ðŸ“¦ Loading products and stock...');
 
         // Load products using admin endpoint to include preliminary products
-        console.log('📦 Loading products with params:', {
+        console.log('ðŸ“¦ Loading products with params:', {
           limit: 100,
           status: 'active,preliminary',
         });
 
         // Don't load all products on mount - we'll search on demand
-        console.log('📦 Products will be loaded on search');
+        console.log('ðŸ“¦ Products will be loaded on search');
 
         // Load stock items separately
         try {
@@ -146,7 +150,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           const stockArray = Array.isArray(stockResponse)
             ? stockResponse
             : stockResponse?.data || [];
-          console.log('📦 Stock items loaded:', {
+          console.log('ðŸ“¦ Stock items loaded:', {
             count: stockArray.length,
             sample: stockArray.slice(0, 3).map((item: any) => ({
               productId: item.productId,
@@ -197,7 +201,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
         const loadedReceptions = responses.flatMap((result) => {
           if (result.status !== 'fulfilled') {
-            console.warn('⚠️ Could not load receptions source:', result.reason);
+            console.warn('âš ï¸ Could not load receptions source:', result.reason);
             return [];
           }
           const response: any = result.value;
@@ -225,13 +229,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const loadPurchaseProducts = async () => {
     try {
-      console.log('🛒 Loading purchase products:', { purchaseId: selectedPurchaseId });
+      console.log('ðŸ›’ Loading purchase products:', { purchaseId: selectedPurchaseId });
 
       // No mandamos includeProductStatus para evitar que el backend filtre
-      // productos de compras ya cerradas/agregadas a campañas.
+      // productos de compras ya cerradas/agregadas a campaÃ±as.
       const products = await purchasesService.getPurchaseProducts(selectedPurchaseId);
 
-      console.log('🛒 Purchase products received from backend:', {
+      console.log('ðŸ›’ Purchase products received from backend:', {
         total: products.length,
         products: products.map((p) => ({
           id: p.id,
@@ -245,12 +249,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       });
 
       // Excluimos solo los rechazados. El resto (PRELIMINARY, IN_VALIDATION,
-      // VALIDATED, CLOSED, etc.) son productos que la compra aportó y que
-      // queremos mostrar para agregar a la campaña.
+      // VALIDATED, CLOSED, etc.) son productos que la compra aportÃ³ y que
+      // queremos mostrar para agregar a la campaÃ±a.
       // Nota: IN_VALIDATION se mantiene porque productos ya validados con
       // resolutionAction pueden seguir teniendo ese estado intermedio.
       const availableProducts = products.filter((p) => p.status !== 'REJECTED');
-      console.log('🛒 Available products after filter:', availableProducts.length);
+      console.log('ðŸ›’ Available products after filter:', availableProducts.length);
 
       setPurchaseProducts(availableProducts);
     } catch (error: any) {
@@ -337,7 +341,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             return { productId, stock: getStockFromStockResponse(response) };
           } catch (productsStockError) {
             console.warn(
-              '⚠️ products/stock failed, trying stock by product:',
+              'âš ï¸ products/stock failed, trying stock by product:',
               productId,
               productsStockError
             );
@@ -359,12 +363,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const loadReceptionProducts = async () => {
     try {
-      console.log('📥 Loading reception products:', selectedReceptionId);
+      console.log('ðŸ“¥ Loading reception products:', selectedReceptionId);
       let receptionDetail: any;
       try {
         receptionDetail = await transfersApi.getReceptionDetail(selectedReceptionId);
       } catch (detailError) {
-        console.warn('⚠️ Reception detail failed, trying transfer detail:', detailError);
+        console.warn('âš ï¸ Reception detail failed, trying transfer detail:', detailError);
         receptionDetail = await transfersApi.getTransferById(selectedReceptionId);
       }
 
@@ -409,7 +413,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             : stockByProductId[product.productId] || 0,
       }));
 
-      console.log('📥 Available reception products:', {
+      console.log('ðŸ“¥ Available reception products:', {
         total: availableProducts.length,
         resolvedWithBatch: Object.keys(stockByProductId).length,
         sample: availableProducts.slice(0, 5).map((product: any) => ({
@@ -421,7 +425,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       setPurchaseProducts(availableProducts);
     } catch (error: any) {
       console.error('Error loading reception products:', error);
-      Alert.alert('Error', 'No se pudieron cargar los productos de la recepción');
+      Alert.alert('Error', 'No se pudieron cargar los productos de la recepciÃ³n');
     }
   };
 
@@ -471,7 +475,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
       await campaignsService.addProduct(campaignId, data);
 
-      Alert.alert('Éxito', 'Producto agregado exitosamente', [
+      Alert.alert('Ã‰xito', 'Producto agregado exitosamente', [
         {
           text: 'OK',
           onPress: () => navigation.goBack(),
@@ -507,7 +511,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
       await campaignsService.addProductsFromPurchase(campaignId, data);
 
-      Alert.alert('Éxito', 'Productos agregados exitosamente', [
+      Alert.alert('Ã‰xito', 'Productos agregados exitosamente', [
         {
           text: 'OK',
           onPress: () => navigation.goBack(),
@@ -523,7 +527,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const handleAddFromReception = async () => {
     if (!selectedReceptionId) {
-      Alert.alert('Error', 'Debes seleccionar una recepción');
+      Alert.alert('Error', 'Debes seleccionar una recepciÃ³n');
       return;
     }
 
@@ -550,7 +554,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         })
       );
 
-      Alert.alert('Éxito', 'Productos agregados desde recepción exitosamente', [
+      Alert.alert('Ã‰xito', 'Productos agregados desde recepciÃ³n exitosamente', [
         {
           text: 'OK',
           onPress: () => navigation.goBack(),
@@ -660,7 +664,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       for (const field of stockFields) {
         const parsedStock = parseStockNumber(field.value);
         if (parsedStock !== undefined) {
-          console.log(`✅ Using ${field.label} from selected source product:`, parsedStock);
+          console.log(`âœ… Using ${field.label} from selected source product:`, parsedStock);
           return parsedStock;
         }
       }
@@ -671,13 +675,16 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     if (product) {
       // If product has stock structure from backend (v2 search), use it
       if (product.stock && typeof product.stock === 'object') {
-        console.log('✅ Using stock from product.stock:', product.stock);
+        console.log('âœ… Using stock from product.stock:', product.stock);
         return product.stock.available || 0;
       }
 
       // If product is preliminary, use preliminaryStock
       if (product.status === 'preliminary' && typeof product.preliminaryStock === 'number') {
-        console.log('✅ Using preliminaryStock for preliminary product:', product.preliminaryStock);
+        console.log(
+          'âœ… Using preliminaryStock for preliminary product:',
+          product.preliminaryStock
+        );
         return product.preliminaryStock;
       }
     }
@@ -685,7 +692,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     // Fallback: Filter stock items for this product
     const productStockItems = stockItems.filter((item) => item.productId === productId);
 
-    console.log('🔍 Getting stock for product:', {
+    console.log('ðŸ” Getting stock for product:', {
       productId,
       stockItemsCount: productStockItems.length,
       stockItems: productStockItems.map((item) => ({
@@ -696,7 +703,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     });
 
     if (productStockItems.length === 0) {
-      console.log('❌ No stock items found for product');
+      console.log('âŒ No stock items found for product');
       return 0;
     }
 
@@ -708,7 +715,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       return total + quantity;
     }, 0);
 
-    console.log('✅ Total stock calculated:', totalStock);
+    console.log('âœ… Total stock calculated:', totalStock);
     return totalStock;
   };
 
@@ -721,29 +728,29 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
     try {
       setIsSearching(true);
-      console.log('🔍 Searching products with v2 endpoint:', query);
+      console.log('ðŸ” Searching products with v2 endpoint:', query);
 
       try {
-        // ✅ Intentar usar endpoint v2 optimizado con caché y Full-Text Search
+        // âœ… Intentar usar endpoint v2 optimizado con cachÃ© y Full-Text Search
         const response = await productsApi.searchProductsV2({
           q: query.trim(),
           limit: 20,
           status: 'active,preliminary',
-          includePhotos: true, // ✅ Incluir fotos para mostrar miniaturas
+          includePhotos: true, // âœ… Incluir fotos para mostrar miniaturas
         });
 
-        console.log('🔍 Search results:', response.results.length, 'products found');
-        console.log('⚡ Search time:', response.searchTime, 'ms');
-        console.log('💾 Cached:', response.cached);
+        console.log('ðŸ” Search results:', response.results.length, 'products found');
+        console.log('âš¡ Search time:', response.searchTime, 'ms');
+        console.log('ðŸ’¾ Cached:', response.cached);
 
         // Log product statuses for debugging
         const statusCounts = response.results.reduce((acc: any, p: any) => {
           acc[p.status] = (acc[p.status] || 0) + 1;
           return acc;
         }, {});
-        console.log('📊 Products by status:', statusCounts);
+        console.log('ðŸ“Š Products by status:', statusCounts);
         console.log(
-          '📦 Sample products:',
+          'ðŸ“¦ Sample products:',
           response.results.slice(0, 3).map((p: any) => ({
             sku: p.sku,
             title: p.title,
@@ -754,7 +761,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         setProducts(response.results);
         setShowProductSuggestions(response.results.length > 0);
       } catch (v2Error) {
-        console.warn('⚠️ V2 endpoint failed, falling back to v1:', v2Error);
+        console.warn('âš ï¸ V2 endpoint failed, falling back to v1:', v2Error);
 
         // Fallback: usar endpoint v1 (getProducts)
         const response = await productsApi.getProducts({
@@ -762,7 +769,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           limit: 20,
         });
 
-        console.log('🔍 Search results (v1):', response.products.length, 'products found');
+        console.log('ðŸ” Search results (v1):', response.products.length, 'products found');
 
         setProducts(response.products);
         setShowProductSuggestions(response.products.length > 0);
@@ -780,12 +787,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   };
 
   const handleSelectProduct = (product: any) => {
-    console.log('🔍 Selecting product:', product.sku, product.title);
+    console.log('ðŸ” Selecting product:', product.sku, product.title);
     setSelectedProductId(product.id);
     const correlativePrefix = product.correlativeNumber ? `#${product.correlativeNumber} | ` : '';
     setProductSearchQuery(`${correlativePrefix}${product.sku} - ${product.title}`);
     setShowProductSuggestions(false);
-    console.log('✅ Product selected, suggestions hidden');
+    console.log('âœ… Product selected, suggestions hidden');
   };
 
   const handleProductSearchChange = (text: string) => {
@@ -816,11 +823,11 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const handleOpenBanner = async (product: any) => {
     try {
-      console.log('🎯 Opening banner for product:', product.sku);
+      console.log('ðŸŽ¯ Opening banner for product:', product.sku);
 
       // Fetch full product details to get costCents and other info
       const fullProductDetails = await productsApi.getProduct(product.id);
-      console.log('📦 Full product details:', fullProductDetails);
+      console.log('ðŸ“¦ Full product details:', fullProductDetails);
 
       // Create a mock campaign product structure for the banner modal
       const mockCampaignProduct = {
@@ -846,7 +853,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     if (loadingData) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando productos...</Text>
         </View>
       );
@@ -870,8 +877,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                 setShowProductSuggestions(true);
               }
             }}
-            placeholder="Buscar por #correlativo, SKU, nombre o descripción..."
-            placeholderTextColor="#94A3B8"
+            placeholder="Buscar por #correlativo, SKU, nombre o descripciÃ³n..."
+            placeholderTextColor={theme.color.text.placeholder}
           />
 
           {/* Loading indicator */}
@@ -880,7 +887,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
             >
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#6366F1" />
+                <ActivityIndicator size="small" color={theme.color.brand.primary} />
                 <Text style={styles.loadingText}>Buscando productos...</Text>
               </View>
             </View>
@@ -912,7 +919,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         ]}
                         onPress={() => {
                           console.log(
-                            '🖱️ Suggestion clicked:',
+                            'ðŸ–±ï¸ Suggestion clicked:',
                             product.sku,
                             'Already added:',
                             isAlreadyAdded
@@ -920,12 +927,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                           if (!isAlreadyAdded) {
                             handleSelectProduct(product);
                           } else {
-                            console.log('⚠️ Product already added, ignoring click');
+                            console.log('âš ï¸ Product already added, ignoring click');
                           }
                         }}
                         activeOpacity={isAlreadyAdded ? 1 : 0.7}
                       >
-                        {/* ✅ Product Image - Priorizar photos sobre imageUrl */}
+                        {/* âœ… Product Image - Priorizar photos sobre imageUrl */}
                         {product.photos && product.photos.length > 0 ? (
                           <Image
                             source={{ uri: product.photos[0] }}
@@ -955,7 +962,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                             <Text
                               style={[styles.warningText, isTablet && styles.warningTextTablet]}
                             >
-                              ⚠️ Producto por validar Ingreso
+                              âš ï¸ Producto por validar Ingreso
                             </Text>
                           )}
                           <View style={styles.suggestionMeta}>
@@ -975,7 +982,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                                 isTablet && styles.suggestionStatusTablet,
                               ]}
                             >
-                              {product.status === 'active' ? '✓ Activo' : '⚠ Preliminar'}
+                              {product.status === 'active' ? 'âœ“ Activo' : 'âš  Preliminar'}
                             </Text>
                           </View>
                         </View>
@@ -986,7 +993,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         onPress={() => handleOpenBanner(product)}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.bannerButtonText}>📋 Banner</Text>
+                        <Text style={styles.bannerButtonText}>ðŸ“‹ Banner</Text>
                       </TouchableOpacity>
                     </View>
                   );
@@ -1005,7 +1012,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               >
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>
-                    No se encontraron productos con ese criterio de búsqueda
+                    No se encontraron productos con ese criterio de bÃºsqueda
                   </Text>
                 </View>
               </View>
@@ -1039,7 +1046,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             value={totalQuantity}
             onChangeText={setTotalQuantity}
             placeholder="Ej: 1000"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="decimal-pad"
           />
         </View>
@@ -1057,21 +1064,23 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             >
               <Text style={[styles.statusText, isTablet && styles.statusTextTablet]}>
                 {selectedProduct.status === 'preliminary'
-                  ? '⚠️ Preliminar (Por validar)'
-                  : '✓ Activo'}
+                  ? 'âš ï¸ Preliminar (Por validar)'
+                  : 'âœ“ Activo'}
               </Text>
             </View>
             <Text style={[styles.hint, isTablet && styles.hintTablet]}>
               {selectedProduct.status === 'preliminary'
-                ? 'Este producto está en estado preliminar. Se agregará a la campaña como PRELIMINAR hasta que se valide el ingreso.'
-                : 'El producto se agregará con estado PENDIENTE. Deberás generar la distribución para asignar cantidades a los participantes.'}
+                ? 'Este producto estÃ¡ en estado preliminar. Se agregarÃ¡ a la campaÃ±a como PRELIMINAR hasta que se valide el ingreso.'
+                : 'El producto se agregarÃ¡ con estado PENDIENTE. DeberÃ¡s generar la distribuciÃ³n para asignar cantidades a los participantes.'}
             </Text>
           </View>
         )}
 
         {/* Distribution Type */}
         <View style={styles.formGroup}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>Tipo de Distribución *</Text>
+          <Text style={[styles.label, isTablet && styles.labelTablet]}>
+            Tipo de DistribuciÃ³n *
+          </Text>
           <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
             <Picker
               selectedValue={distributionType}
@@ -1105,7 +1114,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               Compras Ya Agregadas ({addedPurchases.length})
             </Text>
             <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-              Estas compras ya tienen productos en la campaña. Puedes expandirlas para agregar más
+              Estas compras ya tienen productos en la campaÃ±a. Puedes expandirlas para agregar mÃ¡s
               productos.
             </Text>
             {addedPurchases.map((purchase) => {
@@ -1129,13 +1138,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                     }}
                   >
                     <View style={styles.purchaseHeaderContent}>
-                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? '▼' : '▶'}</Text>
+                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? 'â–¼' : 'â–¶'}</Text>
                       <View style={styles.purchaseHeaderInfo}>
                         <Text style={styles.purchaseHeaderTitle}>
                           {purchase.code} - {purchase.guideNumber} -{' '}
                           {purchase.supplier?.commercialName}
                         </Text>
-                        <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
+                        <Text style={styles.purchaseHeaderBadge}>âœ“ Ya agregada</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -1145,7 +1154,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         renderPurchaseProducts()
                       ) : (
                         <View style={styles.emptyContainer}>
-                          <ActivityIndicator size="small" color="#6366F1" />
+                          <ActivityIndicator size="small" color={theme.color.brand.primary} />
                           <Text style={styles.emptyText}>Cargando productos de la compra...</Text>
                         </View>
                       )}
@@ -1202,7 +1211,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const getReceptionLabel = (reception: any) => {
     const transfer = reception.transfer || {};
-    const receptionNumber = reception.receptionNumber || 'Sin número';
+    const receptionNumber = reception.receptionNumber || 'Sin nÃºmero';
     const transferNumber = transfer.transferNumber || reception.transferId || reception.id;
     const originSite =
       transfer.originSite?.name || transfer.originWarehouse?.name || 'Origen no definido';
@@ -1226,8 +1235,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               Recepciones Ya Agregadas ({addedReceptions.length})
             </Text>
             <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-              Estas recepciones ya tienen productos en la campaña. Puedes expandirlas para agregar
-              más productos.
+              Estas recepciones ya tienen productos en la campaÃ±a. Puedes expandirlas para agregar
+              mÃ¡s productos.
             </Text>
             {addedReceptions.map((reception) => {
               const transferId = reception.transferId || reception.transfer?.id || reception.id;
@@ -1255,12 +1264,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                     }}
                   >
                     <View style={styles.purchaseHeaderContent}>
-                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? '▼' : '▶'}</Text>
+                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? 'â–¼' : 'â–¶'}</Text>
                       <View style={styles.purchaseHeaderInfo}>
                         <Text style={styles.purchaseHeaderTitle}>
                           {getReceptionLabel(reception)}
                         </Text>
-                        <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
+                        <Text style={styles.purchaseHeaderBadge}>âœ“ Ya agregada</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -1270,9 +1279,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         renderPurchaseProducts()
                       ) : (
                         <View style={styles.emptyContainer}>
-                          <ActivityIndicator size="small" color="#6366F1" />
+                          <ActivityIndicator size="small" color={theme.color.brand.primary} />
                           <Text style={styles.emptyText}>
-                            Cargando productos de la recepción...
+                            Cargando productos de la recepciÃ³n...
                           </Text>
                         </View>
                       )}
@@ -1286,7 +1295,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
         <View style={styles.formGroup}>
           <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            {addedReceptions.length > 0 ? 'Otras Recepciones Disponibles' : 'Recepción *'}
+            {addedReceptions.length > 0 ? 'Otras Recepciones Disponibles' : 'RecepciÃ³n *'}
           </Text>
           <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
             <Picker
@@ -1298,7 +1307,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               }}
               style={styles.picker}
             >
-              <Picker.Item label="Seleccionar recepción..." value="" />
+              <Picker.Item label="Seleccionar recepciÃ³n..." value="" />
               {notAddedReceptions.map((reception) => (
                 <Picker.Item
                   key={reception.id}
@@ -1321,7 +1330,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           purchaseProducts.length > 0 && (
             <View style={styles.formGroup}>
               <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Productos de la Recepción
+                Productos de la RecepciÃ³n
               </Text>
               {renderPurchaseProducts()}
             </View>
@@ -1343,13 +1352,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             activeOpacity={0.7}
           >
             <View style={[styles.checkbox, allProductsSelected && styles.checkboxChecked]}>
-              {allProductsSelected && <Text style={styles.checkmark}>✓</Text>}
+              {allProductsSelected && <Text style={styles.checkmark}>âœ“</Text>}
             </View>
             <View style={styles.productInfo}>
               <Text style={styles.selectAllProductsText}>Agregar todos los productos</Text>
               <Text style={styles.selectAllProductsHint}>
                 {allProductsSelected
-                  ? 'Todos los productos disponibles están seleccionados'
+                  ? 'Todos los productos disponibles estÃ¡n seleccionados'
                   : `Selecciona ${selectableProductsCount} producto${selectableProductsCount !== 1 ? 's' : ''} disponible${selectableProductsCount !== 1 ? 's' : ''}`}
               </Text>
             </View>
@@ -1392,7 +1401,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                     (isAlreadyAdded || isOutOfStock) && styles.checkboxDisabled,
                   ]}
                 >
-                  {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                  {isSelected && <Text style={styles.checkmark}>âœ“</Text>}
                 </View>
                 <View style={styles.productInfo}>
                   <Text
@@ -1407,14 +1416,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                   </Text>
                   {isPreliminary && (
                     <Text style={[styles.warningText, isTablet && styles.warningTextTablet]}>
-                      ⚠️ Producto por validar Ingreso
+                      âš ï¸ Producto por validar Ingreso
                     </Text>
                   )}
                   <Text style={styles.productDetails}>
                     {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU:{' '}
                     {product.sku} | {isPreliminary ? 'Stock Preliminar' : 'Stock Disponible'}:{' '}
                     {displayStock}
-                    {isPreliminary && ' ⚠ Preliminar'}
+                    {isPreliminary && ' âš  Preliminar'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -1450,7 +1459,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
+              â† Volver
             </Text>
           </TouchableOpacity>
           <Text style={[styles.title, isTablet && styles.titleTablet]}>Agregar Producto</Text>
@@ -1482,14 +1491,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                 >
                   <Picker.Item label="Desde Inventario" value={ProductSourceType.INVENTORY} />
                   <Picker.Item label="Desde Compra" value={ProductSourceType.PURCHASE} />
-                  <Picker.Item label="Desde Recepción" value={ProductSourceType.RECEPTION} />
+                  <Picker.Item label="Desde RecepciÃ³n" value={ProductSourceType.RECEPTION} />
                 </Picker>
               </View>
             </View>
 
             {loadingData ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#6366F1" />
+                <ActivityIndicator size="small" color={theme.color.brand.primary} />
                 <Text style={styles.loadingText}>Cargando...</Text>
               </View>
             ) : (
@@ -1532,7 +1541,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             disabled={loading || loadingData}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={theme.color.text.onAction} />
             ) : (
               <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
                 Agregar Producto{sourceType !== ProductSourceType.INVENTORY && 's'}
@@ -1564,509 +1573,510 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  scrollContentTablet: {
-    padding: 32,
-  },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  formCardTablet: {
-    padding: 24,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  pickerContainerTablet: {
-    borderRadius: 10,
-  },
-  picker: {
-    height: 50,
-    color: '#1F2937',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
-  },
-  inputTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 18,
-  },
-  smallInput: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
-    marginTop: 8,
-  },
-  smallInputTablet: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  hint: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 4,
-  },
-  hintTablet: {
-    fontSize: 14,
-  },
-  stockInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    padding: 10,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 6,
-    gap: 8,
-  },
-  stockInfoTablet: {
-    padding: 12,
-  },
-  stockLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  stockLabelTablet: {
-    fontSize: 16,
-  },
-  stockValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  stockValueTablet: {
-    fontSize: 16,
-  },
-  stockAvailable: {
-    color: '#10B981',
-  },
-  stockUnavailable: {
-    color: '#EF4444',
-  },
-  statusDisplay: {
-    padding: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  statusDisplayTablet: {
-    padding: 16,
-  },
-  statusDisplayPreliminary: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  statusText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  statusTextTablet: {
-    fontSize: 18,
-  },
-  suggestionsContainer: {
-    maxHeight: 300,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    marginTop: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  suggestionsContainerTablet: {
-    maxHeight: 400,
-  },
-  suggestionsList: {
-    maxHeight: 300,
-  },
-  suggestionItemWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  suggestionItem: {
-    flex: 1,
-    flexDirection: 'row', // ✅ Para alinear imagen y contenido
-    padding: 12,
-    alignItems: 'center',
-  },
-  suggestionItemTablet: {
-    padding: 16,
-  },
-  suggestionItemPreliminary: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  suggestionItemDisabled: {
-    backgroundColor: '#F1F5F9',
-    opacity: 0.6,
-  },
-  bannerButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginRight: 8,
-    minWidth: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bannerButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  suggestionContent: {
-    flex: 1,
-  },
-  suggestionImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  suggestionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  suggestionTitleTablet: {
-    fontSize: 16,
-  },
-  suggestionTitleDisabled: {
-    color: '#94A3B8',
-  },
-  suggestionMeta: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  suggestionStock: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  suggestionStockTablet: {
-    fontSize: 14,
-  },
-  suggestionStatus: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  suggestionStatusTablet: {
-    fontSize: 14,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  infoContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#92400E',
-    textAlign: 'center',
-  },
-  selectAllProductsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-    backgroundColor: '#EEF2FF',
-  },
-  selectAllProductsText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#3730A3',
-    marginBottom: 2,
-  },
-  selectAllProductsHint: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  productItem: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  productItemPreliminary: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  productItemDisabled: {
-    backgroundColor: '#F1F5F9',
-    opacity: 0.6,
-  },
-  productCheckbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  checkboxDisabled: {
-    backgroundColor: '#E2E8F0',
-    borderColor: '#CBD5E1',
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  productNameDisabled: {
-    color: '#94A3B8',
-  },
-  productDetails: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  warningText: {
-    fontSize: 12,
-    color: '#F59E0B',
-    fontWeight: '600',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  warningTextTablet: {
-    fontSize: 14,
-  },
-  productConfig: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  purchaseCard: {
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  purchaseHeader: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  purchaseHeaderSelected: {
-    backgroundColor: '#EEF2FF',
-    borderBottomColor: '#6366F1',
-  },
-  purchaseHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  purchaseHeaderIcon: {
-    fontSize: 14,
-    color: '#64748B',
-    width: 20,
-  },
-  purchaseHeaderInfo: {
-    flex: 1,
-  },
-  purchaseHeaderTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  purchaseHeaderBadge: {
-    fontSize: 12,
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  purchaseProductsContainer: {
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  footerTablet: {
-    padding: 24,
-    gap: 16,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonTablet: {
-    paddingVertical: 16,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  cancelButtonTextTablet: {
-    fontSize: 18,
-  },
-  addButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonTablet: {
-    paddingVertical: 16,
-  },
-  addButtonDisabled: {
-    opacity: 0.6,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  addButtonTextTablet: {
-    fontSize: 18,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: 32,
+      paddingVertical: 24,
+    },
+    backButton: {
+      marginBottom: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    backButtonTextTablet: {
+      fontSize: 18,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    scrollContentTablet: {
+      padding: 32,
+    },
+    formCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    formCardTablet: {
+      padding: 24,
+    },
+    formGroup: {
+      marginBottom: 20,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    labelTablet: {
+      fontSize: 16,
+    },
+    pickerContainer: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.base,
+    },
+    pickerContainerTablet: {
+      borderRadius: 10,
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    inputTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 18,
+    },
+    smallInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+      marginTop: 8,
+    },
+    smallInputTablet: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.disabled,
+      marginTop: 4,
+    },
+    hintTablet: {
+      fontSize: 14,
+    },
+    stockInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+      padding: 10,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 6,
+      gap: 8,
+    },
+    stockInfoTablet: {
+      padding: 12,
+    },
+    stockLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    stockLabelTablet: {
+      fontSize: 16,
+    },
+    stockValue: {
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    stockValueTablet: {
+      fontSize: 16,
+    },
+    stockAvailable: {
+      color: theme.color.action.success.background,
+    },
+    stockUnavailable: {
+      color: theme.color.border.error,
+    },
+    statusDisplay: {
+      padding: 12,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    statusDisplayTablet: {
+      padding: 16,
+    },
+    statusDisplayPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    statusText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    statusTextTablet: {
+      fontSize: 18,
+    },
+    suggestionsContainer: {
+      maxHeight: 300,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      marginTop: 4,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    suggestionsContainerTablet: {
+      maxHeight: 400,
+    },
+    suggestionsList: {
+      maxHeight: 300,
+    },
+    suggestionItemWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    suggestionItem: {
+      flex: 1,
+      flexDirection: 'row', // âœ… Para alinear imagen y contenido
+      padding: 12,
+      alignItems: 'center',
+    },
+    suggestionItemTablet: {
+      padding: 16,
+    },
+    suggestionItemPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    suggestionItemDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      opacity: 0.6,
+    },
+    bannerButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      marginRight: 8,
+      minWidth: 80,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bannerButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    suggestionContent: {
+      flex: 1,
+    },
+    suggestionImage: {
+      width: 50,
+      height: 50,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+    },
+    suggestionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    suggestionTitleTablet: {
+      fontSize: 16,
+    },
+    suggestionTitleDisabled: {
+      color: theme.color.text.disabled,
+    },
+    suggestionMeta: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+    },
+    suggestionStock: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    suggestionStockTablet: {
+      fontSize: 14,
+    },
+    suggestionStatus: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    suggestionStatusTablet: {
+      fontSize: 14,
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+      gap: 12,
+    },
+    loadingText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 40,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+    },
+    infoContainer: {
+      marginTop: 8,
+      padding: 12,
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: 8,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    infoText: {
+      fontSize: 14,
+      color: theme.color.state.warning.text,
+      textAlign: 'center',
+    },
+    selectAllProductsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 10,
+      backgroundColor: theme.color.state.info.background,
+    },
+    selectAllProductsText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.brand.primary,
+      marginBottom: 2,
+    },
+    selectAllProductsHint: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    productItem: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 8,
+    },
+    productItemPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    productItemDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      opacity: 0.6,
+    },
+    productCheckbox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      borderRadius: 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxDisabled: {
+      backgroundColor: theme.color.border.subtle,
+      borderColor: theme.color.border.default,
+    },
+    checkmark: {
+      color: theme.color.surface.base,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    productInfo: {
+      flex: 1,
+    },
+    productName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    productNameDisabled: {
+      color: theme.color.text.disabled,
+    },
+    productDetails: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    warningText: {
+      fontSize: 12,
+      color: theme.color.icon.warning,
+      fontWeight: '600',
+      marginTop: 4,
+      marginBottom: 4,
+    },
+    warningTextTablet: {
+      fontSize: 14,
+    },
+    productConfig: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    purchaseCard: {
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    purchaseHeader: {
+      backgroundColor: theme.color.background.subtle,
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    purchaseHeaderSelected: {
+      backgroundColor: theme.color.state.info.background,
+      borderBottomColor: theme.color.brand.primary,
+    },
+    purchaseHeaderContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    purchaseHeaderIcon: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      width: 20,
+    },
+    purchaseHeaderInfo: {
+      flex: 1,
+    },
+    purchaseHeaderTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    purchaseHeaderBadge: {
+      fontSize: 12,
+      color: theme.color.action.success.background,
+      fontWeight: '600',
+    },
+    purchaseProductsContainer: {
+      padding: 12,
+      backgroundColor: theme.color.surface.base,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: 12,
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    footerTablet: {
+      padding: 24,
+      gap: 16,
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButtonTablet: {
+      paddingVertical: 16,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    cancelButtonTextTablet: {
+      fontSize: 18,
+    },
+    addButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addButtonTablet: {
+      paddingVertical: 16,
+    },
+    addButtonDisabled: {
+      opacity: 0.6,
+    },
+    addButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    addButtonTextTablet: {
+      fontSize: 18,
+    },
+  });
