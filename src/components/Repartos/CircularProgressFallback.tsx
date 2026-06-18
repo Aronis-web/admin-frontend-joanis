@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '@/design-system/tokens';
+import { useTheme } from '@/design-system/themes';
 
 interface CircularProgressFallbackProps {
   size?: number;
@@ -23,28 +23,32 @@ export const CircularProgressFallback: React.FC<CircularProgressFallbackProps> =
   validated,
   showLabel = true,
   color,
-  backgroundColor = colors.border.default,
-  textColor = colors.neutral[800],
+  backgroundColor,
+  textColor,
   fontSize = 16,
 }) => {
+  const theme = useTheme();
+  const resolvedBackgroundColor = backgroundColor ?? theme.color.border.default;
+  const resolvedTextColor = textColor ?? theme.color.text.heading;
+
   // Determinar color basado en el progreso
   const getProgressColor = () => {
     if (color) {
       return color;
     }
     if (progress === 100) {
-      return colors.success[500];
+      return theme.color.state.success.border;
     } // Verde - Completado
     if (progress >= 75) {
-      return colors.primary[500];
+      return theme.color.state.info.border;
     } // Azul - Casi completo
     if (progress >= 50) {
-      return colors.warning[500];
+      return theme.color.state.warning.border;
     } // Naranja - En progreso
     if (progress >= 25) {
-      return colors.danger[500];
+      return theme.color.state.danger.border;
     } // Rojo - Poco progreso
-    return colors.neutral[400]; // Gris - Muy poco progreso
+    return theme.color.text.placeholder; // Gris - Muy poco progreso
   };
 
   const progressColor = getProgressColor();
@@ -60,7 +64,7 @@ export const CircularProgressFallback: React.FC<CircularProgressFallbackProps> =
             height: size,
             borderRadius: size / 2,
             borderWidth: strokeWidth,
-            borderColor: backgroundColor,
+            borderColor: resolvedBackgroundColor,
           },
         ]}
       >
@@ -82,15 +86,15 @@ export const CircularProgressFallback: React.FC<CircularProgressFallbackProps> =
           <View style={styles.labelContainer}>
             {total !== undefined && validated !== undefined ? (
               <>
-                <Text style={[styles.progressText, { color: textColor, fontSize }]}>
+                <Text style={[styles.progressText, { color: resolvedTextColor, fontSize }]}>
                   {validated}
                 </Text>
-                <Text style={[styles.totalText, { color: textColor, fontSize: fontSize * 0.6 }]}>
+                <Text style={[styles.totalText, { color: resolvedTextColor, fontSize: fontSize * 0.6 }]}>
                   / {total}
                 </Text>
               </>
             ) : (
-              <Text style={[styles.percentageText, { color: textColor, fontSize }]}>
+              <Text style={[styles.percentageText, { color: resolvedTextColor, fontSize }]}>
                 {Math.round(progress)}%
               </Text>
             )}
@@ -105,7 +109,7 @@ export const CircularProgressFallback: React.FC<CircularProgressFallbackProps> =
           {
             width: size,
             height: 4,
-            backgroundColor: backgroundColor,
+            backgroundColor: resolvedBackgroundColor,
             marginTop: 4,
             borderRadius: 2,
           },
