@@ -20,6 +20,9 @@ import { useAuthStore } from '@/store/auth';
 import { Warehouse } from '@/types/warehouses';
 import { PriceProfile } from '@/types/price-profiles';
 import logger from '@/utils/logger';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 
 interface EditCashRegisterScreenProps {
   navigation: any;
@@ -41,6 +44,8 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
   const { currentSite, currentCompany } = useAuthStore();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [cashRegister, setCashRegister] = useState<CashRegister | null>(null);
   const [code, setCode] = useState('');
@@ -221,7 +226,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando caja registradora...</Text>
           </View>
         </SafeAreaView>
@@ -322,7 +327,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 value={code}
                 onChangeText={setCode}
                 placeholder="Ej: CAJA-01"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 autoCapitalize="characters"
                 keyboardType="default"
               />
@@ -337,7 +342,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 value={name}
                 onChangeText={setName}
                 placeholder="Ej: Caja Principal - Tienda Norte"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="default"
               />
             </View>
@@ -429,7 +434,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 value={location}
                 onChangeText={setLocation}
                 placeholder="Ej: Piso 1, Área de ventas"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="default"
               />
             </View>
@@ -445,7 +450,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 value={ipAddress}
                 onChangeText={setIpAddress}
                 placeholder="Ej: 192.168.1.100"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="numeric"
               />
             </View>
@@ -457,7 +462,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 value={deviceId}
                 onChangeText={setDeviceId}
                 placeholder="Ej: DEVICE-001"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="default"
               />
             </View>
@@ -469,7 +474,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
                 value={maxCashAmount}
                 onChangeText={setMaxCashAmount}
                 placeholder="Ej: 1000.00"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="decimal-pad"
               />
               <Text style={styles.helpText}>
@@ -491,8 +496,8 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
               <Switch
                 value={allowNegativeBalance}
                 onValueChange={setAllowNegativeBalance}
-                trackColor={{ false: '#D1D5DB', true: '#6366F1' }}
-                thumbColor="#FFFFFF"
+                trackColor={{ false: theme.color.border.default, true: theme.color.brand.accent }}
+                thumbColor={theme.color.surface.base}
               />
             </View>
 
@@ -506,8 +511,8 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
               <Switch
                 value={requiresManagerApproval}
                 onValueChange={setRequiresManagerApproval}
-                trackColor={{ false: '#D1D5DB', true: '#6366F1' }}
-                thumbColor="#FFFFFF"
+                trackColor={{ false: theme.color.border.default, true: theme.color.brand.accent }}
+                thumbColor={theme.color.surface.base}
               />
             </View>
           </View>
@@ -533,7 +538,7 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -545,10 +550,10 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -558,13 +563,13 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   header: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     padding: 24,
@@ -572,14 +577,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.color.text.heading,
   },
   headerTitleTablet: {
     fontSize: 32,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginTop: 4,
   },
   headerSubtitleTablet: {
@@ -592,11 +597,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -605,7 +610,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   statusButtons: {
@@ -620,38 +625,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
   },
   statusButtonActive: {
-    backgroundColor: '#10B98120',
-    borderColor: '#10B981',
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
   },
   statusButtonInactive: {
-    backgroundColor: '#EF444420',
-    borderColor: '#EF4444',
+    backgroundColor: theme.color.state.danger.background,
+    borderColor: theme.color.state.danger.border,
   },
   statusButtonMaintenance: {
-    backgroundColor: '#F59E0B20',
-    borderColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.background,
+    borderColor: theme.color.state.warning.border,
   },
   statusButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
   },
   statusButtonTextActive: {
-    color: '#10B981',
+    color: theme.color.state.success.text,
   },
   statusButtonTextInactive: {
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
   },
   statusButtonTextMaintenance: {
-    color: '#F59E0B',
+    color: theme.color.state.warning.text,
   },
   warningBox: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.color.state.warning.background,
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
@@ -662,54 +667,54 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   required: {
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#111827',
+    color: theme.color.text.heading,
   },
   helpText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginTop: 4,
   },
   warningBoxText: {
     fontSize: 13,
-    color: '#92400E',
+    color: theme.color.state.warning.text,
     fontWeight: '500',
   },
   warningText: {
     fontSize: 12,
-    color: '#F59E0B',
+    color: theme.color.text.warning,
     marginTop: 4,
     fontWeight: '500',
   },
   infoText: {
     fontSize: 12,
-    color: '#3B82F6',
+    color: theme.color.text.link,
     marginTop: 4,
     fontWeight: '500',
   },
   pickerContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
     borderRadius: 8,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   switchGroup: {
     flexDirection: 'row',
@@ -717,7 +722,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   switchLabel: {
     flex: 1,
@@ -726,12 +731,12 @@ const styles = StyleSheet.create({
   switchTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   switchDescription: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   actions: {
     flexDirection: 'row',
@@ -746,30 +751,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteButton: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: theme.color.state.danger.border,
   },
   deleteButtonText: {
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
     fontSize: 16,
     fontWeight: '600',
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
   },
   cancelButtonText: {
-    color: '#374151',
+    color: theme.color.text.body,
     fontSize: 16,
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -2,8 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 
 type Props = NativeStackScreenProps<any, 'CashReconciliationMenu'>;
+
+// Vendor brand color (no equivalente semantico en theme)
+const PROSEGUR_BRAND = '#8B5CF6';
 
 interface MenuOption {
   id: string;
@@ -16,6 +22,8 @@ interface MenuOption {
 
 export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const menuOptions: MenuOption[] = [
     {
@@ -24,7 +32,7 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
       description: 'Cargar archivos Excel para análisis de cuadre de caja (Ventas, Izipay, Prosegur)',
       icon: '📤',
       route: 'UploadCashReconciliationFiles',
-      color: '#10B981',
+      color: theme.color.state.success.border,
     },
     {
       id: 'review-documents',
@@ -32,7 +40,7 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
       description: 'Consultar y filtrar ventas, transacciones Izipay y depósitos Prosegur',
       icon: '📋',
       route: 'ReviewDocumentsMenu',
-      color: '#3B82F6',
+      color: theme.color.brand.accent,
     },
     {
       id: 'cuadre',
@@ -40,7 +48,7 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
       description: 'Generar reportes de cuadre de caja por rango de fechas y sede',
       icon: '📊',
       route: 'Cuadre',
-      color: '#8B5CF6',
+      color: PROSEGUR_BRAND,
     },
 
   ];
@@ -84,10 +92,10 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -95,27 +103,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 24,
-    color: '#374151',
+    color: theme.color.text.body,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   placeholder: {
     width: 40,
@@ -129,11 +137,11 @@ const styles = StyleSheet.create({
   menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -156,17 +164,17 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   menuDescription: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     lineHeight: 18,
   },
   arrow: {
     fontSize: 28,
-    color: '#D1D5DB',
+    color: theme.color.border.default,
     fontWeight: '300',
   },
 });

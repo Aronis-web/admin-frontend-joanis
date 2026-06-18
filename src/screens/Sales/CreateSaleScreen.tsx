@@ -29,7 +29,8 @@ import { Warehouse } from '@/types/warehouses';
 import { PaymentMethod, Company } from '@/types/companies';
 import { PriceProfile } from '@/types/price-profiles';
 import { SaleType, DocumentType, CreateSaleItemRequest } from '@/types/sales';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 
 const CODIGO_AFECTACION_IGV = {
@@ -63,6 +64,8 @@ export const CreateSaleScreen: React.FC = () => {
   const { currentCompany, currentSite } = useAuthStore();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   // State
   const [saleType, setSaleType] = useState<SaleType>(SaleType.B2C);
@@ -353,14 +356,14 @@ export const CreateSaleScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <LinearGradient
-        colors={[colors.primary[900], colors.primary[800]]}
+        colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+            <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>Nueva Venta</Text>
@@ -373,7 +376,7 @@ export const CreateSaleScreen: React.FC = () => {
         {/* Sale Type */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="pricetag-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="pricetag-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Tipo de Venta</Text>
           </View>
           <View style={styles.typeButtons}>
@@ -384,7 +387,7 @@ export const CreateSaleScreen: React.FC = () => {
               <Ionicons
                 name="person-outline"
                 size={24}
-                color={saleType === SaleType.B2C ? colors.neutral[0] : colors.neutral[600]}
+                color={saleType === SaleType.B2C ? theme.color.text.inverse : theme.color.text.muted}
               />
               <Text style={[styles.typeButtonText, saleType === SaleType.B2C && styles.typeButtonTextActive]}>
                 B2C - Cliente
@@ -397,7 +400,7 @@ export const CreateSaleScreen: React.FC = () => {
               <Ionicons
                 name="business-outline"
                 size={24}
-                color={saleType === SaleType.B2B ? colors.neutral[0] : colors.neutral[600]}
+                color={saleType === SaleType.B2B ? theme.color.text.inverse : theme.color.text.muted}
               />
               <Text style={[styles.typeButtonText, saleType === SaleType.B2B && styles.typeButtonTextActive]}>
                 B2B - Empresa
@@ -409,7 +412,7 @@ export const CreateSaleScreen: React.FC = () => {
         {/* Document Type */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="document-text-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="document-text-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Tipo de Documento</Text>
           </View>
           <View style={styles.documentTypeButtons}>
@@ -426,7 +429,7 @@ export const CreateSaleScreen: React.FC = () => {
                 <Ionicons
                   name={doc.icon as any}
                   size={24}
-                  color={documentType === doc.type ? colors.neutral[0] : colors.neutral[500]}
+                  color={documentType === doc.type ? theme.color.text.inverse : theme.color.text.subtle}
                 />
                 <Text style={[styles.documentTypeText, documentType === doc.type && styles.documentTypeTextActive]}>
                   {doc.label}
@@ -443,20 +446,20 @@ export const CreateSaleScreen: React.FC = () => {
         {saleType === SaleType.B2C && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="person-outline" size={20} color={colors.neutral[600]} />
+              <Ionicons name="person-outline" size={20} color={theme.color.icon.muted} />
               <Text style={styles.sectionTitle}>Cliente</Text>
             </View>
             {selectedCustomer ? (
               <View style={styles.selectedCard}>
                 <View style={styles.selectedCardIcon}>
-                  <Ionicons name="person" size={24} color={colors.success[600]} />
+                  <Ionicons name="person" size={24} color={theme.color.icon.success} />
                 </View>
                 <View style={styles.selectedCardContent}>
                   <Text style={styles.selectedCardTitle}>{selectedCustomer.fullName}</Text>
                   <Text style={styles.selectedCardSubtitle}>{selectedCustomer.documentNumber}</Text>
                 </View>
                 <TouchableOpacity style={styles.removeButton} onPress={() => setSelectedCustomer(null)}>
-                  <Ionicons name="close" size={20} color={colors.neutral[0]} />
+                  <Ionicons name="close" size={20} color={theme.color.text.inverse} />
                 </TouchableOpacity>
               </View>
             ) : (
@@ -473,11 +476,11 @@ export const CreateSaleScreen: React.FC = () => {
         {saleType === SaleType.B2B && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="business-outline" size={20} color={colors.neutral[600]} />
+              <Ionicons name="business-outline" size={20} color={theme.color.icon.muted} />
               <Text style={styles.sectionTitle}>Empresa</Text>
             </View>
             {loadingCompanies ? (
-              <ActivityIndicator size="small" color={colors.accent[500]} />
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
             ) : (
               <View style={styles.pickerContainer}>
                 {companies.map((company) => (
@@ -490,7 +493,7 @@ export const CreateSaleScreen: React.FC = () => {
                       <Ionicons
                         name="business"
                         size={20}
-                        color={selectedCompany?.id === company.id ? colors.neutral[0] : colors.neutral[500]}
+                        color={selectedCompany?.id === company.id ? theme.color.text.inverse : theme.color.text.subtle}
                       />
                     </View>
                     <View style={styles.pickerItemContent}>
@@ -504,7 +507,7 @@ export const CreateSaleScreen: React.FC = () => {
                       )}
                     </View>
                     {selectedCompany?.id === company.id && (
-                      <Ionicons name="checkmark-circle" size={24} color={colors.neutral[0]} />
+                      <Ionicons name="checkmark-circle" size={24} color={theme.color.text.inverse} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -516,12 +519,12 @@ export const CreateSaleScreen: React.FC = () => {
         {/* Payment Method */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="wallet-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="wallet-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Método de Pago</Text>
             <Text style={styles.optionalTag}>Opcional</Text>
           </View>
           {loadingPaymentMethods ? (
-            <ActivityIndicator size="small" color={colors.accent[500]} />
+            <ActivityIndicator size="small" color={theme.color.brand.accent} />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.horizontalPicker}>
@@ -552,12 +555,12 @@ export const CreateSaleScreen: React.FC = () => {
         {/* Price Profile */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="pricetags-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="pricetags-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Perfil de Precio</Text>
             <Text style={styles.optionalTag}>Opcional</Text>
           </View>
           {loadingPriceProfiles ? (
-            <ActivityIndicator size="small" color={colors.accent[500]} />
+            <ActivityIndicator size="small" color={theme.color.brand.accent} />
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.horizontalPicker}>
@@ -592,7 +595,7 @@ export const CreateSaleScreen: React.FC = () => {
         {/* Products */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="cube-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="cube-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Productos ({items.length})</Text>
           </View>
 
@@ -604,7 +607,7 @@ export const CreateSaleScreen: React.FC = () => {
 
           {items.length === 0 ? (
             <View style={styles.emptyProducts}>
-              <Ionicons name="cube-outline" size={48} color={colors.neutral[300]} />
+              <Ionicons name="cube-outline" size={48} color={theme.color.border.default} />
               <Text style={styles.emptyProductsText}>No hay productos agregados</Text>
               <Text style={styles.emptyProductsHint}>Usa el buscador para agregar productos</Text>
             </View>
@@ -619,19 +622,19 @@ export const CreateSaleScreen: React.FC = () => {
                         <Text style={styles.productSku}>SKU: {item.product.sku}</Text>
                         {item.warehouseName && (
                           <View style={styles.warehouseBadge}>
-                            <Ionicons name="cube" size={12} color={colors.accent[600]} />
+                            <Ionicons name="cube" size={12} color={theme.color.brand.accent} />
                             <Text style={styles.warehouseText}>{item.warehouseName}</Text>
                           </View>
                         )}
                       </View>
                     </View>
                     <TouchableOpacity style={styles.removeProductButton} onPress={() => handleRemoveItem(index)}>
-                      <Ionicons name="trash-outline" size={18} color={colors.danger[500]} />
+                      <Ionicons name="trash-outline" size={18} color={theme.color.icon.danger} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.stockInfo}>
-                    <Ionicons name="layers-outline" size={14} color={colors.success[600]} />
+                    <Ionicons name="layers-outline" size={14} color={theme.color.icon.success} />
                     <Text style={styles.stockText}>Stock disponible: {item.availableStock} uds.</Text>
                   </View>
 
@@ -678,7 +681,7 @@ export const CreateSaleScreen: React.FC = () => {
                           <Ionicons
                             name={option.icon as any}
                             size={14}
-                            color={item.codigoAfectacionIgv === option.value ? colors.neutral[0] : colors.neutral[500]}
+                            color={item.codigoAfectacionIgv === option.value ? theme.color.text.inverse : theme.color.text.subtle}
                           />
                           <Text style={[styles.igvButtonText, item.codigoAfectacionIgv === option.value && styles.igvButtonTextActive]}>
                             {option.label}
@@ -703,7 +706,7 @@ export const CreateSaleScreen: React.FC = () => {
         {/* Notes */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="chatbox-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="chatbox-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Notas</Text>
             <Text style={styles.optionalTag}>Opcional</Text>
           </View>
@@ -712,7 +715,7 @@ export const CreateSaleScreen: React.FC = () => {
             value={notes}
             onChangeText={setNotes}
             placeholder="Agregar notas sobre la venta..."
-            placeholderTextColor={colors.neutral[400]}
+            placeholderTextColor={theme.color.text.placeholder}
             multiline
             numberOfLines={3}
           />
@@ -727,7 +730,7 @@ export const CreateSaleScreen: React.FC = () => {
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Descuento</Text>
-              <Text style={[styles.totalValue, { color: colors.danger[500] }]}>
+              <Text style={[styles.totalValue, { color: theme.color.text.danger }]}>
                 -S/ {(totals.discount / 100).toFixed(2)}
               </Text>
             </View>
@@ -745,10 +748,10 @@ export const CreateSaleScreen: React.FC = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={colors.neutral[0]} />
+            <ActivityIndicator size="small" color={theme.color.text.inverse} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={22} color={colors.neutral[0]} />
+              <Ionicons name="checkmark-circle" size={22} color={theme.color.text.inverse} />
               <Text style={styles.createButtonText}>Crear Venta</Text>
             </>
           )}
@@ -760,15 +763,15 @@ export const CreateSaleScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   headerGradient: {
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[2],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[4],
+    paddingTop: theme.space[2],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
@@ -778,10 +781,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitleContainer: {
     flex: 1,
@@ -789,123 +792,123 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: spacing[0.5],
+    color: theme.color.brand.onHeaderMuted,
+    marginTop: theme.space[0.5],
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   section: {
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
-    marginBottom: spacing[3],
+    gap: theme.space[2],
+    marginBottom: theme.space[3],
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     flex: 1,
   },
   optionalTag: {
     fontSize: 11,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
     fontWeight: '500',
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.sm,
+    backgroundColor: theme.color.background.muted,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[0.5],
+    borderRadius: theme.radii.sm,
   },
   typeButtons: {
     flexDirection: 'row',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   typeButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.surface.primary,
+    padding: theme.space[4],
+    borderRadius: theme.radii.xl,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
-    gap: spacing[2],
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    gap: theme.space[2],
+    ...theme.shadow.sm,
   },
   typeButtonActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   typeButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   typeButtonTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   documentTypeButtons: {
     flexDirection: 'row',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   documentTypeButton: {
     flex: 1,
     alignItems: 'center',
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
+    padding: theme.space[3],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
-    gap: spacing[1],
+    borderColor: theme.color.border.subtle,
+    gap: theme.space[1],
   },
   documentTypeButtonActive: {
-    backgroundColor: colors.success[500],
-    borderColor: colors.success[500],
+    backgroundColor: theme.color.state.success.border,
+    borderColor: theme.color.state.success.border,
   },
   documentTypeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   documentTypeTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   documentTypeHint: {
     fontSize: 10,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
   },
   documentTypeHintActive: {
-    color: 'rgba(255,255,255,0.8)',
+    color: theme.color.brand.onHeaderMuted,
   },
   selectedCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
     borderWidth: 2,
-    borderColor: colors.success[300],
-    ...shadows.sm,
+    borderColor: theme.color.state.success.border,
+    ...theme.shadow.sm,
   },
   selectedCardIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.success[100],
+    backgroundColor: theme.color.state.success.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   selectedCardContent: {
     flex: 1,
@@ -913,43 +916,43 @@ const styles = StyleSheet.create({
   selectedCardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   selectedCardSubtitle: {
     fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
+    color: theme.color.text.subtle,
+    marginTop: theme.space[0.5],
   },
   removeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.danger[500],
+    backgroundColor: theme.color.action.danger.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pickerContainer: {
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   pickerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
+    padding: theme.space[3],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    gap: spacing[3],
+    borderColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   pickerItemActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   pickerItemIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -959,290 +962,290 @@ const styles = StyleSheet.create({
   pickerItemText: {
     fontSize: 15,
     fontWeight: '500',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   pickerItemTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   pickerItemSubtext: {
     fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
+    color: theme.color.text.subtle,
+    marginTop: theme.space[0.5],
   },
   pickerItemSubtextActive: {
-    color: 'rgba(255,255,255,0.7)',
+    color: theme.color.brand.onHeaderMuted,
   },
   horizontalPicker: {
     flexDirection: 'row',
-    gap: spacing[2],
-    paddingRight: spacing[4],
+    gap: theme.space[2],
+    paddingRight: theme.space[4],
   },
   chipButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   chipButtonActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   chipButtonText: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   chipButtonTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   emptyProducts: {
     alignItems: 'center',
-    padding: spacing[10],
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
+    padding: theme.space[10],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     borderStyle: 'dashed',
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
   },
   emptyProductsText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[500],
-    marginTop: spacing[3],
+    color: theme.color.text.subtle,
+    marginTop: theme.space[3],
   },
   emptyProductsHint: {
     fontSize: 13,
-    color: colors.neutral[400],
-    marginTop: spacing[1],
+    color: theme.color.text.placeholder,
+    marginTop: theme.space[1],
   },
   productsList: {
-    gap: spacing[3],
-    marginTop: spacing[3],
+    gap: theme.space[3],
+    marginTop: theme.space[3],
   },
   productCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   productHeaderLeft: {
     flex: 1,
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   productName: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   productMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   productSku: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   warehouseBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
-    gap: spacing[1],
+    backgroundColor: theme.color.state.info.background,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
+    gap: theme.space[1],
   },
   warehouseText: {
     fontSize: 11,
-    color: colors.accent[700],
+    color: theme.color.state.info.text,
     fontWeight: '500',
   },
   removeProductButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.danger[50],
+    backgroundColor: theme.color.state.danger.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stockInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1.5],
-    marginBottom: spacing[3],
-    backgroundColor: colors.success[50],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
+    gap: theme.space[1.5],
+    marginBottom: theme.space[3],
+    backgroundColor: theme.color.state.success.background,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.md,
   },
   stockText: {
     fontSize: 13,
-    color: colors.success[700],
+    color: theme.color.state.success.text,
     fontWeight: '500',
   },
   productInputs: {
     flexDirection: 'row',
-    gap: spacing[2],
-    marginBottom: spacing[3],
+    gap: theme.space[2],
+    marginBottom: theme.space[3],
   },
   inputGroup: {
     flex: 1,
   },
   inputLabel: {
     fontSize: 11,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.md,
-    padding: spacing[2.5],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[2.5],
     fontSize: 14,
-    backgroundColor: colors.neutral[50],
-    color: colors.neutral[800],
+    backgroundColor: theme.color.background.subtle,
+    color: theme.color.text.heading,
     textAlign: 'center',
     fontWeight: '600',
   },
   igvSection: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   igvLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
+    color: theme.color.text.subtle,
+    marginBottom: theme.space[2],
   },
   igvButtons: {
     flexDirection: 'row',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   igvButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.background.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    gap: spacing[1],
+    borderColor: theme.color.border.subtle,
+    gap: theme.space[1],
   },
   igvButtonActive: {
-    backgroundColor: colors.success[500],
-    borderColor: colors.success[500],
+    backgroundColor: theme.color.state.success.border,
+    borderColor: theme.color.state.success.border,
   },
   igvButtonText: {
     fontSize: 11,
     fontWeight: '500',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   igvButtonTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   productTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing[3],
+    paddingTop: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
+    borderTopColor: theme.color.background.muted,
   },
   productTotalLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   productTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.success[600],
+    color: theme.color.text.success,
   },
   notesInput: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     minHeight: 80,
     textAlignVertical: 'top',
   },
   totalsCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[5],
-    marginBottom: spacing[5],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[5],
+    marginBottom: theme.space[5],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   totalLabel: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   totalValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   totalRowFinal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: spacing[3],
-    marginTop: spacing[2],
+    paddingTop: theme.space[3],
+    marginTop: theme.space[2],
     borderTopWidth: 2,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   totalLabelFinal: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   totalValueFinal: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.success[600],
+    color: theme.color.text.success,
   },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.success[500],
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
-    gap: spacing[2],
-    ...shadows.md,
+    backgroundColor: theme.color.state.success.border,
+    padding: theme.space[4],
+    borderRadius: theme.radii.xl,
+    gap: theme.space[2],
+    ...theme.shadow.md,
   },
   createButtonDisabled: {
-    backgroundColor: colors.neutral[300],
+    backgroundColor: theme.color.border.default,
   },
   createButtonText: {
     fontSize: 17,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   bottomSpacer: {
-    height: spacing[10],
+    height: theme.space[10],
   },
 });

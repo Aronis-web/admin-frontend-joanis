@@ -14,6 +14,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
+
+// Cash-reconciliation module brand color (cyan)
+const MODULE_BRAND = '#06B6D4';
 
 type Props = NativeStackScreenProps<any, 'SeriesConfig'>;
 
@@ -41,6 +47,8 @@ interface NewSerie {
 
 export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { token } = useAuthStore();
   const { selectedSite } = useTenantStore();
   const [seriesConfigs, setSeriesConfigs] = useState<SeriesConfig[]>([]);
@@ -227,7 +235,7 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.centerContent, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#06B6D4" />
+        <ActivityIndicator size="large" color={MODULE_BRAND} />
         <Text style={styles.loadingText}>Cargando configuraciones...</Text>
       </View>
     );
@@ -340,7 +348,7 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
                 disabled={isCreating}
               >
                 {isCreating ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={theme.color.text.onAction} size="small" />
                 ) : (
                   <Text style={styles.saveButtonText}>Guardar Series</Text>
                 )}
@@ -406,10 +414,10 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   centerContent: {
     justifyContent: 'center',
@@ -418,7 +426,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
@@ -426,21 +434,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 24,
-    color: '#374151',
+    color: theme.color.text.body,
     fontWeight: '600',
   },
   headerTitleContainer: {
@@ -450,11 +458,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   placeholder: {
@@ -466,20 +474,20 @@ const styles = StyleSheet.create({
   infoCard: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: theme.color.state.info.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: theme.color.state.info.border,
   },
   infoTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: theme.color.state.info.text,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 13,
-    color: '#1E3A8A',
+    color: theme.color.state.info.text,
     lineHeight: 20,
   },
   addButton: {
@@ -489,7 +497,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 16,
-    backgroundColor: '#06B6D4',
+    backgroundColor: MODULE_BRAND,
     borderRadius: 12,
   },
   addButtonIcon: {
@@ -499,14 +507,14 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   formCard: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -515,13 +523,13 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   serieFormGroup: {
     marginBottom: 16,
     padding: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
   },
   serieFormHeader: {
@@ -533,21 +541,21 @@ const styles = StyleSheet.create({
   serieFormLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
   },
   removeButton: {
     fontSize: 20,
-    color: '#EF4444',
+    color: theme.color.text.danger,
     fontWeight: '600',
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   tipoDocumentoContainer: {
@@ -559,28 +567,28 @@ const styles = StyleSheet.create({
   tipoButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
   },
   tipoButtonActive: {
-    backgroundColor: '#06B6D4',
-    borderColor: '#06B6D4',
+    backgroundColor: MODULE_BRAND,
+    borderColor: MODULE_BRAND,
   },
   tipoButtonText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   tipoButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   addMoreButton: {
     padding: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
     borderRadius: 8,
     borderStyle: 'dashed',
     marginBottom: 16,
@@ -588,7 +596,7 @@ const styles = StyleSheet.create({
   addMoreButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#06B6D4',
+    color: MODULE_BRAND,
   },
   formActions: {
     flexDirection: 'row',
@@ -597,29 +605,29 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     padding: 14,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     borderRadius: 8,
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   saveButton: {
     flex: 1,
     padding: 14,
-    backgroundColor: '#06B6D4',
+    backgroundColor: MODULE_BRAND,
     borderRadius: 8,
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: theme.color.border.default,
   },
   saveButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   section: {
     padding: 16,
@@ -627,7 +635,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   emptyState: {
@@ -641,20 +649,20 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   emptyStateSubtext: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: theme.color.text.subtle,
     textAlign: 'center',
   },
   serieCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -674,13 +682,13 @@ const styles = StyleSheet.create({
   serieName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   serieType: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
-    backgroundColor: '#F3F4F6',
+    color: theme.color.text.muted,
+    backgroundColor: theme.color.surface.muted,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -696,26 +704,26 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusBadgeActive: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.color.state.success.background,
   },
   statusBadgeInactive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
   },
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '600',
   },
   statusBadgeTextActive: {
-    color: '#065F46',
+    color: theme.color.state.success.text,
   },
   statusBadgeTextInactive: {
-    color: '#991B1B',
+    color: theme.color.state.danger.text,
   },
   deleteButton: {
     fontSize: 20,
   },
   serieDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
 });

@@ -36,10 +36,8 @@ import { config } from '@/utils/config';
 import { authService } from '@/services/AuthService';
 
 // Design System Imports
-import { colors } from '@/design-system/tokens/colors';
-import { spacing, borderRadius } from '@/design-system/tokens/spacing';
-import { shadows } from '@/design-system/tokens/shadows';
-import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { durations } from '@/design-system/tokens/animations';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -85,7 +83,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, delay = 0, style 
 };
 
 // ============================================================================
-// Data Card Component
+// Helper Component Types
 // ============================================================================
 
 interface DataCardProps {
@@ -97,48 +95,6 @@ interface DataCardProps {
   variant?: 'default' | 'success' | 'warning' | 'danger';
 }
 
-const DataCard: React.FC<DataCardProps> = ({
-  title,
-  icon,
-  iconColor,
-  children,
-  delay = 0,
-  variant = 'default',
-}) => {
-  const getVariantStyles = () => {
-    switch (variant) {
-      case 'success':
-        return { backgroundColor: colors.success[50], borderColor: colors.success[300] };
-      case 'warning':
-        return { backgroundColor: colors.warning[50], borderColor: colors.warning[300] };
-      case 'danger':
-        return { backgroundColor: colors.danger[50], borderColor: colors.danger[300] };
-      default:
-        return { backgroundColor: colors.neutral[0], borderColor: 'transparent' };
-    }
-  };
-
-  const variantStyles = getVariantStyles();
-
-  return (
-    <AnimatedCard delay={delay}>
-      <View style={[styles.dataCard, { backgroundColor: variantStyles.backgroundColor, borderColor: variantStyles.borderColor, borderWidth: variant !== 'default' ? 1 : 0 }]}>
-        <View style={styles.dataCardHeader}>
-          <View style={[styles.dataCardIcon, { backgroundColor: iconColor + '20' }]}>
-            <Ionicons name={icon} size={20} color={iconColor} />
-          </View>
-          <Text style={styles.dataCardTitle}>{title}</Text>
-        </View>
-        {children}
-      </View>
-    </AnimatedCard>
-  );
-};
-
-// ============================================================================
-// Data Row Component
-// ============================================================================
-
 interface DataRowProps {
   label: string;
   value: string;
@@ -147,29 +103,10 @@ interface DataRowProps {
   isTotal?: boolean;
 }
 
-const DataRow: React.FC<DataRowProps> = ({ label, value, valueColor, isBold, isTotal }) => (
-  <View style={[styles.dataRow, isTotal && styles.dataRowTotal]}>
-    <Text style={[styles.dataLabel, isBold && styles.dataLabelBold]}>{label}</Text>
-    <Text style={[styles.dataValue, isBold && styles.dataValueBold, valueColor && { color: valueColor }]}>
-      {value}
-    </Text>
-  </View>
-);
-
-// ============================================================================
-// Quick Filter Button Component
-// ============================================================================
-
 interface QuickFilterButtonProps {
   label: string;
   onPress: () => void;
 }
-
-const QuickFilterButton: React.FC<QuickFilterButtonProps> = ({ label, onPress }) => (
-  <TouchableOpacity style={styles.quickFilterButton} onPress={onPress} activeOpacity={0.7}>
-    <Text style={styles.quickFilterText}>{label}</Text>
-  </TouchableOpacity>
-);
 
 // ============================================================================
 // Main Component
@@ -177,6 +114,65 @@ const QuickFilterButton: React.FC<QuickFilterButtonProps> = ({ label, onPress })
 
 export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+
+  // ============================================================================
+  // Helper Components (closures over `styles` and `theme`)
+  // ============================================================================
+
+  const DataCard: React.FC<DataCardProps> = ({
+    title,
+    icon,
+    iconColor,
+    children,
+    delay = 0,
+    variant = 'default',
+  }) => {
+    const getVariantStyles = () => {
+      switch (variant) {
+        case 'success':
+          return { backgroundColor: theme.color.state.success.background, borderColor: theme.color.state.success.border };
+        case 'warning':
+          return { backgroundColor: theme.color.state.warning.background, borderColor: theme.color.state.warning.border };
+        case 'danger':
+          return { backgroundColor: theme.color.state.danger.background, borderColor: theme.color.state.danger.border };
+        default:
+          return { backgroundColor: theme.color.surface.base, borderColor: 'transparent' };
+      }
+    };
+
+    const variantStyles = getVariantStyles();
+
+    return (
+      <AnimatedCard delay={delay}>
+        <View style={[styles.dataCard, { backgroundColor: variantStyles.backgroundColor, borderColor: variantStyles.borderColor, borderWidth: variant !== 'default' ? 1 : 0 }]}>
+          <View style={styles.dataCardHeader}>
+            <View style={[styles.dataCardIcon, { backgroundColor: iconColor + '20' }]}>
+              <Ionicons name={icon} size={20} color={iconColor} />
+            </View>
+            <Text style={styles.dataCardTitle}>{title}</Text>
+          </View>
+          {children}
+        </View>
+      </AnimatedCard>
+    );
+  };
+
+  const DataRow: React.FC<DataRowProps> = ({ label, value, valueColor, isBold, isTotal }) => (
+    <View style={[styles.dataRow, isTotal && styles.dataRowTotal]}>
+      <Text style={[styles.dataLabel, isBold && styles.dataLabelBold]}>{label}</Text>
+      <Text style={[styles.dataValue, isBold && styles.dataValueBold, valueColor && { color: valueColor }]}>
+        {value}
+      </Text>
+    </View>
+  );
+
+  const QuickFilterButton: React.FC<QuickFilterButtonProps> = ({ label, onPress }) => (
+    <TouchableOpacity style={styles.quickFilterButton} onPress={onPress} activeOpacity={0.7}>
+      <Text style={styles.quickFilterText}>{label}</Text>
+    </TouchableOpacity>
+  );
 
   // Data states
   const [cuadreData, setCuadreData] = useState<CuadreCajaResponse | null>(null);
@@ -745,13 +741,13 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
   const getSeverityInfo = (severidad: string) => {
     const severities: Record<string, { label: string; color: string; bgColor: string; icon: keyof typeof Ionicons.glyphMap }> = {
-      ninguna: { label: 'Sin Discrepancias', color: colors.success[700], bgColor: colors.success[100], icon: 'checkmark-circle' },
-      baja: { label: 'Discrepancia Baja', color: colors.warning[700], bgColor: colors.warning[100], icon: 'alert-circle' },
-      media: { label: 'Discrepancia Media', color: colors.warning[800], bgColor: colors.warning[200], icon: 'alert-circle' },
-      alta: { label: 'Discrepancia Alta', color: colors.danger[700], bgColor: colors.danger[100], icon: 'warning' },
-      critica: { label: 'Discrepancia Crítica', color: colors.danger[800], bgColor: colors.danger[200], icon: 'warning' },
+      ninguna: { label: 'Sin Discrepancias', color: theme.color.state.success.text, bgColor: theme.color.state.success.background, icon: 'checkmark-circle' },
+      baja: { label: 'Discrepancia Baja', color: theme.color.state.warning.text, bgColor: theme.color.state.warning.background, icon: 'alert-circle' },
+      media: { label: 'Discrepancia Media', color: theme.color.state.warning.text, bgColor: theme.color.state.warning.background, icon: 'alert-circle' },
+      alta: { label: 'Discrepancia Alta', color: theme.color.state.danger.text, bgColor: theme.color.state.danger.background, icon: 'warning' },
+      critica: { label: 'Discrepancia Crítica', color: theme.color.state.danger.text, bgColor: theme.color.state.danger.background, icon: 'warning' },
     };
-    return severities[severidad] || { label: severidad, color: colors.neutral[600], bgColor: colors.neutral[100], icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
+    return severities[severidad] || { label: severidad, color: theme.color.text.muted, bgColor: theme.color.background.muted, icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
   };
 
   // Determine if we're showing only external sedes (no Izipay/Prosegur data)
@@ -771,19 +767,19 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="calculator-outline" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="calculator-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Cuadre de Caja</Text>
               </View>
@@ -799,7 +795,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={() => cuadreData && loadCuadre(true)}
-            colors={[colors.primary[600]]}
+            colors={[theme.color.brand.primary]}
           />
         }
       >
@@ -807,7 +803,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         <AnimatedCard delay={0}>
           <View style={styles.filtersCard}>
             <View style={styles.filtersHeader}>
-              <Ionicons name="filter" size={20} color={colors.primary[600]} />
+              <Ionicons name="filter" size={20} color={theme.color.brand.primary} />
               <Text style={styles.filtersTitle}>Filtros</Text>
             </View>
 
@@ -826,14 +822,14 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 onPress={() => setShowDateRangePicker(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="calendar-outline" size={22} color={colors.primary[600]} />
+                <Ionicons name="calendar-outline" size={22} color={theme.color.brand.primary} />
                 <View style={styles.dateRangeTextContainer}>
                   <Text style={styles.dateRangeLabel}>Periodo</Text>
                   <Text style={styles.dateRangeValue}>
                     {formatDisplayDate(fechaInicio)} — {formatDisplayDate(fechaFin)}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+                <Ionicons name="chevron-forward" size={20} color={theme.color.icon.disabled} />
               </TouchableOpacity>
             </View>
 
@@ -852,10 +848,10 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   activeOpacity={0.7}
                 >
                   <View style={[styles.sedeToggleCheck, showInternas && styles.sedeToggleCheckActive]}>
-                    {showInternas && <Ionicons name="checkmark" size={14} color={colors.neutral[0]} />}
+                    {showInternas && <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />}
                   </View>
                   <View style={styles.sedeToggleContent}>
-                    <Ionicons name="business" size={18} color={showInternas ? colors.primary[600] : colors.neutral[400]} />
+                    <Ionicons name="business" size={18} color={showInternas ? theme.color.brand.primary : theme.color.icon.disabled} />
                     <Text style={[styles.sedeToggleText, showInternas && styles.sedeToggleTextActive]}>
                       Sedes Internas
                     </Text>
@@ -872,10 +868,10 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   activeOpacity={0.7}
                 >
                   <View style={[styles.sedeToggleCheck, showExternas && styles.sedeToggleCheckActive]}>
-                    {showExternas && <Ionicons name="checkmark" size={14} color={colors.neutral[0]} />}
+                    {showExternas && <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />}
                   </View>
                   <View style={styles.sedeToggleContent}>
-                    <Ionicons name="storefront" size={18} color={showExternas ? colors.accent[600] : colors.neutral[400]} />
+                    <Ionicons name="storefront" size={18} color={showExternas ? theme.color.brand.accent : theme.color.icon.disabled} />
                     <Text style={[styles.sedeToggleText, showExternas && styles.sedeToggleTextActive]}>
                       Sedes Externas
                     </Text>
@@ -896,7 +892,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       <Ionicons
                         name={sedesExpanded ? 'chevron-down' : 'chevron-forward'}
                         size={18}
-                        color={colors.primary[600]}
+                        color={theme.color.brand.primary}
                       />
                       <Text style={styles.sedeListHeaderText}>
                         {showInternas && showExternas
@@ -913,7 +909,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       activeOpacity={0.7}
                     >
                       <View style={[styles.checkbox, allVisibleSelected && styles.checkboxChecked]}>
-                        {allVisibleSelected && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                        {allVisibleSelected && <Ionicons name="checkmark" size={12} color={theme.color.text.inverse} />}
                       </View>
                       <Text style={styles.selectAllText}>Todas</Text>
                     </TouchableOpacity>
@@ -935,7 +931,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                               isExternal && styles.checkboxExternas,
                               selectedSedeIds.has(sede.id) && (isExternal ? styles.checkboxExternasChecked : styles.checkboxChecked)
                             ]}>
-                              {selectedSedeIds.has(sede.id) && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                              {selectedSedeIds.has(sede.id) && <Ionicons name="checkmark" size={12} color={theme.color.text.inverse} />}
                             </View>
                             <View style={styles.sedeListItemInfo}>
                               <View style={styles.sedeListItemHeader}>
@@ -966,7 +962,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
               {/* Selected count summary */}
               <View style={styles.selectedSummary}>
-                <Ionicons name="checkmark-circle" size={16} color={colors.success[600]} />
+                <Ionicons name="checkmark-circle" size={16} color={theme.color.icon.success} />
                 <Text style={styles.selectedSummaryText}>
                   {selectedSedeIds.size} de {sedes.length} sedes seleccionadas
                 </Text>
@@ -987,16 +983,16 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 activeOpacity={0.7}
               >
                 <View style={[styles.sedeToggleCheck, includeAutoMatchingBankInfo && styles.bankToggleCheckActive]}>
-                  {includeAutoMatchingBankInfo && <Ionicons name="checkmark" size={14} color={colors.neutral[0]} />}
+                  {includeAutoMatchingBankInfo && <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />}
                 </View>
                 <View style={styles.sedeToggleContent}>
-                  <Ionicons name="git-compare-outline" size={18} color={includeAutoMatchingBankInfo ? colors.info[600] : colors.neutral[400]} />
+                  <Ionicons name="git-compare-outline" size={18} color={includeAutoMatchingBankInfo ? theme.color.state.info.border : theme.color.icon.disabled} />
                   <Text style={[styles.sedeToggleText, includeAutoMatchingBankInfo && styles.sedeToggleTextActive]}>
                     Incluir información de bancos (AutoMatching)
                   </Text>
                 </View>
                 {isLoadingAutoMatching && (
-                  <ActivityIndicator size="small" color={colors.info[600]} />
+                  <ActivityIndicator size="small" color={theme.color.state.info.border} />
                 )}
               </TouchableOpacity>
 
@@ -1008,19 +1004,19 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                     onPress={() => setShowAutoMatchingDatePicker(true)}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="calendar-outline" size={20} color={colors.info[600]} />
+                    <Ionicons name="calendar-outline" size={20} color={theme.color.state.info.border} />
                     <View style={styles.dateRangeTextContainer}>
-                      <Text style={[styles.dateRangeLabel, { color: colors.info[600] }]}>Fecha</Text>
+                      <Text style={[styles.dateRangeLabel, { color: theme.color.state.info.border }]}>Fecha</Text>
                       <Text style={styles.dateRangeValue}>{formatDisplayDate(autoMatchingDate)}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.neutral[400]} />
+                    <Ionicons name="chevron-forward" size={18} color={theme.color.icon.disabled} />
                   </TouchableOpacity>
                 </View>
               )}
 
               {/* Debug info - remove later */}
               {__DEV__ && (
-                <Text style={{ fontSize: 10, color: 'gray', marginBottom: 4 }}>
+                <Text style={{ fontSize: 10, color: theme.color.text.subtle, marginBottom: 4 }}>
                   Debug: includeBankInfo={String(includeBankInfo)}, accounts={bankAccounts.length}, loading={String(isLoadingBankAccounts)}, expanded={String(bankAccountsExpanded)}
                 </Text>
               )}
@@ -1035,16 +1031,16 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 activeOpacity={0.7}
               >
                 <View style={[styles.sedeToggleCheck, includeBankInfo && styles.bankToggleCheckActive]}>
-                  {includeBankInfo && <Ionicons name="checkmark" size={14} color={colors.neutral[0]} />}
+                  {includeBankInfo && <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />}
                 </View>
                 <View style={styles.sedeToggleContent}>
-                  <Ionicons name="wallet-outline" size={18} color={includeBankInfo ? colors.info[600] : colors.neutral[400]} />
+                  <Ionicons name="wallet-outline" size={18} color={includeBankInfo ? theme.color.state.info.border : theme.color.icon.disabled} />
                   <Text style={[styles.sedeToggleText, includeBankInfo && styles.sedeToggleTextActive]}>
                     Incluir información de bancos
                   </Text>
                 </View>
                 {isLoadingBankAccounts && (
-                  <ActivityIndicator size="small" color={colors.info[600]} />
+                  <ActivityIndicator size="small" color={theme.color.state.info.border} />
                 )}
               </TouchableOpacity>
 
@@ -1056,7 +1052,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   {/* Quick Filters for Bank Dates */}
                   <View style={styles.bankQuickFiltersContainer}>
                     <TouchableOpacity style={styles.bankQuickFilterButton} onPress={setBankSameAsSales} activeOpacity={0.7}>
-                      <Ionicons name="sync-outline" size={14} color={colors.info[600]} />
+                      <Ionicons name="sync-outline" size={14} color={theme.color.state.info.border} />
                       <Text style={styles.bankQuickFilterText}>Igual a Ventas</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.bankQuickFilterButton} onPress={setBankToday} activeOpacity={0.7}>
@@ -1079,14 +1075,14 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                     onPress={() => setShowBankDateRangePicker(true)}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="calendar-outline" size={20} color={colors.info[600]} />
+                    <Ionicons name="calendar-outline" size={20} color={theme.color.state.info.border} />
                     <View style={styles.dateRangeTextContainer}>
-                      <Text style={[styles.dateRangeLabel, { color: colors.info[600] }]}>Período Bancos</Text>
+                      <Text style={[styles.dateRangeLabel, { color: theme.color.state.info.border }]}>Período Bancos</Text>
                       <Text style={styles.dateRangeValue}>
                         {formatDisplayDate(bankFechaInicio)} — {formatDisplayDate(bankFechaFin)}
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.neutral[400]} />
+                    <Ionicons name="chevron-forward" size={18} color={theme.color.icon.disabled} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -1095,7 +1091,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               {includeBankInfo && bankAccounts.length > 0 && (
                 <View style={styles.bankAccountsListContainer}>
                   {__DEV__ && (
-                    <Text style={{ fontSize: 10, color: 'blue', padding: 4 }}>
+                    <Text style={{ fontSize: 10, color: theme.color.text.link, padding: 4 }}>
                       ✓ Lista visible - {bankAccounts.length} cuentas - Currencies: {Object.keys(bankAccountsByCurrency).join(', ')}
                     </Text>
                   )}
@@ -1108,9 +1104,9 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       <Ionicons
                         name={bankAccountsExpanded ? 'chevron-down' : 'chevron-forward'}
                         size={18}
-                        color={colors.info[600]}
+                        color={theme.color.state.info.border}
                       />
-                      <Text style={[styles.sedeListHeaderText, { color: colors.info[700] }]}>
+                      <Text style={[styles.sedeListHeaderText, { color: theme.color.state.info.text }]}>
                         Cuentas Bancarias
                       </Text>
                       <Text style={styles.sedeListHeaderCount}>({bankAccounts.length})</Text>
@@ -1121,7 +1117,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       activeOpacity={0.7}
                     >
                       <View style={[styles.checkbox, styles.checkboxBank, allBankAccountsSelected && styles.checkboxBankChecked]}>
-                        {allBankAccountsSelected && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                        {allBankAccountsSelected && <Ionicons name="checkmark" size={12} color={theme.color.text.inverse} />}
                       </View>
                       <Text style={styles.selectAllText}>Todas</Text>
                     </TouchableOpacity>
@@ -1150,7 +1146,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                                 styles.checkboxBank,
                                 selectedBankAccountIds.has(account.id) && styles.checkboxBankChecked
                               ]}>
-                                {selectedBankAccountIds.has(account.id) && <Ionicons name="checkmark" size={12} color={colors.neutral[0]} />}
+                                {selectedBankAccountIds.has(account.id) && <Ionicons name="checkmark" size={12} color={theme.color.text.inverse} />}
                               </View>
                               <View style={styles.bankAccountItemInfo}>
                                 <View style={styles.bankAccountItemHeader}>
@@ -1173,9 +1169,9 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
               {/* Selected bank accounts summary */}
               {includeBankInfo && bankAccounts.length > 0 && (
-                <View style={[styles.selectedSummary, { backgroundColor: colors.info[50] }]}>
-                  <Ionicons name="wallet" size={16} color={colors.info[600]} />
-                  <Text style={[styles.selectedSummaryText, { color: colors.info[700] }]}>
+                <View style={[styles.selectedSummary, { backgroundColor: theme.color.state.info.background }]}>
+                  <Ionicons name="wallet" size={16} color={theme.color.state.info.border} />
+                  <Text style={[styles.selectedSummaryText, { color: theme.color.state.info.text }]}>
                     {selectedBankAccountIds.size} de {bankAccounts.length} cuentas seleccionadas
                   </Text>
                 </View>
@@ -1184,7 +1180,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               {/* Loading state */}
               {includeBankInfo && isLoadingBankAccounts && (
                 <View style={styles.loadingBankAccounts}>
-                  <ActivityIndicator size="small" color={colors.info[600]} />
+                  <ActivityIndicator size="small" color={theme.color.state.info.border} />
                   <Text style={styles.loadingBankAccountsText}>Cargando cuentas bancarias...</Text>
                 </View>
               )}
@@ -1192,7 +1188,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               {/* No accounts message */}
               {includeBankInfo && !isLoadingBankAccounts && bankAccounts.length === 0 && (
                 <View style={styles.noBankAccountsMessage}>
-                  <Ionicons name="information-circle-outline" size={20} color={colors.warning[600]} />
+                  <Ionicons name="information-circle-outline" size={20} color={theme.color.icon.warning} />
                   <Text style={styles.noBankAccountsText}>No hay cuentas bancarias disponibles</Text>
                 </View>
               )}
@@ -1206,10 +1202,10 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               activeOpacity={0.8}
             >
               {isLoading ? (
-                <ActivityIndicator color={colors.neutral[0]} size="small" />
+                <ActivityIndicator color={theme.color.text.inverse} size="small" />
               ) : (
                 <>
-                  <Ionicons name="analytics" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="analytics" size={22} color={theme.color.text.inverse} />
                   <Text style={styles.generateButtonText}>Generar Cuadre</Text>
                 </>
               )}
@@ -1237,7 +1233,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             {/* Ventas Card */}
-            <DataCard title="Ventas" icon="cash-outline" iconColor={colors.success[600]} delay={200}>
+            <DataCard title="Ventas" icon="cash-outline" iconColor={theme.color.icon.success} delay={200}>
               <DataRow label="Efectivo" value={formatCurrency(cuadreData.ventas.efectivo)} />
               <DataRow label="Tarjeta" value={formatCurrency(cuadreData.ventas.tarjeta)} />
               <DataRow label="Total" value={formatCurrency(cuadreData.ventas.total)} isBold isTotal />
@@ -1245,18 +1241,18 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
             </DataCard>
 
             {/* Notas de Crédito Card */}
-            <DataCard title="Notas de Crédito" icon="document-text-outline" iconColor={colors.danger[600]} delay={300} variant="danger">
-              <DataRow label="Efectivo" value={formatCurrency(cuadreData.notas_credito.efectivo)} valueColor={colors.danger[600]} />
-              <DataRow label="Tarjeta" value={formatCurrency(cuadreData.notas_credito.tarjeta)} valueColor={colors.danger[600]} />
-              <DataRow label="Total" value={formatCurrency(cuadreData.notas_credito.total)} isBold isTotal valueColor={colors.danger[600]} />
+            <DataCard title="Notas de Crédito" icon="document-text-outline" iconColor={theme.color.icon.danger} delay={300} variant="danger">
+              <DataRow label="Efectivo" value={formatCurrency(cuadreData.notas_credito.efectivo)} valueColor={theme.color.icon.danger} />
+              <DataRow label="Tarjeta" value={formatCurrency(cuadreData.notas_credito.tarjeta)} valueColor={theme.color.icon.danger} />
+              <DataRow label="Total" value={formatCurrency(cuadreData.notas_credito.total)} isBold isTotal valueColor={theme.color.icon.danger} />
               <DataRow label="Cantidad" value={cuadreData.notas_credito.cantidad.toString()} />
             </DataCard>
 
             {/* Izipay Card - Only for internal sedes */}
             {!isOnlyExternas && (
-              <DataCard title="Izipay" icon="card-outline" iconColor={colors.accent[600]} delay={400}>
+              <DataCard title="Izipay" icon="card-outline" iconColor={theme.color.brand.accent} delay={400}>
                 <DataRow label="Bruto" value={formatCurrency(cuadreData.izipay.bruto)} />
-                <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={colors.danger[600]} />
+                <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={theme.color.icon.danger} />
                 <DataRow label="Neto" value={formatCurrency(cuadreData.izipay.neto)} isBold isTotal />
                 <DataRow label="Operaciones" value={cuadreData.izipay.cantidad_operaciones.toString()} />
                 <DataRow label="Matcheadas" value={cuadreData.izipay.transacciones_matcheadas.toString()} />
@@ -1266,7 +1262,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Prosegur Card - Only for internal sedes */}
             {!isOnlyExternas && (
-              <DataCard title="Prosegur" icon="business-outline" iconColor={colors.warning[600]} delay={500}>
+              <DataCard title="Prosegur" icon="business-outline" iconColor={theme.color.icon.warning} delay={500}>
                 <DataRow label="Depósitos" value={formatCurrency(cuadreData.prosegur.depositos)} />
                 <DataRow label="Balance" value={formatCurrency(cuadreData.prosegur.balances)} isBold isTotal />
                 <DataRow label="Operaciones" value={cuadreData.prosegur.cantidad_operaciones.toString()} />
@@ -1277,11 +1273,11 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Ingresos Bancarios Card - Only when bank info is included (normal) */}
             {cuadreData.ingresos_bancarios && (
-              <DataCard title="Ingresos Bancarios" icon="wallet-outline" iconColor={colors.info[600]} delay={550} variant="default">
+              <DataCard title="Ingresos Bancarios" icon="wallet-outline" iconColor={theme.color.state.info.border} delay={550} variant="default">
                 <DataRow
                   label="Total Ingresos"
                   value={formatCurrency(cuadreData.ingresos_bancarios.total_ingresos)}
-                  valueColor={colors.success[600]}
+                  valueColor={theme.color.icon.success}
                   isBold
                   isTotal
                 />
@@ -1291,11 +1287,11 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Ingresos Bancarios AutoMatching Card - Optional */}
             {includeAutoMatchingBankInfo && (
-              <DataCard title="Ingresos Bancarios (AutoMatching)" icon="git-compare-outline" iconColor={colors.info[600]} delay={575} variant="default">
+              <DataCard title="Ingresos Bancarios (AutoMatching)" icon="git-compare-outline" iconColor={theme.color.state.info.border} delay={575} variant="default">
                 <DataRow
                   label="Total Ingresos"
                   value={formatCurrency(autoMatchingTotalIngresos)}
-                  valueColor={colors.success[600]}
+                  valueColor={theme.color.icon.success}
                   isBold
                   isTotal
                 />
@@ -1306,35 +1302,35 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Estimación de Pago Card - Only for external sedes */}
             {isOnlyExternas && (
-              <DataCard title="Estimación de Pago" icon="wallet-outline" iconColor={colors.success[600]} delay={400} variant="success">
+              <DataCard title="Estimación de Pago" icon="wallet-outline" iconColor={theme.color.icon.success} delay={400} variant="success">
                 <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de Crédito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={colors.danger[600]} />
+                <DataRow label="Notas de Crédito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={theme.color.icon.danger} />
                 <DataRow label="Ventas Netas" value={formatCurrency(cuadreData.ventas.total - cuadreData.notas_credito.total)} isBold />
-                <DataRow label="Comisión Franquicia (15%)" value={`-${formatCurrency((cuadreData.ventas.total - cuadreData.notas_credito.total) - estimacionPago)}`} valueColor={colors.neutral[500]} />
+                <DataRow label="Comisión Franquicia (15%)" value={`-${formatCurrency((cuadreData.ventas.total - cuadreData.notas_credito.total) - estimacionPago)}`} valueColor={theme.color.text.muted} />
                 <DataRow
                   label="Estimación a Pagar"
                   value={formatCurrency(estimacionPago)}
                   isBold
                   isTotal
-                  valueColor={colors.success[700]}
+                  valueColor={theme.color.state.success.text}
                 />
               </DataCard>
             )}
 
             {/* Resumen Card - Different content for internal vs external */}
             {!isOnlyExternas ? (
-              <DataCard title="Resumen de Totales" icon="calculator-outline" iconColor={colors.info[600]} delay={600} variant="success">
+              <DataCard title="Resumen de Totales" icon="calculator-outline" iconColor={theme.color.state.info.border} delay={600} variant="success">
                 <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de Crédito" value={formatCurrency(cuadreData.notas_credito.total)} valueColor={colors.danger[600]} />
+                <DataRow label="Notas de Crédito" value={formatCurrency(cuadreData.notas_credito.total)} valueColor={theme.color.icon.danger} />
                 <DataRow label="Izipay (Bruto)" value={formatCurrency(cuadreData.izipay.bruto)} />
-                <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={colors.danger[600]} />
+                <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={theme.color.icon.danger} />
                 <DataRow label="Prosegur" value={formatCurrency(cuadreData.prosegur.depositos)} />
                 <DataRow
                   label="Diferencia"
                   value={formatCurrency(diferencia)}
                   isBold
                   isTotal
-                  valueColor={diferencia !== 0 ? colors.warning[600] : colors.success[600]}
+                  valueColor={diferencia !== 0 ? theme.color.icon.warning : theme.color.icon.success}
                 />
                 <DataRow
                   label="Total a Ingresar"
@@ -1348,7 +1344,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                     <DataRow
                       label="Total de Ingresos (Bancos)"
                       value={formatCurrency(cuadreData.ingresos_bancarios.total_ingresos)}
-                      valueColor={colors.info[600]}
+                      valueColor={theme.color.state.info.border}
                     />
                     <DataRow
                       label="Diferencia con Bancos"
@@ -1357,8 +1353,8 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       isTotal
                       valueColor={
                         (cuadreData.prosegur.depositos + cuadreData.izipay.neto) - cuadreData.ingresos_bancarios.total_ingresos === 0
-                          ? colors.success[600]
-                          : colors.warning[600]
+                          ? theme.color.icon.success
+                          : theme.color.icon.warning
                       }
                     />
                   </>
@@ -1370,7 +1366,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                     <DataRow
                       label="Total de Ingresos (AutoMatching)"
                       value={formatCurrency(autoMatchingTotalIngresos)}
-                      valueColor={colors.info[600]}
+                      valueColor={theme.color.state.info.border}
                     />
                     <DataRow
                       label="Diferencia con AutoMatching"
@@ -1379,38 +1375,38 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       isTotal
                       valueColor={
                         (cuadreData.prosegur.depositos + cuadreData.izipay.neto) - autoMatchingTotalIngresos === 0
-                          ? colors.success[600]
-                          : colors.warning[600]
+                          ? theme.color.icon.success
+                          : theme.color.icon.warning
                       }
                     />
                   </>
                 )}
               </DataCard>
             ) : (
-              <DataCard title="Resumen Sedes Externas" icon="calculator-outline" iconColor={colors.info[600]} delay={500} variant="success">
+              <DataCard title="Resumen Sedes Externas" icon="calculator-outline" iconColor={theme.color.state.info.border} delay={500} variant="success">
                 <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de Crédito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={colors.danger[600]} />
+                <DataRow label="Notas de Crédito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={theme.color.icon.danger} />
                 <DataRow label="Ventas Netas" value={formatCurrency(cuadreData.ventas.total - cuadreData.notas_credito.total)} isBold />
                 <DataRow
                   label="Estimación a Pagar"
                   value={formatCurrency(estimacionPago)}
                   isBold
                   isTotal
-                  valueColor={colors.success[700]}
+                  valueColor={theme.color.state.success.text}
                 />
               </DataCard>
             )}
 
             {/* Operaciones Card - Only for internal sedes */}
             {!isOnlyExternas && (
-              <DataCard title="Operaciones" icon="git-compare-outline" iconColor={colors.primary[600]} delay={700}>
+              <DataCard title="Operaciones" icon="git-compare-outline" iconColor={theme.color.brand.primary} delay={700}>
                 <DataRow label="Ventas" value={cuadreData.operaciones.ventas.toString()} />
                 <DataRow label="Izipay" value={cuadreData.operaciones.izipay.toString()} />
                 <DataRow label="Prosegur" value={cuadreData.operaciones.prosegur.toString()} />
                 <DataRow
                   label="Coinciden"
                   value={cuadreData.operaciones.coinciden ? '✓ Sí' : '✗ No'}
-                  valueColor={cuadreData.operaciones.coinciden ? colors.success[600] : colors.warning[600]}
+                  valueColor={cuadreData.operaciones.coinciden ? theme.color.icon.success : theme.color.icon.warning}
                   isBold
                 />
               </DataCard>
@@ -1420,20 +1416,20 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
             <AnimatedCard delay={800}>
               <View style={styles.metadataContainer}>
                 <View style={styles.metadataRow}>
-                  <Ionicons name="time-outline" size={16} color={colors.neutral[500]} />
+                  <Ionicons name="time-outline" size={16} color={theme.color.text.muted} />
                   <Text style={styles.metadataText}>
                     Generado: {new Date(cuadreData.generado_en).toLocaleString('es-PE')}
                   </Text>
                 </View>
                 <View style={styles.metadataRow}>
-                  <Ionicons name="calendar-outline" size={16} color={colors.neutral[500]} />
+                  <Ionicons name="calendar-outline" size={16} color={theme.color.text.muted} />
                   <Text style={styles.metadataText}>
                     Periodo: {cuadreData.fecha_inicio} al {cuadreData.fecha_fin}
                   </Text>
                 </View>
                 {cuadreData.sedes.length > 0 && (
                   <View style={styles.metadataRow}>
-                    <Ionicons name="location-outline" size={16} color={colors.neutral[500]} />
+                    <Ionicons name="location-outline" size={16} color={theme.color.text.muted} />
                     <Text style={styles.metadataText}>
                       Sedes: {cuadreData.sedes.map((s) => s.code).join(', ')}
                     </Text>
@@ -1451,10 +1447,10 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 activeOpacity={0.8}
               >
                 {isDownloadingPDF ? (
-                  <ActivityIndicator color={colors.neutral[0]} size="small" />
+                  <ActivityIndicator color={theme.color.text.inverse} size="small" />
                 ) : (
                   <>
-                    <Ionicons name="document-text" size={24} color={colors.neutral[0]} />
+                    <Ionicons name="document-text" size={24} color={theme.color.text.inverse} />
                     <Text style={styles.pdfButtonText}>Descargar PDF</Text>
                   </>
                 )}
@@ -1466,7 +1462,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               <AnimatedCard delay={950}>
                 <View style={styles.bankAccountsDetailContainer}>
                   <View style={styles.bankAccountsDetailHeader}>
-                    <Ionicons name="wallet-outline" size={20} color={colors.info[600]} />
+                    <Ionicons name="wallet-outline" size={20} color={theme.color.state.info.border} />
                     <Text style={styles.bankAccountsDetailTitle}>Detalle por Cuenta Bancaria</Text>
                   </View>
                   {cuadreData.ingresos_bancarios.detalle_por_cuenta.map((cuenta) => (
@@ -1482,21 +1478,21 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       <View style={styles.bankAccountDetailRow}>
                         <View style={styles.bankAccountDetailItem}>
                           <Text style={styles.bankAccountDetailLabel}>Ingresos</Text>
-                          <Text style={[styles.bankAccountDetailValue, { color: colors.success[600] }]}>
+                          <Text style={[styles.bankAccountDetailValue, { color: theme.color.icon.success }]}>
                             {formatCurrency(cuenta.total_ingresos)}
                           </Text>
                           <Text style={styles.bankAccountDetailCount}>({cuenta.cantidad_ingresos})</Text>
                         </View>
                         <View style={styles.bankAccountDetailItem}>
                           <Text style={styles.bankAccountDetailLabel}>Egresos</Text>
-                          <Text style={[styles.bankAccountDetailValue, { color: colors.danger[600] }]}>
+                          <Text style={[styles.bankAccountDetailValue, { color: theme.color.icon.danger }]}>
                             {formatCurrency(cuenta.total_egresos)}
                           </Text>
                           <Text style={styles.bankAccountDetailCount}>({cuenta.cantidad_egresos})</Text>
                         </View>
                         <View style={styles.bankAccountDetailItem}>
                           <Text style={styles.bankAccountDetailLabel}>Balance</Text>
-                          <Text style={[styles.bankAccountDetailValue, { color: cuenta.balance_neto >= 0 ? colors.success[700] : colors.danger[700], fontWeight: '700' }]}>
+                          <Text style={[styles.bankAccountDetailValue, { color: cuenta.balance_neto >= 0 ? theme.color.state.success.text : theme.color.state.danger.text, fontWeight: '700' }]}>
                             {formatCurrency(cuenta.balance_neto)}
                           </Text>
                         </View>
@@ -1514,7 +1510,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
           <AnimatedCard delay={100}>
             <View style={styles.emptyState}>
               <View style={styles.emptyIconContainer}>
-                <Ionicons name="analytics-outline" size={64} color={colors.neutral[300]} />
+                <Ionicons name="analytics-outline" size={64} color={theme.color.icon.disabled} />
               </View>
               <Text style={styles.emptyTitle}>Sin datos</Text>
               <Text style={styles.emptyText}>
@@ -1573,16 +1569,16 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
   },
   // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
@@ -1591,11 +1587,11 @@ const styles = StyleSheet.create({
   backButtonGradient: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitleContainer: {
     flex: 1,
@@ -1603,52 +1599,52 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.neutral[0],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    ...shadows.sm,
+    borderBottomColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   placeholder: {
     width: 40,
@@ -1659,184 +1655,184 @@ const styles = StyleSheet.create({
 
   // Filters Card
   filtersCard: {
-    backgroundColor: colors.neutral[0],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    ...shadows.sm,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    ...theme.shadow.sm,
   },
   filtersHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
-    gap: spacing[2],
+    marginBottom: theme.space[4],
+    gap: theme.space[2],
   },
   filtersTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.heading,
   },
   quickFiltersContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
-    marginBottom: spacing[4],
+    gap: theme.space[2],
+    marginBottom: theme.space[4],
   },
   quickFilterButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.full,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    backgroundColor: theme.color.brand.primarySoft,
+    borderRadius: theme.radii.full,
     borderWidth: 1,
-    borderColor: colors.primary[200],
+    borderColor: theme.color.border.subtle,
   },
   quickFilterText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.primary[700],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.brand.primary,
   },
   dateRangeContainer: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   dateRangeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.primarySoft,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: colors.primary[200],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    gap: spacing[3],
+    borderColor: theme.color.border.subtle,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
+    gap: theme.space[3],
   },
   dateRangeTextContainer: {
     flex: 1,
   },
   dateRangeLabel: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
-    color: colors.primary[600],
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.color.brand.primary,
     marginBottom: 2,
   },
   dateRangeValue: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.color.text.heading,
   },
   sedeContainer: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   sedeLabel: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[600],
-    marginBottom: spacing[3],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.muted,
+    marginBottom: theme.space[3],
   },
 
   // Sede Toggle Buttons
   sedeToggleRow: {
     flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[3],
+    gap: theme.space[3],
+    marginBottom: theme.space[3],
   },
   sedeToggleButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
     borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    gap: spacing[2],
+    borderColor: theme.color.border.subtle,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
+    gap: theme.space[2],
   },
   sedeToggleButtonActive: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[300],
+    backgroundColor: theme.color.brand.primarySoft,
+    borderColor: theme.color.border.default,
   },
   sedeToggleCheck: {
     width: 20,
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: colors.neutral[300],
-    backgroundColor: colors.neutral[0],
+    borderColor: theme.color.border.default,
+    backgroundColor: theme.color.surface.base,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sedeToggleCheckActive: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   sedeToggleContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   sedeToggleText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[500],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.subtle,
   },
   sedeToggleTextActive: {
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   sedeToggleCount: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[400],
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.color.text.disabled,
   },
 
   // Sede List Container
   sedeListContainer: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.brand.primarySoft,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.primary[200],
-    marginBottom: spacing[3],
+    borderColor: theme.color.border.subtle,
+    marginBottom: theme.space[3],
     overflow: 'hidden',
   },
   sedeListContainerExternas: {
-    backgroundColor: colors.accent[50],
-    borderColor: colors.accent[200],
+    backgroundColor: theme.color.brand.accentSoft,
+    borderColor: theme.color.brand.accentSoft,
   },
   sedeListHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
     backgroundColor: 'transparent',
   },
   sedeListHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   sedeListHeaderText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.primary[700],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.brand.primary,
   },
   sedeListHeaderCount: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[500],
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.color.text.subtle,
   },
   selectAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[1],
-    paddingHorizontal: spacing[2],
+    gap: theme.space[2],
+    paddingVertical: theme.space[1],
+    paddingHorizontal: theme.space[2],
   },
   selectAllText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[600],
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.color.text.muted,
   },
 
   // Checkbox
@@ -1845,81 +1841,81 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: colors.primary[400],
-    backgroundColor: colors.neutral[0],
+    borderColor: theme.color.border.default,
+    backgroundColor: theme.color.surface.base,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   checkboxExternas: {
-    borderColor: colors.accent[400],
+    borderColor: theme.color.brand.accent,
   },
   checkboxExternasChecked: {
-    backgroundColor: colors.accent[600],
-    borderColor: colors.accent[600],
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
 
   // Sede List Items
   sedeListItems: {
     borderTopWidth: 1,
-    borderTopColor: colors.primary[200],
-    backgroundColor: colors.neutral[0],
+    borderTopColor: theme.color.border.subtle,
+    backgroundColor: theme.color.surface.base,
   },
   sedeListItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    gap: spacing[3],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
+    gap: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
+    borderBottomColor: theme.color.background.muted,
   },
   sedeListItemInfo: {
     flex: 1,
     flexDirection: 'column',
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   sedeListItemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   sedeListItemCode: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[800],
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.color.text.heading,
+    backgroundColor: theme.color.background.muted,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
   sedeListItemName: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[600],
+    fontSize: 14,
+    color: theme.color.text.muted,
   },
   sedeTypeBadge: {
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: theme.space[2],
     paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    borderRadius: theme.radii.sm,
   },
   sedeTypeBadgeInternal: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: theme.color.brand.primarySoft,
   },
   sedeTypeBadgeExternal: {
-    backgroundColor: colors.accent[100],
+    backgroundColor: theme.color.brand.accentSoft,
   },
   sedeTypeBadgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
+    fontSize: 12,
+    fontWeight: '700',
   },
   sedeTypeBadgeTextInternal: {
-    color: colors.primary[700],
+    color: theme.color.brand.primary,
   },
   sedeTypeBadgeTextExternal: {
-    color: colors.accent[700],
+    color: theme.color.brand.accent,
   },
 
   // Selected Summary
@@ -1927,33 +1923,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.md,
+    gap: theme.space[2],
+    paddingVertical: theme.space[2],
+    backgroundColor: theme.color.state.success.background,
+    borderRadius: theme.radii.md,
   },
   selectedSummaryText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.success[700],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.state.success.text,
   },
   generateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary[600],
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.lg,
-    gap: spacing[3],
-    ...shadows.md,
+    backgroundColor: theme.color.brand.primary,
+    paddingVertical: theme.space[4],
+    borderRadius: theme.radii.lg,
+    gap: theme.space[3],
+    ...theme.shadow.md,
   },
   generateButtonDisabled: {
-    backgroundColor: colors.neutral[300],
+    backgroundColor: theme.color.border.default,
   },
   generateButtonText: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.inverse,
   },
 
   // Severity Badge
@@ -1961,32 +1957,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[5],
-    borderRadius: borderRadius.lg,
-    gap: spacing[3],
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    paddingVertical: theme.space[4],
+    paddingHorizontal: theme.space[5],
+    borderRadius: theme.radii.lg,
+    gap: theme.space[3],
   },
   severityText: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
+    fontSize: 18,
+    fontWeight: '700',
   },
 
   // Data Card
   dataCard: {
-    backgroundColor: colors.neutral[0],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    ...shadows.sm,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    ...theme.shadow.sm,
   },
   dataCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
-    gap: spacing[3],
+    marginBottom: theme.space[4],
+    gap: theme.space[3],
   },
   dataCardIcon: {
     width: 36,
@@ -1996,57 +1992,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dataCardTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.heading,
   },
   dataRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing[2],
+    paddingVertical: theme.space[2],
   },
   dataRowTotal: {
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    marginTop: spacing[2],
-    paddingTop: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    marginTop: theme.space[2],
+    paddingTop: theme.space[3],
   },
   dataLabel: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[600],
+    fontSize: 14,
+    color: theme.color.text.muted,
   },
   dataLabelBold: {
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[800],
+    fontWeight: '600',
+    color: theme.color.text.heading,
   },
   dataValue: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[900],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.heading,
   },
   dataValueBold: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   // Metadata
   metadataContainer: {
-    backgroundColor: colors.neutral[50],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    gap: spacing[2],
+    backgroundColor: theme.color.background.subtle,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    gap: theme.space[2],
   },
   metadataRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   metadataText: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[600],
+    fontSize: 14,
+    color: theme.color.text.muted,
   },
 
   // PDF Button
@@ -2054,325 +2050,325 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent[600],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.lg,
-    gap: spacing[3],
-    ...shadows.md,
+    backgroundColor: theme.color.brand.accent,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    paddingVertical: theme.space[4],
+    borderRadius: theme.radii.lg,
+    gap: theme.space[3],
+    ...theme.shadow.md,
   },
   pdfButtonDisabled: {
-    backgroundColor: colors.neutral[300],
+    backgroundColor: theme.color.border.default,
   },
   pdfButtonText: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.inverse,
   },
 
   // Empty State
   emptyState: {
     alignItems: 'center',
-    paddingVertical: spacing[16],
+    paddingVertical: theme.space[16],
   },
   emptyIconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   emptyTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   emptyText: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    fontSize: 14,
+    color: theme.color.text.subtle,
     textAlign: 'center',
   },
 
   bottomSpacer: {
-    height: spacing[8],
+    height: theme.space[8],
   },
 
   // ==================== Bank Accounts Styles ====================
 
   bankAccountsSection: {
-    marginBottom: spacing[4],
-    paddingTop: spacing[4],
+    marginBottom: theme.space[4],
+    paddingTop: theme.space[4],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   bankToggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
     borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    gap: spacing[2],
-    marginBottom: spacing[3],
+    borderColor: theme.color.border.subtle,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
+    gap: theme.space[2],
+    marginBottom: theme.space[3],
   },
   bankToggleButtonActive: {
-    backgroundColor: colors.info[50],
-    borderColor: colors.info[300],
+    backgroundColor: theme.color.state.info.background,
+    borderColor: theme.color.state.info.border,
   },
   bankToggleCheckActive: {
-    backgroundColor: colors.info[600],
-    borderColor: colors.info[600],
+    backgroundColor: theme.color.state.info.border,
+    borderColor: theme.color.state.info.border,
   },
   bankDateSection: {
-    marginBottom: spacing[3],
-    padding: spacing[3],
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.md,
+    marginBottom: theme.space[3],
+    padding: theme.space[3],
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.info[200],
+    borderColor: theme.color.state.info.border,
   },
   bankDateLabel: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.info[700],
-    marginBottom: spacing[2],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.state.info.text,
+    marginBottom: theme.space[2],
   },
   bankQuickFiltersContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
-    marginBottom: spacing[3],
+    gap: theme.space[2],
+    marginBottom: theme.space[3],
   },
   bankQuickFilterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1] + 2,
-    backgroundColor: colors.info[100],
-    borderRadius: borderRadius.full,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1] + 2,
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.full,
     borderWidth: 1,
-    borderColor: colors.info[300],
-    gap: spacing[1],
+    borderColor: theme.color.state.info.border,
+    gap: theme.space[1],
   },
   bankQuickFilterText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
-    color: colors.info[700],
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.color.state.info.text,
   },
   bankDateRangeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.info[300],
-    paddingVertical: spacing[2] + 2,
-    paddingHorizontal: spacing[3],
-    gap: spacing[2],
+    borderColor: theme.color.state.info.border,
+    paddingVertical: theme.space[2] + 2,
+    paddingHorizontal: theme.space[3],
+    gap: theme.space[2],
   },
   bankAccountsListContainer: {
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.info[200],
-    marginBottom: spacing[3],
+    borderColor: theme.color.state.info.border,
+    marginBottom: theme.space[3],
     overflow: 'hidden',
   },
   checkboxBank: {
-    borderColor: colors.info[400],
+    borderColor: theme.color.state.info.border,
   },
   checkboxBankChecked: {
-    backgroundColor: colors.info[600],
-    borderColor: colors.info[600],
+    backgroundColor: theme.color.state.info.border,
+    borderColor: theme.color.state.info.border,
   },
   currencyHeader: {
-    backgroundColor: colors.info[100],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
+    backgroundColor: theme.color.state.info.background,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.info[200],
+    borderBottomColor: theme.color.state.info.border,
   },
   currencyHeaderText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
-    color: colors.info[700],
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.color.state.info.text,
     textTransform: 'uppercase',
   },
   bankAccountItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    gap: spacing[3],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
+    gap: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-    backgroundColor: colors.neutral[0],
+    borderBottomColor: theme.color.background.muted,
+    backgroundColor: theme.color.surface.base,
   },
   bankAccountItemInfo: {
     flex: 1,
     flexDirection: 'column',
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   bankAccountItemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   bankAccountBankName: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
-    color: colors.info[700],
-    backgroundColor: colors.info[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.color.state.info.text,
+    backgroundColor: theme.color.state.info.background,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
   bankAccountCurrencyBadge: {
-    backgroundColor: colors.neutral[200],
-    paddingHorizontal: spacing[2],
+    backgroundColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[2],
     paddingVertical: 2,
-    borderRadius: borderRadius.sm,
+    borderRadius: theme.radii.sm,
   },
   bankAccountCurrencyText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[600],
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.color.text.muted,
   },
   bankAccountAlias: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[800],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.heading,
   },
   bankAccountNumber: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[500],
+    fontSize: 12,
+    color: theme.color.text.subtle,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   loadingBankAccounts: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.md,
+    gap: theme.space[2],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.md,
   },
   loadingBankAccountsText: {
-    fontSize: fontSizes.sm,
-    color: colors.info[600],
+    fontSize: 14,
+    color: theme.color.state.info.text,
   },
   noBankAccountsMessage: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.md,
+    gap: theme.space[2],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.state.warning.background,
+    borderRadius: theme.radii.md,
   },
   noBankAccountsText: {
-    fontSize: fontSizes.sm,
-    color: colors.warning[700],
+    fontSize: 14,
+    color: theme.color.state.warning.text,
   },
 
   // ==================== Bank Accounts Detail (Results) Styles ====================
 
   bankAccountsDetailContainer: {
-    backgroundColor: colors.neutral[0],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    ...shadows.sm,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    ...theme.shadow.sm,
   },
   bankAccountsDetailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
-    gap: spacing[2],
+    marginBottom: theme.space[4],
+    gap: theme.space[2],
   },
   bankAccountsDetailSection: {
-    marginTop: spacing[4],
-    paddingTop: spacing[4],
+    marginTop: theme.space[4],
+    paddingTop: theme.space[4],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   bankAccountsDetailTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.info[700],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.state.info.text,
   },
   bankAccountDetailCard: {
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginBottom: spacing[2],
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.md,
+    padding: theme.space[3],
+    marginBottom: theme.space[2],
     borderWidth: 1,
-    borderColor: colors.info[200],
+    borderColor: theme.color.state.info.border,
   },
   bankAccountDetailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   bankAccountDetailBadge: {
-    backgroundColor: colors.info[600],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    backgroundColor: theme.color.state.info.border,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
   bankAccountDetailBadgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[0],
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.color.text.inverse,
   },
   bankAccountDetailCurrency: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[500],
-    backgroundColor: colors.neutral[200],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.color.text.subtle,
+    backgroundColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
   bankAccountDetailAlias: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[800],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.text.heading,
   },
   bankAccountDetailNumber: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[500],
+    fontSize: 12,
+    color: theme.color.text.subtle,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   bankAccountDetailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
   bankAccountDetailItem: {
     flex: 1,
     alignItems: 'center',
   },
   bankAccountDetailLabel: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
+    fontSize: 12,
+    color: theme.color.text.subtle,
+    marginBottom: theme.space[1],
   },
   bankAccountDetailValue: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
+    fontSize: 14,
+    fontWeight: '600',
   },
   bankAccountDetailCount: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[400],
+    fontSize: 12,
+    color: theme.color.text.disabled,
   },
 });

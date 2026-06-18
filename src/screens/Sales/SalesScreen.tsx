@@ -28,7 +28,8 @@ import {
 } from '@/types/sales';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 
 interface SalesScreenProps {
@@ -38,6 +39,8 @@ interface SalesScreenProps {
 export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   // State
   const [sales, setSales] = useState<Sale[]>([]);
@@ -141,30 +144,30 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
   const getStatusColor = (status: SaleStatus) => {
     switch (status) {
       case SaleStatus.CONFIRMED:
-        return colors.success[500];
+        return theme.color.state.success.border;
       case SaleStatus.COMPLETED:
-        return colors.accent[500];
+        return theme.color.brand.accent;
       case SaleStatus.CANCELLED:
-        return colors.danger[500];
+        return theme.color.state.danger.border;
       case SaleStatus.DRAFT:
-        return colors.warning[500];
+        return theme.color.state.warning.border;
       default:
-        return colors.neutral[500];
+        return theme.color.text.subtle;
     }
   };
 
   const getPaymentStatusColor = (status: PaymentStatus) => {
     switch (status) {
       case PaymentStatus.PAID:
-        return colors.success[500];
+        return theme.color.state.success.border;
       case PaymentStatus.PARTIAL:
-        return colors.warning[500];
+        return theme.color.state.warning.border;
       case PaymentStatus.PENDING:
-        return colors.neutral[500];
+        return theme.color.text.subtle;
       case PaymentStatus.OVERDUE:
-        return colors.danger[500];
+        return theme.color.state.danger.border;
       default:
-        return colors.neutral[500];
+        return theme.color.text.subtle;
     }
   };
 
@@ -208,18 +211,18 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
             <View style={styles.codeContainer}>
-              <Ionicons name="receipt-outline" size={18} color={colors.accent[600]} />
+              <Ionicons name="receipt-outline" size={18} color={theme.color.brand.accent} />
               <Text style={[styles.cardCode, isTablet && styles.cardCodeTablet]}>{sale.code}</Text>
             </View>
             <View style={styles.badges}>
               {/* Origen */}
-              <View style={[styles.badge, { backgroundColor: isIndependent ? colors.info[50] : colors.success[50] }]}>
+              <View style={[styles.badge, { backgroundColor: isIndependent ? theme.color.state.info.background : theme.color.state.success.background }]}>
                 <Ionicons
                   name={isIndependent ? "person-outline" : "cash-outline"}
                   size={12}
-                  color={isIndependent ? colors.info[600] : colors.success[600]}
+                  color={isIndependent ? theme.color.state.info.text : theme.color.state.success.text}
                 />
-                <Text style={[styles.badgeText, { color: isIndependent ? colors.info[600] : colors.success[600] }]}>
+                <Text style={[styles.badgeText, { color: isIndependent ? theme.color.state.info.text : theme.color.state.success.text }]}>
                   {isIndependent ? 'Independiente' : 'Caja'}
                 </Text>
               </View>
@@ -232,9 +235,9 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               </View>
               {/* Nota de Crédito */}
               {sale.hasCreditNote && (
-                <View style={[styles.badge, { backgroundColor: colors.warning[50] }]}>
-                  <Ionicons name="document-text-outline" size={12} color={colors.warning[600]} />
-                  <Text style={[styles.badgeText, { color: colors.warning[600] }]}>
+                <View style={[styles.badge, { backgroundColor: theme.color.state.warning.background }]}>
+                  <Ionicons name="document-text-outline" size={12} color={theme.color.state.warning.text} />
+                  <Text style={[styles.badgeText, { color: theme.color.state.warning.text }]}>
                     NC {sale.creditNoteType === 'TOTAL' ? 'Total' : 'Parcial'}
                   </Text>
                 </View>
@@ -260,7 +263,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         {/* Card Body */}
         <View style={styles.cardBody}>
           <View style={styles.infoRow}>
-            <Ionicons name="person" size={16} color={colors.neutral[400]} />
+            <Ionicons name="person" size={16} color={theme.color.icon.disabled} />
             <Text style={styles.infoLabel}>Cliente</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
               {customerName}
@@ -269,7 +272,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
           {sale.customerDocument && (
             <View style={styles.infoRow}>
-              <Ionicons name="card-outline" size={16} color={colors.neutral[400]} />
+              <Ionicons name="card-outline" size={16} color={theme.color.icon.disabled} />
               <Text style={styles.infoLabel}>Doc.</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
                 {sale.customerDocument}
@@ -279,7 +282,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
           {sellerName && (
             <View style={styles.infoRow}>
-              <Ionicons name="briefcase-outline" size={16} color={colors.neutral[400]} />
+              <Ionicons name="briefcase-outline" size={16} color={theme.color.icon.disabled} />
               <Text style={styles.infoLabel}>{isIndependent ? 'Vendedor' : 'Cajero'}</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]} numberOfLines={1}>
                 {sellerName}
@@ -288,7 +291,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
           )}
 
           <View style={styles.infoRow}>
-            <Ionicons name="cube-outline" size={16} color={colors.neutral[400]} />
+            <Ionicons name="cube-outline" size={16} color={theme.color.icon.disabled} />
             <Text style={styles.infoLabel}>Items</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {sale.itemCount} ({sale.totalQuantity} uds.)
@@ -296,7 +299,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="wallet-outline" size={16} color={colors.neutral[400]} />
+            <Ionicons name="wallet-outline" size={16} color={theme.color.icon.disabled} />
             <Text style={styles.infoLabel}>Pago</Text>
             <View style={[styles.paymentBadge, { backgroundColor: getPaymentStatusColor(sale.paymentStatus) + '15' }]}>
               <Text style={[styles.paymentBadgeText, { color: getPaymentStatusColor(sale.paymentStatus) }]}>
@@ -307,9 +310,9 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
           {sale.hasCreditNote && sale.creditNotesCount > 0 && (
             <View style={styles.infoRow}>
-              <Ionicons name="return-down-back-outline" size={16} color={colors.warning[500]} />
-              <Text style={[styles.infoLabel, { color: colors.warning[600] }]}>NC</Text>
-              <Text style={[styles.infoValue, { color: colors.warning[600] }]}>
+              <Ionicons name="return-down-back-outline" size={16} color={theme.color.icon.warning} />
+              <Text style={[styles.infoLabel, { color: theme.color.text.warning }]}>NC</Text>
+              <Text style={[styles.infoValue, { color: theme.color.text.warning }]}>
                 S/ {sale.creditedAmount?.toFixed(2) || '0.00'} ({sale.creditNotesCount})
               </Text>
             </View>
@@ -330,7 +333,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
             )}
           </View>
           <View style={styles.arrowContainer}>
-            <Ionicons name="chevron-forward" size={24} color={colors.neutral[300]} />
+            <Ionicons name="chevron-forward" size={24} color={theme.color.border.default} />
           </View>
         </View>
       </TouchableOpacity>
@@ -356,7 +359,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         <Ionicons
           name={icon as any}
           size={14}
-          color={currentValue === value ? colors.neutral[0] : colors.neutral[500]}
+          color={currentValue === value ? theme.color.text.inverse : theme.color.text.subtle}
           style={{ marginRight: 4 }}
         />
       )}
@@ -374,7 +377,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -383,7 +386,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="cart" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.title, isTablet && styles.titleTablet]}>Ventas</Text>
               </View>
@@ -404,17 +407,17 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <Ionicons name="search" size={20} color={theme.color.icon.disabled} style={styles.searchIcon} />
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchText}
                 onChangeText={setSearchText}
                 placeholder="Buscar por código, cliente..."
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchText.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearButton}>
-                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="close-circle" size={20} color={theme.color.icon.disabled} />
                 </TouchableOpacity>
               )}
             </View>
@@ -425,7 +428,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <Ionicons
                 name="options"
                 size={20}
-                color={getActiveFiltersCount() > 0 ? colors.neutral[0] : colors.neutral[600]}
+                color={getActiveFiltersCount() > 0 ? theme.color.text.inverse : theme.color.text.muted}
               />
               {getActiveFiltersCount() > 0 && (
                 <View style={styles.filterBadge}>
@@ -459,7 +462,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         {/* Loading State */}
         {loading && !refreshing && sales.length === 0 ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.accent[500]} />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando ventas...</Text>
           </View>
         ) : (
@@ -477,20 +480,20 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                colors={[colors.accent[500]]}
+                colors={[theme.color.brand.accent]}
               />
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <View style={styles.emptyIconContainer}>
-                  <Ionicons name="cart-outline" size={64} color={colors.neutral[300]} />
+                  <Ionicons name="cart-outline" size={64} color={theme.color.border.default} />
                 </View>
                 <Text style={styles.emptyText}>No hay ventas registradas</Text>
                 <Text style={styles.emptySubtext}>
                   Crea una nueva venta para comenzar
                 </Text>
                 <TouchableOpacity style={styles.emptyButton} onPress={handleCreateSale}>
-                  <Ionicons name="add" size={20} color={colors.neutral[0]} />
+                  <Ionicons name="add" size={20} color={theme.color.text.inverse} />
                   <Text style={styles.emptyButtonText}>Nueva Venta</Text>
                 </TouchableOpacity>
               </View>
@@ -499,7 +502,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <>
                 {loading && page > 1 && (
                   <View style={styles.loadingMore}>
-                    <ActivityIndicator size="small" color={colors.accent[500]} />
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   </View>
                 )}
                 <View style={styles.bottomSpacer} />
@@ -526,7 +529,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <Ionicons
                 name="chevron-back"
                 size={20}
-                color={page === 1 ? colors.neutral[300] : colors.neutral[0]}
+                color={page === 1 ? theme.color.border.default : theme.color.text.inverse}
               />
               <Text style={[
                 styles.paginationButtonText,
@@ -562,7 +565,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <Ionicons
                 name="chevron-forward"
                 size={20}
-                color={page >= totalPages ? colors.neutral[300] : colors.neutral[0]}
+                color={page >= totalPages ? theme.color.border.default : theme.color.text.inverse}
               />
             </TouchableOpacity>
           </View>
@@ -580,7 +583,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Filtros</Text>
                 <TouchableOpacity onPress={() => setShowFiltersModal(false)}>
-                  <Ionicons name="close" size={24} color={colors.neutral[500]} />
+                  <Ionicons name="close" size={24} color={theme.color.icon.subtle} />
                 </TouchableOpacity>
               </View>
 
@@ -655,7 +658,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                       style={[styles.filterOption, filterSaleOrigin === 'INDEPENDENT' && styles.filterOptionActive]}
                       onPress={() => setFilterSaleOrigin('INDEPENDENT')}
                     >
-                      <Ionicons name="person-outline" size={16} color={filterSaleOrigin === 'INDEPENDENT' ? colors.neutral[0] : colors.neutral[600]} />
+                      <Ionicons name="person-outline" size={16} color={filterSaleOrigin === 'INDEPENDENT' ? theme.color.text.inverse : theme.color.text.muted} />
                       <Text style={[styles.filterOptionText, filterSaleOrigin === 'INDEPENDENT' && styles.filterOptionTextActive]}>
                         Independientes
                       </Text>
@@ -664,7 +667,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                       style={[styles.filterOption, filterSaleOrigin === 'CASH_REGISTER' && styles.filterOptionActive]}
                       onPress={() => setFilterSaleOrigin('CASH_REGISTER')}
                     >
-                      <Ionicons name="cash-outline" size={16} color={filterSaleOrigin === 'CASH_REGISTER' ? colors.neutral[0] : colors.neutral[600]} />
+                      <Ionicons name="cash-outline" size={16} color={filterSaleOrigin === 'CASH_REGISTER' ? theme.color.text.inverse : theme.color.text.muted} />
                       <Text style={[styles.filterOptionText, filterSaleOrigin === 'CASH_REGISTER' && styles.filterOptionTextActive]}>
                         De Caja
                       </Text>
@@ -703,21 +706,21 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   headerTitleContainer: {
     flex: 1,
@@ -725,21 +728,21 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   titleTablet: {
@@ -747,75 +750,75 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   statsContainer: {
     alignItems: 'flex-end',
   },
   statItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
   searchContainer: {
     flexDirection: 'row',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[3],
   },
   searchIcon: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   searchInput: {
     flex: 1,
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   searchInputTablet: {
     fontSize: 16,
-    paddingVertical: spacing[3.5],
+    paddingVertical: theme.space[3.5],
   },
   clearButton: {
-    padding: spacing[1],
+    padding: theme.space[1],
   },
   filterButton: {
     width: 48,
     height: 48,
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: colors.accent[500],
+    backgroundColor: theme.color.brand.accent,
   },
   filterBadge: {
     position: 'absolute',
     top: 6,
     right: 6,
-    backgroundColor: colors.danger[500],
+    backgroundColor: theme.color.action.danger.background,
     borderRadius: 10,
     width: 18,
     height: 18,
@@ -825,47 +828,47 @@ const styles = StyleSheet.create({
   filterBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   quickFiltersContainer: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   quickFiltersContent: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    gap: theme.space[2],
     flexDirection: 'row',
     alignItems: 'center',
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.background.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   filterChipActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   filterChipTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   filterDivider: {
     width: 1,
     height: 24,
-    backgroundColor: colors.neutral[200],
-    marginHorizontal: spacing[2],
+    backgroundColor: theme.color.border.subtle,
+    marginHorizontal: theme.space[2],
   },
   loadingContainer: {
     flex: 1,
@@ -873,17 +876,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
     fontSize: 15,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[4],
-    paddingBottom: spacing[20],
+    padding: theme.space[4],
+    paddingBottom: theme.space[20],
   },
   contentContainerTablet: {
     maxWidth: 900,
@@ -891,40 +894,40 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    marginBottom: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
     overflow: 'hidden',
   },
   cardTablet: {
-    borderRadius: borderRadius['2xl'],
+    borderRadius: theme.radii['2xl'],
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: spacing[4],
-    paddingBottom: spacing[3],
+    padding: theme.space[4],
+    paddingBottom: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-    backgroundColor: colors.neutral[50],
+    borderBottomColor: theme.color.background.muted,
+    backgroundColor: theme.color.background.subtle,
   },
   cardHeaderLeft: {
     flex: 1,
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   codeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   cardCode: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   cardCodeTablet: {
     fontSize: 18,
@@ -932,15 +935,15 @@ const styles = StyleSheet.create({
   badges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[1.5],
+    gap: theme.space[1.5],
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    gap: spacing[1],
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.full,
+    gap: theme.space[1],
   },
   badgeDot: {
     width: 6,
@@ -957,41 +960,41 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   cardTime: {
     fontSize: 11,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
+    color: theme.color.text.subtle,
+    marginTop: theme.space[0.5],
   },
   cardBody: {
-    padding: spacing[4],
-    gap: spacing[2.5],
+    padding: theme.space[4],
+    gap: theme.space[2.5],
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   infoLabel: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
     width: 60,
   },
   infoValue: {
     flex: 1,
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     fontWeight: '500',
   },
   infoValueTablet: {
     fontSize: 15,
   },
   paymentBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.md,
   },
   paymentBadgeText: {
     fontSize: 12,
@@ -1001,84 +1004,84 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[4],
-    paddingTop: spacing[3],
+    padding: theme.space[4],
+    paddingTop: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-    backgroundColor: colors.neutral[50],
+    borderTopColor: theme.color.background.muted,
+    backgroundColor: theme.color.background.subtle,
   },
   totalContainer: {
     flex: 1,
   },
   totalLabel: {
     fontSize: 11,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
     textTransform: 'uppercase',
-    marginBottom: spacing[0.5],
+    marginBottom: theme.space[0.5],
   },
   totalValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.success[600],
+    color: theme.color.text.success,
   },
   totalValueTablet: {
     fontSize: 22,
   },
   balanceText: {
     fontSize: 12,
-    color: colors.danger[500],
+    color: theme.color.text.danger,
     fontWeight: '500',
-    marginTop: spacing[0.5],
+    marginTop: theme.space[0.5],
   },
   arrowContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyContainer: {
-    padding: spacing[10],
+    padding: theme.space[10],
     alignItems: 'center',
   },
   emptyIconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
+    color: theme.color.text.muted,
+    marginBottom: theme.space[2],
   },
   emptySubtext: {
     fontSize: 14,
-    color: colors.neutral[400],
-    marginBottom: spacing[5],
+    color: theme.color.text.placeholder,
+    marginBottom: theme.space[5],
   },
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accent[500],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    gap: spacing[2],
+    backgroundColor: theme.color.brand.accent,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.lg,
+    gap: theme.space[2],
   },
   emptyButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   loadingMore: {
-    paddingVertical: spacing[5],
+    paddingVertical: theme.space[5],
     alignItems: 'center',
   },
   bottomSpacer: {
@@ -1088,31 +1091,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   paginationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[900],
-    gap: spacing[1],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.primary,
+    gap: theme.space[1],
   },
   paginationButtonDisabled: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
   },
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   paginationButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
   },
   paginationInfo: {
     alignItems: 'center',
@@ -1120,79 +1123,79 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   paginationSubtext: {
     fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
+    color: theme.color.text.subtle,
+    marginTop: theme.space[0.5],
   },
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
+    backgroundColor: theme.color.surface.base,
+    borderTopLeftRadius: theme.radii['2xl'],
+    borderTopRightRadius: theme.radii['2xl'],
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   modalBody: {
-    padding: spacing[5],
+    padding: theme.space[5],
   },
   filterSection: {
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
   },
   filterSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   filterOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   filterOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.background.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    gap: spacing[2],
+    borderColor: theme.color.border.subtle,
+    gap: theme.space[2],
   },
   filterOptionActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   filterOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   filterOptionTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   filterDot: {
     width: 8,
@@ -1201,33 +1204,33 @@ const styles = StyleSheet.create({
   },
   modalFooter: {
     flexDirection: 'row',
-    gap: spacing[3],
-    padding: spacing[5],
+    gap: theme.space[3],
+    padding: theme.space[5],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   clearFiltersButton: {
     flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
+    paddingVertical: theme.space[3.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.background.muted,
     alignItems: 'center',
   },
   clearFiltersButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   applyFiltersButton: {
     flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[900],
+    paddingVertical: theme.space[3.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.primary,
     alignItems: 'center',
   },
   applyFiltersButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
 });

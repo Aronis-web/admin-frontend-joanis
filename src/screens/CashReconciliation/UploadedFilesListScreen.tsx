@@ -27,10 +27,8 @@ import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 
 // Design System Imports
-import { colors } from '@/design-system/tokens/colors';
-import { spacing, borderRadius } from '@/design-system/tokens/spacing';
-import { shadows } from '@/design-system/tokens/shadows';
-import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { durations } from '@/design-system/tokens/animations';
 
 type Props = NativeStackScreenProps<any, 'UploadedFilesList'>;
@@ -80,6 +78,8 @@ interface FileCardProps {
 }
 
 const FileCard: React.FC<FileCardProps> = ({ file, index, onDownload, onRevert }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const translateY = useRef(new Animated.Value(30)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -102,18 +102,18 @@ const FileCard: React.FC<FileCardProps> = ({ file, index, onDownload, onRevert }
 
   const getTypeInfo = (type: string) => {
     const types: Record<string, { label: string; color: string; icon: keyof typeof Ionicons.glyphMap }> = {
-      sales: { label: 'Ventas', color: colors.success[600], icon: 'cash-outline' },
-      izipay: { label: 'Izipay', color: colors.accent[600], icon: 'card-outline' },
-      prosegur: { label: 'Prosegur', color: colors.warning[600], icon: 'business-outline' },
+      sales: { label: 'Ventas', color: theme.color.state.success.border, icon: 'cash-outline' },
+      izipay: { label: 'Izipay', color: theme.color.brand.accent, icon: 'card-outline' },
+      prosegur: { label: 'Prosegur', color: theme.color.state.warning.border, icon: 'business-outline' },
     };
-    return types[type] || { label: type, color: colors.neutral[500], icon: 'document-outline' as keyof typeof Ionicons.glyphMap };
+    return types[type] || { label: type, color: theme.color.text.subtle, icon: 'document-outline' as keyof typeof Ionicons.glyphMap };
   };
 
   const getStatusInfo = (status: FileStatus) => {
     const statuses: Record<FileStatus, { label: string; color: string; bgColor: string }> = {
-      procesando: { label: 'Procesando', color: colors.warning[700], bgColor: colors.warning[100] },
-      completado: { label: 'Completado', color: colors.success[700], bgColor: colors.success[100] },
-      error: { label: 'Error', color: colors.danger[700], bgColor: colors.danger[100] },
+      procesando: { label: 'Procesando', color: theme.color.state.warning.text, bgColor: theme.color.state.warning.background },
+      completado: { label: 'Completado', color: theme.color.state.success.text, bgColor: theme.color.state.success.background },
+      error: { label: 'Error', color: theme.color.state.danger.text, bgColor: theme.color.state.danger.background },
     };
     return statuses[status];
   };
@@ -144,7 +144,7 @@ const FileCard: React.FC<FileCardProps> = ({ file, index, onDownload, onRevert }
       <View style={styles.fileHeader}>
         <View style={styles.fileHeaderBadges}>
           <View style={[styles.typeBadge, { backgroundColor: typeInfo.color }]}>
-            <Ionicons name={typeInfo.icon} size={14} color={colors.neutral[0]} />
+            <Ionicons name={typeInfo.icon} size={14} color={theme.color.surface.base} />
             <Text style={styles.typeBadgeText}>{typeInfo.label}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
@@ -164,7 +164,7 @@ const FileCard: React.FC<FileCardProps> = ({ file, index, onDownload, onRevert }
       <View style={styles.fileInfo}>
         <Text style={styles.fileName} numberOfLines={2}>{file.nombre_archivo}</Text>
         <View style={styles.fileDateRow}>
-          <Ionicons name="calendar-outline" size={14} color={colors.neutral[400]} />
+          <Ionicons name="calendar-outline" size={14} color={theme.color.text.placeholder} />
           <Text style={styles.fileDate}>{formatDate(file.uploaded_at)}</Text>
         </View>
       </View>
@@ -177,21 +177,21 @@ const FileCard: React.FC<FileCardProps> = ({ file, index, onDownload, onRevert }
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.success[600] }]}>
+          <Text style={[styles.statValue, { color: theme.color.state.success.border }]}>
             {file.registros_nuevos}
           </Text>
           <Text style={styles.statLabel}>Nuevos</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.warning[600] }]}>
+          <Text style={[styles.statValue, { color: theme.color.state.warning.border }]}>
             {file.registros_duplicados}
           </Text>
           <Text style={styles.statLabel}>Duplicados</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.danger[600] }]}>
+          <Text style={[styles.statValue, { color: theme.color.state.danger.border }]}>
             {file.registros_con_error}
           </Text>
           <Text style={styles.statLabel}>Errores</Text>
@@ -201,7 +201,7 @@ const FileCard: React.FC<FileCardProps> = ({ file, index, onDownload, onRevert }
       {/* Revert Info */}
       {file.revertido && file.revertido_razon && (
         <View style={styles.revertInfo}>
-          <Ionicons name="information-circle" size={18} color={colors.danger[600]} />
+          <Ionicons name="information-circle" size={18} color={theme.color.state.danger.border} />
           <View style={styles.revertInfoContent}>
             <Text style={styles.revertInfoLabel}>Razón de reversión:</Text>
             <Text style={styles.revertInfoText}>{file.revertido_razon}</Text>
@@ -215,13 +215,13 @@ const FileCard: React.FC<FileCardProps> = ({ file, index, onDownload, onRevert }
       {/* Actions */}
       <View style={styles.actionsContainer}>
         <TouchableOpacity style={styles.downloadButton} onPress={onDownload} activeOpacity={0.8}>
-          <Ionicons name="download-outline" size={18} color={colors.neutral[0]} />
+          <Ionicons name="download-outline" size={18} color={theme.color.surface.base} />
           <Text style={styles.downloadButtonText}>Descargar</Text>
         </TouchableOpacity>
 
         {!file.revertido && file.estado === 'completado' && (
           <TouchableOpacity style={styles.revertButton} onPress={onRevert} activeOpacity={0.8}>
-            <Ionicons name="arrow-undo-outline" size={18} color={colors.neutral[0]} />
+            <Ionicons name="arrow-undo-outline" size={18} color={theme.color.surface.base} />
             <Text style={styles.revertButtonText}>Revertir</Text>
           </TouchableOpacity>
         )}
@@ -236,6 +236,8 @@ const FileCard: React.FC<FileCardProps> = ({ file, index, onDownload, onRevert }
 
 export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { token } = useAuthStore();
   const [files, setFiles] = useState<SourceFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -418,7 +420,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.neutral[700]} />
+          <Ionicons name="arrow-back" size={24} color={theme.color.text.body} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Archivos Subidos</Text>
         <TouchableOpacity
@@ -428,7 +430,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons
             name="filter"
             size={22}
-            color={hasActiveFilters ? colors.neutral[0] : colors.neutral[600]}
+            color={hasActiveFilters ? theme.color.surface.base : theme.color.text.muted}
           />
         </TouchableOpacity>
       </View>
@@ -476,14 +478,14 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
               onPress={() => { setShowReverted(!showReverted); setPage(1); }}
             >
               <View style={[styles.checkbox, showReverted && styles.checkboxChecked]}>
-                {showReverted && <Ionicons name="checkmark" size={14} color={colors.neutral[0]} />}
+                {showReverted && <Ionicons name="checkmark" size={14} color={theme.color.surface.base} />}
               </View>
               <Text style={styles.revertedToggleText}>Mostrar revertidos</Text>
             </TouchableOpacity>
 
             {hasActiveFilters && (
               <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
-                <Ionicons name="close-circle" size={18} color={colors.danger[600]} />
+                <Ionicons name="close-circle" size={18} color={theme.color.state.danger.border} />
                 <Text style={styles.clearFiltersText}>Limpiar</Text>
               </TouchableOpacity>
             )}
@@ -506,19 +508,19 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            colors={[colors.primary[600]]}
+            colors={[theme.color.brand.primary]}
           />
         }
       >
         {isLoading && page === 1 ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary[600]} />
+            <ActivityIndicator size="large" color={theme.color.brand.primary} />
             <Text style={styles.loadingText}>Cargando archivos...</Text>
           </View>
         ) : files.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="folder-open-outline" size={64} color={colors.neutral[300]} />
+              <Ionicons name="folder-open-outline" size={64} color={theme.color.border.default} />
             </View>
             <Text style={styles.emptyTitle}>Sin archivos</Text>
             <Text style={styles.emptyText}>No hay archivos que coincidan con los filtros</Text>
@@ -546,7 +548,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name="chevron-back"
                     size={20}
-                    color={page === 1 ? colors.neutral[400] : colors.neutral[0]}
+                    color={page === 1 ? theme.color.text.placeholder : theme.color.surface.base}
                   />
                 </TouchableOpacity>
 
@@ -562,7 +564,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name="chevron-forward"
                     size={20}
-                    color={page === totalPages ? colors.neutral[400] : colors.neutral[0]}
+                    color={page === totalPages ? theme.color.text.placeholder : theme.color.surface.base}
                   />
                 </TouchableOpacity>
               </View>
@@ -584,7 +586,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <View style={styles.modalIconContainer}>
-                <Ionicons name="warning" size={32} color={colors.danger[600]} />
+                <Ionicons name="warning" size={32} color={theme.color.state.danger.border} />
               </View>
               <Text style={styles.modalTitle}>Revertir Archivo</Text>
               <TouchableOpacity
@@ -592,7 +594,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.modalCloseButton}
                 disabled={isReverting}
               >
-                <Ionicons name="close" size={24} color={colors.neutral[500]} />
+                <Ionicons name="close" size={24} color={theme.color.text.subtle} />
               </TouchableOpacity>
             </View>
 
@@ -602,7 +604,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={styles.modalFileLabel}>Archivo:</Text>
                   <Text style={styles.modalFileName}>{selectedFile.nombre_archivo}</Text>
                   <View style={styles.modalWarning}>
-                    <Ionicons name="alert-circle" size={18} color={colors.danger[600]} />
+                    <Ionicons name="alert-circle" size={18} color={theme.color.state.danger.border} />
                     <Text style={styles.modalWarningText}>
                       Se eliminarán {selectedFile.registros_nuevos} registros
                     </Text>
@@ -616,7 +618,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
                 value={revertReason}
                 onChangeText={setRevertReason}
                 placeholder="Ej: Archivo incorrecto, datos duplicados..."
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -639,10 +641,10 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
                 disabled={isReverting}
               >
                 {isReverting ? (
-                  <ActivityIndicator size="small" color={colors.neutral[0]} />
+                  <ActivityIndicator size="small" color={theme.color.surface.base} />
                 ) : (
                   <>
-                    <Ionicons name="arrow-undo" size={18} color={colors.neutral[0]} />
+                    <Ionicons name="arrow-undo" size={18} color={theme.color.surface.base} />
                     <Text style={styles.modalConfirmButtonText}>Confirmar</Text>
                   </>
                 )}
@@ -659,477 +661,477 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.neutral[0],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    ...shadows.sm,
+    borderBottomColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   filterButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
   },
   filtersContainer: {
-    backgroundColor: colors.neutral[0],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   filterRow: {
     flexDirection: 'row',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   filterItem: {
     flex: 1,
   },
   filterLabel: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   pickerContainer: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     overflow: 'hidden',
   },
   picker: {
     height: 44,
-    color: colors.neutral[900],
+    color: theme.color.text.heading,
   },
   filterActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
   revertedToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: borderRadius.sm,
+    borderRadius: theme.radii.sm,
     borderWidth: 2,
-    borderColor: colors.neutral[300],
+    borderColor: theme.color.border.default,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   revertedToggleText: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[700],
+    fontSize: 14,
+    color: theme.color.text.body,
   },
   clearFiltersButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   clearFiltersText: {
-    fontSize: fontSizes.sm,
-    color: colors.danger[600],
-    fontWeight: fontWeights.medium,
+    fontSize: 14,
+    color: theme.color.state.danger.border,
+    fontWeight: '500',
   },
   resultsInfo: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.neutral[50],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.background.subtle,
   },
   resultsText: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
-    fontWeight: fontWeights.medium,
+    fontSize: 14,
+    color: theme.color.text.subtle,
+    fontWeight: '500',
   },
   content: {
     flex: 1,
   },
   loadingContainer: {
     alignItems: 'center',
-    paddingVertical: spacing[16],
-    gap: spacing[4],
+    paddingVertical: theme.space[16],
+    gap: theme.space[4],
   },
   loadingText: {
-    fontSize: fontSizes.base,
-    color: colors.neutral[500],
+    fontSize: 16,
+    color: theme.color.text.subtle,
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: spacing[16],
+    paddingVertical: theme.space[16],
   },
   emptyIconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   emptyTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   emptyText: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    fontSize: 14,
+    color: theme.color.text.subtle,
   },
   fileCard: {
-    backgroundColor: colors.neutral[0],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[3],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    ...shadows.sm,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[3],
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    ...theme.shadow.sm,
   },
   fileCardReverted: {
-    backgroundColor: colors.danger[50],
+    backgroundColor: theme.color.state.danger.background,
     borderWidth: 1,
-    borderColor: colors.danger[200],
+    borderColor: theme.color.state.danger.border,
     opacity: 0.9,
   },
   fileHeader: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   fileHeaderBadges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
-    gap: spacing[1],
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
+    gap: theme.space[1],
   },
   typeBadgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.color.surface.base,
   },
   statusBadge: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
   statusBadgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
+    fontSize: 12,
+    fontWeight: '600',
   },
   revertedBadge: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.danger[600],
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.color.state.danger.border,
   },
   revertedBadgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[0],
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.color.surface.base,
   },
   fileInfo: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   fileName: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
-    marginBottom: spacing[2],
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   fileDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   fileDate: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    fontSize: 14,
+    color: theme.color.text.subtle,
   },
   statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingVertical: spacing[3],
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
-    marginBottom: spacing[3],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[3],
   },
   statItem: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   statLabel: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
+    fontSize: 12,
+    color: theme.color.text.subtle,
+    marginTop: theme.space[1],
   },
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: theme.color.border.subtle,
   },
   revertInfo: {
     flexDirection: 'row',
-    backgroundColor: colors.danger[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
-    marginBottom: spacing[3],
-    gap: spacing[3],
+    backgroundColor: theme.color.state.danger.background,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[3],
+    gap: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.danger[200],
+    borderColor: theme.color.state.danger.border,
   },
   revertInfoContent: {
     flex: 1,
   },
   revertInfoLabel: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colors.danger[700],
-    marginBottom: spacing[1],
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.color.state.danger.text,
+    marginBottom: theme.space[1],
   },
   revertInfoText: {
-    fontSize: fontSizes.sm,
-    color: colors.danger[800],
-    marginBottom: spacing[1],
+    fontSize: 14,
+    color: theme.color.state.danger.text,
+    marginBottom: theme.space[1],
   },
   revertInfoDate: {
-    fontSize: fontSizes.xs,
-    color: colors.danger[600],
+    fontSize: 12,
+    color: theme.color.state.danger.border,
   },
   actionsContainer: {
     flexDirection: 'row',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   downloadButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent[600],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
+    backgroundColor: theme.color.brand.accent,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.md,
+    gap: theme.space[2],
   },
   downloadButtonText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.surface.base,
   },
   revertButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.danger[600],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
+    backgroundColor: theme.color.state.danger.border,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.md,
+    gap: theme.space[2],
   },
   revertButtonText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.surface.base,
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: spacing[4],
-    gap: spacing[4],
+    paddingVertical: theme.space[4],
+    gap: theme.space[4],
   },
   paginationButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   paginationButtonDisabled: {
-    backgroundColor: colors.neutral[200],
+    backgroundColor: theme.color.border.subtle,
   },
   paginationInfo: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[600],
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.color.text.muted,
   },
   bottomSpacer: {
-    height: spacing[8],
+    height: theme.space[8],
   },
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   modalContainer: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
     width: '100%',
     maxWidth: 400,
-    ...shadows.lg,
+    ...theme.shadow.lg,
   },
   modalHeader: {
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   modalIconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.danger[100],
+    backgroundColor: theme.color.state.danger.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   modalTitle: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   modalCloseButton: {
     position: 'absolute',
-    top: spacing[4],
-    right: spacing[4],
+    top: theme.space[4],
+    right: theme.space[4],
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    padding: spacing[5],
+    padding: theme.space[5],
   },
   modalFileInfo: {
-    backgroundColor: colors.neutral[50],
-    padding: spacing[4],
-    borderRadius: borderRadius.md,
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.background.subtle,
+    padding: theme.space[4],
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[4],
   },
   modalFileLabel: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.color.text.subtle,
+    marginBottom: theme.space[1],
   },
   modalFileName: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[900],
-    marginBottom: spacing[3],
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.color.text.heading,
+    marginBottom: theme.space[3],
   },
   modalWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   modalWarningText: {
-    fontSize: fontSizes.sm,
-    color: colors.danger[600],
-    fontWeight: fontWeights.medium,
+    fontSize: 14,
+    color: theme.color.state.danger.border,
+    fontWeight: '500',
   },
   modalInputLabel: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   modalInput: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    padding: spacing[4],
-    fontSize: fontSizes.base,
-    color: colors.neutral[900],
+    borderColor: theme.color.border.subtle,
+    padding: theme.space[4],
+    fontSize: 16,
+    color: theme.color.text.heading,
     minHeight: 100,
   },
   modalActions: {
     flexDirection: 'row',
-    padding: spacing[5],
-    gap: spacing[3],
+    padding: theme.space[5],
+    gap: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   modalCancelButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
+    paddingVertical: theme.space[4],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.background.muted,
   },
   modalCancelButtonText: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.color.text.body,
   },
   modalConfirmButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.danger[600],
-    gap: spacing[2],
+    paddingVertical: theme.space[4],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.state.danger.border,
+    gap: theme.space[2],
   },
   modalConfirmButtonDisabled: {
-    backgroundColor: colors.neutral[300],
+    backgroundColor: theme.color.border.default,
   },
   modalConfirmButtonText: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.color.surface.base,
   },
 });
