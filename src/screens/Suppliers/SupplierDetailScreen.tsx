@@ -38,12 +38,16 @@ import {
   CURRENCIES,
   PREDEFINED_TAGS,
 } from '@/constants/supplierTypes';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type SupplierDetailScreenProps = ScreenProps<'SupplierDetail'>;
 
 type TabType = 'general' | 'types' | 'legal' | 'contacts' | 'banks' | 'debts' | 'payments';
 
 export const SupplierDetailScreen = ({ navigation, route }: any) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const supplierId = route?.params?.supplierId;
   const isEditMode = !!supplierId;
   const { width, height } = useWindowDimensions();
@@ -495,7 +499,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={formData.code}
           onChangeText={(text) => setFormData({ ...formData, code: text })}
           placeholder="SUP-00001"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -508,7 +512,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={formData.commercialName}
           onChangeText={(text) => setFormData({ ...formData, commercialName: text })}
           placeholder="Distribuidora ABC"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -520,7 +524,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             value={formData.email}
             onChangeText={(text) => setFormData({ ...formData, email: text })}
             placeholder="ventas@abc.com"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -533,7 +537,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             value={formData.phone}
             onChangeText={(text) => setFormData({ ...formData, phone: text })}
             placeholder="+51987654321"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="phone-pad"
           />
         </View>
@@ -550,7 +554,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={formData.addressLine1}
           onChangeText={(text) => setFormData({ ...formData, addressLine1: text })}
           placeholder="Av. Principal 123"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -561,7 +565,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={formData.addressLine2}
           onChangeText={(text) => setFormData({ ...formData, addressLine2: text })}
           placeholder="Oficina 201"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -573,7 +577,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             value={formData.district}
             onChangeText={(text) => setFormData({ ...formData, district: text })}
             placeholder="Miraflores"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
           />
         </View>
 
@@ -584,7 +588,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             value={formData.province}
             onChangeText={(text) => setFormData({ ...formData, province: text })}
             placeholder="Lima"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
           />
         </View>
 
@@ -595,7 +599,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             value={formData.department}
             onChangeText={(text) => setFormData({ ...formData, department: text })}
             placeholder="Lima"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
           />
         </View>
       </View>
@@ -612,7 +616,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             value={formData.paymentTermsDays}
             onChangeText={(text) => setFormData({ ...formData, paymentTermsDays: text })}
             placeholder="30"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="numeric"
           />
         </View>
@@ -626,7 +630,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
             value={formData.creditLimitCents}
             onChangeText={(text) => setFormData({ ...formData, creditLimitCents: text })}
             placeholder="5000000"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="numeric"
           />
         </View>
@@ -639,7 +643,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={formData.notes}
           onChangeText={(text) => setFormData({ ...formData, notes: text })}
           placeholder="Notas adicionales..."
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
           multiline
           numberOfLines={4}
         />
@@ -651,8 +655,8 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           <Switch
             value={formData.isActive}
             onValueChange={(value) => setFormData({ ...formData, isActive: value })}
-            trackColor={{ false: '#CBD5E1', true: '#667eea' }}
-            thumbColor="#FFFFFF"
+            trackColor={{ false: theme.color.border.default, true: theme.color.brand.primary }}
+            thumbColor={theme.color.text.inverse}
           />
         </View>
       </View>
@@ -733,7 +737,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={category}
           onChangeText={setCategory}
           placeholder="Ej: Materiales de Construcción"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -744,7 +748,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={subcategory}
           onChangeText={setSubcategory}
           placeholder="Ej: Cemento y Agregados"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -755,7 +759,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={website}
           onChangeText={setWebsite}
           placeholder="https://www.ejemplo.com"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
           keyboardType="url"
           autoCapitalize="none"
         />
@@ -768,7 +772,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={accountNumber}
           onChangeText={setAccountNumber}
           placeholder="Código interno de la empresa"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -832,7 +836,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={rating}
           onChangeText={setRating}
           placeholder="4.5"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
           keyboardType="decimal-pad"
         />
       </View>
@@ -844,7 +848,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={licenseNumber}
           onChangeText={setLicenseNumber}
           placeholder="LIC-123456"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -855,7 +859,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={licenseExpiryDate}
           onChangeText={setLicenseExpiryDate}
           placeholder="YYYY-MM-DD"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -866,7 +870,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={insurancePolicyNumber}
           onChangeText={setInsurancePolicyNumber}
           placeholder="POL-123456"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -877,7 +881,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
           value={insuranceExpiryDate}
           onChangeText={setInsuranceExpiryDate}
           placeholder="YYYY-MM-DD"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -1100,7 +1104,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#667eea" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={[styles.loadingText, isTablet && styles.loadingTextTablet]}>
             Cargando proveedor...
           </Text>
@@ -1235,7 +1239,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                 value={legalEntityForm.legalName}
                 onChangeText={(text) => setLegalEntityForm({ ...legalEntityForm, legalName: text })}
                 placeholder="Distribuidora ABC S.A.C."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
             </View>
 
@@ -1248,7 +1252,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                 value={legalEntityForm.ruc}
                 onChangeText={(text) => setLegalEntityForm({ ...legalEntityForm, ruc: text })}
                 placeholder="20123456789"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="numeric"
                 maxLength={11}
               />
@@ -1265,7 +1269,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                   setLegalEntityForm({ ...legalEntityForm, taxAddress: text })
                 }
                 placeholder="Av. Principal 123, Miraflores"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
             </View>
 
@@ -1277,8 +1281,8 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                   onValueChange={(value) =>
                     setLegalEntityForm({ ...legalEntityForm, isPrimary: value })
                   }
-                  trackColor={{ false: '#CBD5E1', true: '#667eea' }}
-                  thumbColor="#FFFFFF"
+                  trackColor={{ false: theme.color.border.default, true: theme.color.brand.primary }}
+                  thumbColor={theme.color.text.inverse}
                 />
               </View>
             </View>
@@ -1323,7 +1327,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                 value={contactForm.fullName}
                 onChangeText={(text) => setContactForm({ ...contactForm, fullName: text })}
                 placeholder="Juan Pérez"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
             </View>
 
@@ -1334,7 +1338,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                 value={contactForm.position}
                 onChangeText={(text) => setContactForm({ ...contactForm, position: text })}
                 placeholder="Gerente de Ventas"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
             </View>
 
@@ -1345,7 +1349,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                 value={contactForm.email}
                 onChangeText={(text) => setContactForm({ ...contactForm, email: text })}
                 placeholder="jperez@abc.com"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -1358,7 +1362,7 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                 value={contactForm.phone}
                 onChangeText={(text) => setContactForm({ ...contactForm, phone: text })}
                 placeholder="+51987654321"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="phone-pad"
               />
             </View>
@@ -1369,8 +1373,8 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
                 <Switch
                   value={contactForm.isPrimary}
                   onValueChange={(value) => setContactForm({ ...contactForm, isPrimary: value })}
-                  trackColor={{ false: '#CBD5E1', true: '#667eea' }}
-                  thumbColor="#FFFFFF"
+                  trackColor={{ false: theme.color.border.default, true: theme.color.brand.primary }}
+                  thumbColor={theme.color.text.inverse}
                 />
               </View>
             </View>
@@ -1396,10 +1400,10 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -1407,9 +1411,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -1421,7 +1425,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 15,
-    color: '#667eea',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   backButtonTextTablet: {
@@ -1430,7 +1434,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -1438,7 +1442,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   saveButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.action.primary.background,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -1451,7 +1455,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.action.primary.text,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1459,9 +1463,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   tabsContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
     paddingHorizontal: 20,
   },
   tabsContainerTablet: {
@@ -1474,15 +1478,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: '#667eea',
+    borderBottomColor: theme.color.brand.primary,
   },
   tabText: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   tabTextActive: {
-    color: '#667eea',
+    color: theme.color.brand.primary,
     fontWeight: '700',
   },
   content: {
@@ -1503,7 +1507,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   sectionTitleTablet: {
@@ -1525,24 +1529,24 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.muted,
     marginBottom: 8,
   },
   labelTablet: {
     fontSize: 16,
   },
   required: {
-    color: '#EF4444',
+    color: theme.color.icon.danger,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   inputTablet: {
     paddingHorizontal: 16,
@@ -1559,7 +1563,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.action.primary.background,
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -1569,7 +1573,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.action.primary.text,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1586,7 +1590,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     textAlign: 'center',
   },
   emptyTextTablet: {
@@ -1596,11 +1600,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   itemCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   itemCardTablet: {
     padding: 16,
@@ -1615,7 +1619,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   itemTitleTablet: {
@@ -1623,7 +1627,7 @@ const styles = StyleSheet.create({
   },
   itemSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginBottom: 2,
   },
   itemSubtitleTablet: {
@@ -1631,14 +1635,14 @@ const styles = StyleSheet.create({
   },
   itemDetail: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     marginTop: 2,
   },
   itemDetailTablet: {
     fontSize: 13,
   },
   primaryBadge: {
-    color: '#F59E0B',
+    color: theme.color.icon.warning,
     fontSize: 13,
   },
   itemActions: {
@@ -1649,7 +1653,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1664,20 +1668,20 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   loadingTextTablet: {
     fontSize: 17,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -1689,7 +1693,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 20,
   },
   modalTitleTablet: {
@@ -1707,37 +1711,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalButtonCancel: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.action.secondary.background,
   },
   modalButtonSave: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.action.primary.background,
   },
   modalButtonTextCancel: {
-    color: '#475569',
+    color: theme.color.action.secondary.text,
     fontSize: 15,
     fontWeight: '600',
   },
   modalButtonTextSave: {
-    color: '#FFFFFF',
+    color: theme.color.action.primary.text,
     fontSize: 15,
     fontWeight: '600',
   },
   primaryButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.action.primary.background,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.action.primary.text,
     fontSize: 15,
     fontWeight: '600',
   },
-  // v1.1.0 - Nuevos estilos para tipos de proveedor
   helperText: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginBottom: 16,
     marginTop: -8,
   },
@@ -1748,16 +1751,16 @@ const styles = StyleSheet.create({
   typeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 12,
     padding: 14,
     gap: 12,
   },
   typeCardSelected: {
-    borderColor: '#667eea',
-    backgroundColor: '#EEF2FF',
+    borderColor: theme.color.brand.primary,
+    backgroundColor: theme.color.brand.accentSoft,
   },
   typeIcon: {
     fontSize: 32,
@@ -1768,26 +1771,26 @@ const styles = StyleSheet.create({
   typeLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   typeLabelSelected: {
-    color: '#667eea',
+    color: theme.color.brand.primary,
   },
   typeDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   typeCheckmark: {
     fontSize: 24,
-    color: '#667eea',
+    color: theme.color.brand.primary,
   },
   picker: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   tagsList: {
     flexDirection: 'row',
@@ -1799,20 +1802,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   tagChipSelected: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   tagChipText: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   tagChipTextSelected: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
 });
