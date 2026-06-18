@@ -15,14 +15,9 @@ import { inventoryApi, ExportFormat } from '@/services/api/inventory';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 
-// Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-  iconSizes,
-} from '@/design-system/tokens';
+import { iconSizes } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -47,6 +42,8 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
   siteId,
   siteName,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [format, setFormat] = useState<ExportFormat>('excel');
   const [includePrices, setIncludePrices] = useState(false);
   const [startDate, setStartDate] = useState<string>('');
@@ -208,7 +205,7 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerTitleContainer}>
-                <Ionicons name="download-outline" size={iconSizes.lg} color={colors.accent[600]} />
+                <Ionicons name="download-outline" size={iconSizes.lg} color={theme.color.brand.accent} />
                 <Title size="medium">Exportar Reporte de Stock</Title>
               </View>
               <IconButton
@@ -223,8 +220,8 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
             <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
               {/* Site Info */}
               <View style={styles.siteInfo}>
-                <Ionicons name="business-outline" size={iconSizes.md} color={colors.accent[600]} />
-                <Label size="medium" color={colors.accent[700]}>Sede: {siteName}</Label>
+                <Ionicons name="business-outline" size={iconSizes.md} color={theme.color.brand.accent} />
+                <Label size="medium" color={theme.color.state.info.text}>Sede: {siteName}</Label>
               </View>
 
               {/* Format Selection */}
@@ -239,9 +236,9 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                     <Ionicons
                       name="document-text-outline"
                       size={iconSizes.lg}
-                      color={format === 'excel' ? colors.text.inverse : colors.text.tertiary}
+                      color={format === 'excel' ? theme.color.text.inverse : theme.color.text.subtle}
                     />
-                    <Label size="large" color={format === 'excel' ? colors.text.inverse : colors.text.secondary}>
+                    <Label size="large" color={format === 'excel' ? theme.color.text.inverse : theme.color.text.muted}>
                       Excel
                     </Label>
                   </TouchableOpacity>
@@ -254,9 +251,9 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                     <Ionicons
                       name="document-outline"
                       size={iconSizes.lg}
-                      color={format === 'pdf' ? colors.text.inverse : colors.text.tertiary}
+                      color={format === 'pdf' ? theme.color.text.inverse : theme.color.text.subtle}
                     />
-                    <Label size="large" color={format === 'pdf' ? colors.text.inverse : colors.text.secondary}>
+                    <Label size="large" color={format === 'pdf' ? theme.color.text.inverse : theme.color.text.muted}>
                       PDF
                     </Label>
                   </TouchableOpacity>
@@ -295,8 +292,8 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                     }}
                     disabled={loading}
                   >
-                    <Ionicons name="close-circle-outline" size={18} color={colors.danger[500]} />
-                    <Label size="medium" color={colors.danger[500]}>Limpiar fechas</Label>
+                    <Ionicons name="close-circle-outline" size={18} color={theme.color.state.danger.border} />
+                    <Label size="medium" color={theme.color.state.danger.border}>Limpiar fechas</Label>
                   </TouchableOpacity>
                 )}
               </View>
@@ -310,7 +307,7 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                   disabled={loading}
                 >
                   <View style={[styles.checkbox, includePrices && styles.checkboxChecked]}>
-                    {includePrices && <Ionicons name="checkmark" size={18} color={colors.text.inverse} />}
+                    {includePrices && <Ionicons name="checkmark" size={18} color={theme.color.text.inverse} />}
                   </View>
                   <View style={styles.checkboxLabelContainer}>
                     <Label size="large" color="primary">Incluir Precios y Valorización</Label>
@@ -323,8 +320,8 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
 
               {/* Info Box */}
               <View style={styles.infoBox}>
-                <Ionicons name="information-circle-outline" size={iconSizes.md} color={colors.info[600]} />
-                <Body size="small" color={colors.info[800]} style={styles.infoText}>
+                <Ionicons name="information-circle-outline" size={iconSizes.md} color={theme.color.state.info.border} />
+                <Body size="small" color={theme.color.state.info.text} style={styles.infoText}>
                   El reporte incluirá todos los productos con stock en la sede seleccionada
                   {startDate || endDate ? ' dentro del rango de fechas especificado' : ''}.
                 </Body>
@@ -392,137 +389,138 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    height: '85%',
-    paddingBottom: spacing[5],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  scrollContent: {
-    flex: 1,
-    paddingHorizontal: spacing[5],
-  },
-  siteInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[4],
-    marginBottom: spacing[2],
-  },
-  section: {
-    marginTop: spacing[5],
-  },
-  sectionTitle: {
-    marginBottom: spacing[2],
-  },
-  sectionDescription: {
-    marginBottom: spacing[3],
-  },
-  formatContainer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  formatButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-    borderColor: colors.border.light,
-    backgroundColor: colors.surface.secondary,
-  },
-  formatButtonSelected: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
-  },
-  clearDatesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1.5],
-    alignSelf: 'flex-start',
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    marginTop: spacing[2],
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
-    borderWidth: 2,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
-  },
-  checkboxLabelContainer: {
-    flex: 1,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
-    backgroundColor: colors.info[50],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[5],
-    marginBottom: spacing[5],
-  },
-  infoText: {
-    flex: 1,
-    lineHeight: 18,
-  },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    gap: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      height: '85%',
+      paddingBottom: theme.space[5],
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTitleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    scrollContent: {
+      flex: 1,
+      paddingHorizontal: theme.space[5],
+    },
+    siteInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginTop: theme.space[4],
+      marginBottom: theme.space[2],
+    },
+    section: {
+      marginTop: theme.space[5],
+    },
+    sectionTitle: {
+      marginBottom: theme.space[2],
+    },
+    sectionDescription: {
+      marginBottom: theme.space[3],
+    },
+    formatContainer: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    formatButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+      paddingVertical: theme.space[4],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    formatButtonSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    clearDatesButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+      alignSelf: 'flex-start',
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    checkboxContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.space[3],
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: theme.radii.sm,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 2,
+    },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxLabelContainer: {
+      flex: 1,
+    },
+    infoBox: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.space[3],
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginTop: theme.space[5],
+      marginBottom: theme.space[5],
+    },
+    infoText: {
+      flex: 1,
+      lineHeight: 18,
+    },
+    footer: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[4],
+      gap: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+  });
