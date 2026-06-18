@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { warehouseAreasApi } from '@/services/api';
 import {
   WarehouseArea,
@@ -51,6 +52,8 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
     warehouseName,
     warehouseCode,
   } = route.params;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [areas, setAreas] = useState<WarehouseArea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +243,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[500]} />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando áreas...</Text>
         </View>
       </SafeAreaView>
@@ -275,7 +278,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
           placeholder="Buscar áreas..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor={colors.neutral[400]}
+          placeholderTextColor={theme.color.text.placeholder}
           keyboardType="default"
         />
       </View>
@@ -415,32 +418,32 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   headerTitleContainer: {
@@ -450,11 +453,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   placeholder: {
@@ -465,13 +468,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary[500],
+    backgroundColor: theme.color.brand.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   addButtonText: {
     fontSize: 24,
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     fontWeight: '600',
   },
   loadingContainer: {
@@ -482,37 +485,37 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   searchContainer: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   searchInput: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     fontSize: 16,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   areasList: {
     flex: 1,
-    paddingHorizontal: spacing[5],
+    paddingHorizontal: theme.space[5],
   },
   areaCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginTop: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginTop: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -521,16 +524,16 @@ const styles = StyleSheet.create({
   areaHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: theme.space[3],
   },
   areaIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.warning[100],
+    backgroundColor: theme.color.state.warning.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   iconText: {
     fontSize: 24,
@@ -541,39 +544,39 @@ const styles = StyleSheet.create({
   areaCode: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   areaName: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   areaActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
+    gap: theme.space[2],
   },
   editButton: {
-    backgroundColor: colors.warning[500],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.state.warning.border,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   editButtonText: {
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     fontSize: 14,
     fontWeight: '600',
   },
   deleteButton: {
-    backgroundColor: colors.danger[500],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.action.danger.background,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -585,113 +588,113 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: theme.space[4],
   },
   emptyText: {
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   emptySubtext: {
     fontSize: 14,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
     textAlign: 'center',
     paddingHorizontal: 40,
   },
   statsFooter: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   statsText: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
     fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[6],
+    backgroundColor: theme.color.surface.elevated,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[6],
     width: '90%',
     maxWidth: 400,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[5],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[5],
     textAlign: 'center',
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: theme.space[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
+    color: theme.color.text.muted,
+    marginBottom: theme.space[2],
   },
   input: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2.5],
     fontSize: 16,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 24,
-    gap: 12,
+    marginTop: theme.space[6],
+    gap: theme.space[3],
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.surface.muted,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontSize: 16,
     fontWeight: '600',
   },
   saveButton: {
     flex: 1,
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.accent,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     fontSize: 16,
     fontWeight: '600',
   },
   floatingButton: {
     position: 'absolute',
-    right: spacing[5],
+    right: theme.space[5],
     bottom: 90,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primary[500],
+    backgroundColor: theme.color.brand.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.primary[500],
+    shadowColor: theme.color.brand.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -700,7 +703,7 @@ const styles = StyleSheet.create({
   floatingButtonIcon: {
     fontSize: 32,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     lineHeight: 32,
   },
 });
