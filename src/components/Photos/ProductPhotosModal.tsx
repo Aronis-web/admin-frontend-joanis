@@ -12,7 +12,8 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Product } from '@/services/api/products';
@@ -48,6 +49,8 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
   onSuccess,
   product,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   // Tab state
   const [activeTab, setActiveTab] = useState<'gallery' | 'lens' | 'gemini' | 'video'>('gallery');
 
@@ -714,7 +717,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
 
                 {loading ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#3B82F6" />
+                    <ActivityIndicator size="large" color={theme.color.brand.accent} />
                     <Text style={styles.loadingText}>Cargando imágenes...</Text>
                   </View>
                 ) : productImages.length === 0 ? (
@@ -856,7 +859,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                     placeholder="URL de imagen (opcional)"
                     value={lensImageUrl}
                     onChangeText={setLensImageUrl}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                   <TouchableOpacity
                     onPress={handleLensSearchByUrl}
@@ -885,7 +888,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
 
               {lensSearching && (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#3B82F6" />
+                  <ActivityIndicator size="large" color={theme.color.brand.accent} />
                   <Text style={styles.loadingText}>Buscando con Google Lens...</Text>
                 </View>
               )}
@@ -1003,7 +1006,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                         placeholder="Ej: Cambia el fondo a blanco, mejora los colores, elimina el fondo..."
                         value={geminiPrompt}
                         onChangeText={setGeminiPrompt}
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={theme.color.text.placeholder}
                         multiline
                         numberOfLines={4}
                       />
@@ -1125,7 +1128,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                         placeholder="Describe cómo quieres que sea el video..."
                         value={videoPrompt}
                         onChangeText={setVideoPrompt}
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={theme.color.text.placeholder}
                         multiline
                         numberOfLines={4}
                       />
@@ -1189,584 +1192,585 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    fontSize: 24,
-    color: colors.neutral[500],
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: colors.info[500],
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.neutral[500],
-  },
-  tabTextActive: {
-    color: colors.info[500],
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
-  productInfo: {
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  productSku: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  section: {
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    marginTop: spacing[2],
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  loadingContainer: {
-    paddingVertical: spacing[10],
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  noImagesContainer: {
-    paddingVertical: spacing[10],
-    alignItems: 'center',
-  },
-  noImagesText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
-  },
-  noImagesSubtext: {
-    fontSize: 14,
-    color: colors.neutral[400],
-    textAlign: 'center',
-  },
-  imagesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  imageCard: {
-    width: '48%',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  image: {
-    width: '100%',
-    height: 150,
-    backgroundColor: colors.neutral[100],
-  },
-  mainImageBadge: {
-    position: 'absolute',
-    top: spacing[2],
-    left: spacing[2],
-    backgroundColor: colors.info[500],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.xs,
-  },
-  mainImageBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  imageActions: {
-    flexDirection: 'row',
-    padding: spacing[2],
-    gap: spacing[1],
-  },
-  lensButton: {
-    flex: 1,
-    backgroundColor: colors.primary[50],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.xs,
-    alignItems: 'center',
-  },
-  lensButtonText: {
-    fontSize: 16,
-  },
-  geminiButton: {
-    flex: 1,
-    backgroundColor: colors.warning[50],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.xs,
-    alignItems: 'center',
-  },
-  geminiButtonText: {
-    fontSize: 16,
-  },
-  videoButton: {
-    flex: 1,
-    backgroundColor: colors.primary[100],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.xs,
-    alignItems: 'center',
-  },
-  videoButtonText: {
-    fontSize: 16,
-  },
-  downloadButton: {
-    flex: 1,
-    backgroundColor: colors.info[100],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.xs,
-    alignItems: 'center',
-  },
-  downloadButtonDisabled: {
-    opacity: 0.5,
-  },
-  downloadButtonText: {
-    fontSize: 16,
-  },
-  deleteButton: {
-    flex: 1,
-    backgroundColor: colors.danger[50],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.xs,
-    alignItems: 'center',
-  },
-  deleteButtonDisabled: {
-    opacity: 0.5,
-  },
-  deleteButtonText: {
-    fontSize: 16,
-  },
-  imageFilename: {
-    fontSize: 11,
-    color: colors.neutral[500],
-    padding: spacing[2],
-    paddingTop: 0,
-  },
-  uploadButton: {
-    backgroundColor: colors.info[500],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-  },
-  uploadButtonDisabled: {
-    opacity: 0.5,
-  },
-  uploadButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  imageButtonsContainer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[3],
-  },
-  imageButton: {
-    flex: 1,
-    backgroundColor: colors.info[500],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  imageButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  infoText: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    lineHeight: 18,
-  },
-  lensSearchContainer: {
-    marginBottom: spacing[3],
-  },
-  lensUrlInput: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-    fontSize: 14,
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  lensSearchButton: {
-    backgroundColor: colors.success[500],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  lensSearchButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  lensResultCard: {
-    width: '48%',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  lensResultInfo: {
-    padding: spacing[2],
-  },
-  lensResultTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  lensResultPrice: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.success[500],
-    marginBottom: spacing[1],
-  },
-  lensResultSource: {
-    fontSize: 10,
-    color: colors.neutral[400],
-  },
-  lensResultActions: {
-    padding: spacing[2],
-    paddingTop: 0,
-  },
-  lensSelectButton: {
-    backgroundColor: '#10B981',
-    paddingVertical: 8,
-    borderRadius: 4,
-    alignItems: 'center',
-  },
-  lensSelectButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  geminiEditButton: {
-    backgroundColor: '#F59E0B',
-    paddingVertical: 8,
-    margin: 8,
-    borderRadius: 4,
-    alignItems: 'center',
-  },
-  geminiEditButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  geminiEditorContainer: {
-    gap: 12,
-  },
-  geminiEditorTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  geminiSelectedImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-  },
-  geminiChangeImageButton: {
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  geminiChangeImageButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  geminiPromptLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginTop: 8,
-  },
-  geminiPromptInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  geminiEditActionButton: {
-    backgroundColor: '#F59E0B',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  geminiEditActionButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  geminiPreviewContainer: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  geminiPreviewTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  geminiPreviewImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  geminiPreviewActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  geminiRegenerateButton: {
-    flex: 1,
-    backgroundColor: '#64748B',
-    paddingVertical: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  geminiRegenerateButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  geminiAddButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  geminiAddButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  // Video Generator Styles
-  videoGenerateButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  videoGenerateButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  videoGeneratorContainer: {
-    gap: 12,
-  },
-  videoGeneratorTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  videoSelectedImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-  },
-  videoChangeImageButton: {
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  videoChangeImageButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  videoPromptLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginTop: 8,
-  },
-  videoPromptInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  videoGenerateActionButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  videoGenerateActionButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  videoPreviewContainer: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  videoPreviewTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  videoPlayerPlaceholder: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#1E293B',
-    borderRadius: 8,
-    marginBottom: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoPlayerPlaceholderText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  videoPlayerPlaceholderSubtext: {
-    fontSize: 13,
-    color: '#94A3B8',
-  },
-  videoPreviewActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  videoRegenerateButton: {
-    flex: 1,
-    backgroundColor: '#64748B',
-    paddingVertical: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  videoRegenerateButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  videoDownloadButton: {
-    flex: 1,
-    backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  videoDownloadButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  footer: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  closeButtonBottom: {
-    backgroundColor: '#64748B',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeButtonBottomText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    closeButton: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeButtonText: {
+      fontSize: 24,
+      color: theme.color.text.muted,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabActive: {
+      borderBottomColor: theme.color.brand.accent,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+    },
+    tabTextActive: {
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+    content: {
+      flex: 1,
+    },
+    productInfo: {
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    productTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    productSku: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    section: {
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      marginTop: theme.space[2],
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    loadingContainer: {
+      paddingVertical: theme.space[10],
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    noImagesContainer: {
+      paddingVertical: theme.space[10],
+      alignItems: 'center',
+    },
+    noImagesText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+    },
+    noImagesSubtext: {
+      fontSize: 14,
+      color: theme.color.text.disabled,
+      textAlign: 'center',
+    },
+    imagesGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+    },
+    imageCard: {
+      width: '48%',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    image: {
+      width: '100%',
+      height: 150,
+      backgroundColor: theme.color.surface.muted,
+    },
+    mainImageBadge: {
+      position: 'absolute',
+      top: theme.space[2],
+      left: theme.space[2],
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.xs,
+    },
+    mainImageBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    imageActions: {
+      flexDirection: 'row',
+      padding: theme.space[2],
+      gap: theme.space[1],
+    },
+    lensButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.subtle,
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.xs,
+      alignItems: 'center',
+    },
+    lensButtonText: {
+      fontSize: 16,
+    },
+    geminiButton: {
+      flex: 1,
+      backgroundColor: theme.color.state.warning.background,
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.xs,
+      alignItems: 'center',
+    },
+    geminiButtonText: {
+      fontSize: 16,
+    },
+    videoButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.xs,
+      alignItems: 'center',
+    },
+    videoButtonText: {
+      fontSize: 16,
+    },
+    downloadButton: {
+      flex: 1,
+      backgroundColor: theme.color.state.info.background,
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.xs,
+      alignItems: 'center',
+    },
+    downloadButtonDisabled: {
+      opacity: 0.5,
+    },
+    downloadButtonText: {
+      fontSize: 16,
+    },
+    deleteButton: {
+      flex: 1,
+      backgroundColor: theme.color.state.danger.background,
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.xs,
+      alignItems: 'center',
+    },
+    deleteButtonDisabled: {
+      opacity: 0.5,
+    },
+    deleteButtonText: {
+      fontSize: 16,
+    },
+    imageFilename: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      padding: theme.space[2],
+      paddingTop: 0,
+    },
+    uploadButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+    },
+    uploadButtonDisabled: {
+      opacity: 0.5,
+    },
+    uploadButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    imageButtonsContainer: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    imageButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    imageButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    infoText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      lineHeight: 18,
+    },
+    lensSearchContainer: {
+      marginBottom: theme.space[3],
+    },
+    lensUrlInput: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 14,
+      color: theme.color.text.body,
+      marginBottom: theme.space[2],
+    },
+    lensSearchButton: {
+      backgroundColor: theme.color.action.success.background,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    lensSearchButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    lensResultCard: {
+      width: '48%',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    lensResultInfo: {
+      padding: theme.space[2],
+    },
+    lensResultTitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    lensResultPrice: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.action.success.background,
+      marginBottom: theme.space[1],
+    },
+    lensResultSource: {
+      fontSize: 10,
+      color: theme.color.text.disabled,
+    },
+    lensResultActions: {
+      padding: theme.space[2],
+      paddingTop: 0,
+    },
+    lensSelectButton: {
+      backgroundColor: theme.color.action.success.background,
+      paddingVertical: 8,
+      borderRadius: 4,
+      alignItems: 'center',
+    },
+    lensSelectButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    geminiEditButton: {
+      backgroundColor: theme.color.icon.warning,
+      paddingVertical: 8,
+      margin: 8,
+      borderRadius: 4,
+      alignItems: 'center',
+    },
+    geminiEditButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    geminiEditorContainer: {
+      gap: 12,
+    },
+    geminiEditorTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    geminiSelectedImage: {
+      width: '100%',
+      height: 200,
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: 8,
+    },
+    geminiChangeImageButton: {
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: 8,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    geminiChangeImageButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    geminiPromptLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginTop: 8,
+    },
+    geminiPromptInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 14,
+      color: theme.color.text.body,
+      minHeight: 100,
+      textAlignVertical: 'top',
+    },
+    geminiEditActionButton: {
+      backgroundColor: theme.color.icon.warning,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    geminiEditActionButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    geminiPreviewContainer: {
+      marginTop: 16,
+      padding: 16,
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    geminiPreviewTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    geminiPreviewImage: {
+      width: '100%',
+      height: 200,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 12,
+    },
+    geminiPreviewActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    geminiRegenerateButton: {
+      flex: 1,
+      backgroundColor: theme.color.text.muted,
+      paddingVertical: 12,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    geminiRegenerateButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    geminiAddButton: {
+      flex: 1,
+      backgroundColor: theme.color.action.success.background,
+      paddingVertical: 12,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    geminiAddButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    // Video Generator Styles
+    videoGenerateButton: {
+      backgroundColor: '#6366F1',
+      paddingVertical: 10,
+      borderRadius: 6,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    videoGenerateButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    videoGeneratorContainer: {
+      gap: 12,
+    },
+    videoGeneratorTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    videoSelectedImage: {
+      width: '100%',
+      height: 200,
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: 8,
+    },
+    videoChangeImageButton: {
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: 8,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    videoChangeImageButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    videoPromptLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginTop: 8,
+    },
+    videoPromptInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 14,
+      color: theme.color.text.body,
+      minHeight: 100,
+      textAlignVertical: 'top',
+    },
+    videoGenerateActionButton: {
+      backgroundColor: '#6366F1',
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    videoGenerateActionButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    videoPreviewContainer: {
+      marginTop: 16,
+      padding: 16,
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    videoPreviewTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    videoPlayerPlaceholder: {
+      width: '100%',
+      height: 200,
+      backgroundColor: theme.color.background.inverse,
+      borderRadius: 8,
+      marginBottom: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    videoPlayerPlaceholderText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+      marginBottom: 8,
+    },
+    videoPlayerPlaceholderSubtext: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+    },
+    videoPreviewActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    videoRegenerateButton: {
+      flex: 1,
+      backgroundColor: theme.color.text.muted,
+      paddingVertical: 12,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    videoRegenerateButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    videoDownloadButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: 12,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    videoDownloadButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    footer: {
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    closeButtonBottom: {
+      backgroundColor: theme.color.text.muted,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    closeButtonBottomText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });
