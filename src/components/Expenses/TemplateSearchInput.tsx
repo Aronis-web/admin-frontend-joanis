@@ -12,7 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
 import { ExpenseTemplate } from '@/types/expenses';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface TemplateSearchInputProps {
   value?: string; // Template ID
@@ -35,6 +36,8 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
   disabled = false,
   required = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [templates, setTemplates] = useState<ExpenseTemplate[]>([]);
@@ -151,14 +154,14 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
 
           {item.code && (
             <View style={styles.templateItemDetails}>
-              <Ionicons name="barcode-outline" size={12} color={colors.neutral[500]} />
+              <Ionicons name="barcode-outline" size={12} color={theme.color.icon.subtle} />
               <Text style={styles.templateDetailText}>{item.code}</Text>
             </View>
           )}
 
           {item.amountCents && (
             <View style={styles.templateItemDetails}>
-              <Ionicons name="cash-outline" size={12} color={colors.neutral[500]} />
+              <Ionicons name="cash-outline" size={12} color={theme.color.icon.subtle} />
               <Text style={styles.templateDetailText}>
                 {formatAmount(item.amountCents, item.currency)}
               </Text>
@@ -167,13 +170,13 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
 
           {item.category && (
             <View style={styles.templateItemDetails}>
-              <Ionicons name="pricetag-outline" size={12} color={colors.neutral[500]} />
+              <Ionicons name="pricetag-outline" size={12} color={theme.color.icon.subtle} />
               <Text style={styles.templateDetailText}>{item.category.name}</Text>
             </View>
           )}
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+        <Ionicons name="chevron-forward" size={20} color={theme.color.icon.disabled} />
       </TouchableOpacity>
     );
   };
@@ -215,13 +218,13 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
                 style={styles.clearButton}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                <Ionicons name="close-circle" size={20} color={theme.color.icon.disabled} />
               </TouchableOpacity>
             )}
           </View>
         ) : (
           <View style={styles.placeholderContainer}>
-            <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+            <Ionicons name="search" size={20} color={theme.color.icon.disabled} style={styles.searchIcon} />
             <Text style={styles.placeholder}>{placeholder}</Text>
           </View>
         )}
@@ -244,7 +247,7 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
               style={styles.closeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="close" size={28} color={colors.neutral[800]} />
+              <Ionicons name="close" size={28} color={theme.color.text.heading} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Buscar Plantilla</Text>
             <View style={{ width: 28 }} />
@@ -252,16 +255,16 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
 
           {/* Search Input */}
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={colors.neutral[500]} style={styles.searchIconModal} />
+            <Ionicons name="search" size={20} color={theme.color.icon.subtle} style={styles.searchIconModal} />
             <TextInput
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={handleSearchChange}
               placeholder="Buscar por nombre, código..."
-              placeholderTextColor={colors.neutral[400]}
+              placeholderTextColor={theme.color.text.placeholder}
               autoFocus
             />
-            {loading && <ActivityIndicator size="small" color={colors.accent[500]} />}
+            {loading && <ActivityIndicator size="small" color={theme.color.brand.accent} />}
           </View>
 
           {/* Results */}
@@ -272,7 +275,7 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
             contentContainerStyle={styles.listContainer}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={48} color={colors.neutral[300]} />
+                <Ionicons name="search-outline" size={48} color={theme.color.border.default} />
                 <Text style={styles.emptyText}>
                   {searchQuery
                     ? 'No se encontraron plantillas'
@@ -289,173 +292,174 @@ export const TemplateSearchInput: React.FC<TemplateSearchInputProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing[4],
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
-  },
-  required: {
-    color: colors.danger[500],
-  },
-  inputContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[3],
-    minHeight: 48,
-  },
-  inputContainerError: {
-    borderColor: colors.danger[500],
-  },
-  inputContainerDisabled: {
-    backgroundColor: colors.neutral[100],
-    opacity: 0.6,
-  },
-  placeholderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchIcon: {
-    marginRight: spacing[2],
-  },
-  placeholder: {
-    fontSize: 15,
-    color: colors.neutral[400],
-  },
-  selectedTemplateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectedTemplateContent: {
-    flex: 1,
-  },
-  selectedTemplateName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[0.5],
-  },
-  selectedTemplateCode: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  clearButton: {
-    marginLeft: spacing[2],
-  },
-  errorText: {
-    fontSize: 12,
-    color: colors.danger[500],
-    marginTop: spacing[1],
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.surface.primary,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  closeButton: {
-    padding: spacing[1],
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    paddingHorizontal: spacing[3],
-    margin: spacing[4],
-  },
-  searchIconModal: {
-    marginRight: spacing[2],
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    fontSize: 15,
-    color: colors.neutral[800],
-  },
-  listContainer: {
-    padding: spacing[4],
-    paddingTop: 0,
-  },
-  templateItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    padding: spacing[3],
-    marginBottom: spacing[2],
-  },
-  templateItemContent: {
-    flex: 1,
-  },
-  templateItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[1],
-  },
-  templateName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    flex: 1,
-    marginRight: spacing[2],
-  },
-  typeBadge: {
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-  },
-  typeBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  templateItemDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing[1],
-  },
-  templateDetailText: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginLeft: spacing[1],
-    flex: 1,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing[12],
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral[400],
-    marginTop: spacing[3],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    inputContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      minHeight: 48,
+    },
+    inputContainerError: {
+      borderColor: theme.color.text.danger,
+    },
+    inputContainerDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      opacity: 0.6,
+    },
+    placeholderContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    searchIcon: {
+      marginRight: theme.space[2],
+    },
+    placeholder: {
+      fontSize: 15,
+      color: theme.color.text.placeholder,
+    },
+    selectedTemplateContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    selectedTemplateContent: {
+      flex: 1,
+    },
+    selectedTemplateName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[0.5],
+    },
+    selectedTemplateCode: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    clearButton: {
+      marginLeft: theme.space[2],
+    },
+    errorText: {
+      fontSize: 12,
+      color: theme.color.text.danger,
+      marginTop: theme.space[1],
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    closeButton: {
+      padding: theme.space[1],
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      paddingHorizontal: theme.space[3],
+      margin: theme.space[4],
+    },
+    searchIconModal: {
+      marginRight: theme.space[2],
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      fontSize: 15,
+      color: theme.color.text.heading,
+    },
+    listContainer: {
+      padding: theme.space[4],
+      paddingTop: 0,
+    },
+    templateItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      padding: theme.space[3],
+      marginBottom: theme.space[2],
+    },
+    templateItemContent: {
+      flex: 1,
+    },
+    templateItemHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[1],
+    },
+    templateName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      flex: 1,
+      marginRight: theme.space[2],
+    },
+    typeBadge: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderRadius: theme.radii.sm,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[0.5],
+    },
+    typeBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    templateItemDetails: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: theme.space[1],
+    },
+    templateDetailText: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginLeft: theme.space[1],
+      flex: 1,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[12],
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.placeholder,
+      marginTop: theme.space[3],
+    },
+  });
 
 export default TemplateSearchInput;
