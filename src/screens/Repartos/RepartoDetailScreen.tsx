@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RepartoDetailScreen - Detalle de un reparto
  * Migrado al Design System unificado
  */
@@ -42,17 +42,18 @@ import {
 } from '@/components/Repartos';
 import { useAuthStore } from '@/store/auth';
 import {
-  colors,
   spacing,
   borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
   Button,
   IconButton,
+  useTheme,
+  useThemedStyles,
 } from '@/design-system';
+import type { Theme } from '@/design-system';
 
 interface RepartoDetailScreenProps {
   navigation: any;
@@ -66,6 +67,8 @@ interface RepartoDetailScreenProps {
 type TabType = 'overview' | 'participantes';
 
 export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { repartoId } = route.params;
   const [reparto, setReparto] = useState<Reparto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,18 +95,18 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   const loadReparto = useCallback(async () => {
     try {
       const data = await repartosService.getReparto(repartoId);
-      console.log('📦 Reparto cargado:', JSON.stringify(data, null, 2));
-      console.log('👥 Participantes:', data.participantes?.length);
+      console.log('ðŸ“¦ Reparto cargado:', JSON.stringify(data, null, 2));
+      console.log('ðŸ‘¥ Participantes:', data.participantes?.length);
       if (data.participantes && data.participantes.length > 0) {
-        console.log('🔍 Primer participante:', JSON.stringify(data.participantes[0], null, 2));
+        console.log('ðŸ” Primer participante:', JSON.stringify(data.participantes[0], null, 2));
         if (data.participantes[0].productos) {
           console.log(
-            '📦 Productos del primer participante:',
+            'ðŸ“¦ Productos del primer participante:',
             data.participantes[0].productos.length
           );
           if (data.participantes[0].productos.length > 0) {
             console.log(
-              '🔍 Primer producto:',
+              'ðŸ” Primer producto:',
               JSON.stringify(data.participantes[0].productos[0], null, 2)
             );
           }
@@ -111,9 +114,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       }
       setReparto(data);
 
-      console.log('🚀 INICIANDO CARGA DE FOTOS DE PRODUCTOS (RepartoDetailScreen)...');
+      console.log('ðŸš€ INICIANDO CARGA DE FOTOS DE PRODUCTOS (RepartoDetailScreen)...');
 
-      // ✅ Cargar fotos de productos usando batch endpoint
+      // âœ… Cargar fotos de productos usando batch endpoint
       try {
         const productIds = new Set<string>();
         data.participantes?.forEach((participante) => {
@@ -124,47 +127,49 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           });
         });
 
-        console.log(`📸 Total productos únicos: ${productIds.size}`);
-        console.log(`📸 Product IDs:`, Array.from(productIds));
+        console.log(`ðŸ“¸ Total productos Ãºnicos: ${productIds.size}`);
+        console.log(`ðŸ“¸ Product IDs:`, Array.from(productIds));
         if (productIds.size > 0) {
-          console.log(`📸 Llamando a batch endpoint con includePhotos=true...`);
+          console.log(`ðŸ“¸ Llamando a batch endpoint con includePhotos=true...`);
           const batchResponse = await productsApi.getProductsByIds(Array.from(productIds), true);
-          console.log(`📸 Batch response recibido:`, batchResponse);
-          console.log(`📸 Total productos en respuesta: ${batchResponse.products?.length || 0}`);
+          console.log(`ðŸ“¸ Batch response recibido:`, batchResponse);
+          console.log(`ðŸ“¸ Total productos en respuesta: ${batchResponse.products?.length || 0}`);
           const photosMap: Record<string, string[]> = {};
           batchResponse.products.forEach((product: Product) => {
-            // ✅ El backend puede devolver 'photos' o 'photoUrls'
+            // âœ… El backend puede devolver 'photos' o 'photoUrls'
             const productPhotos = (product as any).photos || (product as any).photoUrls || [];
-            console.log(`📸 Procesando producto ${product.id}: ${productPhotos.length} fotos`);
-            console.log(`📸   - product.photos:`, (product as any).photos);
-            console.log(`📸   - product.photoUrls:`, (product as any).photoUrls);
+            console.log(`ðŸ“¸ Procesando producto ${product.id}: ${productPhotos.length} fotos`);
+            console.log(`ðŸ“¸   - product.photos:`, (product as any).photos);
+            console.log(`ðŸ“¸   - product.photoUrls:`, (product as any).photoUrls);
             if (productPhotos.length > 0) {
               photosMap[product.id] = productPhotos;
-              console.log(`📸 Fotos guardadas para ${product.id}:`, productPhotos);
+              console.log(`ðŸ“¸ Fotos guardadas para ${product.id}:`, productPhotos);
             }
           });
-          console.log(`✅ PhotosMap final:`, photosMap);
-          console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
-          console.log(`✅ Llamando a setProductPhotos con:`, photosMap);
+          console.log(`âœ… PhotosMap final:`, photosMap);
+          console.log(`âœ… Total productos con fotos: ${Object.keys(photosMap).length}`);
+          console.log(`âœ… Llamando a setProductPhotos con:`, photosMap);
           setProductPhotos(photosMap);
-          console.log(`✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`);
+          console.log(
+            `âœ… setProductPhotos llamado (el estado se actualizarÃ¡ en el prÃ³ximo render)`
+          );
         } else {
-          console.log('⚠️ No hay productos para cargar fotos');
+          console.log('âš ï¸ No hay productos para cargar fotos');
         }
       } catch (error: any) {
-        console.error('❌ Error cargando fotos de productos:', error);
-        console.error('❌ Error stack:', error.stack);
-        // No bloquear la carga si falla la obtención de fotos
+        console.error('âŒ Error cargando fotos de productos:', error);
+        console.error('âŒ Error stack:', error.stack);
+        // No bloquear la carga si falla la obtenciÃ³n de fotos
       }
 
-      console.log('✅ LOADREPARTO COMPLETADO EXITOSAMENTE');
+      console.log('âœ… LOADREPARTO COMPLETADO EXITOSAMENTE');
     } catch (error: any) {
-      console.error('❌ ERROR EN LOADREPARTO:', error);
+      console.error('âŒ ERROR EN LOADREPARTO:', error);
       console.error('Error loading reparto:', error);
       Alert.alert('Error', 'No se pudo cargar el reparto');
       navigation.goBack();
     } finally {
-      console.log('🏁 FINALLY BLOCK - Finalizando loadReparto');
+      console.log('ðŸ FINALLY BLOCK - Finalizando loadReparto');
       setLoading(false);
       setRefreshing(false);
     }
@@ -176,12 +181,12 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     }, [loadReparto])
   );
 
-  // 🔍 Monitor productPhotos state changes
+  // ðŸ” Monitor productPhotos state changes
   React.useEffect(() => {
-    console.log('🔄 productPhotos state cambió (RepartoDetailScreen):', {
+    console.log('ðŸ”„ productPhotos state cambiÃ³ (RepartoDetailScreen):', {
       totalProductos: Object.keys(productPhotos).length,
       productIds: Object.keys(productPhotos),
-      photosMap: productPhotos
+      photosMap: productPhotos,
     });
   }, [productPhotos]);
 
@@ -197,17 +202,17 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
     Alert.alert(
       'Cancelar Reparto',
-      '¿Estás seguro de cancelar este reparto? Se liberarán todas las reservas de stock.',
+      'Â¿EstÃ¡s seguro de cancelar este reparto? Se liberarÃ¡n todas las reservas de stock.',
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'Sí, Cancelar',
+          text: 'SÃ­, Cancelar',
           style: 'destructive',
           onPress: async () => {
             setActionLoading(true);
             try {
               await repartosService.cancelReparto(repartoId);
-              Alert.alert('Éxito', 'Reparto cancelado exitosamente');
+              Alert.alert('Ã‰xito', 'Reparto cancelado exitosamente');
               loadReparto();
             } catch (error: any) {
               Alert.alert(
@@ -224,7 +229,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   };
 
   const handleValidateProduct = (producto: any) => {
-    // ✅ Agregar fotos del producto al objeto
+    // âœ… Agregar fotos del producto al objeto
     const productoWithPhotos = {
       ...producto,
       product: {
@@ -237,7 +242,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   };
 
   const handleViewValidation = (producto: any) => {
-    // ✅ Agregar fotos del producto al objeto
+    // âœ… Agregar fotos del producto al objeto
     const productoWithPhotos = {
       ...producto,
       product: {
@@ -261,18 +266,18 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
     setActionLoading(true);
     try {
-      // ✅ El modal ya subió las fotos al servidor, aquí solo enviamos la validación
-      logger.info('📤 Enviando validación al servidor con URLs ya subidas...');
+      // âœ… El modal ya subiÃ³ las fotos al servidor, aquÃ­ solo enviamos la validaciÃ³n
+      logger.info('ðŸ“¤ Enviando validaciÃ³n al servidor con URLs ya subidas...');
 
       await repartosService.validarSalida(selectedProducto.id, {
         validatedQuantityBase: data.validatedQuantityBase,
-        photoUrl: data.photoUrl, // ✅ Ya es URL del servidor
-        signatureUrl: data.signatureUrl, // ✅ Ya es URL del servidor
+        photoUrl: data.photoUrl, // âœ… Ya es URL del servidor
+        signatureUrl: data.signatureUrl, // âœ… Ya es URL del servidor
         validatedByName: user?.name || user?.email || 'Usuario',
         notes: data.notes,
       });
 
-      Alert.alert('Éxito', 'Salida validada exitosamente');
+      Alert.alert('Ã‰xito', 'Salida validada exitosamente');
       setValidationModalVisible(false);
       setSelectedProducto(null);
       loadReparto();
@@ -292,7 +297,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
   const handleDownloadValidationReport = async (format: 'pdf' | 'excel') => {
     if (!selectedParticipant || !reparto?.campaign?.id) {
-      Alert.alert('Error', 'No se encontró la información necesaria');
+      Alert.alert('Error', 'No se encontrÃ³ la informaciÃ³n necesaria');
       return;
     }
 
@@ -300,7 +305,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     setFormatModalVisible(false);
 
     try {
-      logger.info(`📥 Descargando reporte de validación en formato ${format.toUpperCase()}...`);
+      logger.info(`ðŸ“¥ Descargando reporte de validaciÃ³n en formato ${format.toUpperCase()}...`);
       const blob = await repartosService.exportValidationReport(
         selectedParticipant.id,
         reparto.campaign.id,
@@ -318,13 +323,10 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      Alert.alert('Éxito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
+      Alert.alert('Ã‰xito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
     } catch (error: any) {
       logger.error('Error descargando reporte:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte de validación'
-      );
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte de validaciÃ³n');
     } finally {
       setActionLoading(false);
       setSelectedParticipant(null);
@@ -429,11 +431,11 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         {/* Reparto Info */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Información General
+            InformaciÃ³n General
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Código:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>CÃ³digo:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {reparto.code}
             </Text>
@@ -448,7 +450,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
           {reparto.campaign && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Campaña:</Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>CampaÃ±a:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {reparto.campaign.code} - {reparto.campaign.name}
               </Text>
@@ -458,7 +460,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           {reparto.description && (
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Descripción:
+                DescripciÃ³n:
               </Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {reparto.description}
@@ -520,7 +522,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         {/* Statistics */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            Estadísticas
+            EstadÃ­sticas
           </Text>
 
           <View style={styles.statsGrid}>
@@ -625,7 +627,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                   return 1;
                 }
 
-                // Ordenar alfabéticamente dentro de cada grupo
+                // Ordenar alfabÃ©ticamente dentro de cada grupo
                 const nameA =
                   typeA === 'EXTERNAL_COMPANY'
                     ? a.campaignParticipant?.company?.name || ''
@@ -657,11 +659,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                       )
                     : 0;
 
-                // Debug: Log para verificar condiciones del botón
-                console.log('🔍 Participante:', participantName);
-                console.log('📊 Progreso:', progressPercentageParticipante);
-                console.log('🆔 Campaign Participant ID:', participante.campaignParticipant?.id);
-                console.log('✅ Mostrar botón:', progressPercentageParticipante === 100 && !!participante.campaignParticipant?.id);
+                // Debug: Log para verificar condiciones del botÃ³n
+                console.log('ðŸ” Participante:', participantName);
+                console.log('ðŸ“Š Progreso:', progressPercentageParticipante);
+                console.log('ðŸ†” Campaign Participant ID:', participante.campaignParticipant?.id);
+                console.log(
+                  'âœ… Mostrar botÃ³n:',
+                  progressPercentageParticipante === 100 && !!participante.campaignParticipant?.id
+                );
 
                 return (
                   <View
@@ -721,9 +726,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                           }
                           disabled={actionLoading}
                         >
-                          <Text style={styles.downloadReportButtonText}>
-                            📊 Totales venta
-                          </Text>
+                          <Text style={styles.downloadReportButtonText}>ðŸ“Š Totales venta</Text>
                         </TouchableOpacity>
                       )}
 
@@ -735,8 +738,10 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                           Productos ({participante.productos.length})
                         </Text>
 
-                        {/* Filtro de validación */}
-                        <View style={[styles.filterContainer, isTablet && styles.filterContainerTablet]}>
+                        {/* Filtro de validaciÃ³n */}
+                        <View
+                          style={[styles.filterContainer, isTablet && styles.filterContainerTablet]}
+                        >
                           <TouchableOpacity
                             style={[
                               styles.filterButton,
@@ -770,7 +775,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                 validationFilter === 'validated' && styles.filterButtonTextActive,
                               ]}
                             >
-                              ✅ Validados ({participante.productos.filter((p) => p.validationStatus === RepartoProductoValidationStatus.VALIDATED).length})
+                              âœ… Validados (
+                              {
+                                participante.productos.filter(
+                                  (p) =>
+                                    p.validationStatus === RepartoProductoValidationStatus.VALIDATED
+                                ).length
+                              }
+                              )
                             </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
@@ -788,7 +800,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                 validationFilter === 'pending' && styles.filterButtonTextActive,
                               ]}
                             >
-                              ⏳ Pendientes ({participante.productos.filter((p) => p.validationStatus === RepartoProductoValidationStatus.PENDING).length})
+                              â³ Pendientes (
+                              {
+                                participante.productos.filter(
+                                  (p) =>
+                                    p.validationStatus === RepartoProductoValidationStatus.PENDING
+                                ).length
+                              }
+                              )
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -796,11 +815,17 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                         {participante.productos
                           .slice()
                           .filter((producto) => {
-                            // Filtrar por estado de validación
+                            // Filtrar por estado de validaciÃ³n
                             if (validationFilter === 'validated') {
-                              return producto.validationStatus === RepartoProductoValidationStatus.VALIDATED;
+                              return (
+                                producto.validationStatus ===
+                                RepartoProductoValidationStatus.VALIDATED
+                              );
                             } else if (validationFilter === 'pending') {
-                              return producto.validationStatus === RepartoProductoValidationStatus.PENDING;
+                              return (
+                                producto.validationStatus ===
+                                RepartoProductoValidationStatus.PENDING
+                              );
                             }
                             return true; // 'all'
                           })
@@ -811,14 +836,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                             return correlativeA - correlativeB;
                           })
                           .map((producto) => {
-                            // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
+                            // âœ… SOLO mostrar por presentaciÃ³n si la VALIDACIÃ“N fue por presentaciÃ³n
                             const validacionAny = producto.validacion as any;
                             const wasValidatedByPresentation =
                               producto.validationStatus ===
                                 RepartoProductoValidationStatus.VALIDATED &&
                               validacionAny?.presentationInfo?.roundingApplied === true;
 
-                            // Calcular cantidades en presentación SOLO si fue validado por presentación
+                            // Calcular cantidades en presentaciÃ³n SOLO si fue validado por presentaciÃ³n
                             let quantityInPresentation = 0;
                             let validatedInPresentation = 0;
                             let presentationName = '';
@@ -873,37 +898,40 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                       >
                                         {producto.product?.title || 'Producto'}
                                       </Text>
-                                  <Text
-                                    style={[styles.productSku, isTablet && styles.productSkuTablet]}
-                                  >
-                                    {(producto.product as any)?.correlativeNumber &&
-                                      `#${(producto.product as any).correlativeNumber} | `}
-                                    SKU: {producto.product?.sku}
-                                  </Text>
-                                  <Text
-                                    style={[
-                                      styles.productQuantity,
-                                      isTablet && styles.productQuantityTablet,
-                                    ]}
-                                  >
-                                    Cantidad Asignada:{' '}
-                                    {wasValidatedByPresentation
-                                      ? `${quantityInPresentation} ${presentationName} (${producto.quantityBase} unidades)`
-                                      : `${producto.quantityBase} unidades`}
-                                  </Text>
-                                  {producto.validacion && (
-                                    <Text
-                                      style={[
-                                        styles.validatedQuantity,
-                                        isTablet && styles.validatedQuantityTablet,
-                                      ]}
-                                    >
-                                      Cantidad Validada:{' '}
-                                      {wasValidatedByPresentation
-                                        ? `${validatedInPresentation} ${presentationName} (${producto.validacion.validatedQuantityBase} unidades)`
-                                        : `${producto.validacion.validatedQuantityBase} unidades`}
-                                    </Text>
-                                  )}
+                                      <Text
+                                        style={[
+                                          styles.productSku,
+                                          isTablet && styles.productSkuTablet,
+                                        ]}
+                                      >
+                                        {(producto.product as any)?.correlativeNumber &&
+                                          `#${(producto.product as any).correlativeNumber} | `}
+                                        SKU: {producto.product?.sku}
+                                      </Text>
+                                      <Text
+                                        style={[
+                                          styles.productQuantity,
+                                          isTablet && styles.productQuantityTablet,
+                                        ]}
+                                      >
+                                        Cantidad Asignada:{' '}
+                                        {wasValidatedByPresentation
+                                          ? `${quantityInPresentation} ${presentationName} (${producto.quantityBase} unidades)`
+                                          : `${producto.quantityBase} unidades`}
+                                      </Text>
+                                      {producto.validacion && (
+                                        <Text
+                                          style={[
+                                            styles.validatedQuantity,
+                                            isTablet && styles.validatedQuantityTablet,
+                                          ]}
+                                        >
+                                          Cantidad Validada:{' '}
+                                          {wasValidatedByPresentation
+                                            ? `${validatedInPresentation} ${presentationName} (${producto.validacion.validatedQuantityBase} unidades)`
+                                            : `${producto.validacion.validatedQuantityBase} unidades`}
+                                        </Text>
+                                      )}
                                     </View>
                                   </View>
                                 </View>
@@ -943,7 +971,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                       onPress={() => handleViewValidation(producto)}
                                     >
                                       <Text style={styles.viewValidationButtonText}>
-                                        Ver Validación
+                                        Ver ValidaciÃ³n
                                       </Text>
                                     </TouchableOpacity>
                                   )}
@@ -966,7 +994,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando reparto...</Text>
         </View>
       </SafeAreaView>
@@ -979,7 +1007,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Volver</Text>
+            <Text style={styles.backButtonText}>â† Volver</Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={[styles.title, isTablet && styles.titleTablet]}>{reparto?.code}</Text>
@@ -1033,11 +1061,15 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           }}
         >
           <View style={styles.modalOverlay}>
-            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
+            <View
+              style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}
+            >
               <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
                 Seleccionar formato de descarga
               </Text>
-              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+              <Text
+                style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}
+              >
                 {selectedParticipant?.name}
               </Text>
 
@@ -1047,11 +1079,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                   onPress={() => handleDownloadValidationReport('pdf')}
                   disabled={actionLoading}
                 >
-                  <Text style={styles.formatButtonIcon}>📄</Text>
+                  <Text style={styles.formatButtonIcon}>ðŸ“„</Text>
                   <Text style={styles.formatButtonTitle}>PDF</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Incluye fotos y firmas
-                  </Text>
+                  <Text style={styles.formatButtonDescription}>Incluye fotos y firmas</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1059,11 +1089,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                   onPress={() => handleDownloadValidationReport('excel')}
                   disabled={actionLoading}
                 >
-                  <Text style={styles.formatButtonIcon}>📊</Text>
+                  <Text style={styles.formatButtonIcon}>ðŸ“Š</Text>
                   <Text style={styles.formatButtonTitle}>Excel</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Datos tabulados
-                  </Text>
+                  <Text style={styles.formatButtonDescription}>Datos tabulados</Text>
                 </TouchableOpacity>
               </View>
 
@@ -1095,523 +1123,524 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  header: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[6],
-  },
-  backButton: {
-    marginBottom: spacing[3],
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary[500],
-    fontWeight: '500',
-  },
-  headerInfo: {
-    gap: spacing[1],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  subtitleTablet: {
-    fontSize: 18,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: spacing[4],
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabTablet: {
-    paddingVertical: spacing[5],
-  },
-  tabActive: {
-    borderBottomColor: colors.primary[500],
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text.secondary,
-  },
-  tabTextTablet: {
-    fontSize: 16,
-  },
-  tabTextActive: {
-    color: colors.primary[500],
-    fontWeight: '600',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-  },
-  scrollContentTablet: {
-    padding: spacing[8],
-  },
-  overviewContainer: {
-    gap: spacing[4],
-  },
-  tabContent: {
-    gap: spacing[4],
-  },
-  section: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    ...shadows.sm,
-  },
-  sectionTablet: {
-    padding: spacing[6],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[4],
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    fontWeight: '500',
-    width: 140,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-    width: 180,
-  },
-  infoValue: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text.primary,
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
-    alignItems: 'center',
-  },
-  statCardTablet: {
-    padding: spacing[5],
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary[500],
-    marginBottom: spacing[1],
-  },
-  statValueTablet: {
-    fontSize: 28,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  statLabelTablet: {
-    fontSize: 14,
-  },
-  notesText: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    lineHeight: 20,
-  },
-  notesTextTablet: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  cancelButton: {
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3.5],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.danger[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.danger[600],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  downloadReportButton: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    marginTop: spacing[3],
-  },
-  downloadReportButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  participantCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-  },
-  participantCardTablet: {
-    padding: spacing[5],
-  },
-  participantHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  participantInfo: {
-    flex: 1,
-  },
-  participantProgress: {
-    marginLeft: spacing[4],
-  },
-  participantName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  participantNameTablet: {
-    fontSize: 18,
-  },
-  participantType: {
-    fontSize: 13,
-    color: colors.text.secondary,
-  },
-  participantTypeTablet: {
-    fontSize: 15,
-  },
-  participantStats: {
-    fontSize: 13,
-    color: colors.success[600],
-    fontWeight: '600',
-    marginTop: spacing[1],
-  },
-  participantStatsTablet: {
-    fontSize: 15,
-  },
-  productsList: {
-    marginTop: spacing[2],
-  },
-  productsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.tertiary,
-    marginBottom: spacing[2],
-  },
-  productsTitleTablet: {
-    fontSize: 16,
-  },
-  productItem: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginBottom: spacing[2],
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  productInfo: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  productHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
-    marginBottom: spacing[2],
-  },
-  productThumbnail: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-  },
-  productTextInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  productNameTablet: {
-    fontSize: 16,
-  },
-  productSku: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginBottom: spacing[0.5],
-  },
-  productSkuTablet: {
-    fontSize: 14,
-  },
-  productQuantity: {
-    fontSize: 13,
-    color: colors.text.tertiary,
-    marginBottom: spacing[0.5],
-  },
-  productQuantityTablet: {
-    fontSize: 15,
-  },
-  validatedQuantity: {
-    fontSize: 13,
-    color: colors.success[600],
-    fontWeight: '500',
-  },
-  validatedQuantityTablet: {
-    fontSize: 15,
-  },
-  productActions: {
-    alignItems: 'flex-end',
-    gap: spacing[2],
-  },
-  productStatusBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-  },
-  productStatusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  validateButton: {
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-  },
-  validateButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  viewValidationButton: {
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-  },
-  viewValidationButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-    paddingVertical: spacing[5],
-  },
-  emptyTextTablet: {
-    fontSize: 16,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[2],
-    marginBottom: spacing[2],
-  },
-  filterContainerTablet: {
-    gap: spacing[3],
-    marginTop: spacing[3],
-    marginBottom: spacing[3],
-  },
-  filterButton: {
-    flex: 1,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[2.5],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    alignItems: 'center',
-  },
-  filterButtonTablet: {
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3.5],
-  },
-  filterButtonActive: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  filterButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  filterButtonTextTablet: {
-    fontSize: 13,
-  },
-  filterButtonTextActive: {
-    color: colors.text.inverse,
-  },
-  // Format Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  formatModalContainer: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[6],
-    width: '90%',
-    maxWidth: 400,
-    ...shadows.lg,
-  },
-  formatModalContainerTablet: {
-    padding: spacing[8],
-    maxWidth: 500,
-  },
-  formatModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[2],
-    textAlign: 'center',
-  },
-  formatModalTitleTablet: {
-    fontSize: 24,
-  },
-  formatModalSubtitle: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginBottom: spacing[6],
-    textAlign: 'center',
-  },
-  formatModalSubtitleTablet: {
-    fontSize: 16,
-  },
-  formatButtonsContainer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[4],
-  },
-  formatButton: {
-    flex: 1,
-    padding: spacing[5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    borderWidth: 2,
-  },
-  pdfButton: {
-    backgroundColor: colors.danger[50],
-    borderColor: colors.danger[300],
-  },
-  excelButton: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[300],
-  },
-  formatButtonIcon: {
-    fontSize: 32,
-    marginBottom: spacing[2],
-  },
-  formatButtonTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  formatButtonDescription: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  formatCancelButton: {
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-  },
-  formatCancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: spacing[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[4],
+      backgroundColor: theme.color.background.canvas,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerTablet: {
+      paddingHorizontal: spacing[8],
+      paddingVertical: spacing[6],
+    },
+    backButton: {
+      marginBottom: spacing[3],
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '500',
+    },
+    headerInfo: {
+      gap: spacing[1],
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    subtitleTablet: {
+      fontSize: 18,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.background.canvas,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: spacing[4],
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabTablet: {
+      paddingVertical: spacing[5],
+    },
+    tabActive: {
+      borderBottomColor: theme.color.brand.primary,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+    },
+    tabTextTablet: {
+      fontSize: 16,
+    },
+    tabTextActive: {
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: spacing[4],
+    },
+    scrollContentTablet: {
+      padding: spacing[8],
+    },
+    overviewContainer: {
+      gap: spacing[4],
+    },
+    tabContent: {
+      gap: spacing[4],
+    },
+    section: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      ...theme.shadow.sm,
+    },
+    sectionTablet: {
+      padding: spacing[6],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[4],
+    },
+    sectionTitleTablet: {
+      fontSize: 22,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      paddingVertical: spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    infoLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+      width: 140,
+    },
+    infoLabelTablet: {
+      fontSize: 16,
+      width: 180,
+    },
+    infoValue: {
+      flex: 1,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    infoValueTablet: {
+      fontSize: 16,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing[2.5],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      alignSelf: 'flex-start',
+    },
+    statusBadgeTablet: {
+      paddingHorizontal: spacing[3.5],
+      paddingVertical: spacing[1.5],
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    statusTextTablet: {
+      fontSize: 14,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing[3],
+    },
+    statCard: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      padding: spacing[4],
+      alignItems: 'center',
+    },
+    statCardTablet: {
+      padding: spacing[5],
+    },
+    statValue: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.brand.primary,
+      marginBottom: spacing[1],
+    },
+    statValueTablet: {
+      fontSize: 28,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    statLabelTablet: {
+      fontSize: 14,
+    },
+    notesText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      lineHeight: 20,
+    },
+    notesTextTablet: {
+      fontSize: 16,
+      lineHeight: 24,
+    },
+    cancelButton: {
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3.5],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.danger,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    downloadReportButton: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      marginTop: spacing[3],
+    },
+    downloadReportButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    participantCard: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      padding: spacing[4],
+      marginBottom: spacing[3],
+    },
+    participantCardTablet: {
+      padding: spacing[5],
+    },
+    participantHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+    },
+    participantInfo: {
+      flex: 1,
+    },
+    participantProgress: {
+      marginLeft: spacing[4],
+    },
+    participantName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    participantNameTablet: {
+      fontSize: 18,
+    },
+    participantType: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    participantTypeTablet: {
+      fontSize: 15,
+    },
+    participantStats: {
+      fontSize: 13,
+      color: theme.color.text.success,
+      fontWeight: '600',
+      marginTop: spacing[1],
+    },
+    participantStatsTablet: {
+      fontSize: 15,
+    },
+    productsList: {
+      marginTop: spacing[2],
+    },
+    productsTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginBottom: spacing[2],
+    },
+    productsTitleTablet: {
+      fontSize: 16,
+    },
+    productItem: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.md,
+      padding: spacing[3],
+      marginBottom: spacing[2],
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    productInfo: {
+      flex: 1,
+      marginRight: spacing[3],
+    },
+    productHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing[3],
+      marginBottom: spacing[2],
+    },
+    productThumbnail: {
+      width: 40,
+      height: 40,
+      borderRadius: borderRadius.sm,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.background.subtle,
+    },
+    productTextInfo: {
+      flex: 1,
+    },
+    productName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    productNameTablet: {
+      fontSize: 16,
+    },
+    productSku: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: spacing[0.5],
+    },
+    productSkuTablet: {
+      fontSize: 14,
+    },
+    productQuantity: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      marginBottom: spacing[0.5],
+    },
+    productQuantityTablet: {
+      fontSize: 15,
+    },
+    validatedQuantity: {
+      fontSize: 13,
+      color: theme.color.text.success,
+      fontWeight: '500',
+    },
+    validatedQuantityTablet: {
+      fontSize: 15,
+    },
+    productActions: {
+      alignItems: 'flex-end',
+      gap: spacing[2],
+    },
+    productStatusBadge: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+    },
+    productStatusText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    validateButton: {
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: borderRadius.sm,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[1.5],
+    },
+    validateButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    viewValidationButton: {
+      backgroundColor: theme.color.state.success.border,
+      borderRadius: borderRadius.sm,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[1.5],
+    },
+    viewValidationButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+      paddingVertical: spacing[5],
+    },
+    emptyTextTablet: {
+      fontSize: 16,
+    },
+    filterContainer: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      marginTop: spacing[2],
+      marginBottom: spacing[2],
+    },
+    filterContainerTablet: {
+      gap: spacing[3],
+      marginTop: spacing[3],
+      marginBottom: spacing[3],
+    },
+    filterButton: {
+      flex: 1,
+      paddingVertical: spacing[2],
+      paddingHorizontal: spacing[2.5],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+    },
+    filterButtonTablet: {
+      paddingVertical: spacing[2.5],
+      paddingHorizontal: spacing[3.5],
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    filterButtonText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterButtonTextTablet: {
+      fontSize: 13,
+    },
+    filterButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    // Format Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    formatModalContainer: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.xl,
+      padding: spacing[6],
+      width: '90%',
+      maxWidth: 400,
+      ...theme.shadow.lg,
+    },
+    formatModalContainerTablet: {
+      padding: spacing[8],
+      maxWidth: 500,
+    },
+    formatModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: spacing[2],
+      textAlign: 'center',
+    },
+    formatModalTitleTablet: {
+      fontSize: 24,
+    },
+    formatModalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: spacing[6],
+      textAlign: 'center',
+    },
+    formatModalSubtitleTablet: {
+      fontSize: 16,
+    },
+    formatButtonsContainer: {
+      flexDirection: 'row',
+      gap: spacing[3],
+      marginBottom: spacing[4],
+    },
+    formatButton: {
+      flex: 1,
+      padding: spacing[5],
+      borderRadius: borderRadius.lg,
+      alignItems: 'center',
+      borderWidth: 2,
+    },
+    pdfButton: {
+      backgroundColor: theme.color.state.danger.background,
+      borderColor: theme.color.state.danger.border,
+    },
+    excelButton: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.state.success.border,
+    },
+    formatButtonIcon: {
+      fontSize: 32,
+      marginBottom: spacing[2],
+    },
+    formatButtonTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    formatButtonDescription: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    formatCancelButton: {
+      paddingVertical: spacing[3],
+      alignItems: 'center',
+    },
+    formatCancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+  });
