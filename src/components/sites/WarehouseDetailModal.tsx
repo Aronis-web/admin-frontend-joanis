@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView} from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { warehousesApi, warehouseAreasApi } from '@/services/api';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
@@ -27,6 +28,7 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
   onCreateArea,
   onEditArea,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const [areas, setAreas] = useState<WarehouseArea[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -273,253 +275,254 @@ export const WarehouseDetailModal: React.FC<WarehouseDetailModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    flex: 1,
-  },
-  warehouseIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.warning[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[4],
-  },
-  iconText: {
-    fontSize: 28,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[5],
-  },
-  section: {
-    marginBottom: spacing[6],
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  sectionContent: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    fontWeight: '500',
-    flex: 1,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: colors.neutral[800],
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'right',
-  },
-  loadingContainer: {
-    paddingVertical: spacing[5],
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  emptyContainer: {
-    paddingVertical: spacing[5],
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  emptySubtext: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  areasContainer: {
-    gap: spacing[2],
-  },
-  areaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  areaInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  areaIconSmall: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  iconTextSmall: {
-    fontSize: 18,
-  },
-  areaDetails: {
-    flex: 1,
-  },
-  areaCode: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  areaName: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: 2,
-  },
-  deleteIconButton: {
-    padding: spacing[2],
-  },
-  deleteIconText: {
-    fontSize: 18,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[5],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeActionButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  closeActionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  deleteButton: {
-    backgroundColor: colors.danger[500],
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  editButton: {
-    backgroundColor: colors.primary[500],
-  },
-  editButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 100,
-    right: spacing[6],
-    width: 60,
-    height: 60,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: colors.neutral[950],
-    shadowOffset: {
-      width: 0,
-      height: 4,
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    zIndex: 1000,
-  },
-  floatingButtonIcon: {
-    fontSize: 32,
-    fontWeight: '600',
-    color: colors.neutral[0],
-    lineHeight: 32,
-  },
-});
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      flex: 1,
+    },
+    warehouseIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.state.warning.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[4],
+    },
+    iconText: {
+      fontSize: 28,
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    modalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    scrollContent: {
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[5],
+    },
+    section: {
+      marginBottom: theme.space[6],
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    sectionContent: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingVertical: theme.space[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    infoLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+      flex: 1,
+    },
+    infoValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+      flex: 1,
+      textAlign: 'right',
+    },
+    loadingContainer: {
+      paddingVertical: theme.space[5],
+      alignItems: 'center',
+    },
+    loadingText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    emptyContainer: {
+      paddingVertical: theme.space[5],
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+    },
+    emptyText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    emptySubtext: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    areasContainer: {
+      gap: theme.space[2],
+    },
+    areaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    areaInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    areaIconSmall: {
+      width: 36,
+      height: 36,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    iconTextSmall: {
+      fontSize: 18,
+    },
+    areaDetails: {
+      flex: 1,
+    },
+    areaCode: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    areaName: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    deleteIconButton: {
+      padding: theme.space[2],
+    },
+    deleteIconText: {
+      fontSize: 18,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[5],
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeActionButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    closeActionButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.action.danger.background,
+    },
+    deleteButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    editButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    editButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    floatingButton: {
+      position: 'absolute',
+      bottom: 100,
+      right: theme.space[6],
+      width: 60,
+      height: 60,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 8,
+      shadowColor: theme.color.shadow,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 4.65,
+      zIndex: 1000,
+    },
+    floatingButtonIcon: {
+      fontSize: 32,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+      lineHeight: 32,
+    },
+  });
 
 export default WarehouseDetailModal;
