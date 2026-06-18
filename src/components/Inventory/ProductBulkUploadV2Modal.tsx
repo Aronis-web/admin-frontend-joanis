@@ -17,8 +17,8 @@ import { getDocumentAsync } from '@/utils/filePicker';
 import { config } from '@/utils/config';
 import { authService } from '@/services/AuthService';
 
-// Design System
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Title,
   Body,
@@ -52,6 +52,8 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
   onClose,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, currentSite, currentCompany } = useAuthStore();
   const { selectedSite, selectedCompany } = useTenantStore();
   const [loading, setLoading] = useState(false);
@@ -368,7 +370,7 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
             {/* Instructions */}
             <Card variant="filled" padding="medium" style={styles.instructionsCard}>
               <View style={styles.instructionHeader}>
-                <Ionicons name="information-circle" size={24} color={colors.accent[500]} />
+                <Ionicons name="information-circle" size={24} color={theme.color.brand.accent} />
                 <Label size="large">Instrucciones</Label>
               </View>
               <Body size="small" color="secondary" style={styles.instructionText}>
@@ -389,26 +391,26 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
             <View style={styles.featuresCard}>
               <Label size="large" style={styles.featuresTitle}>✨ Características V2</Label>
               <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[500]} />
-                <Body size="small" color={colors.success[700]} style={styles.featureText}>
+                <Ionicons name="checkmark-circle" size={20} color={theme.color.state.success.text} />
+                <Body size="small" color={theme.color.state.success.text} style={styles.featureText}>
                   Todas las presentaciones disponibles en el sistema
                 </Body>
               </View>
               <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[500]} />
-                <Body size="small" color={colors.success[700]} style={styles.featureText}>
+                <Ionicons name="checkmark-circle" size={20} color={theme.color.state.success.text} />
+                <Body size="small" color={theme.color.state.success.text} style={styles.featureText}>
                   Especifica solo las presentaciones que necesites
                 </Body>
               </View>
               <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[500]} />
-                <Body size="small" color={colors.success[700]} style={styles.featureText}>
+                <Ionicons name="checkmark-circle" size={20} color={theme.color.state.success.text} />
+                <Body size="small" color={theme.color.state.success.text} style={styles.featureText}>
                   Stock inicial por almacén y área
                 </Body>
               </View>
               <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[500]} />
-                <Body size="small" color={colors.success[700]} style={styles.featureText}>
+                <Ionicons name="checkmark-circle" size={20} color={theme.color.state.success.text} />
+                <Body size="small" color={theme.color.state.success.text} style={styles.featureText}>
                   Validación automática de datos
                 </Body>
               </View>
@@ -440,7 +442,7 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
                   <Ionicons
                     name={uploadResult.errorCount === 0 ? 'checkmark-circle' : 'warning'}
                     size={24}
-                    color={uploadResult.errorCount === 0 ? colors.success[500] : colors.warning[500]}
+                    color={uploadResult.errorCount === 0 ? theme.color.state.success.text : theme.color.state.warning.text}
                   />
                   <Label size="large">Resultado de la Carga</Label>
                 </View>
@@ -452,14 +454,14 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
                   </View>
                   <View style={styles.resultStat}>
                     <Body size="small" color="secondary">Productos creados:</Body>
-                    <Label size="medium" color={colors.success[600]}>
+                    <Label size="medium" color={theme.color.state.success.text}>
                       {uploadResult.successCount}
                     </Label>
                   </View>
                   {uploadResult.errorCount > 0 && (
                     <View style={styles.resultStat}>
                       <Body size="small" color="secondary">Errores:</Body>
-                      <Label size="medium" color={colors.danger[600]}>
+                      <Label size="medium" color={theme.color.state.danger.text}>
                         {uploadResult.errorCount}
                       </Label>
                     </View>
@@ -473,9 +475,9 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
                     <ScrollView style={styles.errorsList} nestedScrollEnabled>
                       {uploadResult.errors.map((error, index) => (
                         <View key={index} style={styles.errorItem}>
-                          <Label size="small" color={colors.danger[700]}>Fila {error.row}</Label>
-                          {error.sku && <Caption color={colors.danger[600]}>SKU: {error.sku}</Caption>}
-                          <Caption color={colors.danger[800]}>{error.error}</Caption>
+                          <Label size="small" color={theme.color.state.danger.text}>Fila {error.row}</Label>
+                          {error.sku && <Caption color={theme.color.state.danger.text}>SKU: {error.sku}</Caption>}
+                          <Caption color={theme.color.state.danger.text}>{error.error}</Caption>
                         </View>
                       ))}
                     </ScrollView>
@@ -486,8 +488,8 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
 
             {/* Warning */}
             <View style={styles.warningCard}>
-              <Ionicons name="alert-circle" size={20} color={colors.warning[500]} />
-              <Caption color={colors.warning[700]} style={styles.warningText}>
+              <Ionicons name="alert-circle" size={20} color={theme.color.state.warning.text} />
+              <Caption color={theme.color.state.warning.text} style={styles.warningText}>
                 Asegúrate de que el archivo Excel esté correctamente formateado y contenga todos
                 los campos obligatorios.
               </Caption>
@@ -499,121 +501,122 @@ export const ProductBulkUploadV2Modal: React.FC<ProductBulkUploadV2ModalProps> =
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    width: '100%',
-    maxWidth: 600,
-    maxHeight: '90%',
-    ...shadows.xl,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  modalContent: {
-    padding: spacing[5],
-  },
-  instructionsCard: {
-    marginBottom: spacing[4],
-  },
-  instructionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    gap: spacing[2],
-  },
-  instructionText: {
-    marginBottom: spacing[2],
-    lineHeight: 20,
-  },
-  featuresCard: {
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.success[200],
-  },
-  featuresTitle: {
-    marginBottom: spacing[3],
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-    gap: spacing[2],
-  },
-  featureText: {
-    flex: 1,
-  },
-  actionsContainer: {
-    gap: spacing[3],
-    marginBottom: spacing[4],
-  },
-  resultCard: {
-    marginBottom: spacing[4],
-  },
-  resultHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[4],
-    gap: spacing[2],
-  },
-  resultStats: {
-    gap: spacing[2],
-    marginBottom: spacing[3],
-  },
-  resultStat: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  errorsContainer: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  errorsTitle: {
-    marginBottom: spacing[2],
-  },
-  errorsList: {
-    maxHeight: 200,
-  },
-  errorItem: {
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginBottom: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.danger[200],
-  },
-  warningCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    gap: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.warning[200],
-  },
-  warningText: {
-    flex: 1,
-    lineHeight: 18,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '100%',
+      maxWidth: 600,
+      maxHeight: '90%',
+      ...theme.shadow.xl,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalContent: {
+      padding: theme.space[5],
+    },
+    instructionsCard: {
+      marginBottom: theme.space[4],
+    },
+    instructionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+      gap: theme.space[2],
+    },
+    instructionText: {
+      marginBottom: theme.space[2],
+      lineHeight: 20,
+    },
+    featuresCard: {
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+    },
+    featuresTitle: {
+      marginBottom: theme.space[3],
+    },
+    featureItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+      gap: theme.space[2],
+    },
+    featureText: {
+      flex: 1,
+    },
+    actionsContainer: {
+      gap: theme.space[3],
+      marginBottom: theme.space[4],
+    },
+    resultCard: {
+      marginBottom: theme.space[4],
+    },
+    resultHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+      gap: theme.space[2],
+    },
+    resultStats: {
+      gap: theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    resultStat: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    errorsContainer: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    errorsTitle: {
+      marginBottom: theme.space[2],
+    },
+    errorsList: {
+      maxHeight: 200,
+    },
+    errorItem: {
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      marginBottom: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+    },
+    warningCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      gap: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    warningText: {
+      flex: 1,
+      lineHeight: 18,
+    },
+  });
