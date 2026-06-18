@@ -29,11 +29,12 @@ import { Company } from '@/types/companies';
 import { apiClient } from '@/services/api/client';
 
 // Design System Imports
-import { colors } from '@/design-system/tokens/colors';
 import { spacing, borderRadius } from '@/design-system/tokens/spacing';
 import { shadows } from '@/design-system/tokens/shadows';
 import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
 import { durations } from '@/design-system/tokens/animations';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 
@@ -112,6 +113,8 @@ interface ResultCardProps {
 }
 
 const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [expandedAccounts, setExpandedAccounts] = useState(false);
 
   return (
@@ -119,7 +122,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
       {/* Header con banco detectado */}
       <View style={styles.resultHeader}>
         <View style={styles.resultBankBadge}>
-          <Ionicons name="business" size={20} color={colors.neutral[0]} />
+          <Ionicons name="business" size={20} color={theme.color.text.inverse} />
           <Text style={styles.resultBankText}>{result.detectedBank}</Text>
         </View>
         <Text style={styles.resultDuration}>
@@ -135,14 +138,14 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
         </View>
         <View style={styles.resultStatDivider} />
         <View style={styles.resultStatItem}>
-          <Text style={[styles.resultStatValue, { color: colors.success[600] }]}>
+          <Text style={[styles.resultStatValue, { color: theme.color.text.success }]}>
             {result.totalNewTransactions}
           </Text>
           <Text style={styles.resultStatLabel}>Nuevos</Text>
         </View>
         <View style={styles.resultStatDivider} />
         <View style={styles.resultStatItem}>
-          <Text style={[styles.resultStatValue, { color: colors.warning[600] }]}>
+          <Text style={[styles.resultStatValue, { color: theme.color.text.warning }]}>
             {result.totalDuplicates}
           </Text>
           <Text style={styles.resultStatLabel}>Duplicados</Text>
@@ -152,7 +155,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
       {/* Warnings si hay */}
       {result.warnings && result.warnings.length > 0 && (
         <View style={styles.warningsContainer}>
-          <Ionicons name="warning" size={16} color={colors.warning[600]} />
+          <Ionicons name="warning" size={16} color={theme.color.text.warning} />
           <Text style={styles.warningsText}>
             {result.warnings.length} advertencia(s)
           </Text>
@@ -170,7 +173,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
         <Ionicons
           name={expandedAccounts ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color={colors.neutral[500]}
+          color={theme.color.icon.subtle}
         />
       </TouchableOpacity>
 
@@ -191,21 +194,21 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
               </View>
               <View style={styles.accountStats}>
                 <View style={styles.accountStatItem}>
-                  <Ionicons name="document-text" size={14} color={colors.neutral[400]} />
+                  <Ionicons name="document-text" size={14} color={theme.color.icon.disabled} />
                   <Text style={styles.accountStatText}>{account.totalRows} filas</Text>
                 </View>
                 <View style={styles.accountStatItem}>
-                  <Ionicons name="checkmark-circle" size={14} color={colors.success[500]} />
+                  <Ionicons name="checkmark-circle" size={14} color={theme.color.icon.success} />
                   <Text style={styles.accountStatText}>{account.newTransactionsCount} nuevos</Text>
                 </View>
                 <View style={styles.accountStatItem}>
-                  <Ionicons name="copy" size={14} color={colors.warning[500]} />
+                  <Ionicons name="copy" size={14} color={theme.color.icon.warning} />
                   <Text style={styles.accountStatText}>{account.duplicatesCount} dup.</Text>
                 </View>
                 {account.errorsCount > 0 && (
                   <View style={styles.accountStatItem}>
-                    <Ionicons name="close-circle" size={14} color={colors.danger[500]} />
-                    <Text style={[styles.accountStatText, { color: colors.danger[600] }]}>
+                    <Ionicons name="close-circle" size={14} color={theme.color.icon.danger} />
+                    <Text style={[styles.accountStatText, { color: theme.color.text.danger }]}>
                       {account.errorsCount} errores
                     </Text>
                   </View>
@@ -224,6 +227,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
 // ============================================================================
 
 export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const { currentCompany } = useAuthStore();
   const { selectedCompany } = useTenantStore();
@@ -389,19 +394,19 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="wallet-outline" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="wallet-outline" size={22} color={theme.color.text.inverse} />
                 </View>
                 <Text style={styles.titleGradient}>Subir Archivos</Text>
               </View>
@@ -423,7 +428,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
               </View>
               {isLoadingCompanies ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator color={colors.primary[600]} size="small" />
+                  <ActivityIndicator color={theme.color.brand.primary} size="small" />
                   <Text style={styles.loadingText}>Cargando empresas...</Text>
                 </View>
               ) : companies.length > 0 ? (
@@ -445,7 +450,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               ) : (
                 <View style={styles.warningContainer}>
-                  <Ionicons name="warning-outline" size={24} color={colors.warning[600]} />
+                  <Ionicons name="warning-outline" size={24} color={theme.color.text.warning} />
                   <Text style={styles.warningText}>No hay empresas disponibles</Text>
                 </View>
               )}
@@ -470,7 +475,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name={getFileIcon()}
                     size={32}
-                    color={selectedFile ? colors.success[600] : colors.neutral[400]}
+                    color={selectedFile ? theme.color.text.success : theme.color.icon.disabled}
                   />
                 </View>
                 <Text style={[styles.selectFileText, selectedFile && styles.selectFileTextSelected]}>
@@ -507,12 +512,12 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
               >
                 {isUploading ? (
                   <>
-                    <ActivityIndicator color={colors.neutral[0]} size="small" />
+                    <ActivityIndicator color={theme.color.text.inverse} size="small" />
                     <Text style={styles.uploadButtonText}>Procesando...</Text>
                   </>
                 ) : (
                   <>
-                    <Ionicons name="cloud-upload" size={24} color={colors.neutral[0]} />
+                    <Ionicons name="cloud-upload" size={24} color={theme.color.text.inverse} />
                     <Text style={styles.uploadButtonText}>Subir y Procesar</Text>
                   </>
                 )}
@@ -520,7 +525,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
 
               {isUploading && (
                 <View style={styles.processingWarning}>
-                  <Ionicons name="time-outline" size={24} color={colors.warning[700]} />
+                  <Ionicons name="time-outline" size={24} color={theme.color.state.warning.text} />
                   <Text style={styles.processingWarningText}>
                     El procesamiento puede tardar según el tamaño del archivo.{'\n'}
                     No cierres esta pantalla.
@@ -535,8 +540,8 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
             <AnimatedCard delay={0}>
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <View style={[styles.stepBadge, { backgroundColor: colors.success[600] }]}>
-                    <Ionicons name="checkmark" size={16} color={colors.neutral[0]} />
+                  <View style={[styles.stepBadge, { backgroundColor: theme.color.icon.success }]}>
+                    <Ionicons name="checkmark" size={16} color={theme.color.text.inverse} />
                   </View>
                   <Text style={styles.sectionTitle}>Resultado</Text>
                 </View>
@@ -549,7 +554,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
           <AnimatedCard delay={300}>
             <View style={styles.infoSection}>
               <View style={styles.infoHeader}>
-                <Ionicons name="information-circle" size={24} color={colors.info[600]} />
+                <Ionicons name="information-circle" size={24} color={theme.color.icon.accent} />
                 <Text style={styles.infoTitle}>Formatos Soportados</Text>
               </View>
               <Text style={styles.infoText}>
@@ -576,10 +581,10 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
   },
 
   // Header
@@ -596,7 +601,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -613,7 +618,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -621,12 +626,12 @@ const styles = StyleSheet.create({
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     marginLeft: spacing[12],
   },
@@ -636,7 +641,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     marginHorizontal: spacing[4],
     marginTop: spacing[4],
     borderRadius: borderRadius.lg,
@@ -653,77 +658,77 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepNumber: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.bold,
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   sectionTitle: {
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+    color: theme.color.text.heading,
   },
 
   // Picker
   pickerContainer: {
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: borderRadius.md,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: colors.neutral[900],
+    color: theme.color.text.heading,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: borderRadius.md,
     padding: spacing[4],
     gap: spacing[3],
   },
   loadingText: {
     fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.warning[50],
+    backgroundColor: theme.color.state.warning.background,
     borderRadius: borderRadius.md,
     padding: spacing[4],
     gap: spacing[3],
     borderWidth: 1,
-    borderColor: colors.warning[200],
+    borderColor: theme.color.state.warning.border,
   },
   warningText: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.medium,
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
   },
 
   // File selection
   selectFileButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: borderRadius.lg,
     padding: spacing[6],
     borderWidth: 2,
-    borderColor: colors.neutral[300],
+    borderColor: theme.color.border.default,
     borderStyle: 'dashed',
   },
   selectFileButtonSelected: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[400],
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
     borderStyle: 'solid',
   },
   selectFileIconContainer: {
@@ -732,11 +737,11 @@ const styles = StyleSheet.create({
   selectFileText: {
     fontSize: fontSizes.base,
     fontWeight: fontWeights.medium,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     textAlign: 'center',
   },
   selectFileTextSelected: {
-    color: colors.success[700],
+    color: theme.color.state.success.text,
   },
   fileInfoRow: {
     flexDirection: 'row',
@@ -745,7 +750,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   fileTypeBadge: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: theme.color.brand.primarySoft,
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[0.5],
     borderRadius: borderRadius.sm,
@@ -753,11 +758,11 @@ const styles = StyleSheet.create({
   fileTypeText: {
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.semibold,
-    color: colors.primary[700],
+    color: theme.color.brand.primary,
   },
   selectFileSize: {
     fontSize: fontSizes.sm,
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
 
   // Upload button
@@ -765,47 +770,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.success[600],
+    backgroundColor: theme.color.action.success.background,
     borderRadius: borderRadius.lg,
     padding: spacing[4],
     gap: spacing[3],
     ...shadows.md,
   },
   uploadButtonDisabled: {
-    backgroundColor: colors.neutral[300],
+    backgroundColor: theme.color.action.success.backgroundDisabled,
     ...shadows.none,
   },
   uploadButtonText: {
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   processingWarning: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.warning[50],
+    backgroundColor: theme.color.state.warning.background,
     borderRadius: borderRadius.md,
     padding: spacing[4],
     marginTop: spacing[4],
     gap: spacing[3],
     borderWidth: 1,
-    borderColor: colors.warning[200],
+    borderColor: theme.color.state.warning.border,
   },
   processingWarningText: {
     flex: 1,
     fontSize: fontSizes.sm,
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
     fontWeight: fontWeights.medium,
     lineHeight: 20,
   },
 
   // Result card
   resultCard: {
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: borderRadius.lg,
     padding: spacing[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   resultHeader: {
     flexDirection: 'row',
@@ -816,7 +821,7 @@ const styles = StyleSheet.create({
   resultBankBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[1.5],
     borderRadius: borderRadius.full,
@@ -825,17 +830,17 @@ const styles = StyleSheet.create({
   resultBankText: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   resultDuration: {
     fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   resultStats: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius.md,
     padding: spacing[3],
     marginBottom: spacing[3],
@@ -846,22 +851,22 @@ const styles = StyleSheet.create({
   resultStatValue: {
     fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    color: theme.color.text.heading,
   },
   resultStatLabel: {
     fontSize: fontSizes.xs,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     marginTop: spacing[0.5],
   },
   resultStatDivider: {
     width: 1,
     height: 40,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: theme.color.border.subtle,
   },
   warningsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.warning[50],
+    backgroundColor: theme.color.state.warning.background,
     borderRadius: borderRadius.md,
     padding: spacing[2],
     marginBottom: spacing[3],
@@ -869,7 +874,7 @@ const styles = StyleSheet.create({
   },
   warningsText: {
     fontSize: fontSizes.sm,
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
   },
   accountsToggle: {
     flexDirection: 'row',
@@ -877,23 +882,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing[2],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   accountsToggleText: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.medium,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   accountsList: {
     marginTop: spacing[3],
     gap: spacing[2],
   },
   accountItem: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius.md,
     padding: spacing[3],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   accountHeader: {
     flexDirection: 'row',
@@ -907,15 +912,15 @@ const styles = StyleSheet.create({
   accountNumber: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+    color: theme.color.text.heading,
   },
   accountFile: {
     fontSize: fontSizes.xs,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     marginTop: spacing[0.5],
   },
   autoCreatedBadge: {
-    backgroundColor: colors.success[100],
+    backgroundColor: theme.color.state.success.background,
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[0.5],
     borderRadius: borderRadius.sm,
@@ -923,7 +928,7 @@ const styles = StyleSheet.create({
   autoCreatedText: {
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.semibold,
-    color: colors.success[700],
+    color: theme.color.state.success.text,
   },
   accountStats: {
     flexDirection: 'row',
@@ -937,18 +942,18 @@ const styles = StyleSheet.create({
   },
   accountStatText: {
     fontSize: fontSizes.xs,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
 
   // Info section
   infoSection: {
-    backgroundColor: colors.info[50],
+    backgroundColor: theme.color.state.info.background,
     marginHorizontal: spacing[4],
     marginTop: spacing[4],
     borderRadius: borderRadius.lg,
     padding: spacing[4],
     borderWidth: 1,
-    borderColor: colors.info[200],
+    borderColor: theme.color.state.info.border,
   },
   infoHeader: {
     flexDirection: 'row',
@@ -959,11 +964,11 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: fontSizes.base,
     fontWeight: fontWeights.semibold,
-    color: colors.info[800],
+    color: theme.color.state.info.text,
   },
   infoText: {
     fontSize: fontSizes.sm,
-    color: colors.info[700],
+    color: theme.color.state.info.text,
     lineHeight: 22,
   },
   infoBold: {

@@ -25,7 +25,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { treasuryApi } from '@/services/api/treasury';
 import {
   BankTransaction,
@@ -81,6 +83,8 @@ const MOVEMENT_TYPES_COMMISSION = [
 ];
 
 export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   // State
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -343,7 +347,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
             {/* Own Company Transfer Badge */}
             {item.isOwnCompanyTransfer && (
               <View style={[styles.ownTransferBadge]}>
-                <Ionicons name="repeat" size={12} color={colors.info[600]} />
+                <Ionicons name="repeat" size={12} color={theme.color.icon.accent} />
                 <Text style={styles.ownTransferText}>Propio</Text>
               </View>
             )}
@@ -357,7 +361,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.bankInfoRow}>
           {item.bankCode && (
             <View style={styles.bankCodeBadge}>
-              <Ionicons name="business" size={12} color={colors.primary[700]} />
+              <Ionicons name="business" size={12} color={theme.color.brand.primary} />
               <Text style={styles.bankCodeText}>{item.bankCode}</Text>
             </View>
           )}
@@ -376,14 +380,14 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         {/* Account Number */}
         {displayAccountNumber && (
           <View style={styles.accountNumberRow}>
-            <Ionicons name="card-outline" size={14} color={colors.neutral[400]} />
+            <Ionicons name="card-outline" size={14} color={theme.color.icon.disabled} />
             <Text style={styles.accountNumberText}>{displayAccountNumber}</Text>
           </View>
         )}
 
         {/* Movement Type */}
         <View style={styles.movementTypeContainer}>
-          <Ionicons name="swap-horizontal" size={16} color={colors.neutral[500]} />
+          <Ionicons name="swap-horizontal" size={16} color={theme.color.icon.subtle} />
           <Text style={styles.movementTypeText}>{movementLabel}</Text>
         </View>
 
@@ -397,7 +401,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         {/* Counterparty */}
         {item.counterpartyName && (
           <View style={styles.counterpartyContainer}>
-            <Ionicons name="person-outline" size={14} color={colors.neutral[400]} />
+            <Ionicons name="person-outline" size={14} color={theme.color.icon.disabled} />
             <Text style={styles.counterpartyText} numberOfLines={1}>
               {item.counterpartyName}
             </Text>
@@ -407,12 +411,12 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         {/* Footer: Date & Bank Name */}
         <View style={styles.cardFooter}>
           <View style={styles.dateContainer}>
-            <Ionicons name="calendar-outline" size={14} color={colors.neutral[400]} />
+            <Ionicons name="calendar-outline" size={14} color={theme.color.icon.disabled} />
             <Text style={styles.dateText}>{formatDate(item.transactionDate)}</Text>
           </View>
           {displayBankName && (
             <View style={styles.bankAccountContainer}>
-              <Ionicons name="business-outline" size={14} color={colors.neutral[400]} />
+              <Ionicons name="business-outline" size={14} color={theme.color.icon.disabled} />
               <Text style={styles.bankAccountText} numberOfLines={1}>
                 {displayBankName}
               </Text>
@@ -454,7 +458,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filtros Avanzados</Text>
             <TouchableOpacity onPress={() => setShowFiltersModal(false)}>
-              <Ionicons name="close" size={24} color={colors.neutral[600]} />
+              <Ionicons name="close" size={24} color={theme.color.icon.muted} />
             </TouchableOpacity>
           </View>
 
@@ -484,7 +488,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                     <Ionicons
                       name={direction === TransactionDirection.INGRESO ? 'arrow-down-circle' : 'arrow-up-circle'}
                       size={16}
-                      color={selectedDirection === direction ? colors.neutral[0] : DIRECTION_COLORS[direction]}
+                      color={selectedDirection === direction ? theme.color.text.inverse : DIRECTION_COLORS[direction]}
                     />
                     <Text
                       style={[
@@ -624,7 +628,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                     placeholder="YYYY-MM-DD"
                     value={startDate}
                     onChangeText={setStartDate}
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                 </View>
                 <View style={styles.dateInputWrapper}>
@@ -634,7 +638,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                     placeholder="YYYY-MM-DD"
                     value={endDate}
                     onChangeText={setEndDate}
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                 </View>
               </View>
@@ -652,7 +656,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                     value={minAmount}
                     onChangeText={setMinAmount}
                     keyboardType="decimal-pad"
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                 </View>
                 <View style={styles.amountInputWrapper}>
@@ -663,7 +667,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                     value={maxAmount}
                     onChangeText={setMaxAmount}
                     keyboardType="decimal-pad"
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                 </View>
               </View>
@@ -703,7 +707,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name="arrow-up"
                     size={16}
-                    color={sortOrder === 'ASC' ? colors.neutral[0] : colors.neutral[600]}
+                    color={sortOrder === 'ASC' ? theme.color.text.inverse : theme.color.icon.muted}
                   />
                   <Text
                     style={[
@@ -721,7 +725,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name="arrow-down"
                     size={16}
-                    color={sortOrder === 'DESC' ? colors.neutral[0] : colors.neutral[600]}
+                    color={sortOrder === 'DESC' ? theme.color.text.inverse : theme.color.icon.muted}
                   />
                   <Text
                     style={[
@@ -757,19 +761,19 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="swap-horizontal-outline" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="swap-horizontal-outline" size={22} color={theme.color.text.inverse} />
                 </View>
                 <Text style={[styles.titleGradient, isTablet && styles.titleTabletGradient]}>
                   Operaciones Bancarias
@@ -788,17 +792,17 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <Ionicons name="search" size={20} color={theme.color.text.placeholder} style={styles.searchIcon} />
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 placeholder="Buscar descripción, contraparte, nro. operación..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchButton}>
-                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
                 </TouchableOpacity>
               )}
             </View>
@@ -819,7 +823,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                 )
               }
             >
-              <Ionicons name="arrow-down-circle" size={16} color={selectedDirection === TransactionDirection.INGRESO ? colors.neutral[0] : DIRECTION_COLORS[TransactionDirection.INGRESO]} />
+              <Ionicons name="arrow-down-circle" size={16} color={selectedDirection === TransactionDirection.INGRESO ? theme.color.text.inverse : DIRECTION_COLORS[TransactionDirection.INGRESO]} />
               <Text
                 style={[
                   styles.quickFilterText,
@@ -840,7 +844,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                 )
               }
             >
-              <Ionicons name="arrow-up-circle" size={16} color={selectedDirection === TransactionDirection.EGRESO ? colors.neutral[0] : DIRECTION_COLORS[TransactionDirection.EGRESO]} />
+              <Ionicons name="arrow-up-circle" size={16} color={selectedDirection === TransactionDirection.EGRESO ? theme.color.text.inverse : DIRECTION_COLORS[TransactionDirection.EGRESO]} />
               <Text
                 style={[
                   styles.quickFilterText,
@@ -897,7 +901,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
             style={[styles.filterButton, activeFiltersCount > 0 && styles.filterButtonActive]}
             onPress={() => setShowFiltersModal(true)}
           >
-            <Ionicons name="options" size={20} color={activeFiltersCount > 0 ? colors.neutral[0] : colors.neutral[600]} />
+            <Ionicons name="options" size={20} color={activeFiltersCount > 0 ? theme.color.text.inverse : theme.color.icon.muted} />
             {activeFiltersCount > 0 && (
               <View style={styles.filterBadge}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -914,14 +918,14 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         >
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary[600]} />
+              <ActivityIndicator size="large" color={theme.color.brand.primary} />
               <Text style={[styles.loadingText, isTablet && styles.loadingTextTablet]}>
                 Cargando operaciones bancarias...
               </Text>
             </View>
           ) : transactions.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="document-text-outline" size={64} color={colors.neutral[300]} />
+              <Ionicons name="document-text-outline" size={64} color={theme.color.icon.disabled} />
               <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
                 {debouncedSearchQuery || activeFiltersCount > 0
                   ? 'No se encontraron operaciones con los filtros aplicados'
@@ -954,7 +958,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name="chevron-back"
                 size={20}
-                color={pagination.page === 1 ? colors.neutral[400] : colors.primary[600]}
+                color={pagination.page === 1 ? theme.color.text.disabled : theme.color.brand.primary}
               />
               <Text
                 style={[
@@ -994,7 +998,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name="chevron-forward"
                 size={20}
-                color={pagination.page >= pagination.totalPages ? colors.neutral[400] : colors.primary[600]}
+                color={pagination.page >= pagination.totalPages ? theme.color.text.disabled : theme.color.brand.primary}
               />
             </TouchableOpacity>
           </View>
@@ -1011,10 +1015,10 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
   },
 
   // Header
@@ -1032,7 +1036,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -1049,7 +1053,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -1057,7 +1061,7 @@ const styles = StyleSheet.create({
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     letterSpacing: 0.3,
   },
   titleTabletGradient: {
@@ -1065,7 +1069,7 @@ const styles = StyleSheet.create({
   },
   subtitleGradient: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     marginLeft: spacing[12],
   },
@@ -1074,7 +1078,7 @@ const styles = StyleSheet.create({
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.lg,
@@ -1082,11 +1086,11 @@ const styles = StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
@@ -1100,7 +1104,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing[3],
   },
@@ -1111,7 +1115,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing[3],
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   searchInputTablet: {
     fontSize: 16,
@@ -1127,9 +1131,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing[2],
     paddingHorizontal: spacing[4],
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   quickFilters: {
     flex: 1,
@@ -1141,14 +1145,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2],
     marginRight: spacing[2],
     borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     gap: spacing[1],
   },
   quickFilterChipActive: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   quickFilterIcon: {
     fontSize: 14,
@@ -1156,24 +1160,24 @@ const styles = StyleSheet.create({
   quickFilterText: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   quickFilterTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   filterButton: {
     width: 44,
     height: 44,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   filterButtonActive: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   filterBadge: {
     position: 'absolute',
@@ -1182,7 +1186,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: colors.danger[500],
+    backgroundColor: theme.color.icon.danger,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
@@ -1190,7 +1194,7 @@ const styles = StyleSheet.create({
   filterBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
 
   // Content
@@ -1209,10 +1213,10 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius.lg,
     padding: spacing[4],
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -1273,12 +1277,12 @@ const styles = StyleSheet.create({
   },
   movementTypeText: {
     fontSize: 13,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   description: {
     fontSize: 14,
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     lineHeight: 20,
     marginBottom: spacing[2],
   },
@@ -1290,7 +1294,7 @@ const styles = StyleSheet.create({
   },
   counterpartyText: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     flex: 1,
   },
   cardFooter: {
@@ -1299,7 +1303,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: spacing[2],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
+    borderTopColor: theme.color.border.subtle,
   },
   dateContainer: {
     flexDirection: 'row',
@@ -1308,7 +1312,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   bankAccountContainer: {
     flexDirection: 'row',
@@ -1319,7 +1323,7 @@ const styles = StyleSheet.create({
   },
   bankAccountText: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   operationNumberContainer: {
     flexDirection: 'row',
@@ -1329,7 +1333,7 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
     paddingTop: spacing[2],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
+    borderTopColor: theme.color.border.subtle,
   },
   operationItem: {
     flexDirection: 'row',
@@ -1338,11 +1342,11 @@ const styles = StyleSheet.create({
   },
   operationNumberLabel: {
     fontSize: 11,
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   operationNumberValue: {
     fontSize: 11,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 
@@ -1353,13 +1357,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[1],
     borderRadius: borderRadius.full,
-    backgroundColor: colors.info[100],
+    backgroundColor: theme.color.state.info.background,
     gap: spacing[1],
   },
   ownTransferText: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.info[700],
+    color: theme.color.state.info.text,
   },
   bankInfoRow: {
     flexDirection: 'row',
@@ -1374,32 +1378,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[1],
     borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[50],
+    backgroundColor: theme.color.brand.primarySoft,
     borderWidth: 1,
-    borderColor: colors.primary[200],
+    borderColor: theme.color.brand.primary,
     gap: spacing[1],
   },
   bankCodeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.primary[700],
+    color: theme.color.brand.primary,
   },
   accountAliasText: {
     fontSize: 12,
     fontWeight: '500',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     flex: 1,
   },
   transferTypeBadge: {
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[1],
     borderRadius: borderRadius.sm,
-    backgroundColor: colors.warning[100],
+    backgroundColor: theme.color.state.warning.background,
   },
   transferTypeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
   },
   accountNumberRow: {
     flexDirection: 'row',
@@ -1408,12 +1412,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[1],
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: borderRadius.md,
   },
   accountNumberText: {
     fontSize: 12,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 
@@ -1427,7 +1431,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing[4],
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   loadingTextTablet: {
     fontSize: 16,
@@ -1441,7 +1445,7 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: spacing[4],
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     textAlign: 'center',
     paddingHorizontal: spacing[8],
   },
@@ -1452,13 +1456,13 @@ const styles = StyleSheet.create({
     marginTop: spacing[4],
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
-    backgroundColor: colors.primary[100],
+    backgroundColor: theme.color.brand.primarySoft,
     borderRadius: borderRadius.full,
   },
   clearFiltersButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary[700],
+    color: theme.color.brand.primary,
   },
 
   // Pagination
@@ -1468,9 +1472,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing[3],
     paddingHorizontal: spacing[4],
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   paginationButton: {
     flexDirection: 'row',
@@ -1486,10 +1490,10 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary[600],
+    color: theme.color.brand.primary,
   },
   paginationButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   paginationInfo: {
     alignItems: 'center',
@@ -1497,21 +1501,21 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   paginationSubtext: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
 
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '85%',
@@ -1526,12 +1530,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[5],
     paddingVertical: spacing[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[900],
+    color: theme.color.text.heading,
   },
   modalBody: {
     paddingHorizontal: spacing[5],
@@ -1543,7 +1547,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[5],
     paddingVertical: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
     gap: spacing[3],
   },
 
@@ -1554,7 +1558,7 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     marginBottom: spacing[3],
   },
   filterChips: {
@@ -1568,14 +1572,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[300],
+    borderColor: theme.color.border.default,
     gap: spacing[1],
   },
   filterChipActive: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   filterChipIcon: {
     fontSize: 14,
@@ -1583,10 +1587,10 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   filterChipTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
 
   // Date inputs
@@ -1599,18 +1603,18 @@ const styles = StyleSheet.create({
   },
   dateInputLabel: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     marginBottom: spacing[1],
   },
   dateInput: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[3],
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
 
   // Amount inputs
@@ -1623,18 +1627,18 @@ const styles = StyleSheet.create({
   },
   amountInputLabel: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     marginBottom: spacing[1],
   },
   amountInput: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[3],
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
 
   // Sort options
@@ -1648,21 +1652,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   sortOptionActive: {
-    backgroundColor: colors.primary[100],
-    borderColor: colors.primary[300],
+    backgroundColor: theme.color.brand.primarySoft,
+    borderColor: theme.color.brand.primary,
   },
   sortOptionText: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   sortOptionTextActive: {
-    color: colors.primary[700],
+    color: theme.color.brand.primary,
   },
   sortOrder: {
     flexDirection: 'row',
@@ -1675,22 +1679,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing[2],
     borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     gap: spacing[1],
   },
   sortOrderButtonActive: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   sortOrderText: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   sortOrderTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
 
   // Buttons
@@ -1698,25 +1702,25 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing[3],
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     alignItems: 'center',
   },
   clearButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   applyButton: {
     flex: 1,
     paddingVertical: spacing[3],
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[600],
+    backgroundColor: theme.color.brand.primary,
     alignItems: 'center',
   },
   applyButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
 });
 
