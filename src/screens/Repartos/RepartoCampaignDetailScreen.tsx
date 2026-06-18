@@ -1,5 +1,5 @@
-/**
- * RepartoCampaignDetailScreen - Detalle de campaña de repartos
+﻿/**
+ * RepartoCampaignDetailScreen - Detalle de campaÃ±a de repartos
  * Migrado al Design System unificado
  */
 import React, { useState, useCallback, useMemo } from 'react';
@@ -29,17 +29,18 @@ import { ProductSelectionModal, CircularProgress } from '@/components/Repartos';
 import { usePermissions } from '@/hooks/usePermissions';
 import * as downloadTracker from '@/utils/downloadTracker';
 import {
-  colors,
   spacing,
   borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
   Button,
   IconButton,
+  useTheme,
+  useThemedStyles,
 } from '@/design-system';
+import type { Theme } from '@/design-system';
 
 interface RepartoCampaignDetailScreenProps {
   navigation: any;
@@ -54,6 +55,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { campaignId } = route.params;
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [participants, setParticipants] = useState<CampaignParticipant[]>([]);
@@ -65,7 +68,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   const [allProducts, setAllProducts] = useState<RepartoProducto[]>([]);
   const [downloadingParticipantId, setDownloadingParticipantId] = useState<string | null>(null);
   const [downloadingGeneralReport, setDownloadingGeneralReport] = useState(false);
-  const [participantProgress, setParticipantProgress] = useState<Map<string, { validated: number; total: number; percentage: number }>>(new Map());
+  const [participantProgress, setParticipantProgress] = useState<
+    Map<string, { validated: number; total: number; percentage: number }>
+  >(new Map());
   const [formatModalVisible, setFormatModalVisible] = useState(false);
   const [selectedParticipant, setSelectedParticipant] = useState<{
     id: string;
@@ -82,7 +87,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     try {
       setLoading(true);
 
-      // Cargar campaña, participantes y progreso en paralelo
+      // Cargar campaÃ±a, participantes y progreso en paralelo
       const [campaignData, participantsData, campaignProgressData] = await Promise.all([
         campaignsService.getCampaign(campaignId),
         campaignsService.getParticipants(campaignId),
@@ -93,7 +98,10 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       setParticipants(participantsData);
 
       // Mapear el progreso de cada participante
-      const progressMap = new Map<string, { validated: number; total: number; percentage: number }>();
+      const progressMap = new Map<
+        string,
+        { validated: number; total: number; percentage: number }
+      >();
 
       campaignProgressData.participants.forEach((participantProgress) => {
         progressMap.set(participantProgress.participantId, {
@@ -112,7 +120,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       );
     } catch (error: any) {
       logger.error('Error loading campaign data:', error);
-      Alert.alert('Error', 'No se pudo cargar la información de la campaña');
+      Alert.alert('Error', 'No se pudo cargar la informaciÃ³n de la campaÃ±a');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -161,15 +169,19 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       // Convert map to array
       const uniqueProducts = Array.from(productMap.values());
 
-      // Cargar información de descargas desde el almacenamiento local
+      // Cargar informaciÃ³n de descargas desde el almacenamiento local
       const downloadInfo = await downloadTracker.getCampaignDownloads(campaignId);
-      logger.info(`📊 Información de descargas cargada: ${downloadInfo.size} productos con historial`);
+      logger.info(
+        `ðŸ“Š InformaciÃ³n de descargas cargada: ${downloadInfo.size} productos con historial`
+      );
 
-      // Combinar productos con información de descargas
+      // Combinar productos con informaciÃ³n de descargas
       const productsWithDownloadInfo = uniqueProducts.map((producto) => {
         const downloadRecord = downloadInfo.get(producto.productId);
         if (downloadRecord) {
-          logger.info(`✅ Producto ${producto.product?.title || producto.productId}: ${downloadRecord.downloadCount} descargas`);
+          logger.info(
+            `âœ… Producto ${producto.product?.title || producto.productId}: ${downloadRecord.downloadCount} descargas`
+          );
         }
         return {
           ...producto,
@@ -178,7 +190,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         };
       });
 
-      logger.info(`📦 Total productos con info de descarga: ${productsWithDownloadInfo.length}`);
+      logger.info(`ðŸ“¦ Total productos con info de descarga: ${productsWithDownloadInfo.length}`);
 
       // Sort products by area name (ascending)
       const sortedProducts = productsWithDownloadInfo.sort((a, b) => {
@@ -234,16 +246,20 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
 
       // Register download for tracking purposes (local storage)
       try {
-        logger.info(`📝 Registrando descarga de ${selectedProductsForExport.length} productos para campaña ${campaignId}`);
-        logger.info(`📋 Productos: ${selectedProductsForExport.join(', ')}`);
+        logger.info(
+          `ðŸ“ Registrando descarga de ${selectedProductsForExport.length} productos para campaÃ±a ${campaignId}`
+        );
+        logger.info(`ðŸ“‹ Productos: ${selectedProductsForExport.join(', ')}`);
         await downloadTracker.registerDownloads(campaignId, selectedProductsForExport);
-        logger.info('✅ Descarga registrada localmente para seguimiento');
+        logger.info('âœ… Descarga registrada localmente para seguimiento');
 
-        // Verificar que se guardó correctamente
+        // Verificar que se guardÃ³ correctamente
         const downloadInfo = await downloadTracker.getCampaignDownloads(campaignId);
-        logger.info(`🔍 Verificación: ${downloadInfo.size} productos con historial después del registro`);
+        logger.info(
+          `ðŸ” VerificaciÃ³n: ${downloadInfo.size} productos con historial despuÃ©s del registro`
+        );
       } catch (error) {
-        logger.warn('⚠️ No se pudo registrar la descarga:', error);
+        logger.warn('âš ï¸ No se pudo registrar la descarga:', error);
         // Don't fail the download if tracking fails
       }
 
@@ -259,7 +275,10 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       });
 
       if (Platform.OS === 'web') {
-        Alert.alert('Éxito', `Las hojas de reparto en ${format.toUpperCase()} se están descargando`);
+        Alert.alert(
+          'Ã‰xito',
+          `Las hojas de reparto en ${format.toUpperCase()} se estÃ¡n descargando`
+        );
       }
     } catch (error: any) {
       logger.error('Error exporting distribution sheets:', error);
@@ -277,7 +296,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
 
   const handleDownloadValidationReport = async (format: 'pdf' | 'excel') => {
     if (!selectedParticipant) {
-      Alert.alert('Error', 'No se encontró la información del participante');
+      Alert.alert('Error', 'No se encontrÃ³ la informaciÃ³n del participante');
       return;
     }
 
@@ -285,7 +304,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     setDownloadingParticipantId(selectedParticipant.id);
 
     try {
-      logger.info(`📥 Descargando reporte de validación en formato ${format.toUpperCase()}...`);
+      logger.info(`ðŸ“¥ Descargando reporte de validaciÃ³n en formato ${format.toUpperCase()}...`);
       const blob = await repartosService.exportValidationReport(
         selectedParticipant.id,
         campaignId,
@@ -295,7 +314,10 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       const timestamp = new Date().getTime();
       const extension = format === 'pdf' ? 'pdf' : 'xlsx';
       const fileName = `Totales_Venta_${selectedParticipant.name.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
-      const mimeType = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const mimeType =
+        format === 'pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       const uti = format === 'pdf' ? 'com.adobe.pdf' : 'org.openxmlformats.spreadsheetml.sheet';
 
       await saveAndShareFile({
@@ -307,14 +329,11 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       });
 
       if (Platform.OS === 'web') {
-        Alert.alert('Éxito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
+        Alert.alert('Ã‰xito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
       }
     } catch (error: any) {
-      logger.error('Error descargando reporte de validación:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte de validación'
-      );
+      logger.error('Error descargando reporte de validaciÃ³n:', error);
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte de validaciÃ³n');
     } finally {
       setDownloadingParticipantId(null);
       setSelectedParticipant(null);
@@ -330,7 +349,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     try {
       setDownloadingGeneralReport(true);
 
-      logger.info('🔄 Descargando reporte general de totales de la campaña');
+      logger.info('ðŸ”„ Descargando reporte general de totales de la campaÃ±a');
       const startTime = new Date().getTime();
 
       // Call the API to get the PDF blob for all participants
@@ -338,9 +357,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       const pdfBlob = await repartosService.exportAllParticipantsConsolidatedTotals(campaignId);
 
       const endTime = new Date().getTime();
-      logger.info('✅ PDF descargado del servidor');
-      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.info('âœ… PDF descargado del servidor');
+      logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
+      logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
 
       const timestamp = new Date().getTime();
       const fileName = `reporte-totales-general-${campaign?.code || campaignId}-${timestamp}.pdf`;
@@ -348,7 +367,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       await saveAndSharePdf(pdfBlob, fileName, 'Reporte General de Totales');
 
       if (Platform.OS === 'web') {
-        Alert.alert('Éxito', 'El reporte general de totales se está descargando');
+        Alert.alert('Ã‰xito', 'El reporte general de totales se estÃ¡ descargando');
       }
     } catch (error: any) {
       logger.error('Error downloading general report:', error);
@@ -370,7 +389,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     try {
       setDownloadingParticipantId(participant.id);
 
-      logger.info('🔄 Descargando reporte del participante:', participantName);
+      logger.info('ðŸ”„ Descargando reporte del participante:', participantName);
       const startTime = new Date().getTime();
 
       // Get the participant's repartos to extract the first reparto ID
@@ -384,15 +403,12 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       }
 
       // Call the API to get the PDF blob for this participant
-      const pdfBlob = await repartosService.exportRepartoTotalsReport(
-        participant.id,
-        campaignId
-      );
+      const pdfBlob = await repartosService.exportRepartoTotalsReport(participant.id, campaignId);
 
       const endTime = new Date().getTime();
-      logger.info('✅ PDF descargado del servidor');
-      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.info('âœ… PDF descargado del servidor');
+      logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
+      logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
@@ -407,7 +423,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         // Clean up the blob URL after a short delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
-        Alert.alert('Éxito', `El reporte de ${participantName} se está descargando`);
+        Alert.alert('Ã‰xito', `El reporte de ${participantName} se estÃ¡ descargando`);
       } else {
         // For mobile (iOS/Android), save to file system and share
         const timestamp = new Date().getTime();
@@ -437,7 +453,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
             UTI: 'com.adobe.pdf',
           });
         } else {
-          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
+          Alert.alert('Ã‰xito', `PDF guardado en: ${file.uri}`);
         }
       }
     } catch (error: any) {
@@ -494,8 +510,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
               >
                 <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
                   {participant.participantType === ParticipantType.EXTERNAL_COMPANY
-                    ? '🏢 Empresa'
-                    : '🏛️ Sede'}
+                    ? 'ðŸ¢ Empresa'
+                    : 'ðŸ›ï¸ Sede'}
                 </Text>
               </View>
             </View>
@@ -532,7 +548,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
             <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
               Ver productos de reparto
             </Text>
-            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>â€º</Text>
           </View>
 
           {/* Download Report Button */}
@@ -554,8 +570,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                 ]}
               >
                 {downloadingParticipantId === participant.id
-                  ? '📄 Generando...'
-                  : '📄 Descargar Reporte de Reparto'}
+                  ? 'ðŸ“„ Generando...'
+                  : 'ðŸ“„ Descargar Reporte de Reparto'}
               </Text>
             </TouchableOpacity>
           )}
@@ -581,7 +597,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   isTablet && styles.validationReportButtonTextTablet,
                 ]}
               >
-                📊 Totales venta
+                ðŸ“Š Totales venta
               </Text>
             </TouchableOpacity>
           )}
@@ -602,7 +618,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando participantes...</Text>
         </View>
       </SafeAreaView>
@@ -620,7 +636,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
+              â† Volver
             </Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
@@ -659,7 +675,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
               activeOpacity={0.7}
             >
               <Text style={[styles.exportButtonText, isTablet && styles.exportButtonTextTablet]}>
-                {exportingPdf ? '📄 Generando PDF...' : '📄 Descargar Todas las Hojas de Reparto'}
+                {exportingPdf
+                  ? 'ðŸ“„ Generando PDF...'
+                  : 'ðŸ“„ Descargar Todas las Hojas de Reparto'}
               </Text>
             </TouchableOpacity>
           )}
@@ -683,8 +701,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                 ]}
               >
                 {downloadingGeneralReport
-                  ? '📊 Generando Reporte...'
-                  : '📊 Descargar Reporte General de Totales'}
+                  ? 'ðŸ“Š Generando Reporte...'
+                  : 'ðŸ“Š Descargar Reporte General de Totales'}
               </Text>
             </TouchableOpacity>
           )}
@@ -703,7 +721,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           {participants.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No hay participantes en esta campaña
+                No hay participantes en esta campaÃ±a
               </Text>
             </View>
           ) : (
@@ -724,7 +742,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   return 1;
                 }
 
-                // Ordenar alfabéticamente dentro de cada grupo
+                // Ordenar alfabÃ©ticamente dentro de cada grupo
                 const nameA =
                   a.participantType === ParticipantType.EXTERNAL_COMPANY
                     ? a.company?.alias || a.company?.name || ''
@@ -761,11 +779,15 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           }}
         >
           <View style={styles.modalOverlay}>
-            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
+            <View
+              style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}
+            >
               <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
                 Seleccionar formato de descarga
               </Text>
-              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+              <Text
+                style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}
+              >
                 {selectedParticipant?.name}
               </Text>
 
@@ -775,11 +797,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   onPress={() => handleDownloadValidationReport('pdf')}
                   disabled={downloadingParticipantId !== null}
                 >
-                  <Text style={styles.formatButtonIcon}>📄</Text>
+                  <Text style={styles.formatButtonIcon}>ðŸ“„</Text>
                   <Text style={styles.formatButtonTitle}>PDF</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Incluye fotos y firmas
-                  </Text>
+                  <Text style={styles.formatButtonDescription}>Incluye fotos y firmas</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -787,11 +807,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   onPress={() => handleDownloadValidationReport('excel')}
                   disabled={downloadingParticipantId !== null}
                 >
-                  <Text style={styles.formatButtonIcon}>📊</Text>
+                  <Text style={styles.formatButtonIcon}>ðŸ“Š</Text>
                   <Text style={styles.formatButtonTitle}>Excel</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Datos tabulados
-                  </Text>
+                  <Text style={styles.formatButtonDescription}>Datos tabulados</Text>
                 </TouchableOpacity>
               </View>
 
@@ -820,11 +838,15 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           }}
         >
           <View style={styles.modalOverlay}>
-            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
+            <View
+              style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}
+            >
               <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
                 Seleccionar formato de descarga
               </Text>
-              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+              <Text
+                style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}
+              >
                 Hojas de Reparto
               </Text>
 
@@ -834,11 +856,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   onPress={() => handleDownloadDistributionSheets('pdf')}
                   disabled={exportingPdf}
                 >
-                  <Text style={styles.formatButtonIcon}>📄</Text>
+                  <Text style={styles.formatButtonIcon}>ðŸ“„</Text>
                   <Text style={styles.formatButtonTitle}>PDF</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Hojas de reparto detalladas
-                  </Text>
+                  <Text style={styles.formatButtonDescription}>Hojas de reparto detalladas</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -846,11 +866,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   onPress={() => handleDownloadDistributionSheets('excel')}
                   disabled={exportingPdf}
                 >
-                  <Text style={styles.formatButtonIcon}>📊</Text>
+                  <Text style={styles.formatButtonIcon}>ðŸ“Š</Text>
                   <Text style={styles.formatButtonTitle}>Excel</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Resumen en tabla
-                  </Text>
+                  <Text style={styles.formatButtonDescription}>Resumen en tabla</Text>
                 </TouchableOpacity>
               </View>
 
@@ -872,440 +890,441 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  header: {
-    backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[6],
-  },
-  backButton: {
-    marginBottom: spacing[2],
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary[500],
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  headerInfo: {
-    marginTop: spacing[2],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginTop: spacing[1],
-  },
-  subtitleTablet: {
-    fontSize: 16,
-  },
-  infoSection: {
-    backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  infoSectionTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[4],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.text.secondary,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-  },
-  scrollContentTablet: {
-    padding: spacing[8],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[4],
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
-  },
-  card: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    ...shadows.sm,
-  },
-  cardTablet: {
-    padding: spacing[6],
-    marginBottom: spacing[4],
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  cardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    flex: 1,
-  },
-  participantName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    flex: 1,
-  },
-  participantNameTablet: {
-    fontSize: 22,
-  },
-  typeBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-  },
-  typeBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
-  },
-  typeBadgeCompany: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
-  },
-  typeBadgeSite: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[500],
-  },
-  typeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  typeTextTablet: {
-    fontSize: 14,
-  },
-  cardBody: {
-    marginBottom: spacing[3],
-  },
-  participantCode: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginBottom: spacing[3],
-  },
-  participantCodeTablet: {
-    fontSize: 16,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: spacing[3],
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.border.default,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginBottom: spacing[1],
-  },
-  statLabelTablet: {
-    fontSize: 14,
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary[500],
-  },
-  statValueTablet: {
-    fontSize: 20,
-  },
-  progressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[3],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-  },
-  progressInfo: {
-    flex: 1,
-  },
-  progressText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary[500],
-    marginTop: spacing[1],
-  },
-  progressTextTablet: {
-    fontSize: 18,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  footerText: {
-    fontSize: 12,
-    color: colors.primary[500],
-    fontWeight: '500',
-  },
-  footerTextTablet: {
-    fontSize: 14,
-  },
-  arrowIcon: {
-    fontSize: 24,
-    color: colors.neutral[300],
-    fontWeight: 'bold',
-  },
-  arrowIconTablet: {
-    fontSize: 32,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing[14],
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  emptyTextTablet: {
-    fontSize: 22,
-  },
-  exportButton: {
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  exportButtonTablet: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    marginTop: spacing[4],
-  },
-  exportButtonText: {
-    color: colors.text.inverse,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  exportButtonTextTablet: {
-    fontSize: 16,
-  },
-  downloadParticipantButton: {
-    backgroundColor: colors.success[500],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  downloadParticipantButtonTablet: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    marginTop: spacing[4],
-  },
-  downloadParticipantButtonText: {
-    color: colors.text.inverse,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  downloadParticipantButtonTextTablet: {
-    fontSize: 15,
-  },
-  downloadButtonDisabled: {
-    opacity: 0.5,
-  },
-  generalReportButton: {
-    backgroundColor: colors.accent[500],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  generalReportButtonTablet: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    marginTop: spacing[4],
-  },
-  generalReportButtonText: {
-    color: colors.text.inverse,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  generalReportButtonTextTablet: {
-    fontSize: 16,
-  },
-  validationReportButton: {
-    backgroundColor: colors.primary[50],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[2],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-  },
-  validationReportButtonTablet: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    marginTop: spacing[3],
-  },
-  validationReportButtonText: {
-    color: colors.primary[500],
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  validationReportButtonTextTablet: {
-    fontSize: 15,
-  },
-  // Format Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  formatModalContainer: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[6],
-    width: '90%',
-    maxWidth: 400,
-    ...shadows.lg,
-  },
-  formatModalContainerTablet: {
-    padding: spacing[8],
-    maxWidth: 500,
-  },
-  formatModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[2],
-    textAlign: 'center',
-  },
-  formatModalTitleTablet: {
-    fontSize: 24,
-  },
-  formatModalSubtitle: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginBottom: spacing[6],
-    textAlign: 'center',
-  },
-  formatModalSubtitleTablet: {
-    fontSize: 16,
-  },
-  formatButtonsContainer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[4],
-  },
-  formatButton: {
-    flex: 1,
-    padding: spacing[5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    borderWidth: 2,
-  },
-  pdfButton: {
-    backgroundColor: colors.danger[50],
-    borderColor: colors.danger[300],
-  },
-  excelButton: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[300],
-  },
-  formatButtonIcon: {
-    fontSize: 32,
-    marginBottom: spacing[2],
-  },
-  formatButtonTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  formatButtonDescription: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  formatCancelButton: {
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-  },
-  formatCancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: spacing[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      backgroundColor: theme.color.background.canvas,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerTablet: {
+      paddingHorizontal: spacing[8],
+      paddingVertical: spacing[6],
+    },
+    backButton: {
+      marginBottom: spacing[2],
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    backButtonTextTablet: {
+      fontSize: 18,
+    },
+    headerInfo: {
+      marginTop: spacing[2],
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: spacing[1],
+    },
+    subtitleTablet: {
+      fontSize: 16,
+    },
+    infoSection: {
+      backgroundColor: theme.color.background.canvas,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    infoSectionTablet: {
+      paddingHorizontal: spacing[8],
+      paddingVertical: spacing[4],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[2],
+    },
+    infoLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    infoLabelTablet: {
+      fontSize: 16,
+    },
+    infoValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    infoValueTablet: {
+      fontSize: 16,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: spacing[4],
+    },
+    scrollContentTablet: {
+      padding: spacing[8],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[4],
+    },
+    sectionTitleTablet: {
+      fontSize: 22,
+    },
+    card: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      marginBottom: spacing[3],
+      ...theme.shadow.sm,
+    },
+    cardTablet: {
+      padding: spacing[6],
+      marginBottom: spacing[4],
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+    },
+    cardHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[3],
+      flex: 1,
+    },
+    participantName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    participantNameTablet: {
+      fontSize: 22,
+    },
+    typeBadge: {
+      paddingHorizontal: spacing[2.5],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+    },
+    typeBadgeTablet: {
+      paddingHorizontal: spacing[3.5],
+      paddingVertical: spacing[1.5],
+    },
+    typeBadgeCompany: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderColor: theme.color.brand.primary,
+    },
+    typeBadgeSite: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.state.success.border,
+    },
+    typeText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    typeTextTablet: {
+      fontSize: 14,
+    },
+    cardBody: {
+      marginBottom: spacing[3],
+    },
+    participantCode: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: spacing[3],
+    },
+    participantCodeTablet: {
+      fontSize: 16,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingVertical: spacing[3],
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    statItem: {
+      alignItems: 'center',
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: spacing[1],
+    },
+    statLabelTablet: {
+      fontSize: 14,
+    },
+    statValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.brand.primary,
+    },
+    statValueTablet: {
+      fontSize: 20,
+    },
+    progressRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing[4],
+      paddingHorizontal: spacing[3],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+    },
+    progressInfo: {
+      flex: 1,
+    },
+    progressText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.brand.primary,
+      marginTop: spacing[1],
+    },
+    progressTextTablet: {
+      fontSize: 18,
+    },
+    cardFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    footerText: {
+      fontSize: 12,
+      color: theme.color.brand.primary,
+      fontWeight: '500',
+    },
+    footerTextTablet: {
+      fontSize: 14,
+    },
+    arrowIcon: {
+      fontSize: 24,
+      color: theme.color.border.default,
+      fontWeight: 'bold',
+    },
+    arrowIconTablet: {
+      fontSize: 32,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: spacing[14],
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    emptyTextTablet: {
+      fontSize: 22,
+    },
+    exportButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[3],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      ...theme.shadow.sm,
+    },
+    exportButtonTablet: {
+      paddingHorizontal: spacing[6],
+      paddingVertical: spacing[4],
+      marginTop: spacing[4],
+    },
+    exportButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    exportButtonTextTablet: {
+      fontSize: 16,
+    },
+    downloadParticipantButton: {
+      backgroundColor: theme.color.state.success.border,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[2.5],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    downloadParticipantButtonTablet: {
+      paddingHorizontal: spacing[5],
+      paddingVertical: spacing[3],
+      marginTop: spacing[4],
+    },
+    downloadParticipantButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    downloadParticipantButtonTextTablet: {
+      fontSize: 15,
+    },
+    downloadButtonDisabled: {
+      opacity: 0.5,
+    },
+    generalReportButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[3],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      ...theme.shadow.sm,
+    },
+    generalReportButtonTablet: {
+      paddingHorizontal: spacing[6],
+      paddingVertical: spacing[4],
+      marginTop: spacing[4],
+    },
+    generalReportButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    generalReportButtonTextTablet: {
+      fontSize: 16,
+    },
+    validationReportButton: {
+      backgroundColor: theme.color.brand.primarySoft,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[2.5],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[2],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    validationReportButtonTablet: {
+      paddingHorizontal: spacing[5],
+      paddingVertical: spacing[3],
+      marginTop: spacing[3],
+    },
+    validationReportButtonText: {
+      color: theme.color.brand.primary,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    validationReportButtonTextTablet: {
+      fontSize: 15,
+    },
+    // Format Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    formatModalContainer: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.xl,
+      padding: spacing[6],
+      width: '90%',
+      maxWidth: 400,
+      ...theme.shadow.lg,
+    },
+    formatModalContainerTablet: {
+      padding: spacing[8],
+      maxWidth: 500,
+    },
+    formatModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: spacing[2],
+      textAlign: 'center',
+    },
+    formatModalTitleTablet: {
+      fontSize: 24,
+    },
+    formatModalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: spacing[6],
+      textAlign: 'center',
+    },
+    formatModalSubtitleTablet: {
+      fontSize: 16,
+    },
+    formatButtonsContainer: {
+      flexDirection: 'row',
+      gap: spacing[3],
+      marginBottom: spacing[4],
+    },
+    formatButton: {
+      flex: 1,
+      padding: spacing[5],
+      borderRadius: borderRadius.lg,
+      alignItems: 'center',
+      borderWidth: 2,
+    },
+    pdfButton: {
+      backgroundColor: theme.color.state.danger.background,
+      borderColor: theme.color.state.danger.border,
+    },
+    excelButton: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.state.success.border,
+    },
+    formatButtonIcon: {
+      fontSize: 32,
+      marginBottom: spacing[2],
+    },
+    formatButtonTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    formatButtonDescription: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    formatCancelButton: {
+      paddingVertical: spacing[3],
+      alignItems: 'center',
+    },
+    formatCancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+  });
