@@ -33,7 +33,8 @@ import {
   CreateDebtTransactionRequest,
   UpdateDebtTransactionRequest,
 } from '@/types/suppliers';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface DebtTransactionFormModalProps {
   visible: boolean;
@@ -50,6 +51,8 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
   onClose,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const isEditMode = !!transaction;
   const { currentCompany } = useAuthStore();
 
@@ -347,7 +350,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={colors.neutral[800]} />
+            <Ionicons name="close" size={24} color={theme.color.text.heading} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {isEditMode ? 'Editar Transacción' : 'Nueva Transacción'}
@@ -372,7 +375,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
                   <Ionicons
                     name={type.icon as any}
                     size={24}
-                    color={transactionType === type.value ? colors.neutral[0] : colors.primary[500]}
+                    color={transactionType === type.value ? theme.color.text.inverse : theme.color.brand.primary}
                   />
                   <Text
                     style={[
@@ -441,7 +444,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
               style={styles.dateButton}
               onPress={() => setShowTransactionDatePicker(true)}
             >
-              <Ionicons name="calendar-outline" size={20} color={colors.primary[500]} />
+              <Ionicons name="calendar-outline" size={20} color={theme.color.brand.primary} />
               <Text style={styles.dateButtonText}>
                 {transactionDate.toLocaleDateString('es-PE', {
                   year: 'numeric',
@@ -472,7 +475,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
               style={styles.dateButton}
               onPress={() => setShowDueDatePicker(true)}
             >
-              <Ionicons name="calendar-outline" size={20} color={colors.primary[500]} />
+              <Ionicons name="calendar-outline" size={20} color={theme.color.brand.primary} />
               <Text style={styles.dateButtonText}>
                 {dueDate
                   ? dueDate.toLocaleDateString('es-PE', {
@@ -546,7 +549,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
               onPress={showAttachmentOptions}
               disabled={uploading}
             >
-              <Ionicons name="attach" size={20} color={colors.primary[500]} />
+              <Ionicons name="attach" size={20} color={theme.color.brand.primary} />
               <Text style={styles.attachmentButtonText}>
                 {uploading
                   ? 'Subiendo...'
@@ -555,7 +558,7 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
             </TouchableOpacity>
             {attachmentFileName && (
               <View style={styles.attachmentInfo}>
-                <Ionicons name="checkmark-circle" size={16} color={colors.success[500]} />
+                <Ionicons name="checkmark-circle" size={16} color={theme.color.text.success} />
                 <Text style={styles.attachmentInfoText}>{attachmentFileName}</Text>
               </View>
             )}
@@ -601,189 +604,190 @@ export const DebtTransactionFormModal: React.FC<DebtTransactionFormModalProps> =
 
 const SafeAreaView = ({ children, style }: any) => <View style={style}>{children}</View>;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.tertiary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  closeButton: {
-    padding: spacing[2],
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-  },
-  content: {
-    flex: 1,
-    padding: spacing[4],
-  },
-  section: {
-    marginBottom: spacing[5],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  input: {
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 14,
-    color: colors.neutral[800],
-  },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  pickerContainer: {
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-  },
-  picker: {
-    width: '100%',
-    height: 50,
-    color: colors.neutral[800],
-  },
-  typeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  typeButton: {
-    flex: 1,
-    minWidth: '45%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderWidth: 2,
-    borderColor: colors.accent[500],
-    borderRadius: borderRadius.lg,
-    gap: spacing[2],
-  },
-  typeButtonActive: {
-    backgroundColor: colors.accent[500],
-    borderColor: colors.accent[500],
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  typeButtonTextActive: {
-    color: colors.neutral[0],
-  },
-  attachmentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.accent[500],
-    borderRadius: borderRadius.lg,
-    borderStyle: 'dashed',
-    gap: spacing[2],
-  },
-  attachmentButtonText: {
-    fontSize: 14,
-    color: colors.accent[500],
-    fontWeight: '500',
-  },
-  attachmentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing[2],
-    gap: spacing[2],
-  },
-  attachmentInfoText: {
-    fontSize: 12,
-    color: colors.success[600],
-  },
-  footer: {
-    flexDirection: 'row',
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[3],
-  },
-  cancelButton: {
-    flex: 1,
-    padding: spacing[4],
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.neutral[500],
-  },
-  submitButton: {
-    flex: 1,
-    padding: spacing[4],
-    backgroundColor: colors.accent[500],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  submitButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    gap: spacing[2],
-  },
-  dateButtonText: {
-    fontSize: 14,
-    color: colors.neutral[800],
-    flex: 1,
-  },
-  clearDateButton: {
-    marginTop: spacing[2],
-    padding: spacing[2],
-    alignItems: 'center',
-  },
-  clearDateButtonText: {
-    fontSize: 14,
-    color: colors.danger[500],
-    fontWeight: '500',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.canvas,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    closeButton: {
+      padding: theme.space[2],
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    content: {
+      flex: 1,
+      padding: theme.space[4],
+    },
+    section: {
+      marginBottom: theme.space[5],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    input: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    textArea: {
+      minHeight: 100,
+      textAlignVertical: 'top',
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+    },
+    picker: {
+      width: '100%',
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    typeGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+    },
+    typeButton: {
+      flex: 1,
+      minWidth: '45%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+      gap: theme.space[2],
+    },
+    typeButtonActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    typeButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    typeButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    attachmentButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+      borderStyle: 'dashed',
+      gap: theme.space[2],
+    },
+    attachmentButtonText: {
+      fontSize: 14,
+      color: theme.color.brand.accent,
+      fontWeight: '500',
+    },
+    attachmentInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: theme.space[2],
+      gap: theme.space[2],
+    },
+    attachmentInfoText: {
+      fontSize: 12,
+      color: theme.color.text.success,
+    },
+    footer: {
+      flexDirection: 'row',
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    cancelButton: {
+      flex: 1,
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.subtle,
+    },
+    submitButton: {
+      flex: 1,
+      padding: theme.space[4],
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    submitButtonDisabled: {
+      backgroundColor: theme.color.action.primary.backgroundDisabled,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.inverse,
+    },
+    dateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      gap: theme.space[2],
+    },
+    dateButtonText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    clearDateButton: {
+      marginTop: theme.space[2],
+      padding: theme.space[2],
+      alignItems: 'center',
+    },
+    clearDateButtonText: {
+      fontSize: 14,
+      color: theme.color.text.danger,
+      fontWeight: '500',
+    },
+  });
 
 export default DebtTransactionFormModal;
