@@ -14,7 +14,8 @@ import {
   ProductStockSummaryItem,
 } from '@/services/api/inventory';
 import { useProductStockDetail } from '@/hooks/api/useStock';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Caption, Card, Divider, EmptyState, Text } from '@/design-system/components';
 
 interface StockProductDetailModalProps {
@@ -52,28 +53,28 @@ const formatDate = (value?: string) => {
   });
 };
 
-const getBatchStatusColor = (status?: string) => {
+const getBatchStatusColor = (status: string | undefined, theme: Theme) => {
   switch (status) {
     case 'ACTIVE':
-      return colors.success[600];
+      return theme.color.action.success.background;
     case 'DEPLETED':
-      return colors.neutral[500];
+      return theme.color.icon.subtle;
     case 'BLOCKED':
-      return colors.danger[600];
+      return theme.color.action.danger.background;
     default:
-      return colors.accent[600];
+      return theme.color.brand.accent;
   }
 };
 
-const getMovementColor = (type?: string) => {
-  if (!type) return colors.neutral[500];
+const getMovementColor = (type: string | undefined, theme: Theme) => {
+  if (!type) return theme.color.icon.subtle;
   if (type.includes('IN') || type.includes('PURCHASE') || type.includes('RETURN')) {
-    return colors.success[600];
+    return theme.color.action.success.background;
   }
   if (type.includes('OUT') || type.includes('SALE')) {
-    return colors.danger[600];
+    return theme.color.action.danger.background;
   }
-  return colors.warning[600];
+  return theme.color.text.warning;
 };
 
 export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = ({
@@ -83,6 +84,8 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
   warehouseId,
   areaId,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [includeMovements, setIncludeMovements] = useState(true);
   const [isMovementsExpanded, setIsMovementsExpanded] = useState(false);
 
@@ -172,8 +175,8 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
           </Text>
           <Caption color="tertiary">Ingreso: {formatDate(batch.receivedAt)}</Caption>
         </View>
-        <View style={[styles.statusPill, { backgroundColor: getBatchStatusColor(batch.status) }]}>
-          <Text variant="labelSmall" color={colors.text.inverse}>
+        <View style={[styles.statusPill, { backgroundColor: getBatchStatusColor(batch.status, theme) }]}>
+          <Text variant="labelSmall" color={theme.color.text.inverse}>
             {batch.status}
           </Text>
         </View>
@@ -190,11 +193,11 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
         </View>
         <View style={styles.metricCompact}>
           <Caption color="tertiary">Reservado</Caption>
-          <Text variant="numericSmall" color={colors.warning[700]}>{formatQuantity(batch.reservedStock)}</Text>
+          <Text variant="numericSmall" color={theme.color.state.warning.text}>{formatQuantity(batch.reservedStock)}</Text>
         </View>
         <View style={styles.metricCompact}>
           <Caption color="tertiary">Disponible</Caption>
-          <Text variant="numericSmall" color={colors.success[700]}>{formatQuantity(batch.availableStock)}</Text>
+          <Text variant="numericSmall" color={theme.color.state.success.text}>{formatQuantity(batch.availableStock)}</Text>
         </View>
         <View style={styles.metricCompact}>
           <Caption color="tertiary">Valor</Caption>
@@ -235,7 +238,7 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
             {[warehouse.warehouseCode, warehouse.siteCode].filter(Boolean).join(' • ') || 'Sin código'}
           </Caption>
         </View>
-        <Text variant="numericMedium" color={colors.success[700]}>
+        <Text variant="numericMedium" color={theme.color.state.success.text}>
           {formatQuantity(warehouse.availableStock)}
         </Text>
       </View>
@@ -255,7 +258,7 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
               </Text>
               {!!area.areaCode && <Caption color="tertiary">Código: {area.areaCode}</Caption>}
             </View>
-            <Text variant="numericSmall" color={colors.accent[700]}>
+            <Text variant="numericSmall" color={theme.color.state.info.text}>
               {formatQuantity(area.availableStock)} disp.
             </Text>
           </View>
@@ -293,13 +296,13 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
               </Caption>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.icon.secondary} />
+              <Ionicons name="close" size={24} color={theme.color.icon.muted} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.toggleRow}>
             <View style={[styles.toggleButton, styles.toggleButtonActive]}>
-              <Text variant="labelSmall" color={colors.text.inverse}>
+              <Text variant="labelSmall" color={theme.color.text.inverse}>
                 Lotes visibles
               </Text>
             </View>
@@ -310,13 +313,13 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                 setIsMovementsExpanded(false);
               }}
             >
-              <Text variant="labelSmall" color={includeMovements ? colors.text.inverse : 'primary'}>
+              <Text variant="labelSmall" color={includeMovements ? theme.color.text.inverse : 'primary'}>
                 Movimientos
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.refreshButton} onPress={() => refetch()} disabled={isRefetching}>
-              <Ionicons name="refresh" size={16} color={colors.accent[700]} />
-              <Text variant="labelSmall" color={colors.accent[700]}>
+              <Ionicons name="refresh" size={16} color={theme.color.state.info.text} />
+              <Text variant="labelSmall" color={theme.color.state.info.text}>
                 Actualizar
               </Text>
             </TouchableOpacity>
@@ -324,7 +327,7 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
 
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary[900]} />
+              <ActivityIndicator size="large" color={theme.color.brand.primary} />
               <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
                 Cargando detalle de stock...
               </Text>
@@ -347,8 +350,8 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                       {detail.product.categoryName || 'Sin categoría'} • {detail.product.status}
                     </Caption>
                   </View>
-                  <View style={[styles.statusPill, { backgroundColor: summary?.lowStock ? colors.warning[600] : colors.success[600] }]}>
-                    <Text variant="labelSmall" color={colors.text.inverse}>
+                  <View style={[styles.statusPill, { backgroundColor: summary?.lowStock ? theme.color.text.warning : theme.color.action.success.background }]}>
+                    <Text variant="labelSmall" color={theme.color.text.inverse}>
                       {summary?.lowStock ? 'Stock bajo' : 'Stock OK'}
                     </Text>
                   </View>
@@ -361,11 +364,11 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                   </View>
                   <View style={styles.metricBox}>
                     <Caption color="tertiary">Reservado</Caption>
-                    <Text variant="numericMedium" color={colors.warning[700]}>{formatQuantity(summary?.reservedStock)}</Text>
+                    <Text variant="numericMedium" color={theme.color.state.warning.text}>{formatQuantity(summary?.reservedStock)}</Text>
                   </View>
                   <View style={styles.metricBox}>
                     <Caption color="tertiary">Disponible</Caption>
-                    <Text variant="numericMedium" color={colors.success[700]}>{formatQuantity(summary?.availableStock)}</Text>
+                    <Text variant="numericMedium" color={theme.color.state.success.text}>{formatQuantity(summary?.availableStock)}</Text>
                   </View>
                   <View style={styles.metricBox}>
                     <Caption color="tertiary">Valor</Caption>
@@ -406,7 +409,7 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                     <Ionicons
                       name={isMovementsExpanded ? 'chevron-up' : 'chevron-down'}
                       size={20}
-                      color={colors.icon.secondary}
+                      color={theme.color.icon.muted}
                     />
                   </TouchableOpacity>
 
@@ -418,7 +421,7 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                       ) : (
                         movements.map((movement) => (
                           <View key={movement.movementId} style={styles.movementRow}>
-                            <View style={[styles.movementDot, { backgroundColor: getMovementColor(movement.movementType) }]} />
+                            <View style={[styles.movementDot, { backgroundColor: getMovementColor(movement.movementType, theme) }]} />
                             <View style={styles.flexOne}>
                               <Text variant="labelMedium" color="primary">{movement.movementType}</Text>
                               <Caption color="tertiary">
@@ -446,195 +449,196 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  container: {
-    backgroundColor: colors.background.secondary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '92%',
-    minHeight: '70%',
-    overflow: 'hidden',
-    ...shadows.xl,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    paddingBottom: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface.secondary,
-    marginLeft: spacing[3],
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-  },
-  toggleButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  toggleButtonActive: {
-    backgroundColor: colors.accent[600],
-    borderColor: colors.accent[600],
-  },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    marginLeft: 'auto',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing[6],
-  },
-  loadingText: {
-    marginTop: spacing[3],
-  },
-  content: {
-    flex: 1,
-  },
-  contentInner: {
-    padding: spacing[4],
-    paddingBottom: spacing[8],
-    gap: spacing[3],
-  },
-  summaryCard: {
-    marginBottom: spacing[1],
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing[3],
-  },
-  sectionCard: {
-    marginBottom: spacing[3],
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing[2],
-  },
-  flexOne: {
-    flex: 1,
-  },
-  statusPill: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-    marginBottom: spacing[3],
-  },
-  metricBox: {
-    flexBasis: '48%',
-    flexGrow: 1,
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  inlineMetrics: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  areaBlock: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  areaHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing[1],
-  },
-  batchesList: {
-    marginTop: spacing[3],
-    gap: spacing[2],
-  },
-  batchCard: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  batchHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing[2],
-  },
-  metricGridCompact: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  metricCompact: {
-    flexBasis: '23%',
-    flexGrow: 1,
-  },
-  batchMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[3],
-    marginTop: spacing[2],
-  },
-  noBatchesText: {
-    marginTop: spacing[2],
-  },
-  collapsibleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  movementRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  movementDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: spacing[1],
-    marginRight: spacing[3],
-  },
-  movementRight: {
-    alignItems: 'flex-end',
-    marginLeft: spacing[3],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    container: {
+      backgroundColor: theme.color.background.subtle,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '92%',
+      minHeight: '70%',
+      overflow: 'hidden',
+      ...theme.shadow.xl,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      paddingBottom: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    closeButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.subtle,
+      marginLeft: theme.space[3],
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    toggleButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    toggleButtonActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    refreshButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1],
+      marginLeft: 'auto',
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+    },
+    loadingContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.space[6],
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+    },
+    content: {
+      flex: 1,
+    },
+    contentInner: {
+      padding: theme.space[4],
+      paddingBottom: theme.space[8],
+      gap: theme.space[3],
+    },
+    summaryCard: {
+      marginBottom: theme.space[1],
+    },
+    summaryHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[3],
+    },
+    sectionCard: {
+      marginBottom: theme.space[3],
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[2],
+    },
+    flexOne: {
+      flex: 1,
+    },
+    statusPill: {
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.full,
+    },
+    metricGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    metricBox: {
+      flexBasis: '48%',
+      flexGrow: 1,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    inlineMetrics: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+    },
+    areaBlock: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    areaHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[1],
+    },
+    batchesList: {
+      marginTop: theme.space[3],
+      gap: theme.space[2],
+    },
+    batchCard: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    batchHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[2],
+    },
+    metricGridCompact: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    metricCompact: {
+      flexBasis: '23%',
+      flexGrow: 1,
+    },
+    batchMeta: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    noBatchesText: {
+      marginTop: theme.space[2],
+    },
+    collapsibleHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    movementRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    movementDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginTop: theme.space[1],
+      marginRight: theme.space[3],
+    },
+    movementRight: {
+      alignItems: 'flex-end',
+      marginLeft: theme.space[3],
+    },
+  });
 
 export default StockProductDetailModal;
