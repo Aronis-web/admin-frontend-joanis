@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { sitesApi } from '@/services/api';
 import { Site, UpdateSiteRequest } from '@/types/sites';
@@ -31,6 +32,8 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
   onClose,
   onSiteUpdated,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [formData, setFormData] = useState<UpdateSiteRequest>({
     code: '',
     name: '',
@@ -336,8 +339,13 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
                 value={formData.isActive}
                 onValueChange={(value) => updateField('isActive', value)}
                 disabled={loading}
-                trackColor={{ false: colors.neutral[200], true: colors.primary[500] }}
-                thumbColor={formData.isActive ? colors.neutral[0] : colors.neutral[400]}
+                trackColor={{
+                  false: theme.color.border.subtle,
+                  true: theme.color.brand.primary,
+                }}
+                thumbColor={
+                  formData.isActive ? theme.color.text.onAction : theme.color.text.placeholder
+                }
               />
             </View>
 
@@ -505,7 +513,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.submitButtonText}>Guardar Cambios</Text>
               )}
@@ -518,229 +526,230 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  formContainer: {
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[5],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginTop: spacing[4],
-    marginBottom: spacing[3],
-  },
-  sectionDescription: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
-    lineHeight: 18,
-  },
-  checkboxGroup: {
-    marginBottom: spacing[4],
-  },
-  checkboxItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[2],
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.md,
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-    backgroundColor: colors.neutral[0],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  checkboxIcon: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  checkboxTextContainer: {
-    flex: 1,
-  },
-  checkboxLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  checkboxDescription: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[4],
-  },
-  switchLabelContainer: {
-    flex: 1,
-    marginRight: spacing[4],
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  switchDescription: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  mapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.accent[50],
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[4],
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-  },
-  mapButtonIcon: {
-    fontSize: 32,
-    marginRight: spacing[3],
-  },
-  mapButtonContent: {
-    flex: 1,
-  },
-  mapButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary[500],
-    marginBottom: spacing[1],
-  },
-  mapButtonSubtext: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  modalActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[5],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  submitButton: {
-    backgroundColor: colors.primary[500],
-  },
-  submitButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  locationSearchSection: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-  },
-  locationSearchLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary[700],
-    marginBottom: spacing[1],
-  },
-  locationSearchHint: {
-    fontSize: 12,
-    color: colors.primary[600],
-    marginBottom: spacing[3],
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: spacing[4],
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.neutral[200],
-  },
-  dividerText: {
-    fontSize: 13,
-    color: colors.neutral[400],
-    marginHorizontal: spacing[3],
-    fontWeight: '500',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    formContainer: {
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[5],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginTop: theme.space[4],
+      marginBottom: theme.space[3],
+    },
+    sectionDescription: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[3],
+      lineHeight: 18,
+    },
+    checkboxGroup: {
+      marginBottom: theme.space[4],
+    },
+    checkboxItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[2],
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: theme.radii.md,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxIcon: {
+      color: theme.color.text.onAction,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    checkboxTextContainer: {
+      flex: 1,
+    },
+    checkboxLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    checkboxDescription: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    switchContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[4],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[4],
+    },
+    switchLabelContainer: {
+      flex: 1,
+      marginRight: theme.space[4],
+    },
+    switchLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    switchDescription: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    mapButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.accentSoft,
+      paddingVertical: theme.space[4],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[4],
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+    },
+    mapButtonIcon: {
+      fontSize: 32,
+      marginRight: theme.space[3],
+    },
+    mapButtonContent: {
+      flex: 1,
+    },
+    mapButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+      marginBottom: theme.space[1],
+    },
+    mapButtonSubtext: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[5],
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    submitButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    locationSearchSection: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    locationSearchLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    locationSearchHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[3],
+    },
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: theme.space[4],
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: theme.color.border.subtle,
+    },
+    dividerText: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+      marginHorizontal: theme.space[3],
+      fontWeight: '500',
+    },
+  });
 
 export default EditSiteModal;
