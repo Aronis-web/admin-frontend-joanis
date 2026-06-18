@@ -27,7 +27,8 @@ import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import logger from '@/utils/logger';
 import { useCampaigns } from '@/hooks/api/useCampaigns';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Pagination } from '@/design-system/components';
 
 interface CampaignsScreenProps {
@@ -47,6 +48,8 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
 
   const { currentCompany, currentSite } = useAuthStore();
   const { width, height } = useWindowDimensions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
@@ -320,7 +323,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -329,7 +332,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="megaphone" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="megaphone" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
                   Campañas
@@ -340,7 +343,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
           </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando campañas...</Text>
         </View>
       </SafeAreaView>
@@ -352,7 +355,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -361,7 +364,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="megaphone" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="megaphone" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
                   Campañas
@@ -425,16 +428,16 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
@@ -447,21 +450,21 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   headerTitleTablet: {
@@ -469,28 +472,28 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   statsHeaderContainer: {
     alignItems: 'flex-end',
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
@@ -502,96 +505,96 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   filterWrapper: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   filterContent: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    gap: theme.space[2],
   },
   filterButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    marginRight: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.muted,
+    marginRight: theme.space[2],
   },
   filterButtonTablet: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2.5],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[2.5],
   },
   filterButtonActive: {
-    backgroundColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
   },
   filterButtonText: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   filterButtonTextTablet: {
     fontSize: 16,
   },
   filterButtonTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   scrollContentTablet: {
-    padding: spacing[8],
+    padding: theme.space[8],
   },
   card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    shadowColor: '#000',
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[3],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   cardTablet: {
-    padding: spacing[6],
-    marginBottom: spacing[4],
+    padding: theme.space[6],
+    marginBottom: theme.space[4],
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[3],
+    gap: theme.space[3],
     flex: 1,
   },
   cardCode: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   cardCodeTablet: {
     fontSize: 20,
   },
   statusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
   },
   statusBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
+    paddingHorizontal: theme.space[3.5],
+    paddingVertical: theme.space[1.5],
   },
   statusText: {
     fontSize: 12,
@@ -601,21 +604,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   cardBody: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   campaignName: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   campaignNameTablet: {
     fontSize: 22,
   },
   campaignDescription: {
     fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
+    color: theme.color.text.subtle,
+    marginBottom: theme.space[3],
     lineHeight: 20,
   },
   campaignDescriptionTablet: {
@@ -625,11 +628,11 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.neutral[200],
-    marginBottom: spacing[3],
+    borderColor: theme.color.border.subtle,
+    marginBottom: theme.space[3],
   },
   statItem: {
     alignItems: 'center',
@@ -637,31 +640,31 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.accent[600],
-    marginBottom: spacing[1],
+    color: theme.color.brand.accent,
+    marginBottom: theme.space[1],
   },
   statValueTablet: {
     fontSize: 22,
   },
   statLabel: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   statLabelTablet: {
     fontSize: 14,
   },
   datesRow: {
     flexDirection: 'row',
-    gap: spacing[4],
+    gap: theme.space[4],
   },
   dateItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1.5],
+    gap: theme.space[1.5],
   },
   dateLabel: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   dateLabelTablet: {
@@ -669,7 +672,7 @@ const styles = StyleSheet.create({
   },
   dateValue: {
     fontSize: 13,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   dateValueTablet: {
     fontSize: 15,
@@ -678,20 +681,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing[3],
+    paddingTop: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   footerText: {
     fontSize: 12,
-    color: colors.neutral[400],
+    color: theme.color.icon.disabled,
   },
   footerTextTablet: {
     fontSize: 14,
   },
   arrowIcon: {
     fontSize: 24,
-    color: colors.neutral[300],
+    color: theme.color.border.default,
     fontWeight: 'bold',
   },
   arrowIconTablet: {
@@ -701,20 +704,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: spacing[16],
+    paddingVertical: theme.space[16],
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
+    color: theme.color.text.subtle,
+    marginBottom: theme.space[2],
   },
   emptyTextTablet: {
     fontSize: 22,
   },
   emptySubtext: {
     fontSize: 14,
-    color: colors.neutral[400],
+    color: theme.color.icon.disabled,
   },
   emptySubtextTablet: {
     fontSize: 16,
