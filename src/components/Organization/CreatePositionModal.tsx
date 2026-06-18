@@ -10,7 +10,8 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { organizationApi } from '@/services/api/organization';
 import { PositionTreeNode, ScopeLevel } from '@/types/organization';
 
@@ -33,6 +34,8 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
   companyId,
   siteId,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
@@ -134,6 +137,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                 value={formData.code}
                 onChangeText={(text) => setFormData({ ...formData, code: text.toUpperCase() })}
                 placeholder="Ej: GERENTE_TIENDA"
+                placeholderTextColor={theme.color.text.placeholder}
                 editable={!loading}
                 autoCapitalize="characters"
                 keyboardType="default"
@@ -149,6 +153,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                 value={formData.name}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                 placeholder="Ej: Gerente de Tienda"
+                placeholderTextColor={theme.color.text.placeholder}
                 editable={!loading}
                 keyboardType="default"
               />
@@ -161,6 +166,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 placeholder="Descripción del puesto"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="default"
                 multiline
                 numberOfLines={3}
@@ -176,6 +182,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                   value={formData.minOccupants}
                   onChangeText={(text) => setFormData({ ...formData, minOccupants: text })}
                   placeholder="1"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="numeric"
                   editable={!loading}
                 />
@@ -188,6 +195,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                   value={formData.maxOccupants}
                   onChangeText={(text) => setFormData({ ...formData, maxOccupants: text })}
                   placeholder="Ilimitado"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="numeric"
                   editable={!loading}
                 />
@@ -201,6 +209,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
                 value={formData.displayOrder}
                 onChangeText={(text) => setFormData({ ...formData, displayOrder: text })}
                 placeholder="1"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="numeric"
                 editable={!loading}
               />
@@ -230,7 +239,7 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.submitButtonText}>Crear Puesto</Text>
               )}
@@ -242,133 +251,134 @@ export const CreatePositionModal: React.FC<CreatePositionModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '90%',
-    maxWidth: 500,
-    maxHeight: '80%',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[900],
-  },
-  closeButton: {
-    fontSize: 24,
-    color: colors.neutral[500],
-    padding: 4,
-  },
-  modalContent: {
-    padding: 20,
-  },
-  parentInfo: {
-    backgroundColor: colors.neutral[100],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[4],
-  },
-  parentLabel: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  parentName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[900],
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
-  },
-  required: {
-    color: colors.danger[600],
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[900],
-    backgroundColor: colors.neutral[0],
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  halfWidth: {
-    flex: 1,
-  },
-  infoBox: {
-    backgroundColor: colors.primary[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[2],
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.primary[600],
-    marginBottom: spacing[1],
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[700],
-  },
-  submitButton: {
-    backgroundColor: colors.accent[500],
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContainer: {
+      width: '90%',
+      maxWidth: 500,
+      maxHeight: '80%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      fontSize: 24,
+      color: theme.color.text.muted,
+      padding: 4,
+    },
+    modalContent: {
+      padding: 20,
+    },
+    parentInfo: {
+      backgroundColor: theme.color.surface.muted,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[4],
+    },
+    parentLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    parentName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[2],
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    row: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    halfWidth: {
+      flex: 1,
+    },
+    infoBox: {
+      backgroundColor: theme.color.surface.subtle,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginTop: theme.space[2],
+    },
+    infoText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    modalFooter: {
+      flexDirection: 'row',
+      padding: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+  });
 
 export default CreatePositionModal;
