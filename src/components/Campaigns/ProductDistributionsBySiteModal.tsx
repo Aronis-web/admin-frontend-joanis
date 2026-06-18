@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { repartosService } from '@/services/api/repartos';
 import { Reparto } from '@/types/repartos';
 import logger from '@/utils/logger';
@@ -52,6 +53,8 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
   distributedQuantityBase,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [repartos, setRepartos] = useState<Reparto[]>([]);
@@ -251,7 +254,7 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
         {/* Body */}
         {loading ? (
           <View style={styles.centeredState}>
-            <ActivityIndicator size="large" color={colors.primary[500]} />
+            <ActivityIndicator size="large" color={theme.color.brand.primary} />
             <Text style={styles.centeredStateText}>Cargando repartos…</Text>
           </View>
         ) : error ? (
@@ -320,222 +323,223 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-    backgroundColor: colors.surface.primary,
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.background.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonSpacer: {
-    width: 36,
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[600],
-    fontWeight: '600',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: spacing[2],
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.neutral[800],
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginTop: 2,
-  },
-  summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    margin: spacing[4],
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  summaryBlock: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border.default,
-    marginHorizontal: spacing[2],
-  },
-  summaryLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.neutral[500],
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  summaryValueCampaign: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.warning[500],
-  },
-  summaryValueRepartido: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.success[500],
-  },
-  summaryValueDestinations: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.primary[500],
-    textAlign: 'center',
-  },
-  summaryValueBreakdown: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[6],
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    marginBottom: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    gap: spacing[3],
-  },
-  rowInternal: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary[500],
-  },
-  rowExternal: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.warning[500],
-  },
-  rowIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.background.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rowIcon: {
-    fontSize: 18,
-  },
-  rowMain: {
-    flex: 1,
-    minWidth: 0,
-  },
-  rowName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  rowSubtitle: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: colors.neutral[500],
-    marginTop: 1,
-  },
-  progressTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.neutral[100],
-    marginTop: spacing[2],
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 4,
-    borderRadius: 2,
-  },
-  progressFillInternal: {
-    backgroundColor: colors.primary[500],
-  },
-  progressFillExternal: {
-    backgroundColor: colors.warning[500],
-  },
-  rowQtyWrap: {
-    alignItems: 'flex-end',
-    minWidth: 72,
-  },
-  rowQty: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.neutral[800],
-  },
-  rowPercent: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginTop: 1,
-  },
-  rowValidated: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.success[500],
-    marginTop: 2,
-  },
-  centeredState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-  },
-  centeredStateText: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: spacing[3],
-    fontWeight: '600',
-  },
-  errorIcon: {
-    fontSize: 36,
-    marginBottom: spacing[2],
-  },
-  errorText: {
-    fontSize: 13,
-    color: colors.danger[500],
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing[2],
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    closeButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.color.background.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonSpacer: {
+      width: 36,
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    headerCenter: {
+      flex: 1,
+      alignItems: 'center',
+      paddingHorizontal: theme.space[2],
+    },
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginTop: 2,
+    },
+    summaryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      margin: theme.space[4],
+      padding: theme.space[4],
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    summaryBlock: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    summaryDivider: {
+      width: 1,
+      height: 40,
+      backgroundColor: theme.color.border.default,
+      marginHorizontal: theme.space[2],
+    },
+    summaryLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.subtle,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    summaryValueCampaign: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.color.text.warning,
+    },
+    summaryValueRepartido: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    summaryValueDestinations: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+      textAlign: 'center',
+    },
+    summaryValueBreakdown: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    list: {
+      flex: 1,
+    },
+    listContent: {
+      paddingHorizontal: theme.space[4],
+      paddingBottom: theme.space[6],
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      marginBottom: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      gap: theme.space[3],
+    },
+    rowInternal: {
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.brand.primary,
+    },
+    rowExternal: {
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    rowIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.color.background.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    rowIcon: {
+      fontSize: 18,
+    },
+    rowMain: {
+      flex: 1,
+      minWidth: 0,
+    },
+    rowName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    rowSubtitle: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: theme.color.text.subtle,
+      marginTop: 1,
+    },
+    progressTrack: {
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: theme.color.background.muted,
+      marginTop: theme.space[2],
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: 4,
+      borderRadius: 2,
+    },
+    progressFillInternal: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    progressFillExternal: {
+      backgroundColor: theme.color.icon.warning,
+    },
+    rowQtyWrap: {
+      alignItems: 'flex-end',
+      minWidth: 72,
+    },
+    rowQty: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    rowPercent: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginTop: 1,
+    },
+    rowValidated: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.success,
+      marginTop: 2,
+    },
+    centeredState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+    },
+    centeredStateText: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[3],
+      fontWeight: '600',
+    },
+    errorIcon: {
+      fontSize: 36,
+      marginBottom: theme.space[2],
+    },
+    errorText: {
+      fontSize: 13,
+      color: theme.color.text.danger,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+    emptyIcon: {
+      fontSize: 48,
+      marginBottom: theme.space[2],
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+  });
