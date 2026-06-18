@@ -16,7 +16,8 @@ import { expensesService } from '@/services/api/expenses';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { getDocumentAsync } from '@/utils/filePicker';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ExpenseTemplateBulkUploadModalProps {
   visible: boolean;
@@ -29,6 +30,8 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
   onClose,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user, currentSite } = useAuthStore();
   const { selectedSite } = useTenantStore();
   const [loading, setLoading] = useState(false);
@@ -316,7 +319,7 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
               disabled={downloadingTemplate || loading}
             >
               {downloadingTemplate ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.inverse} />
               ) : (
                 <>
                   <Text style={styles.primaryButtonIcon}>📥</Text>
@@ -332,7 +335,7 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
               disabled={loading || downloadingTemplate}
             >
               {loading ? (
-                <ActivityIndicator color={colors.danger[600]} />
+                <ActivityIndicator color={theme.color.action.danger.background} />
               ) : (
                 <>
                   <Text style={styles.secondaryButtonIcon}>📤</Text>
@@ -435,236 +438,237 @@ export const ExpenseTemplateBulkUploadModal: React.FC<ExpenseTemplateBulkUploadM
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    width: '90%',
-    maxWidth: 600,
-    maxHeight: '85%',
-    shadowColor: colors.neutral[900],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    flex: 1,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '300',
-  },
-  content: {
-    padding: spacing[5],
-  },
-  section: {
-    marginBottom: spacing[5],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  instructionText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
-    lineHeight: 20,
-  },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.danger[600],
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[5],
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[3],
-    shadowColor: colors.danger[600],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  primaryButtonIcon: {
-    fontSize: 20,
-    marginRight: spacing[2],
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface.primary,
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[5],
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[5],
-    borderWidth: 2,
-    borderColor: colors.danger[600],
-  },
-  secondaryButtonIcon: {
-    fontSize: 20,
-    marginRight: spacing[2],
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.danger[600],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  resultSection: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[4],
-  },
-  resultStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: spacing[4],
-  },
-  resultStatItem: {
-    alignItems: 'center',
-    padding: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    minWidth: 80,
-  },
-  successStat: {
-    backgroundColor: colors.success[50],
-  },
-  errorStat: {
-    backgroundColor: colors.danger[100],
-  },
-  resultStatValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  successText: {
-    color: colors.success[500],
-  },
-  errorText: {
-    color: colors.danger[500],
-  },
-  resultStatLabel: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontWeight: '500',
-  },
-  messageSection: {
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginTop: spacing[3],
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent[500],
-  },
-  messageText: {
-    fontSize: 13,
-    color: colors.accent[800],
-    lineHeight: 18,
-  },
-  errorsSection: {
-    marginTop: spacing[4],
-  },
-  errorsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.danger[600],
-    marginBottom: spacing[3],
-  },
-  errorsList: {
-    maxHeight: 200,
-  },
-  errorItem: {
-    backgroundColor: colors.surface.primary,
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[2],
-    borderLeftWidth: 3,
-    borderLeftColor: colors.danger[500],
-  },
-  errorRow: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.danger[600],
-    marginBottom: spacing[1],
-  },
-  errorSku: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  errorMessage: {
-    fontSize: 13,
-    color: colors.neutral[800],
-    lineHeight: 18,
-  },
-  notesSection: {
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.danger[200],
-  },
-  notesTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.danger[800],
-    marginBottom: spacing[3],
-  },
-  noteText: {
-    fontSize: 13,
-    color: colors.danger[800],
-    marginBottom: spacing[1.5],
-    lineHeight: 18,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      width: '90%',
+      maxWidth: 600,
+      maxHeight: '85%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.subtle,
+      fontWeight: '300',
+    },
+    content: {
+      padding: theme.space[5],
+    },
+    section: {
+      marginBottom: theme.space[5],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    instructionText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[2],
+      lineHeight: 20,
+    },
+    primaryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.action.danger.background,
+      paddingVertical: theme.space[3.5],
+      paddingHorizontal: theme.space[5],
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[3],
+      shadowColor: theme.color.action.danger.background,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    primaryButtonIcon: {
+      fontSize: 20,
+      marginRight: theme.space[2],
+    },
+    primaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    secondaryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.base,
+      paddingVertical: theme.space[3.5],
+      paddingHorizontal: theme.space[5],
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[5],
+      borderWidth: 2,
+      borderColor: theme.color.action.danger.background,
+    },
+    secondaryButtonIcon: {
+      fontSize: 20,
+      marginRight: theme.space[2],
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.action.danger.background,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    resultSection: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[5],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    resultTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[4],
+    },
+    resultStats: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: theme.space[4],
+    },
+    resultStatItem: {
+      alignItems: 'center',
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      minWidth: 80,
+    },
+    successStat: {
+      backgroundColor: theme.color.state.success.background,
+    },
+    errorStat: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    resultStatValue: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    successText: {
+      color: theme.color.icon.success,
+    },
+    errorText: {
+      color: theme.color.text.danger,
+    },
+    resultStatLabel: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+    },
+    messageSection: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginTop: theme.space[3],
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.brand.accent,
+    },
+    messageText: {
+      fontSize: 13,
+      color: theme.color.state.info.text,
+      lineHeight: 18,
+    },
+    errorsSection: {
+      marginTop: theme.space[4],
+    },
+    errorsTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.action.danger.background,
+      marginBottom: theme.space[3],
+    },
+    errorsList: {
+      maxHeight: 200,
+    },
+    errorItem: {
+      backgroundColor: theme.color.surface.base,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[2],
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.text.danger,
+    },
+    errorRow: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.action.danger.background,
+      marginBottom: theme.space[1],
+    },
+    errorSku: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[1],
+    },
+    errorMessage: {
+      fontSize: 13,
+      color: theme.color.text.heading,
+      lineHeight: 18,
+    },
+    notesSection: {
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+    },
+    notesTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.state.danger.text,
+      marginBottom: theme.space[3],
+    },
+    noteText: {
+      fontSize: 13,
+      color: theme.color.state.danger.text,
+      marginBottom: theme.space[1.5],
+      lineHeight: 18,
+    },
+  });
 
 export default ExpenseTemplateBulkUploadModal;
