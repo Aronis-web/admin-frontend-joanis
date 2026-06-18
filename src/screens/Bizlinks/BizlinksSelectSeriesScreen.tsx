@@ -14,6 +14,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { BizlinksDocumentType } from '@/types/bizlinks';
 import { billingApi, DocumentSeries } from '@/services/api';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type Props = NativeStackScreenProps<any, 'BizlinksSelectSeries'>;
 
@@ -37,6 +39,8 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
   const { documentType, companyId, siteId } = route.params || {};
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [series, setSeries] = useState<DocumentSeries[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,7 +170,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
       {/* Header */}
       <View style={[styles.header, isTablet && styles.headerTablet]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={[styles.title, isTablet && styles.titleTablet]}>Seleccionar Serie</Text>
@@ -187,7 +191,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {series.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
+            <Ionicons name="document-text-outline" size={64} color={theme.color.icon.disabled} />
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               No hay series disponibles
             </Text>
@@ -198,7 +202,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
               style={[styles.configButton, isTablet && styles.configButtonTablet]}
               onPress={() => navigation.navigate('DocumentSeries')}
             >
-              <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="settings-outline" size={20} color={theme.color.text.inverse} />
               <Text style={styles.configButtonText}>Ir a Configuración</Text>
             </TouchableOpacity>
           </View>
@@ -234,7 +238,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
                       {seriesItem.description || 'Sin descripción'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={24} color="#CBD5E1" />
+                  <Ionicons name="chevron-forward" size={24} color={theme.color.icon.disabled} />
                 </View>
 
                 <View style={styles.seriesStats}>
@@ -278,7 +282,7 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
 
                 {(seriesItem.maxNumber - seriesItem.currentNumber) < 100 && (
                   <View style={styles.warningBanner}>
-                    <Ionicons name="warning" size={16} color="#F59E0B" />
+                    <Ionicons name="warning" size={16} color={theme.color.icon.warning} />
                     <Text style={styles.warningText}>
                       Quedan pocos números disponibles ({seriesItem.maxNumber - seriesItem.currentNumber})
                     </Text>
@@ -293,10 +297,10 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -306,16 +310,16 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
     gap: 12,
   },
   headerTablet: {
@@ -332,7 +336,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   titleTablet: {
     fontSize: 24,
@@ -356,7 +360,7 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 20,
     lineHeight: 20,
   },
@@ -365,13 +369,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   seriesCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -404,7 +408,7 @@ const styles = StyleSheet.create({
   seriesName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   seriesNameTablet: {
@@ -412,7 +416,7 @@ const styles = StyleSheet.create({
   },
   seriesDescription: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   seriesDescriptionTablet: {
     fontSize: 14,
@@ -420,7 +424,7 @@ const styles = StyleSheet.create({
   seriesStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 12,
     padding: 16,
   },
@@ -430,7 +434,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 4,
     textAlign: 'center',
   },
@@ -440,18 +444,18 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   statValueTablet: {
     fontSize: 18,
   },
   statValueAvailable: {
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
   },
   warningBanner: {
     flexDirection: 'row',
@@ -459,14 +463,14 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.color.state.warning.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: theme.color.state.warning.border,
   },
   warningText: {
     fontSize: 12,
-    color: '#92400E',
+    color: theme.color.state.warning.text,
     fontWeight: '600',
     flex: 1,
   },
@@ -479,7 +483,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginTop: 16,
     marginBottom: 8,
   },
@@ -488,7 +492,7 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: theme.color.text.subtle,
     marginBottom: 24,
   },
   emptySubtextTablet: {
@@ -498,7 +502,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -510,6 +514,6 @@ const styles = StyleSheet.create({
   configButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
 });
