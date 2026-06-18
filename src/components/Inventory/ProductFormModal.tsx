@@ -12,13 +12,8 @@ import {
 } from 'react-native';
 import { productsApi, CreateProductDto, UpdateProductDto, Product } from '@/services/api/products';
 
-// Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -62,6 +57,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   product,
   mode,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentSite, currentCompany } = useAuthStore();
   const { selectedSite, selectedCompany } = useTenantStore();
 
@@ -769,7 +766,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 value={formData.title}
                 onChangeText={(text) => setFormData({ ...formData, title: text })}
                 placeholder="Nombre del producto"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="default"
               />
             </View>
@@ -781,7 +778,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 placeholder="Descripción del producto"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="default"
                 multiline
                 numberOfLines={3}
@@ -809,7 +806,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   value={formData.sku}
                   onChangeText={(text) => setFormData({ ...formData, sku: text })}
                   placeholder="SKU-001"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="default"
                   editable={mode === 'create'}
                 />
@@ -825,7 +822,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   value={formData.barcode}
                   onChangeText={(text) => setFormData({ ...formData, barcode: text })}
                   placeholder="ABC123XYZ"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="default"
                 />
               </View>
@@ -909,7 +906,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   value={formData.costCents}
                   onChangeText={(text) => setFormData({ ...formData, costCents: text })}
                   placeholder="1000"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="numeric"
                 />
                 <Text style={styles.helpText}>
@@ -930,7 +927,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   value={formData.minStockAlert}
                   onChangeText={(text) => setFormData({ ...formData, minStockAlert: text })}
                   placeholder="20"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="numeric"
                 />
               </View>
@@ -947,7 +944,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   value={formData.weightValue}
                   onChangeText={(text) => setFormData({ ...formData, weightValue: text })}
                   placeholder={formData.weightUnit === 'kg' ? '0.500' : '500'}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="decimal-pad"
                 />
                 <Text style={styles.helpText}>
@@ -1047,7 +1044,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 </Text>
                 {loadingWarehouses ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#3B82F6" />
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
                     <Text style={styles.loadingText}>Cargando almacenes...</Text>
                   </View>
                 ) : (
@@ -1110,7 +1107,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   </Text>
                   {loadingAreas ? (
                     <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color="#3B82F6" />
+                      <ActivityIndicator size="small" color={theme.color.brand.accent} />
                       <Text style={styles.loadingText}>Cargando áreas...</Text>
                     </View>
                   ) : (
@@ -1175,7 +1172,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     value={formData.initialStock}
                     onChangeText={(text) => setFormData({ ...formData, initialStock: text })}
                     placeholder="100"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                     keyboardType="numeric"
                   />
                   <Text style={styles.helpText}>
@@ -1233,7 +1230,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     <Text style={styles.label}>Presentación</Text>
                     {loadingPresentations ? (
                       <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="small" color="#3B82F6" />
+                        <ActivityIndicator size="small" color={theme.color.brand.accent} />
                         <Text style={styles.loadingText}>Cargando presentaciones...</Text>
                       </View>
                     ) : (
@@ -1307,7 +1304,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         }
                       }}
                       placeholder="Ej: 1, 6, 12, 24"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={theme.color.text.placeholder}
                       keyboardType="numeric"
                     />
                     <Text style={styles.helpText}>
@@ -1407,281 +1404,282 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  content: {
-    flex: 1,
-    padding: spacing[4],
-  },
-  section: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    ...shadows.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[4],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[4],
-  },
-  infoSection: {
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.warning[300],
-  },
-  infoTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.warning[800],
-    marginBottom: spacing[2],
-  },
-  infoText: {
-    fontSize: 13,
-    color: colors.warning[700],
-    lineHeight: 20,
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-  formGroupHalf: {
-    flex: 1,
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text.secondary,
-    marginBottom: spacing[2],
-  },
-  required: {
-    color: colors.danger[500],
-  },
-  input: {
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-    fontSize: 15,
-    color: colors.text.primary,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  pickerContainer: {
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-  },
-  picker: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-  },
-  pickerText: {
-    fontSize: 15,
-    color: colors.text.primary,
-  },
-  helpText: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-    marginTop: spacing[1],
-  },
-  hint: {
-    fontSize: 11,
-    color: colors.accent[600],
-    marginTop: spacing[1],
-    fontStyle: 'italic',
-  },
-  correlativeDisplay: {
-    backgroundColor: colors.accent[50],
-    borderWidth: 1,
-    borderColor: colors.accent[200],
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-  },
-  correlativeText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.accent[600],
-    fontFamily: 'monospace',
-    marginBottom: spacing[1],
-  },
-  correlativeHint: {
-    fontSize: 11,
-    color: colors.accent[600],
-    fontStyle: 'italic',
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  presentationCard: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  presentationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  presentationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  removeButton: {
-    fontSize: 18,
-    color: colors.danger[500],
-    paddingHorizontal: spacing[2],
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[3],
-    backgroundColor: colors.surface.tertiary,
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.text.tertiary,
-  },
-  inputDisabled: {
-    backgroundColor: colors.surface.tertiary,
-    color: colors.text.disabled,
-  },
-  calculationText: {
-    fontSize: 12,
-    color: colors.success[600],
-    fontWeight: '600',
-    marginTop: spacing[1],
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  pricePreviewCard: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  pricePreviewTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[2],
-  },
-  pricePreviewItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[1.5],
-    paddingHorizontal: spacing[2],
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing[1],
-  },
-  pricePreviewLabel: {
-    fontSize: 13,
-    color: colors.text.tertiary,
-  },
-  pricePreviewValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.success[600],
-  },
-  warningBox: {
-    flexDirection: 'row',
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginTop: spacing[3],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.warning[300],
-    alignItems: 'center',
-  },
-  warningIcon: {
-    fontSize: 18,
-    marginRight: spacing[2],
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.warning[700],
-    lineHeight: 18,
-  },
-  weightUnitContainer: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  weightUnitButton: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[2],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.surface.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  weightUnitButtonActive: {
-    backgroundColor: colors.accent[500],
-    borderColor: colors.accent[500],
-  },
-  weightUnitButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  weightUnitButtonTextActive: {
-    color: colors.text.inverse,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    content: {
+      flex: 1,
+      padding: theme.space[4],
+    },
+    section: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      ...theme.shadow.sm,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[4],
+    },
+    infoSection: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    infoTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+      marginBottom: theme.space[2],
+    },
+    infoText: {
+      fontSize: 13,
+      color: theme.color.state.warning.text,
+      lineHeight: 20,
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    formGroupHalf: {
+      flex: 1,
+    },
+    formRow: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.body,
+      marginBottom: theme.space[2],
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 15,
+      color: theme.color.text.body,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+    },
+    picker: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+    },
+    pickerText: {
+      fontSize: 15,
+      color: theme.color.text.body,
+    },
+    helpText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+    },
+    hint: {
+      fontSize: 11,
+      color: theme.color.brand.accent,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+    correlativeDisplay: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+    },
+    correlativeText: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+      fontFamily: 'monospace',
+      marginBottom: theme.space[1],
+    },
+    correlativeHint: {
+      fontSize: 11,
+      color: theme.color.brand.accent,
+      fontStyle: 'italic',
+    },
+    switchContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    presentationCard: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    presentationHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    presentationTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    removeButton: {
+      fontSize: 18,
+      color: theme.color.text.danger,
+      paddingHorizontal: theme.space[2],
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.md,
+      gap: theme.space[2],
+    },
+    loadingText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    inputDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      color: theme.color.text.disabled,
+    },
+    calculationText: {
+      fontSize: 12,
+      color: theme.color.text.success,
+      fontWeight: '600',
+      marginTop: theme.space[1],
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    pricePreviewCard: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    pricePreviewTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    pricePreviewItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[1.5],
+      paddingHorizontal: theme.space[2],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.sm,
+      marginBottom: theme.space[1],
+    },
+    pricePreviewLabel: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    pricePreviewValue: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.success,
+    },
+    warningBox: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginTop: theme.space[3],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+      alignItems: 'center',
+    },
+    warningIcon: {
+      fontSize: 18,
+      marginRight: theme.space[2],
+    },
+    warningText: {
+      flex: 1,
+      fontSize: 13,
+      color: theme.color.state.warning.text,
+      lineHeight: 18,
+    },
+    weightUnitContainer: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    weightUnitButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[2],
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    weightUnitButtonActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    weightUnitButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    weightUnitButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+  });
 
 export default ProductFormModal;
