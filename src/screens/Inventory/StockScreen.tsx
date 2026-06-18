@@ -30,7 +30,8 @@ import { useTenantStore } from '@/store/tenant';
 import { WarehouseArea } from '@/types/warehouses';
 import { useProductsStock, useWarehouseAreas, useWarehouses } from '@/hooks/api/useStock';
 import { logger } from '@/utils/logger';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Caption, Card, Divider, EmptyState, Pagination, Text } from '@/design-system/components';
 
 interface StockScreenProps {
@@ -67,23 +68,25 @@ const formatQuantity = (value?: number) => {
     : numericValue.toLocaleString('es-PE', { maximumFractionDigits: 2 });
 };
 
-const getProductStockState = (product: ProductStockSummaryItem) => {
+const getProductStockState = (product: ProductStockSummaryItem, theme: Theme) => {
   if (product.availableStock < 0) {
-    return { label: 'Negativo', color: colors.danger[700], icon: 'trending-down' as const };
+    return { label: 'Negativo', color: theme.color.text.danger, icon: 'trending-down' as const };
   }
   if (product.totalStock === 0) {
-    return { label: 'Sin stock', color: colors.danger[600], icon: 'alert-circle' as const };
+    return { label: 'Sin stock', color: theme.color.text.danger, icon: 'alert-circle' as const };
   }
   if (product.minStockAlert && product.minStockAlert > 0 && product.availableStock <= product.minStockAlert) {
-    return { label: 'Stock bajo', color: colors.warning[600], icon: 'warning' as const };
+    return { label: 'Stock bajo', color: theme.color.text.warning, icon: 'warning' as const };
   }
   if (product.reservedStock > 0 && product.availableStock <= 0) {
-    return { label: 'Reservado', color: colors.accent[700], icon: 'lock-closed' as const };
+    return { label: 'Reservado', color: theme.color.brand.accent, icon: 'lock-closed' as const };
   }
-  return { label: 'Disponible', color: colors.success[600], icon: 'checkmark-circle' as const };
+  return { label: 'Disponible', color: theme.color.text.success, icon: 'checkmark-circle' as const };
 };
 
 export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentSite, currentCompany } = useAuthStore();
   const { selectedSite, selectedCompany } = useTenantStore();
   const { width, height } = useWindowDimensions();
@@ -228,7 +231,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                       : 'Ordenar por'}
               </Text>
               <TouchableOpacity onPress={close}>
-                <Ionicons name="close" size={24} color={colors.icon.secondary} />
+                <Ionicons name="close" size={24} color={theme.color.icon.muted} />
               </TouchableOpacity>
             </View>
 
@@ -243,7 +246,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                     }}
                   >
                     <Text variant="bodyMedium" color="primary">Todos los almacenes</Text>
-                    {selectedWarehouseId === 'all' && <Ionicons name="checkmark" size={20} color={colors.accent[600]} />}
+                    {selectedWarehouseId === 'all' && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                   </TouchableOpacity>
                   {warehouses.map((warehouse) => (
                     <TouchableOpacity
@@ -258,7 +261,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                         <Text variant="bodyMedium" color="primary">{warehouse.name}</Text>
                         <Caption color="tertiary">Código: {warehouse.code}</Caption>
                       </View>
-                      {selectedWarehouseId === warehouse.id && <Ionicons name="checkmark" size={20} color={colors.accent[600]} />}
+                      {selectedWarehouseId === warehouse.id && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                     </TouchableOpacity>
                   ))}
                 </>
@@ -274,7 +277,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                     }}
                   >
                     <Text variant="bodyMedium" color="primary">Todas las áreas</Text>
-                    {selectedAreaId === 'all' && <Ionicons name="checkmark" size={20} color={colors.accent[600]} />}
+                    {selectedAreaId === 'all' && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                   </TouchableOpacity>
                   {areas.length === 0 ? (
                     <View style={styles.modalItem}>
@@ -296,7 +299,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                           </Text>
                           {!!area.code && <Caption color="tertiary">Código: {area.code}</Caption>}
                         </View>
-                        {selectedAreaId === area.id && <Ionicons name="checkmark" size={20} color={colors.accent[600]} />}
+                        {selectedAreaId === area.id && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                       </TouchableOpacity>
                     ))
                   )}
@@ -317,7 +320,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                       <Text variant="bodyMedium" color="primary">{option.label}</Text>
                       <Caption color="tertiary">{option.helper}</Caption>
                     </View>
-                    {stockStatus === option.value && <Ionicons name="checkmark" size={20} color={colors.accent[600]} />}
+                    {stockStatus === option.value && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                   </TouchableOpacity>
                 ))}
 
@@ -332,7 +335,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                     }}
                   >
                     <Text variant="bodyMedium" color="primary">{option.label}</Text>
-                    {sortBy === option.value && <Ionicons name="checkmark" size={20} color={colors.accent[600]} />}
+                    {sortBy === option.value && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                   </TouchableOpacity>
                 ))}
             </ScrollView>
@@ -343,7 +346,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   };
 
   const renderProductCard = (product: ProductStockSummaryItem) => {
-    const stockState = getProductStockState(product);
+    const stockState = getProductStockState(product, theme);
     const warehousesCount = product.warehouses?.length || 0;
     const areasCount = product.warehouses?.reduce((sum, warehouse) => sum + (warehouse.areas?.length || 0), 0) || 0;
 
@@ -361,8 +364,8 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 {!!product.categoryName && <Caption color="tertiary">{product.categoryName}</Caption>}
               </View>
               <View style={[styles.stockLevelBadge, { backgroundColor: stockState.color }]}>
-                <Ionicons name={stockState.icon} size={13} color={colors.text.inverse} />
-                <Text variant="labelSmall" color={colors.text.inverse}>{stockState.label}</Text>
+                <Ionicons name={stockState.icon} size={13} color={theme.color.text.inverse} />
+                <Text variant="labelSmall" color={theme.color.text.inverse}>{stockState.label}</Text>
               </View>
             </View>
 
@@ -375,11 +378,11 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               </View>
               <View style={styles.stockMetricBox}>
                 <Caption color="tertiary">Reservado</Caption>
-                <Text variant="numericMedium" color={colors.warning[700]}>{formatQuantity(product.reservedStock)}</Text>
+                <Text variant="numericMedium" color={theme.color.text.warning}>{formatQuantity(product.reservedStock)}</Text>
               </View>
               <View style={styles.stockMetricBox}>
                 <Caption color="tertiary">Disponible</Caption>
-                <Text variant="numericMedium" color={colors.success[700]}>{formatQuantity(product.availableStock)}</Text>
+                <Text variant="numericMedium" color={theme.color.text.success}>{formatQuantity(product.availableStock)}</Text>
               </View>
             </View>
 
@@ -411,7 +414,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                         {warehouse.siteCode ? ` • ${warehouse.siteCode}` : ''}
                       </Caption>
                     </View>
-                    <Text variant="numericSmall" color={colors.accent[700]}>
+                    <Text variant="numericSmall" color={theme.color.brand.accent}>
                       {formatQuantity(warehouse.availableStock)}
                     </Text>
                   </View>
@@ -429,7 +432,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             style={[styles.actionButton, styles.detailButton]}
             onPress={() => setSelectedDetailProduct(product)}
           >
-            <Text variant="labelMedium" color={colors.text.inverse}>Ver detalle</Text>
+            <Text variant="labelMedium" color={theme.color.text.inverse}>Ver detalle</Text>
           </TouchableOpacity>
         </View>
       </Card>
@@ -441,7 +444,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <LinearGradient
-            colors={[colors.primary[900], colors.primary[800]]}
+            colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.headerGradient}
@@ -450,7 +453,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               <View style={styles.headerTitleContainer}>
                 <View style={styles.headerIconRow}>
                   <View style={styles.headerIconContainer}>
-                    <Ionicons name="cube" size={22} color={colors.neutral[0]} />
+                    <Ionicons name="cube" size={22} color={theme.color.brand.onHeader} />
                   </View>
                   <Text style={styles.title}>Inventario</Text>
                 </View>
@@ -459,7 +462,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             </View>
           </LinearGradient>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary[900]} />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>Cargando inventario...</Text>
           </View>
         </SafeAreaView>
@@ -471,7 +474,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -480,7 +483,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cube" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="cube" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.title}>Inventario</Text>
               </View>
@@ -497,17 +500,17 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
           <View style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <Ionicons name="search" size={20} color={theme.color.icon.subtle} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Buscar por nombre, SKU, código o correlativo..."
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="close-circle" size={20} color={theme.color.icon.subtle} />
                 </TouchableOpacity>
               )}
             </View>
@@ -521,7 +524,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 <Caption color="tertiary">Estado</Caption>
                 <Text variant="labelMedium" color="primary">{selectedStatus?.label || 'Todos'}</Text>
               </View>
-              <Ionicons name="chevron-down" size={16} color={colors.icon.tertiary} />
+              <Ionicons name="chevron-down" size={16} color={theme.color.icon.subtle} />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.filterButton} onPress={() => setActivePicker('warehouse')}>
@@ -531,7 +534,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   {loadingWarehouses ? 'Cargando...' : selectedWarehouse?.name || 'Todos'}
                 </Text>
               </View>
-              <Ionicons name="chevron-down" size={16} color={colors.icon.tertiary} />
+              <Ionicons name="chevron-down" size={16} color={theme.color.icon.subtle} />
             </TouchableOpacity>
 
             {selectedWarehouseId !== 'all' && (
@@ -542,7 +545,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                     {loadingAreas ? 'Cargando...' : selectedArea?.name || selectedArea?.code || 'Todas'}
                   </Text>
                 </View>
-                <Ionicons name="chevron-down" size={16} color={colors.icon.tertiary} />
+                <Ionicons name="chevron-down" size={16} color={theme.color.icon.subtle} />
               </TouchableOpacity>
             )}
 
@@ -551,7 +554,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 <Caption color="tertiary">Ordenar</Caption>
                 <Text variant="labelMedium" color="primary">{selectedSort?.label || 'Disponible'}</Text>
               </View>
-              <Ionicons name="chevron-down" size={16} color={colors.icon.tertiary} />
+              <Ionicons name="chevron-down" size={16} color={theme.color.icon.subtle} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -561,9 +564,9 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               <Ionicons
                 name={sortOrder === 'ASC' ? 'arrow-up' : 'arrow-down'}
                 size={18}
-                color={colors.accent[700]}
+                color={theme.color.brand.accent}
               />
-              <Text variant="labelMedium" color={colors.accent[700]}>{sortOrder}</Text>
+              <Text variant="labelMedium" color={theme.color.brand.accent}>{sortOrder}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -573,28 +576,28 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               <Ionicons
                 name={includeZeroStock ? 'checkbox' : 'square-outline'}
                 size={18}
-                color={includeZeroStock ? colors.text.inverse : colors.icon.secondary}
+                color={includeZeroStock ? theme.color.text.inverse : theme.color.icon.muted}
               />
-              <Text variant="labelMedium" color={includeZeroStock ? colors.text.inverse : 'primary'}>
+              <Text variant="labelMedium" color={includeZeroStock ? theme.color.text.inverse : 'primary'}>
                 Incluir ceros
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.statsContainer}>
-            <View style={[styles.statCard, { backgroundColor: colors.accent[50] }]}> 
+            <View style={[styles.statCard, { backgroundColor: theme.color.brand.accentSoft }]}>
               <Text variant="numericMedium" color="primary">{products.length}</Text>
               <Caption color="tertiary">En página</Caption>
             </View>
-            <View style={[styles.statCard, { backgroundColor: colors.success[50] }]}> 
+            <View style={[styles.statCard, { backgroundColor: theme.color.state.success.background }]}>
               <Text variant="numericMedium" color="primary">{formatQuantity(pageStats.availableStock)}</Text>
               <Caption color="tertiary">Disponible</Caption>
             </View>
-            <View style={[styles.statCard, { backgroundColor: colors.warning[50] }]}> 
+            <View style={[styles.statCard, { backgroundColor: theme.color.state.warning.background }]}>
               <Text variant="numericMedium" color="primary">{formatQuantity(pageStats.reservedStock)}</Text>
               <Caption color="tertiary">Reservado</Caption>
             </View>
-            <View style={[styles.statCard, { backgroundColor: colors.danger[50] }]}> 
+            <View style={[styles.statCard, { backgroundColor: theme.color.state.danger.background }]}>
               <Text variant="numericMedium" color="primary">{pageStats.lowStock}</Text>
               <Caption color="tertiary">Stock bajo</Caption>
             </View>
@@ -607,8 +610,8 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               <RefreshControl
                 refreshing={isRefetching}
                 onRefresh={onRefresh}
-                tintColor={colors.primary[900]}
-                colors={[colors.primary[900]]}
+                tintColor={theme.color.brand.accent}
+                colors={[theme.color.brand.accent]}
               />
             }
           >
@@ -682,21 +685,21 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   headerTitleContainer: {
     flex: 1,
@@ -704,73 +707,73 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   statsHeaderContainer: {
     alignItems: 'flex-end',
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
   searchContainer: {
     flexDirection: 'row',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[3],
   },
   searchIcon: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   searchInput: {
     flex: 1,
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   clearButton: {
-    padding: spacing[1],
+    padding: theme.space[1],
   },
   contentWrapper: {
     flex: 1,
@@ -781,19 +784,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
   filtersWrapper: {
-    backgroundColor: colors.surface.primary,
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    padding: theme.space[3],
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   filterButton: {
     minWidth: 145,
@@ -801,17 +804,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing[2],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
+    gap: theme.space[2],
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[3],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
   filterButtonActive: {
-    backgroundColor: colors.accent[600],
-    borderColor: colors.accent[600],
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   compactFilterButton: {
     minWidth: 92,
@@ -823,27 +826,27 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
   },
   modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
     width: '100%',
     maxWidth: 460,
     maxHeight: '75%',
-    ...shadows.lg,
+    ...theme.shadow.lg,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   modalList: {
     maxHeight: 480,
@@ -852,123 +855,123 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.surface.secondary,
-    gap: spacing[3],
+    borderBottomColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   modalItemSelected: {
-    backgroundColor: colors.accent[50],
+    backgroundColor: theme.color.brand.accentSoft,
   },
   modalItemContent: {
     flex: 1,
   },
   statsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    gap: theme.space[2],
   },
   statCard: {
     flex: 1,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[2],
-    borderRadius: borderRadius.md,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[2],
+    borderRadius: theme.radii.md,
     alignItems: 'center',
   },
   content: {
     flex: 1,
   },
   contentLandscape: {
-    paddingBottom: spacing[5],
+    paddingBottom: theme.space[5],
   },
   listContent: {
-    padding: spacing[4],
-    paddingBottom: spacing[24],
+    padding: theme.space[4],
+    paddingBottom: theme.space[24],
   },
   stockList: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   productCard: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   productCardContent: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   productInfo: {
     flex: 1,
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   stockLevelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
+    gap: theme.space[1],
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.full,
   },
   productDivider: {
-    marginVertical: spacing[3],
+    marginVertical: theme.space[3],
   },
   stockMetricsRow: {
     flexDirection: 'row',
-    gap: spacing[2],
-    marginBottom: spacing[3],
+    gap: theme.space[2],
+    marginBottom: theme.space[3],
   },
   stockMetricBox: {
     flex: 1,
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
   productDetails: {
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   productDetailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   warehousePreviewList: {
-    marginTop: spacing[3],
-    gap: spacing[2],
+    marginTop: theme.space[3],
+    gap: theme.space[2],
   },
   warehousePreviewItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.brand.accentSoft,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.md,
   },
   productActions: {
     flexDirection: 'row',
-    gap: spacing[2],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    gap: theme.space[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+    borderTopColor: theme.color.border.subtle,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   detailButton: {
-    backgroundColor: colors.accent[600],
+    backgroundColor: theme.color.brand.accent,
   },
 });
 

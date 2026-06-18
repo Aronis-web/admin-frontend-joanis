@@ -22,12 +22,16 @@ import {
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { AddButton } from '@/components/Navigation/AddButton';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface PriceProfilesScreenProps {
   navigation: any;
 }
 
 export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [profiles, setProfiles] = useState<PriceProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -254,7 +258,18 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
               item.isActive ? styles.statusActive : styles.statusInactive,
             ]}
           >
-            <Text style={styles.statusText}>{item.isActive ? 'Activo' : 'Inactivo'}</Text>
+            <Text
+              style={[
+                styles.statusText,
+                {
+                  color: item.isActive
+                    ? theme.color.state.success.text
+                    : theme.color.state.danger.text,
+                },
+              ]}
+            >
+              {item.isActive ? 'Activo' : 'Inactivo'}
+            </Text>
           </View>
         </View>
 
@@ -373,7 +388,7 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer} edges={['top']}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={theme.color.icon.accent} />
         <Text style={styles.loadingText}>Cargando perfiles de precio...</Text>
       </SafeAreaView>
     );
@@ -464,31 +479,31 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: theme.space[4],
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
@@ -498,12 +513,12 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -513,46 +528,47 @@ const styles = StyleSheet.create({
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
+    backgroundColor: theme.color.brand.primarySoft,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.border.subtle,
   },
   infoBannerIcon: {
     fontSize: 20,
-    marginRight: 12,
+    marginRight: theme.space[3],
   },
   infoBannerText: {
     flex: 1,
     fontSize: 13,
-    color: '#4338CA',
+    color: theme.color.brand.primary,
     lineHeight: 18,
   },
   searchContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    gap: theme.space[2],
   },
   searchInput: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     fontSize: 15,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
+    color: theme.color.text.body,
   },
   searchButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.brand.accent,
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: theme.radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -560,110 +576,106 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   listContainer: {
-    padding: 16,
+    padding: theme.space[4],
     paddingBottom: 100,
   },
   listContainerLandscape: {
     paddingBottom: 70,
   },
   profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[4],
+    marginBottom: theme.space[4],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   profileHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: theme.space[4],
   },
   profileInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: theme.space[3],
   },
   profileTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: theme.space[3],
+    gap: theme.space[2],
   },
   profileName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
   },
   codeBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: theme.color.surface.muted,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: theme.color.border.default,
   },
   codeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: theme.color.text.body,
     letterSpacing: 0.5,
   },
   profileMetrics: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: theme.space[4],
   },
   metricItem: {
     alignItems: 'center',
   },
   metricLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '500',
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   metricDivider: {
     width: 1,
     height: 30,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1.5],
+    borderRadius: theme.radii.xl,
   },
   statusActive: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.color.state.success.background,
   },
   statusInactive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
   },
   exampleSection: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: theme.color.background.subtle,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[4],
   },
   exampleTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 6,
   },
   exampleRow: {
@@ -673,38 +685,38 @@ const styles = StyleSheet.create({
   },
   exampleLabel: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.body,
   },
   examplePrice: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   profileActions: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    gap: theme.space[2],
+    marginBottom: theme.space[3],
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.md,
     alignItems: 'center',
   },
   editButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: theme.color.state.info.border,
   },
   deleteButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.color.state.danger.border,
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 13,
     fontWeight: '600',
   },
   profileDate: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     textAlign: 'center',
   },
   emptyContainer: {
@@ -714,64 +726,64 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: theme.space[4],
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
+    color: theme.color.text.muted,
+    marginBottom: theme.space[2],
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[6],
     width: '90%',
     maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 24,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[6],
     textAlign: 'center',
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: theme.space[5],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   input: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     fontSize: 15,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    color: '#1E293B',
+    borderColor: theme.color.border.subtle,
+    color: theme.color.text.body,
   },
   inputDisabled: {
-    backgroundColor: '#F1F5F9',
-    color: '#94A3B8',
+    backgroundColor: theme.color.surface.muted,
+    color: theme.color.text.placeholder,
   },
   helperText: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 6,
     fontStyle: 'italic',
   },
@@ -782,53 +794,53 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: theme.radii.sm,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
-    marginRight: 12,
+    borderColor: theme.color.border.default,
+    marginRight: theme.space[3],
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: theme.color.state.success.border,
+    borderColor: theme.color.state.success.border,
   },
   checkboxIcon: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '700',
   },
   checkboxLabel: {
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '500',
   },
   modalActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    gap: theme.space[3],
+    marginTop: theme.space[6],
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: theme.color.surface.muted,
+    paddingVertical: theme.space[3.5],
+    borderRadius: theme.radii.xl,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#475569',
+    color: theme.color.text.body,
     fontSize: 16,
     fontWeight: '600',
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: theme.color.state.success.border,
+    paddingVertical: theme.space[3.5],
+    borderRadius: theme.radii.xl,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '600',
   },
