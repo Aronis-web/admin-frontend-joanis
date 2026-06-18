@@ -17,6 +17,8 @@ import { priceProfilesApi } from '@/services/api';
 import { UpdateParticipantRequest, CampaignParticipant } from '@/types/campaigns';
 import { PriceProfile } from '@/types/price-profiles';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface EditParticipantScreenProps {
   navigation: any;
@@ -42,6 +44,8 @@ export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const { width, height } = useWindowDimensions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -115,7 +119,7 @@ export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
+            <ActivityIndicator size="large" color={theme.color.brand.primary} />
             <Text style={styles.loadingText}>Cargando...</Text>
           </View>
         </SafeAreaView>
@@ -221,10 +225,10 @@ export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
   },
   loadingContainer: {
     flex: 1,
@@ -234,14 +238,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -252,7 +256,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#6366F1',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   backButtonTextTablet: {
@@ -261,7 +265,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   titleTablet: {
     fontSize: 32,
@@ -277,10 +281,10 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -292,7 +296,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   sectionTitleTablet: {
@@ -307,7 +311,7 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#64748B',
+    color: theme.color.text.subtle,
     minWidth: 80,
   },
   infoLabelTablet: {
@@ -316,7 +320,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
   },
   infoValueTablet: {
@@ -328,21 +332,21 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   labelTablet: {
     fontSize: 16,
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   inputTablet: {
     paddingHorizontal: 16,
@@ -350,9 +354,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   pickerContainer: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -361,10 +365,10 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   saveButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.primary,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
@@ -377,7 +381,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontSize: 16,
     fontWeight: '600',
   },

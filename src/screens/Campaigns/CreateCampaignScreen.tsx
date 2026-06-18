@@ -18,6 +18,8 @@ import { Site } from '@/types/sites';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DatePicker } from '@/components/DatePicker';
 import { Picker } from '@react-native-picker/picker';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CreateCampaignScreenProps {
   navigation: any;
@@ -36,6 +38,8 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const { width, height } = useWindowDimensions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -155,7 +159,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
                 value={name}
                 onChangeText={setName}
                 placeholder="Ej: Campaña Navidad 2024"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
             </View>
 
@@ -172,7 +176,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Descripción de la campaña"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -186,7 +190,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
                 style={[styles.dateButton, isTablet && styles.dateButtonTablet]}
                 onPress={() => setShowStartDatePicker(true)}
               >
-                <Ionicons name="calendar-outline" size={20} color="#6366F1" />
+                <Ionicons name="calendar-outline" size={20} color={theme.color.brand.primary} />
                 <Text
                   style={[
                     styles.dateButtonText,
@@ -206,7 +210,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
                 style={[styles.dateButton, isTablet && styles.dateButtonTablet]}
                 onPress={() => setShowEndDatePicker(true)}
               >
-                <Ionicons name="calendar-outline" size={20} color="#6366F1" />
+                <Ionicons name="calendar-outline" size={20} color={theme.color.brand.primary} />
                 <Text
                   style={[
                     styles.dateButtonText,
@@ -232,7 +236,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Notas adicionales"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -249,7 +253,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
               </Text>
               <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
                 {loadingSites ? (
-                  <ActivityIndicator color="#6366F1" />
+                  <ActivityIndicator color={theme.color.brand.primary} />
                 ) : (
                   <Picker
                     selectedValue={remainderSiteId}
@@ -306,7 +310,7 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={theme.color.text.onAction} />
             ) : (
               <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
                 Crear Campaña
@@ -350,17 +354,17 @@ export const CreateCampaignScreen: React.FC<CreateCampaignScreenProps> = ({ navi
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -371,7 +375,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#6366F1',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   backButtonTextTablet: {
@@ -380,7 +384,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   titleTablet: {
     fontSize: 32,
@@ -395,10 +399,10 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -413,7 +417,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   labelTablet: {
@@ -421,13 +425,13 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
+    color: theme.color.text.heading,
+    backgroundColor: theme.color.surface.base,
   },
   inputTablet: {
     paddingHorizontal: 16,
@@ -446,11 +450,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   dateButtonTablet: {
     paddingHorizontal: 16,
@@ -458,20 +462,20 @@ const styles = StyleSheet.create({
   },
   dateButtonText: {
     fontSize: 16,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   dateButtonTextTablet: {
     fontSize: 18,
   },
   dateButtonPlaceholder: {
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
   infoBox: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: theme.color.state.info.background,
     borderRadius: 8,
     padding: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: theme.color.state.info.border,
     marginTop: 8,
   },
   infoBoxTablet: {
@@ -480,7 +484,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: theme.color.state.info.text,
     marginBottom: 8,
   },
   infoTitleTablet: {
@@ -488,7 +492,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#1E40AF',
+    color: theme.color.state.info.text,
     lineHeight: 20,
   },
   infoTextTablet: {
@@ -499,9 +503,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
   footerTablet: {
     padding: 24,
@@ -512,7 +516,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -522,14 +526,14 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   cancelButtonTextTablet: {
     fontSize: 18,
   },
   createButton: {
     flex: 1,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.primary,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -544,14 +548,14 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   createButtonTextTablet: {
     fontSize: 18,
   },
   helperText: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginBottom: 8,
     lineHeight: 16,
   },
@@ -561,9 +565,9 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     overflow: 'hidden',
   },
   pickerContainerTablet: {
@@ -571,6 +575,6 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
 });
