@@ -7,7 +7,8 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 export interface Column<T> {
   key: string;
@@ -41,6 +42,8 @@ export const DataTable = <T extends Record<string, any>>({
   headerStyle,
   rowStyle,
 }: DataTableProps<T>) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const renderHeader = () => (
     <View style={[styles.headerRow, headerStyle]}>
       {columns.map((column) => (
@@ -104,7 +107,7 @@ export const DataTable = <T extends Record<string, any>>({
     if (!loading) return null;
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={colors.primary[500]} />
+        <ActivityIndicator size="small" color={theme.color.brand.primary} />
       </View>
     );
   };
@@ -137,18 +140,18 @@ export const DataTable = <T extends Record<string, any>>({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     borderBottomWidth: 2,
-    borderBottomColor: colors.neutral[300],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
+    borderBottomColor: theme.color.border.default,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
   },
   headerCell: {
     justifyContent: 'center',
@@ -156,38 +159,38 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     textTransform: 'uppercase',
   },
   row: {
     flexDirection: 'row',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   rowEven: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   cell: {
     justifyContent: 'center',
   },
   cellText: {
     fontSize: 14,
-    color: colors.neutral[900],
+    color: theme.color.text.body,
   },
   emptyContainer: {
-    padding: spacing[8],
+    padding: theme.space[8],
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyText: {
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   loadingContainer: {
-    padding: spacing[4],
+    padding: theme.space[4],
     alignItems: 'center',
   },
 });
