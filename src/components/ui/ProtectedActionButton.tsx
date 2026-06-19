@@ -2,7 +2,8 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { usePermissions } from '@/hooks/usePermissions';
 import { buildPermission } from '@/constants/permissions';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type ActionType = 'create' | 'read' | 'update' | 'delete' | 'custom';
 type VariantType = 'primary' | 'secondary' | 'danger' | 'success' | 'warning';
@@ -84,6 +85,7 @@ export const ProtectedActionButton: React.FC<ProtectedActionButtonProps> = ({
   textStyle,
   fallback = null,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const { hasPermission } = usePermissions();
 
   // Determinar el permiso requerido
@@ -128,56 +130,56 @@ export const ProtectedActionButton: React.FC<ProtectedActionButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
     minHeight: 36,
   },
   primary: {
-    backgroundColor: colors.primary[600],
+    backgroundColor: theme.color.action.primary.background,
   },
   secondary: {
-    backgroundColor: colors.neutral[500],
+    backgroundColor: theme.color.action.secondary.background,
   },
   danger: {
-    backgroundColor: colors.danger[600],
+    backgroundColor: theme.color.action.danger.background,
   },
   success: {
-    backgroundColor: colors.success[500],
+    backgroundColor: theme.color.action.success.background,
   },
   warning: {
-    backgroundColor: colors.warning[500],
+    backgroundColor: theme.color.state.warning.border,
   },
   disabled: {
     opacity: 0.5,
   },
   icon: {
     fontSize: 16,
-    marginRight: spacing[1],
+    marginRight: theme.space[1],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
   },
   label_primary: {
-    color: colors.neutral[0],
+    color: theme.color.action.primary.text,
   },
   label_secondary: {
-    color: colors.neutral[0],
+    color: theme.color.action.secondary.text,
   },
   label_danger: {
-    color: colors.neutral[0],
+    color: theme.color.action.danger.text,
   },
   label_success: {
-    color: colors.neutral[0],
+    color: theme.color.action.success.text,
   },
   label_warning: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
 });
 
