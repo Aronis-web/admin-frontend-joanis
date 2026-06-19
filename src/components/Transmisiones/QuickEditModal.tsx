@@ -12,7 +12,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles, useTheme } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { transmisionesApi } from '@/services/api';
 import {
   TransmisionProduct,
@@ -36,6 +37,9 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
   onClose,
   onSaved,
 }) => {
+  const styles = useThemedStyles(createStyles);
+  const theme = useTheme();
+  const placeholderColor = theme.color.text.placeholder;
   const [costInput, setCostInput] = useState('');
   const [salePriceInput, setSalePriceInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -150,7 +154,7 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
                 onChangeText={setCostInput}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={placeholderColor}
                 editable={!saving}
                 selectTextOnFocus
               />
@@ -166,7 +170,7 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
                 onChangeText={setSalePriceInput}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={placeholderColor}
                 editable={!saving}
                 selectTextOnFocus
               />
@@ -214,7 +218,7 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color={colors.neutral[0]} size="small" />
+                <ActivityIndicator color={theme.color.text.inverse} size="small" />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -226,174 +230,175 @@ export const QuickEditModal: React.FC<QuickEditModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.overlay.medium,
-  },
-  modal: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    width: '90%',
-    maxWidth: 500,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  modalTablet: {
-    maxWidth: 600,
-    padding: 32,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[900],
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  closeButton: {
-    fontSize: 24,
-    color: colors.neutral[500],
-    padding: 4,
-  },
-  productInfo: {
-    backgroundColor: colors.neutral[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: 20,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
-  },
-  productSku: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  content: {
-    marginBottom: 20,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  input: {
-    backgroundColor: colors.neutral[50],
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 18,
-    color: colors.neutral[900],
-    fontWeight: '600',
-  },
-  inputTablet: {
-    padding: 16,
-    fontSize: 20,
-  },
-  marginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-    padding: spacing[4],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[4],
-  },
-  marginLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[700],
-  },
-  marginValue: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  marginPositive: {
-    color: colors.success[500],
-  },
-  marginNegative: {
-    color: colors.danger[500],
-  },
-  comparisonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  comparisonItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  comparisonLabel: {
-    fontSize: 12,
-    color: colors.neutral[400],
-    marginBottom: spacing[1],
-  },
-  comparisonValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  saveButton: {
-    backgroundColor: colors.primary[500],
-  },
-  saveButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.color.overlay.medium,
+    },
+    modal: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '90%',
+      maxWidth: 500,
+      padding: 24,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    modalTablet: {
+      maxWidth: 600,
+      padding: 32,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 24,
+    },
+    closeButton: {
+      fontSize: 24,
+      color: theme.color.text.muted,
+      padding: 4,
+    },
+    productInfo: {
+      backgroundColor: theme.color.surface.subtle,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginBottom: 20,
+    },
+    productName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    productSku: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    content: {
+      marginBottom: 20,
+    },
+    inputGroup: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[2],
+    },
+    labelTablet: {
+      fontSize: 16,
+    },
+    input: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 18,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+    },
+    inputTablet: {
+      padding: 16,
+      fontSize: 20,
+    },
+    marginContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.muted,
+      padding: theme.space[4],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[4],
+    },
+    marginLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    marginValue: {
+      fontSize: 24,
+      fontWeight: '700',
+    },
+    marginPositive: {
+      color: theme.color.text.success,
+    },
+    marginNegative: {
+      color: theme.color.text.danger,
+    },
+    comparisonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    comparisonItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    comparisonLabel: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+      marginBottom: theme.space[1],
+    },
+    comparisonValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    saveButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    saveButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+  });
