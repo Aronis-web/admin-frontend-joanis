@@ -11,13 +11,25 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;
 
 const RECORDING_DURATION = 10000; // 10 segundos
 const MAX_VIDEO_DURATION_SECONDS = 10; // 10 segundos
+
+// Paleta fija para UI de cámara (presentación dark, independiente del tema)
+const CAMERA_BG = '#171717';
+const CAMERA_TEXT = '#FFFFFF';
+const CAMERA_TEXT_MUTED = '#D4D4D4';
+const CAMERA_TEXT_SUBTLE = '#A3A3A3';
+const CAMERA_OVERLAY_MEDIUM = 'rgba(0, 0, 0, 0.5)';
+const CAMERA_BTN_NEUTRAL = '#737373';
+const CAMERA_BTN_STOP = '#404040';
+const POSITION_PRIMARY = '#737373';
+const POSITION_DANGER = '#EF4444';
 
 interface VideoCaptureResult {
   uri: string;
@@ -34,6 +46,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
   onCaptureComplete,
   onCancel,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, requestMicrophonePermission] = useMicrophonePermissions();
   const [isRecording, setIsRecording] = useState(false);
@@ -231,7 +244,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
   if (!cameraPermission || !microphonePermission) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary[500]} />
+        <ActivityIndicator size="large" color={POSITION_PRIMARY} />
         <Text style={styles.loadingText}>Solicitando permisos...</Text>
       </View>
     );
@@ -249,7 +262,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
 
     return (
       <View style={styles.container}>
-        <MaterialIcons name="videocam-off" size={64} color={colors.neutral[400]} />
+        <MaterialIcons name="videocam-off" size={64} color={CAMERA_TEXT_SUBTLE} />
         <Text style={styles.errorText}>
           Se requieren permisos de cámara y micrófono para grabar video
         </Text>
@@ -304,13 +317,13 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
           <View
             style={[
               styles.faceGuide,
-              { borderColor: isRecording ? colors.danger[500] : colors.primary[500] },
+              { borderColor: isRecording ? POSITION_DANGER : POSITION_PRIMARY },
             ]}
           >
-            <View style={[styles.corner, styles.cornerTopLeft, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
-            <View style={[styles.corner, styles.cornerTopRight, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
-            <View style={[styles.corner, styles.cornerBottomLeft, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
-            <View style={[styles.corner, styles.cornerBottomRight, { borderColor: isRecording ? colors.danger[500] : colors.primary[500] }]} />
+            <View style={[styles.corner, styles.cornerTopLeft, { borderColor: isRecording ? POSITION_DANGER : POSITION_PRIMARY }]} />
+            <View style={[styles.corner, styles.cornerTopRight, { borderColor: isRecording ? POSITION_DANGER : POSITION_PRIMARY }]} />
+            <View style={[styles.corner, styles.cornerBottomLeft, { borderColor: isRecording ? POSITION_DANGER : POSITION_PRIMARY }]} />
+            <View style={[styles.corner, styles.cornerBottomRight, { borderColor: isRecording ? POSITION_DANGER : POSITION_PRIMARY }]} />
           </View>
         </View>
 
@@ -337,7 +350,7 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
         <MaterialIcons
           name={isRecording ? 'videocam' : 'face'}
           size={32}
-          color={isRecording ? colors.danger[500] : colors.primary[500]}
+          color={isRecording ? POSITION_DANGER : POSITION_PRIMARY}
         />
         <Text style={styles.instructionsTitle}>
           {isRecording ? 'Grabando...' : 'Grabar Video de Registro'}
@@ -381,17 +394,17 @@ export const VideoCaptureCamera: React.FC<VideoCaptureCameraProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[900],
+    backgroundColor: CAMERA_BG,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cameraContainer: {
     width: CAMERA_SIZE,
     height: CAMERA_SIZE,
-    borderRadius: borderRadius['2xl'],
+    borderRadius: theme.radii['2xl'],
     overflow: 'hidden',
     position: 'relative',
   },
@@ -400,39 +413,39 @@ const styles = StyleSheet.create({
   },
   flipButton: {
     position: 'absolute',
-    top: spacing[5],
-    right: spacing[5],
-    backgroundColor: colors.overlay.medium,
-    borderRadius: borderRadius.full,
-    padding: spacing[2.5],
+    top: theme.space[5],
+    right: theme.space[5],
+    backgroundColor: CAMERA_OVERLAY_MEDIUM,
+    borderRadius: theme.radii.full,
+    padding: theme.space[2.5],
     zIndex: 10,
   },
   recordingIndicator: {
     position: 'absolute',
-    top: spacing[5],
-    left: spacing[5],
+    top: theme.space[5],
+    left: theme.space[5],
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: borderRadius['2xl'],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    gap: spacing[2],
+    borderRadius: theme.radii['2xl'],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    gap: theme.space[2],
     zIndex: 10,
   },
   recordingDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.danger[500],
+    backgroundColor: POSITION_DANGER,
   },
   recordingText: {
-    color: colors.danger[500],
+    color: POSITION_DANGER,
     fontSize: 14,
     fontWeight: 'bold',
   },
   countdownText: {
-    color: colors.neutral[0],
+    color: CAMERA_TEXT,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -461,28 +474,28 @@ const styles = StyleSheet.create({
     left: -2,
     borderBottomWidth: 0,
     borderRightWidth: 0,
-    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopLeftRadius: theme.radii['2xl'],
   },
   cornerTopRight: {
     top: -2,
     right: -2,
     borderBottomWidth: 0,
     borderLeftWidth: 0,
-    borderTopRightRadius: borderRadius['2xl'],
+    borderTopRightRadius: theme.radii['2xl'],
   },
   cornerBottomLeft: {
     bottom: -2,
     left: -2,
     borderTopWidth: 0,
     borderRightWidth: 0,
-    borderBottomLeftRadius: borderRadius['2xl'],
+    borderBottomLeftRadius: theme.radii['2xl'],
   },
   cornerBottomRight: {
     bottom: -2,
     right: -2,
     borderTopWidth: 0,
     borderLeftWidth: 0,
-    borderBottomRightRadius: borderRadius['2xl'],
+    borderBottomRightRadius: theme.radii['2xl'],
   },
   progressBarContainer: {
     position: 'absolute',
@@ -494,75 +507,75 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: colors.danger[500],
+    backgroundColor: POSITION_DANGER,
   },
   instructionsContainer: {
-    marginTop: spacing[5],
-    paddingHorizontal: spacing[5],
+    marginTop: theme.space[5],
+    paddingHorizontal: theme.space[5],
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   instructionsTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.neutral[0],
+    color: CAMERA_TEXT,
   },
   instructionsDescription: {
     fontSize: 14,
-    color: colors.neutral[300],
+    color: CAMERA_TEXT_MUTED,
     textAlign: 'center',
   },
   actionsContainer: {
-    marginTop: spacing[5],
+    marginTop: theme.space[5],
     width: '100%',
-    paddingHorizontal: spacing[5],
+    paddingHorizontal: theme.space[5],
     flexDirection: 'row',
-    gap: spacing[4],
+    gap: theme.space[4],
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[6],
-    borderRadius: borderRadius.xl,
-    gap: spacing[2],
+    paddingVertical: theme.space[3.5],
+    paddingHorizontal: theme.space[6],
+    borderRadius: theme.radii.xl,
+    gap: theme.space[2],
     flex: 1,
   },
   cancelButton: {
-    backgroundColor: colors.neutral[500],
+    backgroundColor: CAMERA_BTN_NEUTRAL,
     flex: 0.4,
   },
   recordButton: {
-    backgroundColor: colors.danger[500],
+    backgroundColor: POSITION_DANGER,
     flex: 1,
   },
   stopButton: {
-    backgroundColor: colors.neutral[700],
+    backgroundColor: CAMERA_BTN_STOP,
     flex: 1,
   },
   buttonText: {
-    color: colors.neutral[0],
+    color: CAMERA_TEXT,
     fontSize: 16,
     fontWeight: 'bold',
   },
   loadingText: {
-    color: colors.neutral[0],
+    color: CAMERA_TEXT,
     fontSize: 16,
-    marginTop: spacing[5],
+    marginTop: theme.space[5],
   },
   errorText: {
-    color: colors.neutral[0],
+    color: CAMERA_TEXT,
     fontSize: 16,
-    marginTop: spacing[5],
-    marginBottom: spacing[3],
+    marginTop: theme.space[5],
+    marginBottom: theme.space[3],
     textAlign: 'center',
-    paddingHorizontal: spacing[5],
+    paddingHorizontal: theme.space[5],
   },
   permissionStatus: {
-    color: colors.neutral[300],
+    color: CAMERA_TEXT_MUTED,
     fontSize: 14,
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
     textAlign: 'center',
   },
 });
