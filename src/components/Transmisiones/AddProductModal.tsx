@@ -14,7 +14,8 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles, useTheme } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { transmisionesApi } from '@/services/api';
 import { productsApi } from '@/services/api';
 import { PriceProfile } from '@/types/price-profiles';
@@ -34,6 +35,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   onClose,
   onProductAdded,
 }) => {
+  const styles = useThemedStyles(createStyles);
+  const theme = useTheme();
+  const placeholderColor = theme.color.text.placeholder;
+  const accentColor = theme.color.brand.primary;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -209,14 +214,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Escribe al menos 2 caracteres..."
-                  placeholderTextColor={colors.neutral[400]}
+                  placeholderTextColor={placeholderColor}
                   editable={!adding}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
                 {searching && (
                   <View style={styles.searchingIndicator}>
-                    <ActivityIndicator color={colors.primary[500]} size="small" />
+                    <ActivityIndicator color={accentColor} size="small" />
                   </View>
                 )}
               </View>
@@ -263,7 +268,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                       </View>
                     </View>
                     {adding ? (
-                      <ActivityIndicator color={colors.primary[500]} size="small" />
+                      <ActivityIndicator color={accentColor} size="small" />
                     ) : (
                       <Text style={styles.resultArrow}>+ Agregar</Text>
                     )}
@@ -305,296 +310,297 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.overlay.medium,
-  },
-  modal: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
-    padding: 24,
-  },
-  modalTablet: {
-    maxHeight: '80%',
-    padding: 32,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[900],
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  closeButton: {
-    fontSize: 24,
-    color: colors.neutral[500],
-    padding: 4,
-  },
-  content: {
-    maxHeight: 500,
-  },
-  searchSection: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  required: {
-    color: colors.danger[500],
-  },
-  searchContainer: {
-    position: 'relative',
-  },
-  searchInput: {
-    backgroundColor: colors.neutral[50],
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    paddingRight: 40,
-    fontSize: 16,
-    color: colors.neutral[900],
-  },
-  searchInputTablet: {
-    padding: spacing[4],
-    paddingRight: 48,
-    fontSize: 18,
-  },
-  searchingIndicator: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-  },
-  searchHint: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-    fontStyle: 'italic',
-  },
-  resultsContainer: {
-    marginBottom: 20,
-  },
-  resultsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
-  },
-  resultItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  resultImage: {
-    width: 50,
-    height: 50,
-    borderRadius: borderRadius.md,
-    marginRight: spacing[3],
-    backgroundColor: colors.neutral[200],
-  },
-  resultInfo: {
-    flex: 1,
-  },
-  resultTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
-  },
-  resultSku: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  resultCost: {
-    fontSize: 13,
-    color: colors.success[600],
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  resultBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.md,
-  },
-  resultBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.primary[800],
-  },
-  resultArrow: {
-    fontSize: 20,
-    color: colors.neutral[400],
-    marginLeft: spacing[3],
-  },
-  selectedProductContainer: {
-    backgroundColor: colors.primary[50],
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: 20,
-  },
-  selectedProductHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  selectedProductLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary[700],
-  },
-  changeButton: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  selectedProductInfo: {},
-  selectedProductTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
-  },
-  selectedProductSku: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  inputGroup: {
-    marginBottom: spacing[4],
-  },
-  input: {
-    backgroundColor: colors.neutral[50],
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[900],
-  },
-  inputTablet: {
-    padding: spacing[4],
-    fontSize: 18,
-  },
-  textArea: {
-    minHeight: 80,
-    paddingTop: 12,
-  },
-  priceProfileInfo: {
-    backgroundColor: colors.success[50],
-    borderWidth: 1,
-    borderColor: colors.success[200],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: 20,
-  },
-  priceProfileLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.success[700],
-    marginBottom: spacing[1],
-  },
-  priceProfileName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.success[800],
-    marginBottom: spacing[0.5],
-  },
-  priceProfileFactor: {
-    fontSize: 14,
-    color: colors.success[600],
-    marginBottom: spacing[1.5],
-  },
-  priceProfileHint: {
-    fontSize: 12,
-    color: colors.success[700],
-    fontStyle: 'italic',
-  },
-  optional: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontStyle: 'italic',
-  },
-  fieldHint: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-    fontStyle: 'italic',
-  },
-  inputReadonly: {
-    backgroundColor: colors.neutral[100],
-    color: colors.neutral[500],
-  },
-  calculatedPriceHint: {
-    fontSize: 12,
-    color: colors.success[600],
-    marginTop: spacing[1],
-    fontWeight: '600',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[5],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  addButton: {
-    backgroundColor: colors.success[500],
-  },
-  addButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    backdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.color.overlay.medium,
+    },
+    modal: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      maxHeight: '90%',
+      padding: 24,
+    },
+    modalTablet: {
+      maxHeight: '80%',
+      padding: 32,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 24,
+    },
+    closeButton: {
+      fontSize: 24,
+      color: theme.color.text.muted,
+      padding: 4,
+    },
+    content: {
+      maxHeight: 500,
+    },
+    searchSection: {
+      marginBottom: 20,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[2],
+    },
+    labelTablet: {
+      fontSize: 16,
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    searchContainer: {
+      position: 'relative',
+    },
+    searchInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      paddingRight: 40,
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    searchInputTablet: {
+      padding: theme.space[4],
+      paddingRight: 48,
+      fontSize: 18,
+    },
+    searchingIndicator: {
+      position: 'absolute',
+      right: 12,
+      top: 12,
+    },
+    searchHint: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+    resultsContainer: {
+      marginBottom: 20,
+    },
+    resultsTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[3],
+    },
+    resultItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.subtle,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    resultImage: {
+      width: 50,
+      height: 50,
+      borderRadius: theme.radii.md,
+      marginRight: theme.space[3],
+      backgroundColor: theme.color.surface.muted,
+    },
+    resultInfo: {
+      flex: 1,
+    },
+    resultTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    resultSku: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    resultCost: {
+      fontSize: 13,
+      color: theme.color.text.success,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    resultBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: 2,
+      borderRadius: theme.radii.md,
+    },
+    resultBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    resultArrow: {
+      fontSize: 20,
+      color: theme.color.text.placeholder,
+      marginLeft: theme.space[3],
+    },
+    selectedProductContainer: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: 20,
+    },
+    selectedProductHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    selectedProductLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    changeButton: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    selectedProductInfo: {},
+    selectedProductTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    selectedProductSku: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    inputGroup: {
+      marginBottom: theme.space[4],
+    },
+    input: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    inputTablet: {
+      padding: theme.space[4],
+      fontSize: 18,
+    },
+    textArea: {
+      minHeight: 80,
+      paddingTop: 12,
+    },
+    priceProfileInfo: {
+      backgroundColor: theme.color.state.success.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: 20,
+    },
+    priceProfileLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.state.success.text,
+      marginBottom: theme.space[1],
+    },
+    priceProfileName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.state.success.text,
+      marginBottom: 2,
+    },
+    priceProfileFactor: {
+      fontSize: 14,
+      color: theme.color.text.success,
+      marginBottom: 6,
+    },
+    priceProfileHint: {
+      fontSize: 12,
+      color: theme.color.state.success.text,
+      fontStyle: 'italic',
+    },
+    optional: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      fontStyle: 'italic',
+    },
+    fieldHint: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+    inputReadonly: {
+      backgroundColor: theme.color.surface.disabled,
+      color: theme.color.text.muted,
+    },
+    calculatedPriceHint: {
+      fontSize: 12,
+      color: theme.color.text.success,
+      marginTop: theme.space[1],
+      fontWeight: '600',
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginTop: theme.space[5],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    addButton: {
+      backgroundColor: theme.color.action.success.background,
+    },
+    addButtonDisabled: {
+      backgroundColor: theme.color.action.success.backgroundDisabled,
+    },
+    addButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.action.success.text,
+    },
+  });
