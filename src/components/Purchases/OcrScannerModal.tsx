@@ -13,7 +13,8 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles, useTheme } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 import { useOcrScannerStore, OcrScannedProduct, ScanJob, OcrProvider } from '@/store/ocrScanner';
 import { ocrScanQueue } from '@/services/ocrScanQueue';
@@ -173,6 +174,9 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   onProductsConfirmed,
   purchaseId,
 }) => {
+  const styles = useThemedStyles(createStyles);
+  const theme = useTheme();
+  const placeholderColor = theme.color.text.placeholder;
   // Use Zustand store for persistent state
   const {
     scanJobs,
@@ -650,7 +654,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                 value={product.sku}
                 onChangeText={(value) => handleUpdateProduct(product.id, 'sku', value)}
                 placeholder="SKU"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={placeholderColor}
               />
             </View>
 
@@ -662,7 +666,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                 value={product.nombre}
                 onChangeText={(value) => handleUpdateProduct(product.id, 'nombre', value)}
                 placeholder="Nombre del producto"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={placeholderColor}
               />
             </View>
 
@@ -676,7 +680,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                   handleUpdateProduct(product.id, 'cajas', safeParseInt(value, 0))
                 }
                 placeholder="0"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={placeholderColor}
                 keyboardType="number-pad"
               />
             </View>
@@ -691,7 +695,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                   handleUpdateProduct(product.id, 'unidades_por_caja', safeParseInt(value, 0))
                 }
                 placeholder="0"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={placeholderColor}
                 keyboardType="number-pad"
               />
             </View>
@@ -706,7 +710,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                   handleUpdateProduct(product.id, 'cantidad_total', safeParseInt(value, 0))
                 }
                 placeholder="0"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={placeholderColor}
                 keyboardType="number-pad"
               />
             </View>
@@ -727,7 +731,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                   }
                 }}
                 placeholder="0.00"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={placeholderColor}
                 keyboardType="decimal-pad"
               />
             </View>
@@ -878,7 +882,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
                 value={observaciones}
                 onChangeText={(text) => setObservacionesInStore(purchaseId, text)}
                 placeholder="Notas sobre los documentos..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={placeholderColor}
                 multiline
                 numberOfLines={3}
               />
@@ -939,7 +943,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
           {/* Scanning Indicator */}
           {isScanning && (
             <View style={styles.scanningSection}>
-              <ActivityIndicator size="large" color="#6366F1" />
+              <ActivityIndicator size="large" color={theme.color.brand.primary} />
               {scanningProgress ? (
                 <>
                   <Text style={[styles.scanningText, isTablet && styles.scanningTextTablet]}>
@@ -1044,7 +1048,7 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.text.inverse} />
               ) : (
                 <Text
                   style={[styles.confirmButtonText, isTablet && styles.confirmButtonTextTablet]}
@@ -1060,456 +1064,457 @@ export const OcrScannerModal: React.FC<OcrScannerModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[5],
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[4],
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  subtitleTablet: {
-    fontSize: 15,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: spacing[6],
-  },
-  contentContainerTablet: {
-    padding: spacing[8],
-  },
-  uploadSection: {
-    marginBottom: spacing[6],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[4],
-  },
-  sectionTitleTablet: {
-    fontSize: 18,
-  },
-  uploadButtons: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    flexWrap: 'wrap',
-  },
-  uploadButton: {
-    flex: 1,
-    minWidth: 100,
-    backgroundColor: colors.surface.primary,
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-    borderRadius: borderRadius.xl,
-    padding: spacing[6],
-    alignItems: 'center',
-    borderStyle: 'dashed',
-  },
-  uploadButtonTablet: {
-    padding: spacing[8],
-    borderRadius: borderRadius['2xl'],
-  },
-  uploadButtonIcon: {
-    fontSize: 48,
-    marginBottom: spacing[3],
-  },
-  uploadButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  uploadButtonTextTablet: {
-    fontSize: 17,
-  },
-  providerSelector: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[2],
-  },
-  providerButton: {
-    flex: 1,
-    backgroundColor: colors.surface.primary,
-    borderWidth: 2,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.xl,
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[5],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  providerButtonActive: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
-  },
-  providerButtonTablet: {
-    paddingVertical: spacing[5],
-    paddingHorizontal: spacing[6],
-    borderRadius: borderRadius.xl,
-  },
-  providerButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  providerButtonTextActive: {
-    color: colors.primary[500],
-  },
-  providerButtonTextTablet: {
-    fontSize: 17,
-  },
-  scanningSection: {
-    alignItems: 'center',
-    padding: spacing[12],
-  },
-  scanningText: {
-    fontSize: 15,
-    color: colors.neutral[500],
-    marginTop: spacing[4],
-    fontWeight: '600',
-  },
-  scanningTextTablet: {
-    fontSize: 17,
-  },
-  scanningSubtext: {
-    fontSize: 13,
-    color: colors.neutral[400],
-    marginTop: spacing[2],
-  },
-  progressBarContainer: {
-    width: '100%',
-    height: 8,
-    backgroundColor: colors.border.default,
-    borderRadius: borderRadius.xs,
-    marginTop: spacing[4],
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.xs,
-  },
-  filesSection: {
-    marginBottom: spacing[6],
-  },
-  filesSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[4],
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  scanButton: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.lg,
-  },
-  scanButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  scanButtonText: {
-    fontSize: 14,
-    color: colors.neutral[0],
-    fontWeight: '600',
-  },
-  filesList: {
-    gap: spacing[3],
-  },
-  fileItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  fileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: spacing[3],
-  },
-  fileIcon: {
-    fontSize: 24,
-  },
-  fileDetails: {
-    flex: 1,
-  },
-  fileName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  fileType: {
-    fontSize: 11,
-    color: colors.neutral[500],
-    textTransform: 'uppercase',
-  },
-  removeFileButton: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.danger[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  removeFileButtonText: {
-    fontSize: 16,
-    color: colors.danger[600],
-    fontWeight: '600',
-  },
-  productsSection: {
-    marginBottom: spacing[6],
-  },
-  productsSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[4],
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  productsSectionActions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    flexWrap: 'wrap',
-  },
-  addRowButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.lg,
-  },
-  addRowButtonText: {
-    fontSize: 13,
-    color: colors.neutral[0],
-    fontWeight: '600',
-  },
-  clearAllButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.danger[600],
-    borderRadius: borderRadius.lg,
-  },
-  clearAllButtonText: {
-    fontSize: 13,
-    color: colors.neutral[0],
-    fontWeight: '600',
-  },
-  summaryBox: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing[2],
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  summaryLabelWarning: {
-    color: colors.warning[500],
-    fontWeight: '600',
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: colors.neutral[800],
-    fontWeight: '500',
-  },
-  summaryValueBold: {
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  summaryValueWarning: {
-    color: colors.warning[500],
-    fontWeight: '700',
-  },
-  productsList: {
-    gap: spacing[4],
-  },
-  productRow: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  productRowTablet: {
-    padding: spacing[5],
-  },
-  productRowHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  productRowNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary[500],
-  },
-  productRowNumberTablet: {
-    fontSize: 16,
-  },
-  deleteButton: {
-    padding: spacing[1],
-  },
-  deleteButtonText: {
-    fontSize: 20,
-  },
-  productFields: {
-    gap: spacing[3],
-  },
-  fieldGroup: {
-    flex: 1,
-  },
-  fieldGroupWide: {
-    flex: 2,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1.5],
-  },
-  fieldLabelTablet: {
-    fontSize: 14,
-  },
-  fieldInput: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    fontSize: 14,
-    color: colors.neutral[800],
-  },
-  fieldInputTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[2.5],
-    fontSize: 16,
-  },
-  fieldInputReadonly: {
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-  },
-  fieldInputReadonlyText: {
-    fontSize: 14,
-    color: colors.neutral[800],
-    fontWeight: '600',
-  },
-  bottomSpacer: {
-    height: spacing[10],
-  },
-  footer: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-    gap: spacing[3],
-  },
-  footerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[5],
-    gap: spacing[4],
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.neutral[100],
-    alignItems: 'center',
-  },
-  cancelButtonTablet: {
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.xl,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  cancelButtonTextTablet: {
-    fontSize: 17,
-  },
-  confirmButton: {
-    flex: 2,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.primary[500],
-    alignItems: 'center',
-  },
-  confirmButtonTablet: {
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.xl,
-  },
-  confirmButtonDisabled: {
-    opacity: 0.6,
-  },
-  confirmButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  confirmButtonTextTablet: {
-    fontSize: 17,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerTablet: {
+      paddingHorizontal: theme.space[8],
+      paddingVertical: theme.space[5],
+    },
+    closeButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[4],
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    headerContent: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    titleTablet: {
+      fontSize: 24,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    subtitleTablet: {
+      fontSize: 15,
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: theme.space[6],
+    },
+    contentContainerTablet: {
+      padding: theme.space[8],
+    },
+    uploadSection: {
+      marginBottom: theme.space[6],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[4],
+    },
+    sectionTitleTablet: {
+      fontSize: 18,
+    },
+    uploadButtons: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      flexWrap: 'wrap',
+    },
+    uploadButton: {
+      flex: 1,
+      minWidth: 100,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[6],
+      alignItems: 'center',
+      borderStyle: 'dashed',
+    },
+    uploadButtonTablet: {
+      padding: theme.space[8],
+      borderRadius: theme.radii['2xl'],
+    },
+    uploadButtonIcon: {
+      fontSize: 48,
+      marginBottom: theme.space[3],
+    },
+    uploadButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    uploadButtonTextTablet: {
+      fontSize: 17,
+    },
+    providerSelector: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    providerButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.xl,
+      paddingVertical: theme.space[4],
+      paddingHorizontal: theme.space[5],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    providerButtonActive: {
+      backgroundColor: theme.color.state.info.background,
+      borderColor: theme.color.brand.accent,
+    },
+    providerButtonTablet: {
+      paddingVertical: theme.space[5],
+      paddingHorizontal: theme.space[6],
+      borderRadius: theme.radii.xl,
+    },
+    providerButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    providerButtonTextActive: {
+      color: theme.color.brand.accent,
+    },
+    providerButtonTextTablet: {
+      fontSize: 17,
+    },
+    scanningSection: {
+      alignItems: 'center',
+      padding: theme.space[12],
+    },
+    scanningText: {
+      fontSize: 15,
+      color: theme.color.text.muted,
+      marginTop: theme.space[4],
+      fontWeight: '600',
+    },
+    scanningTextTablet: {
+      fontSize: 17,
+    },
+    scanningSubtext: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+      marginTop: theme.space[2],
+    },
+    progressBarContainer: {
+      width: '100%',
+      height: 8,
+      backgroundColor: theme.color.border.default,
+      borderRadius: theme.radii.xs,
+      marginTop: theme.space[4],
+      overflow: 'hidden',
+    },
+    progressBar: {
+      height: '100%',
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: theme.radii.xs,
+    },
+    filesSection: {
+      marginBottom: theme.space[6],
+    },
+    filesSectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+    },
+    scanButton: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: theme.radii.lg,
+    },
+    scanButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    scanButtonText: {
+      fontSize: 14,
+      color: theme.color.text.inverse,
+      fontWeight: '600',
+    },
+    filesList: {
+      gap: theme.space[3],
+    },
+    fileItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    fileInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      gap: theme.space[3],
+    },
+    fileIcon: {
+      fontSize: 24,
+    },
+    fileDetails: {
+      flex: 1,
+    },
+    fileName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    fileType: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+    },
+    removeFileButton: {
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.state.danger.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    removeFileButtonText: {
+      fontSize: 16,
+      color: theme.color.state.danger.text,
+      fontWeight: '600',
+    },
+    productsSection: {
+      marginBottom: theme.space[6],
+    },
+    productsSectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+    },
+    productsSectionActions: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      flexWrap: 'wrap',
+    },
+    addRowButton: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: theme.radii.lg,
+    },
+    addRowButtonText: {
+      fontSize: 13,
+      color: theme.color.text.inverse,
+      fontWeight: '600',
+    },
+    clearAllButton: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      backgroundColor: theme.color.action.danger.background,
+      borderRadius: theme.radii.lg,
+    },
+    clearAllButtonText: {
+      fontSize: 13,
+      color: theme.color.text.inverse,
+      fontWeight: '600',
+    },
+    summaryBox: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[2],
+    },
+    summaryLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    summaryLabelWarning: {
+      color: theme.color.text.warning,
+      fontWeight: '600',
+    },
+    summaryValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      fontWeight: '500',
+    },
+    summaryValueBold: {
+      fontWeight: '700',
+      fontSize: 16,
+    },
+    summaryValueWarning: {
+      color: theme.color.text.warning,
+      fontWeight: '700',
+    },
+    productsList: {
+      gap: theme.space[4],
+    },
+    productRow: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    productRowTablet: {
+      padding: theme.space[5],
+    },
+    productRowHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    productRowNumber: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+    },
+    productRowNumberTablet: {
+      fontSize: 16,
+    },
+    deleteButton: {
+      padding: theme.space[1],
+    },
+    deleteButtonText: {
+      fontSize: 20,
+    },
+    productFields: {
+      gap: theme.space[3],
+    },
+    fieldGroup: {
+      flex: 1,
+    },
+    fieldGroupWide: {
+      flex: 2,
+    },
+    fieldLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 6,
+    },
+    fieldLabelTablet: {
+      fontSize: 14,
+    },
+    fieldInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    fieldInputTablet: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 16,
+    },
+    fieldInputReadonly: {
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+    },
+    fieldInputReadonlyText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+    },
+    bottomSpacer: {
+      height: theme.space[10],
+    },
+    footer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+      gap: theme.space[3],
+    },
+    footerTablet: {
+      paddingHorizontal: theme.space[8],
+      paddingVertical: theme.space[5],
+      gap: theme.space[4],
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+    },
+    cancelButtonTablet: {
+      paddingVertical: theme.space[4],
+      borderRadius: theme.radii.xl,
+    },
+    cancelButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    cancelButtonTextTablet: {
+      fontSize: 17,
+    },
+    confirmButton: {
+      flex: 2,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.brand.primary,
+      alignItems: 'center',
+    },
+    confirmButtonTablet: {
+      paddingVertical: theme.space[4],
+      borderRadius: theme.radii.xl,
+    },
+    confirmButtonDisabled: {
+      opacity: 0.6,
+    },
+    confirmButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    confirmButtonTextTablet: {
+      fontSize: 17,
+    },
+  });
 
 export default OcrScannerModal;
