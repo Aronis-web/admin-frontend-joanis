@@ -40,10 +40,6 @@ import { config } from '@/utils/config';
 
 // Design System
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   activeOpacity,
   iconSizes,
 } from '@/design-system/tokens';
@@ -57,7 +53,8 @@ import {
 
 // Store
 import { useThemeStore } from '@/store/theme';
-import { useTheme } from '@/design-system/themes';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 // Configuración de GitHub para actualizaciones
 const GITHUB_OWNER = 'Aronis-web';
@@ -144,6 +141,7 @@ interface SettingsCardProps {
 
 const SettingsCard: React.FC<SettingsCardProps> = ({ title, icon, children }) => {
   const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View
       style={[
@@ -155,7 +153,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ title, icon, children }) =>
         <View
           style={[styles.cardIconContainer, { backgroundColor: theme.color.surface.base }]}
         >
-          <Ionicons name={icon} size={iconSizes.md} color={colors.primary[900]} />
+          <Ionicons name={icon} size={iconSizes.md} color={theme.color.icon.default} />
         </View>
         <Text variant="titleSmall" color="primary">
           {title}
@@ -188,6 +186,7 @@ const compareVersions = (v1: string, v2: string): number => {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { isDarkMode, toggleMode } = useThemeStore();
 
   // Obtener versión directamente de package.json (siempre disponible)
@@ -591,8 +590,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
             styles.modalContent,
             { backgroundColor: theme.color.surface.elevated },
             {
-              paddingTop: insets.top + spacing[4],
-              paddingBottom: insets.bottom + spacing[4],
+              paddingTop: insets.top + theme.space[4],
+              paddingBottom: insets.bottom + theme.space[4],
             },
           ]}
         >
@@ -602,7 +601,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
               <View
                 style={[styles.headerIconContainer, { backgroundColor: theme.color.brand.accentSoft }]}
               >
-                <Ionicons name="settings" size={iconSizes.lg} color={colors.primary[900]} />
+                <Ionicons name="settings" size={iconSizes.lg} color={theme.color.icon.default} />
               </View>
               <Title size="large">Configuración</Title>
             </View>
@@ -627,7 +626,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                     <Ionicons
                       name={isDarkMode ? 'moon' : 'sunny'}
                       size={iconSizes.sm}
-                      color={isDarkMode ? colors.accent[500] : colors.warning[500]}
+                      color={isDarkMode ? theme.color.brand.accent : theme.color.icon.warning}
                     />
                   </View>
                   <View style={styles.settingText}>
@@ -642,8 +641,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 <Switch
                   value={isDarkMode}
                   onValueChange={handleToggleDarkMode}
-                  trackColor={{ false: colors.neutral[200], true: colors.primary[500] }}
-                  thumbColor={isDarkMode ? colors.neutral[0] : colors.neutral[400]}
+                  trackColor={{ false: theme.color.border.subtle, true: theme.color.action.primary.background }}
+                  thumbColor={isDarkMode ? theme.color.surface.base : theme.color.text.disabled}
                 />
               </View>
               <Caption color="tertiary" style={styles.settingHint}>
@@ -689,11 +688,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 activeOpacity={activeOpacity.medium}
               >
                 {isCheckingUpdate ? (
-                  <ActivityIndicator size="small" color={colors.neutral[0]} />
+                  <ActivityIndicator size="small" color={theme.color.action.primary.text} />
                 ) : (
-                  <Ionicons name="cloud-download-outline" size={iconSizes.md} color={colors.neutral[0]} />
+                  <Ionicons name="cloud-download-outline" size={iconSizes.md} color={theme.color.action.primary.text} />
                 )}
-                <Text variant="buttonMedium" color={colors.neutral[0]} style={styles.updateButtonText}>
+                <Text variant="buttonMedium" color={theme.color.action.primary.text} style={styles.updateButtonText}>
                   {isCheckingUpdate ? 'Verificando...' : 'Buscar Actualizaciones'}
                 </Text>
               </TouchableOpacity>
@@ -703,14 +702,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 <View style={styles.updateInfoContainer}>
                   {updateInfo.error ? (
                     <View style={styles.updateError}>
-                      <Ionicons name="warning-outline" size={iconSizes.md} color={colors.danger[500]} />
-                      <Text variant="bodySmall" color={colors.danger[600]} style={styles.updateInfoText}>
+                      <Ionicons name="warning-outline" size={iconSizes.md} color={theme.color.icon.danger} />
+                      <Text variant="bodySmall" color={theme.color.text.danger} style={styles.updateInfoText}>
                         {updateInfo.error}
                       </Text>
                     </View>
                   ) : updateInfo.message ? (
                     <View style={styles.updateMessage}>
-                      <Ionicons name="information-circle-outline" size={iconSizes.md} color={colors.info[500]} />
+                      <Ionicons name="information-circle-outline" size={iconSizes.md} color={theme.color.state.info.border} />
                       <Text variant="bodySmall" color="secondary" style={styles.updateInfoText}>
                         {updateInfo.message}
                       </Text>
@@ -718,7 +717,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                   ) : updateInfo.updateAvailable ? (
                     <View style={styles.updateAvailable}>
                       <View style={styles.updateAvailableHeader}>
-                        <Ionicons name="arrow-up-circle" size={iconSizes.lg} color={colors.success[500]} />
+                        <Ionicons name="arrow-up-circle" size={iconSizes.lg} color={theme.color.icon.success} />
                         <View style={styles.updateAvailableText}>
                           <Text variant="titleSmall" color="primary">
                             ¡Nueva versión disponible!
@@ -774,11 +773,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                             activeOpacity={activeOpacity.medium}
                           >
                             {isDownloading ? (
-                              <ActivityIndicator size="small" color={colors.neutral[0]} />
+                              <ActivityIndicator size="small" color={theme.color.action.success.text} />
                             ) : (
-                              <Ionicons name="download-outline" size={iconSizes.sm} color={colors.neutral[0]} />
+                              <Ionicons name="download-outline" size={iconSizes.sm} color={theme.color.action.success.text} />
                             )}
-                            <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                            <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
                               {isDownloading ? 'Descargando...' : 'Descargar Actualización'}
                             </Text>
                           </TouchableOpacity>
@@ -788,8 +787,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                             onPress={installUpdate}
                             activeOpacity={activeOpacity.medium}
                           >
-                            <Ionicons name="rocket-outline" size={iconSizes.sm} color={colors.neutral[0]} />
-                            <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                            <Ionicons name="rocket-outline" size={iconSizes.sm} color={theme.color.action.primary.text} />
+                            <Text variant="buttonSmall" color={theme.color.action.primary.text} style={styles.downloadButtonText}>
                               Instalar y Reiniciar
                             </Text>
                           </TouchableOpacity>
@@ -805,11 +804,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                               activeOpacity={activeOpacity.medium}
                             >
                               {isDownloading ? (
-                                <ActivityIndicator size="small" color={colors.neutral[0]} />
+                                <ActivityIndicator size="small" color={theme.color.action.success.text} />
                               ) : (
-                                <Ionicons name="download-outline" size={iconSizes.sm} color={colors.neutral[0]} />
+                                <Ionicons name="download-outline" size={iconSizes.sm} color={theme.color.action.success.text} />
                               )}
-                              <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                              <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
                                 {isDownloading ? 'Descargando APK...' : 'Descargar e Instalar'}
                               </Text>
                             </TouchableOpacity>
@@ -821,7 +820,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                           </View>
                         ) : (
                           <View style={styles.downloadedContainer}>
-                            <Ionicons name="checkmark-circle" size={iconSizes.md} color={colors.success[500]} />
+                            <Ionicons name="checkmark-circle" size={iconSizes.md} color={theme.color.icon.success} />
                             <Text variant="bodySmall" color="success" style={styles.downloadedText}>
                               APK descargado. El instalador debería abrirse automáticamente.
                             </Text>
@@ -830,8 +829,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                               onPress={downloadAndInstallApk}
                               activeOpacity={activeOpacity.medium}
                             >
-                              <Ionicons name="refresh-outline" size={iconSizes.sm} color={colors.primary[600]} />
-                              <Text variant="buttonSmall" color={colors.primary[600]} style={styles.retryButtonText}>
+                              <Ionicons name="refresh-outline" size={iconSizes.sm} color={theme.color.brand.primary} />
+                              <Text variant="buttonSmall" color={theme.color.brand.primary} style={styles.retryButtonText}>
                                 Descargar de nuevo
                               </Text>
                             </TouchableOpacity>
@@ -844,8 +843,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                           onPress={openGitHubRelease}
                           activeOpacity={activeOpacity.medium}
                         >
-                          <Ionicons name="logo-github" size={iconSizes.sm} color={colors.neutral[0]} />
-                          <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                          <Ionicons name="logo-github" size={iconSizes.sm} color={theme.color.action.success.text} />
+                          <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
                             Ver en GitHub
                           </Text>
                         </TouchableOpacity>
@@ -853,7 +852,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                     </View>
                   ) : (
                     <View style={styles.upToDate}>
-                      <Ionicons name="checkmark-circle" size={iconSizes.lg} color={colors.success[500]} />
+                      <Ionicons name="checkmark-circle" size={iconSizes.lg} color={theme.color.icon.success} />
                       <Text variant="bodyMedium" color="primary" style={styles.updateInfoText}>
                         ¡Estás al día!
                       </Text>
@@ -867,7 +866,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
               {/* Info adicional */}
               <View style={styles.webNotice}>
-                <Ionicons name="information-circle-outline" size={iconSizes.sm} color={colors.info[500]} />
+                <Ionicons name="information-circle-outline" size={iconSizes.sm} color={theme.color.state.info.border} />
                 <Caption color="secondary" style={styles.webNoticeText}>
                   {isElectron()
                     ? 'Las actualizaciones se descargan e instalan automáticamente.'
@@ -899,10 +898,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 // ============================================
 // STYLES
 // ============================================
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -912,9 +911,9 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     maxHeight: '90%',
     minHeight: Platform.OS === 'android' ? '70%' : undefined,
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    ...shadows.xl,
+    backgroundColor: theme.color.surface.elevated,
+    borderRadius: theme.radii.xl,
+    ...theme.shadow.xl,
   },
 
   // Header
@@ -922,8 +921,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
+    paddingHorizontal: theme.space[4],
+    paddingBottom: theme.space[3],
   },
 
   headerLeft: {
@@ -934,11 +933,11 @@ const styles = StyleSheet.create({
   headerIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[50],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
 
   // Scroll
@@ -947,34 +946,34 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    padding: spacing[4],
-    paddingTop: spacing[2],
+    padding: theme.space[4],
+    paddingTop: theme.space[2],
   },
 
   // Card
   card: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    marginBottom: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
 
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
 
   cardIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.base,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
 
   cardContent: {},
@@ -995,11 +994,11 @@ const styles = StyleSheet.create({
   settingIconSmall: {
     width: 32,
     height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.primary,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.base,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
 
   settingText: {
@@ -1007,13 +1006,13 @@ const styles = StyleSheet.create({
   },
 
   settingHint: {
-    marginTop: spacing[3],
-    paddingLeft: spacing[11],
+    marginTop: theme.space[3],
+    paddingLeft: theme.space[11],
   },
 
   // Version
   versionContainer: {
-    gap: spacing[2],
+    gap: theme.space[2],
   },
 
   versionRow: {
@@ -1023,10 +1022,10 @@ const styles = StyleSheet.create({
   },
 
   versionBadge: {
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.color.brand.primarySoft,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.full,
   },
 
   // Update Button
@@ -1034,87 +1033,87 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary[900],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[3],
-    gap: spacing[2],
+    backgroundColor: theme.color.action.primary.background,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.lg,
+    marginTop: theme.space[3],
+    gap: theme.space[2],
   },
 
   updateButtonDisabled: {
-    backgroundColor: colors.neutral[400],
+    backgroundColor: theme.color.action.primary.backgroundDisabled,
   },
 
   updateButtonText: {
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 
   // Update Info
   updateInfoContainer: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
 
   updateError: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.danger[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.danger.background,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.danger[200],
+    borderColor: theme.color.state.danger.border,
   },
 
   updateMessage: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.info[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.info.background,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.info[200],
+    borderColor: theme.color.state.info.border,
   },
 
   updateInfoText: {
     flex: 1,
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 
   updateAvailable: {
-    backgroundColor: colors.success[50],
-    padding: spacing[4],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.success.background,
+    padding: theme.space[4],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.success[200],
+    borderColor: theme.color.state.success.border,
   },
 
   updateAvailableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   updateAvailableText: {
-    marginLeft: spacing[3],
+    marginLeft: theme.space[3],
   },
 
   // Download Progress
   downloadProgress: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   progressBarContainer: {
     height: 8,
-    backgroundColor: colors.neutral[200],
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.color.border.subtle,
+    borderRadius: theme.radii.full,
     overflow: 'hidden',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 
   progressBar: {
     height: '100%',
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.color.action.success.background,
+    borderRadius: theme.radii.full,
   },
 
   progressInfo: {
@@ -1127,52 +1126,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.success[600],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
+    backgroundColor: theme.color.action.success.background,
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.md,
+    gap: theme.space[2],
   },
 
   downloadButtonDisabled: {
-    backgroundColor: colors.neutral[400],
+    backgroundColor: theme.color.action.success.backgroundDisabled,
   },
 
   downloadButtonText: {
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
   },
 
   installButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent[600],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
+    backgroundColor: theme.color.brand.accent,
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.md,
+    gap: theme.space[2],
   },
 
   // Up to date
   upToDate: {
     alignItems: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.md,
+    padding: theme.space[4],
+    backgroundColor: theme.color.state.success.background,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.success[200],
+    borderColor: theme.color.state.success.border,
   },
 
   // Changelog
   changelogContainer: {
-    marginBottom: spacing[3],
-    paddingTop: spacing[2],
+    marginBottom: theme.space[3],
+    paddingTop: theme.space[2],
     borderTopWidth: 1,
-    borderTopColor: colors.success[200],
+    borderTopColor: theme.color.state.success.border,
   },
 
   changelogTitle: {
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
 
   changelogText: {
@@ -1182,13 +1181,13 @@ const styles = StyleSheet.create({
   // File size text
   fileSizeText: {
     textAlign: 'center',
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
 
   // Downloaded container
   downloadedContainer: {
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
 
   downloadedText: {
@@ -1200,32 +1199,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.primary[300],
-    marginTop: spacing[2],
-    gap: spacing[1],
+    borderColor: theme.color.border.default,
+    marginTop: theme.space[2],
+    gap: theme.space[1],
   },
 
   retryButtonText: {
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
   },
 
   // Web Notice
   webNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing[4],
-    padding: spacing[3],
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.md,
+    marginTop: theme.space[4],
+    padding: theme.space[3],
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.md,
   },
 
   webNoticeText: {
     flex: 1,
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 
   // Info
@@ -1233,7 +1232,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing[2],
+    paddingVertical: theme.space[2],
   },
 });
 
