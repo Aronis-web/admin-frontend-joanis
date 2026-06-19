@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface Props {
   children: ReactNode;
@@ -64,42 +65,13 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      const { error, errorInfo } = this.state;
-
       return (
-        <View style={styles.container}>
-          <View style={styles.errorBox}>
-            <Text style={styles.errorIcon}>💥</Text>
-            <Text style={styles.errorTitle}>Algo salió mal</Text>
-            <Text style={styles.errorMessage}>
-              La aplicación encontró un error inesperado. Por favor intenta nuevamente.
-            </Text>
-
-            {error && (
-              <View style={styles.errorDetails}>
-                <Text style={styles.errorDetailsTitle}>Error:</Text>
-                <ScrollView style={styles.errorScroll}>
-                  <Text style={styles.errorText}>{error.toString()}</Text>
-                  {errorInfo && <Text style={styles.errorText}>{errorInfo.componentStack}</Text>}
-                </ScrollView>
-              </View>
-            )}
-
-            <View style={styles.actions}>
-              <TouchableOpacity style={styles.primaryButton} onPress={this.handleReset}>
-                <Text style={styles.primaryButtonText}>Intentar de nuevo</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.secondaryButton} onPress={this.handleReload}>
-                <Text style={styles.secondaryButtonText}>Recargar aplicación</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.helpText}>
-              Si el problema persiste, por favor cierra la aplicación y vuelve a abrirla.
-            </Text>
-          </View>
-        </View>
+        <ErrorFallback
+          error={this.state.error}
+          errorInfo={this.state.errorInfo}
+          onReset={this.handleReset}
+          onReload={this.handleReload}
+        />
       );
     }
 
@@ -107,20 +79,67 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 }
 
-const styles = StyleSheet.create({
+interface ErrorFallbackProps {
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+  onReset: () => void;
+  onReload: () => void;
+}
+
+const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, errorInfo, onReset, onReload }) => {
+  const styles = useThemedStyles(createStyles);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.errorBox}>
+        <Text style={styles.errorIcon}>💥</Text>
+        <Text style={styles.errorTitle}>Algo salió mal</Text>
+        <Text style={styles.errorMessage}>
+          La aplicación encontró un error inesperado. Por favor intenta nuevamente.
+        </Text>
+
+        {error && (
+          <View style={styles.errorDetails}>
+            <Text style={styles.errorDetailsTitle}>Error:</Text>
+            <ScrollView style={styles.errorScroll}>
+              <Text style={styles.errorText}>{error.toString()}</Text>
+              {errorInfo && <Text style={styles.errorText}>{errorInfo.componentStack}</Text>}
+            </ScrollView>
+          </View>
+        )}
+
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.primaryButton} onPress={onReset}>
+            <Text style={styles.primaryButtonText}>Intentar de nuevo</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.secondaryButton} onPress={onReload}>
+            <Text style={styles.secondaryButtonText}>Recargar aplicación</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.helpText}>
+          Si el problema persiste, por favor cierra la aplicación y vuelve a abrirla.
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[5],
-    backgroundColor: colors.background.secondary,
+    padding: theme.space[5],
+    backgroundColor: theme.color.background.subtle,
   },
   errorBox: {
-    backgroundColor: colors.neutral[0],
-    padding: spacing[6],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.base,
+    padding: theme.space[6],
+    borderRadius: theme.radii.xl,
     alignItems: 'center',
-    shadowColor: colors.neutral[950],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -130,75 +149,75 @@ const styles = StyleSheet.create({
   },
   errorIcon: {
     fontSize: 64,
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   errorTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.danger[500],
-    marginBottom: spacing[3],
+    color: theme.color.text.danger,
+    marginBottom: theme.space[3],
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 16,
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     textAlign: 'center',
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
     lineHeight: 24,
   },
   errorDetails: {
     width: '100%',
-    marginBottom: spacing[5],
-    padding: spacing[3],
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.lg,
+    marginBottom: theme.space[5],
+    padding: theme.space[3],
+    backgroundColor: theme.color.background.muted,
+    borderRadius: theme.radii.lg,
   },
   errorDetailsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
+    color: theme.color.text.muted,
+    marginBottom: theme.space[2],
   },
   errorScroll: {
     maxHeight: 150,
   },
   errorText: {
     fontSize: 12,
-    color: colors.neutral[400],
+    color: theme.color.text.subtle,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   actions: {
     width: '100%',
-    gap: spacing[3],
-    marginBottom: spacing[4],
+    gap: theme.space[3],
+    marginBottom: theme.space[4],
   },
   primaryButton: {
-    backgroundColor: colors.accent[500],
+    backgroundColor: theme.color.brand.accent,
     paddingVertical: 14,
-    paddingHorizontal: spacing[6],
-    borderRadius: borderRadius.lg,
+    paddingHorizontal: theme.space[6],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     fontSize: 16,
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: colors.neutral[200],
+    backgroundColor: theme.color.action.secondary.background,
     paddingVertical: 14,
-    paddingHorizontal: spacing[6],
-    borderRadius: borderRadius.lg,
+    paddingHorizontal: theme.space[6],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   secondaryButtonText: {
-    color: colors.neutral[700],
+    color: theme.color.action.secondary.text,
     fontSize: 16,
     fontWeight: '600',
   },
   helpText: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
     fontStyle: 'italic',
   },
