@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated, Dimensions } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface FloatingButtonProps {
   onPress: () => void;
@@ -10,6 +11,7 @@ interface FloatingButtonProps {
 const { width: screenWidth } = Dimensions.get('window');
 
 export const FloatingButton: React.FC<FloatingButtonProps> = ({ onPress, isVisible }) => {
+  const styles = useThemedStyles(createStyles);
   const slideAnim = React.useRef(new Animated.Value(100)).current;
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
@@ -81,35 +83,36 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({ onPress, isVisib
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    right: spacing[5],
-    top: 60,
-    zIndex: 999,
-  },
-  button: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[600],
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.primary[600],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 2,
-    borderColor: colors.neutral[0],
-  },
-  buttonText: {
-    fontSize: 24,
-    color: colors.neutral[0],
-    fontWeight: '600',
-    textAlign: 'center',
-    lineHeight: 28,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      position: 'absolute',
+      right: theme.space[5],
+      top: 60,
+      zIndex: 999,
+    },
+    button: {
+      width: 56,
+      height: 56,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.action.primary.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.action.primary.background,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+      borderWidth: 2,
+      borderColor: theme.color.surface.base,
+    },
+    buttonText: {
+      fontSize: 24,
+      color: theme.color.action.primary.text,
+      fontWeight: '600',
+      textAlign: 'center',
+      lineHeight: 28,
+    },
+  });
 
 export default FloatingButton;
