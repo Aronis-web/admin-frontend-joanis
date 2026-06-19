@@ -105,6 +105,7 @@ export const ReviewIzipayScreen: React.FC<Props> = ({ navigation }) => {
   const [fechaFin, setFechaFin] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
 
   // Sedes
   const [sedes, setSedes] = useState<Site[]>([]);
