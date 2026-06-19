@@ -95,23 +95,23 @@ export const App = () => {
     };
   }, []);
 
-  if (!fontsLoaded || authLoading) {
-    return <Loader fullScreen text="Iniciando aplicación..." />;
-  }
-
   return (
-    <GlobalErrorBoundary>
-      <QueryProvider>
-        <SafeAreaProvider>
-          <ThemeProvider>
+    <ThemeProvider>
+      <GlobalErrorBoundary>
+        <QueryProvider>
+          <SafeAreaProvider>
             <FloatingFooterProvider>
               <ThemedStatusBar />
-              <Navigation />
+              {!fontsLoaded || authLoading ? (
+                <Loader fullScreen text="Iniciando aplicación..." />
+              ) : (
+                <Navigation />
+              )}
             </FloatingFooterProvider>
-          </ThemeProvider>
-        </SafeAreaProvider>
-      </QueryProvider>
-    </GlobalErrorBoundary>
+          </SafeAreaProvider>
+        </QueryProvider>
+      </GlobalErrorBoundary>
+    </ThemeProvider>
   );
 };
 
