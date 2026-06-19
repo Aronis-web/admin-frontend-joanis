@@ -175,7 +175,7 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
   const loadAreas = async (warehouseId: string) => {
     try {
       const response = await warehouseAreasApi.getWarehouseAreas(warehouseId);
-      setAreas(response.data || []);
+      setAreas(response || []);
     } catch (error) {
       console.error('Error loading areas:', error);
     }
@@ -457,7 +457,7 @@ export const UserScopesModal: React.FC<UserScopesModalProps> = ({
                       {companies.map((company) => (
                         <Picker.Item
                           key={company.id}
-                          label={`${company.name} (${company.code})`}
+                          label={company.ruc ? `${company.name} (${company.ruc})` : company.name}
                           value={company.id}
                         />
                       ))}

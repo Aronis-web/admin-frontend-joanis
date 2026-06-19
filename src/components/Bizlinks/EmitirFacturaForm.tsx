@@ -204,7 +204,7 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   const handleSelectProduct = (product: Product) => {
     // Obtener la primera presentación o usar valores por defecto
     const presentation = product.presentations?.[0];
-    const precioVenta = presentation?.salePrice || 0;
+    const precioVenta = (presentation as any)?.salePrice || 0;
     const precioConIgv = precioVenta * 1.18;
 
     const newItem: BizlinksItemDto = {
@@ -598,7 +598,7 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
         <ProductAutocomplete
           onSelectProduct={handleSelectProduct}
           placeholder="Buscar producto por nombre o código..."
-          excludeProductIds={items.map(item => item.codigoProducto).filter(Boolean)}
+          excludeProductIds={items.map(item => item.codigoProducto).filter((id): id is string => Boolean(id))}
         />
 
         {items.map((item, index) => (

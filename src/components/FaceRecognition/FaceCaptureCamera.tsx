@@ -138,6 +138,22 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
     setFacing((current) => (current === 'front' ? 'back' : 'front'));
   }, []);
 
+  // Detener captura
+  const stopCapture = useCallback(() => {
+    isCapturingRef.current = false;
+
+    if (positionIntervalRef.current) {
+      clearInterval(positionIntervalRef.current);
+      positionIntervalRef.current = null;
+    }
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+      captureIntervalRef.current = null;
+    }
+
+    setIsCapturing(false);
+  }, []);
+
   // Capturar una foto
   const capturePhoto = useCallback(async () => {
     if (!cameraRef.current || !isCapturingRef.current) return;
@@ -203,22 +219,6 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
       stopCapture();
     }
   }, [capturePhoto]);
-
-  // Detener captura
-  const stopCapture = useCallback(() => {
-    isCapturingRef.current = false;
-
-    if (positionIntervalRef.current) {
-      clearInterval(positionIntervalRef.current);
-      positionIntervalRef.current = null;
-    }
-    if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
-      captureIntervalRef.current = null;
-    }
-
-    setIsCapturing(false);
-  }, []);
 
   // Cancelar y volver
   const handleCancel = useCallback(() => {

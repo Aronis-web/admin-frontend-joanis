@@ -350,17 +350,17 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
                 <View style={styles.resultStats}>
                   <View style={styles.resultStatItem}>
-                    <Numeric size="large" weight="bold">{uploadResult.totalRows}</Numeric>
+                    <Numeric size="large">{uploadResult.totalRows}</Numeric>
                     <Caption color="secondary">Total Filas</Caption>
                   </View>
                   <View style={[styles.resultStatItem, styles.successStat]}>
-                    <Numeric size="large" weight="bold" color={theme.color.state.success.text}>
+                    <Numeric size="large" color={theme.color.state.success.text}>
                       {uploadResult.updatedRows}
                     </Numeric>
                     <Caption color="secondary">Actualizados</Caption>
                   </View>
                   <View style={[styles.resultStatItem, styles.errorStat]}>
-                    <Numeric size="large" weight="bold" color={theme.color.state.danger.text}>
+                    <Numeric size="large" color={theme.color.state.danger.text}>
                       {uploadResult.errors.length}
                     </Numeric>
                     <Caption color="secondary">Errores</Caption>

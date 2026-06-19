@@ -655,11 +655,7 @@ export const AppVersionsScreen: React.FC<Props> = ({ navigation }) => {
   // ============================================================================
 
   return (
-    <ScreenLayout
-      title="Versiones de App"
-      subtitle="Gestionar versiones y actualizaciones"
-      onBack={() => navigation.goBack()}
-    >
+    <ScreenLayout navigation={navigation as any}>
       {/* Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity

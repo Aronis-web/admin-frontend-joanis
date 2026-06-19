@@ -290,7 +290,6 @@ export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({ naviga
                   </Text>
                   <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                     {balance.receiverSite?.name ||
-                      balance.receiverCompany?.alias ||
                       balance.receiverCompany?.name ||
                       'N/A'}
                   </Text>

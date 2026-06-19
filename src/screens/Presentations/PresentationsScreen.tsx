@@ -19,10 +19,10 @@ import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import {
   presentationsApi,
-  Presentation,
   CreatePresentationDto,
   UpdatePresentationDto,
 } from '@/services/api';
+import type { Presentation } from '@/services/api/presentations';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 import { PERMISSIONS } from '@/constants/permissions';

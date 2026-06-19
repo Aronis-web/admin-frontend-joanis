@@ -796,7 +796,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.space[0.75],
+    paddingVertical: theme.space[1],
   },
   modalFooter: {
     paddingHorizontal: theme.space[3],

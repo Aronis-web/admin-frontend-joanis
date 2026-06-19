@@ -1,4 +1,5 @@
 import React from 'react';
+import Alert from '@/utils/alert';
 import { PermissionDenied } from '@/components/common/PermissionDenied';
 
 interface PermissionDeniedScreenProps {
@@ -29,7 +30,7 @@ export const PermissionDeniedScreen: React.FC<PermissionDeniedScreenProps> = ({
   const handleContactAdmin = () => {
     // You can implement this to open email, show contact info, etc.
     // For now, just show an alert
-    alert(
+    Alert.alert(
       'Contactar Administrador',
       'Por favor, contacta al administrador del sistema para solicitar los permisos necesarios.'
     );

@@ -17,7 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import config from '@/utils/config';
+import appConfig from '@/utils/config';
 import {
   BizlinksConfig,
   CreateBizlinksConfigDto,
@@ -222,7 +222,7 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
         // Si es una ruta relativa, construir la URL completa
         const fullLogoUrl = newLogoUrl.startsWith('http')
           ? newLogoUrl
-          : `${config.API_URL}/${newLogoUrl}`;
+          : `${appConfig.API_URL}/${newLogoUrl}`;
         setLogoUrl(fullLogoUrl);
       }
 

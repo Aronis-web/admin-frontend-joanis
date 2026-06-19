@@ -224,7 +224,6 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
           <View style={styles.cardHeaderLeft}>
             <Text style={[styles.receiverName, isTablet && styles.receiverNameTablet]}>
               {balance.receiverSite?.name ||
-                balance.receiverCompany?.alias ||
                 balance.receiverCompany?.name ||
                 'N/A'}
             </Text>

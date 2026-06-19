@@ -47,7 +47,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         setPhoto(result.assets[0].uri);
       }
     } catch (error) {
@@ -65,7 +65,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         setPhoto(result.assets[0].uri);
       }
     } catch (error) {

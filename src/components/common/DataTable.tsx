@@ -51,7 +51,7 @@ export const DataTable = <T extends Record<string, any>>({
           key={column.key}
           style={[
             styles.headerCell,
-            column.width ? { width: column.width } : undefined,
+            column.width ? ({ width: column.width } as any) : undefined,
             column.flex ? { flex: column.flex } : undefined,
             column.align ? { alignItems: getAlignment(column.align) } : undefined,
           ]}
@@ -79,7 +79,7 @@ export const DataTable = <T extends Record<string, any>>({
             key={column.key}
             style={[
               styles.cell,
-              column.width ? { width: column.width } : undefined,
+              column.width ? ({ width: column.width } as any) : undefined,
               column.flex ? { flex: column.flex } : undefined,
               column.align ? { alignItems: getAlignment(column.align) } : undefined,
             ]}

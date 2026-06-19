@@ -763,7 +763,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     : 0;
 
   return (
-    <ScreenLayout navigation={navigation}>
+    <ScreenLayout navigation={navigation as any}>
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header con gradiente */}
         <LinearGradient

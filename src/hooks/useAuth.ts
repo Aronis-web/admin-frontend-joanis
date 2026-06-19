@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { authApi, LoginRequest, RegisterRequest } from '@/services/api';
+import { authApi, LoginRequest, RegisterRequest } from '@/services/api/auth';
 import { extractUserFromToken } from '@/utils/jwt';
 
 export const useAuth = () => {

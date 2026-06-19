@@ -662,8 +662,8 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
             onSubcategoryChange={setSubcategoryId}
             required={true}
             disabled={loading}
-            error={!categoryId && 'Debe seleccionar una categoría'}
-            subcategoryError={!subcategoryId && 'Debe seleccionar una subcategoría'}
+            error={!categoryId ? 'Debe seleccionar una categoría' : undefined}
+            subcategoryError={!subcategoryId ? 'Debe seleccionar una subcategoría' : undefined}
           />
         </View>
 
@@ -766,7 +766,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
         {/* Date Pickers */}
         <DatePicker
           visible={showStartDatePicker}
-          date={startDate || new Date().toISOString().split('T')[0]}
+          date={startDate ? new Date(startDate) : new Date()}
           onConfirm={(date) => {
             // Send ISO 8601 date string (YYYY-MM-DD format)
             // Backend expects valid ISO 8601 date string

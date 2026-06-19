@@ -169,19 +169,11 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
         siteData.ubigeo = formData.ubigeo.trim();
       }
 
-      if (
-        formData.latitude !== undefined &&
-        formData.latitude !== null &&
-        formData.latitude !== ''
-      ) {
+      if (formData.latitude !== undefined && formData.latitude !== null) {
         siteData.latitude = Number(formData.latitude);
       }
 
-      if (
-        formData.longitude !== undefined &&
-        formData.longitude !== null &&
-        formData.longitude !== ''
-      ) {
+      if (formData.longitude !== undefined && formData.longitude !== null) {
         siteData.longitude = Number(formData.longitude);
       }
 

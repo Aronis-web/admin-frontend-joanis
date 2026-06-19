@@ -54,6 +54,7 @@ interface ValidatePurchaseProductScreenProps {
     params: {
       purchaseId: string;
       productId: string;
+      returnToEntriesModal?: boolean;
     };
   };
 }
@@ -477,7 +478,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       'Se agregará un nuevo ingreso de stock al producto ya resuelto.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', style: 'destructive', onPress: performSubmitEntry },
+        { text: 'Confirmar', style: 'destructive', onPress: () => performSubmitEntry() },
       ]
     );
   };

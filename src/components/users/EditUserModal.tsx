@@ -478,7 +478,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
             {/* Worker Profile Fields */}
             <WorkerProfileFields
               formData={formData}
-              onFieldChange={updateField}
+              onFieldChange={(field, value) => updateField(field as keyof UpdateUserRequest, value)}
               errors={errors}
               disabled={loading}
             />

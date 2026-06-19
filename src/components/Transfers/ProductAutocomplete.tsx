@@ -77,13 +77,14 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
             response.results.map(async (product) => {
               try {
                 // Obtener el stock del producto usando el endpoint de inventario
-                const stockItems = await inventoryApi.getStockByProduct(product.id);
-                console.log('📦 Producto:', product.title, 'Stock items:', stockItems?.length || 0);
+                const stockResponse = await inventoryApi.getStockByProduct(product.id);
+                const stockItems = stockResponse?.stockByWarehouse || [];
+                console.log('📦 Producto:', product.title, 'Stock items:', stockItems.length);
 
                 // Agregar stockItems al producto
                 return {
                   ...product,
-                  stockItems: stockItems || [],
+                  stockItems,
                 };
               } catch (error) {
                 console.error('Error loading stock for product:', product.id, error);
@@ -94,7 +95,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
               }
             })
           );
-          setFilteredProducts(productsWithStock);
+          setFilteredProducts(productsWithStock as unknown as Product[]);
         } else {
           setFilteredProducts([]);
         }

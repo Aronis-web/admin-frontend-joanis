@@ -315,7 +315,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             {/* Worker Profile Fields */}
             <WorkerProfileFields
               formData={formData}
-              onFieldChange={updateField}
+              onFieldChange={(field, value) => updateField(field as keyof CreateUserRequest, value)}
               errors={errors}
               disabled={loading}
             />

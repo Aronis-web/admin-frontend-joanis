@@ -86,6 +86,9 @@ export const WarehouseAreaFormModal: React.FC<WarehouseAreaFormModalProps> = ({
       } else if (warehouse) {
         // Create area
         await warehouseAreasApi.createWarehouseArea(warehouse.id, {
+          companyId: warehouse.companyId,
+          siteId: warehouse.siteId,
+          warehouseId: warehouse.id,
           code: code.trim(),
           name: name.trim() || undefined,
           areaType: areaType,

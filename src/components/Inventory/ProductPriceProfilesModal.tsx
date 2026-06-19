@@ -89,8 +89,8 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
 
       setProfiles(profilesResponse);
 
-      // La API devuelve {productId, productSku, costCents, salePrices: [...]}
-      const salePricesArray = salePricesResponse.salePrices || salePricesResponse.data || [];
+      // La API devuelve { data: ProductSalePrice[], total? }
+      const salePricesArray = salePricesResponse.data || [];
       setSalePrices(salePricesArray);
 
       // Initialize form data

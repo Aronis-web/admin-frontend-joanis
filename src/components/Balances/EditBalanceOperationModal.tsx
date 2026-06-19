@@ -164,7 +164,7 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
             {/* Operation Date */}
             <View style={styles.section}>
               <Text style={styles.label}>Fecha de Operación *</Text>
-              <DatePickerButton date={operationDate} onPress={() => setShowDatePicker(true)} />
+              <DatePickerButton label="Fecha de Operación" value={operationDate} onPress={() => setShowDatePicker(true)} />
             </View>
 
             {/* Payment Method */}
@@ -253,9 +253,12 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
           {/* Date Picker Modal */}
           <DatePicker
             visible={showDatePicker}
-            date={operationDate}
+            date={operationDate ? new Date(operationDate) : new Date()}
             onConfirm={(date) => {
-              setOperationDate(date);
+              const y = date.getFullYear();
+              const m = String(date.getMonth() + 1).padStart(2, '0');
+              const d = String(date.getDate()).padStart(2, '0');
+              setOperationDate(`${y}-${m}-${d}`);
               setShowDatePicker(false);
             }}
             onCancel={() => setShowDatePicker(false)}

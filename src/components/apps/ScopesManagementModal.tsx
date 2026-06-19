@@ -405,7 +405,9 @@ export const ScopesManagementModal: React.FC<ScopesManagementModalProps> = ({
         if (scope.companyId) {
           const company = companies.find((c) => c.id === scope.companyId);
           if (company) {
-            return `🏢 Compañía: ${company.name} (${company.code})`;
+            return company.ruc
+              ? `🏢 Compañía: ${company.name} (${company.ruc})`
+              : `🏢 Compañía: ${company.name}`;
           }
           return `🏢 Compañía: ${scope.companyId}`;
         }
