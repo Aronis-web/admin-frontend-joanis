@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface FormDatePickerProps {
   label: string;
@@ -23,6 +24,7 @@ export const FormDatePicker: React.FC<FormDatePickerProps> = ({
   maximumDate = new Date(),
   minimumDate = new Date(1900, 0, 1),
 }) => {
+  const styles = useThemedStyles(createStyles);
   const [showPicker, setShowPicker] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(
     value ? new Date(value).getFullYear() : new Date().getFullYear()
@@ -229,99 +231,99 @@ export const FormDatePicker: React.FC<FormDatePickerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3.5],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3.5],
   },
   dateButtonError: {
-    borderColor: colors.danger[500],
+    borderColor: theme.color.border.error,
   },
   dateButtonDisabled: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.disabled,
     opacity: 0.6,
   },
   dateButtonText: {
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     flex: 1,
   },
   placeholderText: {
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
   },
   disabledText: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   calendarIcon: {
     fontSize: 18,
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
   errorText: {
     fontSize: 12,
-    color: colors.danger[500],
-    marginTop: spacing[1],
-    marginLeft: spacing[1],
+    color: theme.color.text.danger,
+    marginTop: theme.space[1],
+    marginLeft: theme.space[1],
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
+    backgroundColor: theme.color.surface.base,
+    borderTopLeftRadius: theme.radii['2xl'],
+    borderTopRightRadius: theme.radii['2xl'],
     maxHeight: '70%',
-    paddingBottom: spacing[5],
+    paddingBottom: theme.space[5],
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
+    borderBottomColor: theme.color.border.default,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.action.secondary.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 18,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   pickerContainer: {
     flexDirection: 'row',
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[5],
-    gap: spacing[2],
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[5],
+    gap: theme.space[2],
   },
   pickerColumn: {
     flex: 1,
@@ -329,62 +331,62 @@ const styles = StyleSheet.create({
   pickerColumnTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   pickerScroll: {
     maxHeight: 200,
   },
   pickerItem: {
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[2],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[1],
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[2],
+    borderRadius: theme.radii.lg,
+    marginBottom: theme.space[1],
   },
   pickerItemSelected: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: theme.color.brand.accentSoft,
   },
   pickerItemText: {
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     textAlign: 'center',
   },
   pickerItemTextSelected: {
-    color: colors.primary[500],
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   modalActions: {
     flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    gap: spacing[3],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    gap: theme.space[3],
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.neutral[100],
+    paddingVertical: theme.space[3.5],
+    borderRadius: theme.radii.xl,
+    backgroundColor: theme.color.action.secondary.background,
     borderWidth: 1,
-    borderColor: colors.border.default,
+    borderColor: theme.color.border.default,
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   confirmButton: {
     flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.primary[500],
+    paddingVertical: theme.space[3.5],
+    borderRadius: theme.radii.xl,
+    backgroundColor: theme.color.brand.accent,
     alignItems: 'center',
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
 });
 
