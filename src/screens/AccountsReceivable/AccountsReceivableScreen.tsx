@@ -1064,8 +1064,8 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
             <ScrollView style={styles.modalBody}>
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>Rango de Fechas *</Text>
-                <View style={styles.dateInputsRow}>
-                  <View style={styles.dateInputContainer}>
+                <View style={styles.dateInputsContainer}>
+                  <View style={styles.dateInputGroup}>
                     <Text style={styles.dateInputLabel}>Desde</Text>
                     <TouchableOpacity
                       style={styles.dateInput}
@@ -1083,7 +1083,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                       <Text style={styles.dateInputIcon}>📅</Text>
                     </TouchableOpacity>
                   </View>
-                  <View style={styles.dateInputContainer}>
+                  <View style={styles.dateInputGroup}>
                     <Text style={styles.dateInputLabel}>Hasta</Text>
                     <TouchableOpacity
                       style={styles.dateInput}
@@ -1138,7 +1138,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                     }}
                   />
                 )}
-                <Text style={styles.dateHint}>
+                <Text style={styles.dateRangeHint}>
                   💡 Máximo 90 días de diferencia
                 </Text>
               </View>
@@ -1146,19 +1146,19 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.modalButtonSecondary}
+                style={styles.clearButton}
                 onPress={() => setShowCustomDateModal(false)}
               >
-                <Text style={styles.modalButtonSecondaryText}>Cancelar</Text>
+                <Text style={styles.clearButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalButtonPrimary}
+                style={styles.applyButton}
                 onPress={() => {
                   setShowCustomDateModal(false);
                   setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
                 }}
               >
-                <Text style={styles.modalButtonPrimaryText}>Aplicar</Text>
+                <Text style={styles.applyButtonText}>Aplicar</Text>
               </TouchableOpacity>
             </View>
           </View>
