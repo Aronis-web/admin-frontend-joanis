@@ -115,8 +115,8 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
 
   // Recalcular totales cuando cambian los items
   useEffect(() => {
-    const totalPagado = items.reduce((sum, item) => sum + item.importePagoSinRetencion, 0);
-    const totalRetenido = items.reduce((sum, item) => sum + item.importeRetenido, 0);
+    const totalPagado = items.reduce((sum, item) => sum + (item.importePagoSinRetencion ?? 0), 0);
+    const totalRetenido = items.reduce((sum, item) => sum + (item.importeRetenido ?? 0), 0);
     setImporteTotalPagado(totalPagado);
     setImporteTotalRetenido(totalRetenido);
   }, [items]);
@@ -324,19 +324,20 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
 
               // Nota: El backend generará el número correlativo automáticamente
               // Solo enviamos la serie, no el número completo
+              const company = currentCompany as any;
               const dto: CreateRetencionDto = {
                 serieNumero, // Solo la serie (ej: "R001"), el backend agregará el correlativo
                 fechaEmision,
-                rucEmisor: currentCompany.ruc || '',
-                razonSocialEmisor: currentCompany.razonSocial || currentCompany.name,
-                nombreComercialEmisor: currentCompany.nombreComercial,
-                ubigeoEmisor: currentCompany.ubigeo || '150101',
-                direccionEmisor: currentCompany.direccion || '',
-                provinciaEmisor: currentCompany.provincia || 'LIMA',
-                departamentoEmisor: currentCompany.departamento || 'LIMA',
-                distritoEmisor: currentCompany.distrito || 'LIMA',
+                rucEmisor: company.ruc || '',
+                razonSocialEmisor: company.razonSocial || company.name,
+                nombreComercialEmisor: company.nombreComercial,
+                ubigeoEmisor: company.ubigeo || '150101',
+                direccionEmisor: company.direccion || '',
+                provinciaEmisor: company.provincia || 'LIMA',
+                departamentoEmisor: company.departamento || 'LIMA',
+                distritoEmisor: company.distrito || 'LIMA',
                 codigoPaisEmisor: 'PE',
-                correoEmisor: currentCompany.email || '',
+                correoEmisor: company.email || '',
                 correoAdquiriente: proveedor.razonSocialProveedor.toLowerCase().includes('@')
                   ? proveedor.razonSocialProveedor
                   : undefined,
@@ -739,16 +740,16 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
                       Fecha: {item.fechaEmisionDocumentoRelacionado}
                     </Text>
                     <Text style={styles.itemDetailText}>
-                      Total Doc: {item.tipoMonedaDocumentoRelacionado} {item.importeTotalDocumentoRelacionado.toFixed(2)}
+                      Total Doc: {item.tipoMonedaDocumentoRelacionado} {(item.importeTotalDocumentoRelacionado ?? 0).toFixed(2)}
                     </Text>
                     <Text style={styles.itemDetailText}>
-                      Pago: {item.monedaPago} {item.importePagoSinRetencion.toFixed(2)}
+                      Pago: {item.monedaPago} {(item.importePagoSinRetencion ?? 0).toFixed(2)}
                     </Text>
                     <Text style={styles.itemDetailTextBold}>
-                      Retenido: {item.monedaImporteRetenido} {item.importeRetenido.toFixed(2)}
+                      Retenido: {item.monedaImporteRetenido} {(item.importeRetenido ?? 0).toFixed(2)}
                     </Text>
                     <Text style={styles.itemDetailTextSuccess}>
-                      Neto: {item.monedaMontoNetoPagado} {item.importeTotalPagarNeto.toFixed(2)}
+                      Neto: {item.monedaMontoNetoPagado} {(item.importeTotalPagarNeto ?? 0).toFixed(2)}
                     </Text>
                   </View>
                 </View>
@@ -819,7 +820,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
       {/* Date Picker */}
       <DatePicker
         visible={showFechaEmisionPicker}
-        date={fechaEmision}
+        date={fechaEmision ? new Date(fechaEmision) : new Date()}
         onConfirm={(date) => {
           setFechaEmision(formatDateToString(date));
           setShowFechaEmisionPicker(false);
@@ -895,7 +896,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
         limit: 10,
         includeDocuments: true,
         documentType: SaleDocumentType.FACTURA, // Solo facturas
-      });
+      } as any);
       setSearchResults(response.data || []);
       setShowSearchResults(true);
     } catch (error: any) {
@@ -1228,7 +1229,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
 
           <DatePicker
             visible={showFechaEmisionPicker}
-            date={fechaEmision}
+            date={fechaEmision ? new Date(fechaEmision) : new Date()}
             onConfirm={(date) => {
               setFechaEmision(formatDateToString(date));
               setShowFechaEmisionPicker(false);
@@ -1238,7 +1239,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
 
           <DatePicker
             visible={showFechaPagoPicker}
-            date={fechaPago}
+            date={fechaPago ? new Date(fechaPago) : new Date()}
             onConfirm={(date) => {
               setFechaPago(formatDateToString(date));
               setShowFechaPagoPicker(false);
