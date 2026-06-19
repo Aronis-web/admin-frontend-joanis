@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Transfer, getTransferTypeLabel } from '@/types/transfers';
 import { TransferStatusBadge } from './TransferStatusBadge';
 
@@ -17,6 +18,7 @@ export const TransferCard: React.FC<TransferCardProps> = ({
   onGuidePress,
   isGuideLoading = false,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const formatDate = (dateString?: string | null) => {
     if (!dateString) {
       return '-';
@@ -108,123 +110,124 @@ export const TransferCard: React.FC<TransferCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  transferNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[0.5],
-  },
-  transferType: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.default,
-    marginBottom: spacing[3],
-  },
-  content: {
-    gap: spacing[3],
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  locationContainer: {
-    flex: 1,
-  },
-  label: {
-    fontSize: 10,
-    color: colors.neutral[400],
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  locationText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing[0.5],
-  },
-  siteText: {
-    fontSize: 11,
-    color: colors.neutral[500],
-  },
-  arrow: {
-    paddingHorizontal: 4,
-  },
-  arrowText: {
-    fontSize: 20,
-    color: colors.accent[500],
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-  },
-  footerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  footerLabel: {
-    fontSize: 11,
-    color: colors.neutral[400],
-  },
-  footerValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  guideButton: {
-    marginTop: spacing[2],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    alignItems: 'center',
-  },
-  downloadGuideButton: {
-    backgroundColor: colors.accent[600],
-  },
-  createGuideButton: {
-    backgroundColor: colors.warning[500],
-  },
-  guideButtonDisabled: {
-    opacity: 0.7,
-  },
-  guideButtonText: {
-    color: colors.neutral[0],
-    fontSize: 12,
-    fontWeight: '700',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    transferNumber: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[0.5],
+    },
+    transferType: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.color.border.default,
+      marginBottom: theme.space[3],
+    },
+    content: {
+      gap: theme.space[3],
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    locationContainer: {
+      flex: 1,
+    },
+    label: {
+      fontSize: 10,
+      color: theme.color.text.placeholder,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    locationText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[0.5],
+    },
+    siteText: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+    },
+    arrow: {
+      paddingHorizontal: 4,
+    },
+    arrowText: {
+      fontSize: 20,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    footerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1],
+    },
+    footerLabel: {
+      fontSize: 11,
+      color: theme.color.text.placeholder,
+    },
+    footerValue: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    guideButton: {
+      marginTop: theme.space[2],
+      borderRadius: theme.radii.md,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      alignItems: 'center',
+    },
+    downloadGuideButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    createGuideButton: {
+      backgroundColor: theme.color.state.warning.border,
+    },
+    guideButtonDisabled: {
+      opacity: 0.7,
+    },
+    guideButtonText: {
+      color: theme.color.text.onAction,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+  });
 
 export default TransferCard;

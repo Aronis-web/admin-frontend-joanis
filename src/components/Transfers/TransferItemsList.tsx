@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { TransferItem, Transfer } from '@/types/transfers';
 
 interface TransferItemsListProps {
@@ -18,6 +19,7 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
   showDifference = false,
   transfer,
 }) => {
+  const styles = useThemedStyles(createStyles);
   // Debug: Log transfer data
   React.useEffect(() => {
     if (transfer) {
@@ -148,148 +150,149 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  listContainer: {
-    padding: spacing[4],
-  },
-  itemCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  itemHeader: {
-    marginBottom: spacing[3],
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  itemMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  itemCorrelative: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.accent[500],
-    fontFamily: 'monospace',
-  },
-  itemSku: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  quantitiesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: spacing[2],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing[2],
-  },
-  quantityItem: {
-    alignItems: 'center',
-  },
-  quantityLabel: {
-    fontSize: 10,
-    color: colors.neutral[400],
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  quantityValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[700],
-  },
-  positive: {
-    color: colors.success[500],
-  },
-  negative: {
-    color: colors.danger[500],
-  },
-  notesContainer: {
-    marginTop: spacing[2],
-    padding: spacing[2],
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.sm,
-  },
-  notesLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  notesText: {
-    fontSize: 12,
-    color: colors.neutral[600],
-  },
-  damageNotesContainer: {
-    backgroundColor: colors.danger[50],
-    borderLeftWidth: 3,
-    borderLeftColor: colors.danger[500],
-  },
-  damageNotesLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.danger[600],
-    marginBottom: spacing[1],
-  },
-  damageNotesText: {
-    fontSize: 12,
-    color: colors.danger[800],
-  },
-  emptyContainer: {
-    padding: spacing[8],
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral[400],
-    fontStyle: 'italic',
-  },
-  areasContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  areaInfo: {
-    flex: 1,
-  },
-  areaSeparator: {
-    width: 1,
-    backgroundColor: colors.neutral[300],
-    marginHorizontal: spacing[3],
-  },
-  areaLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-    textTransform: 'uppercase',
-  },
-  areaValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[0.5],
-  },
-  warehouseValue: {
-    fontSize: 11,
-    color: colors.neutral[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    listContainer: {
+      padding: theme.space[4],
+    },
+    itemCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    itemHeader: {
+      marginBottom: theme.space[3],
+    },
+    itemInfo: {
+      flex: 1,
+    },
+    itemTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    itemMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    itemCorrelative: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+      fontFamily: 'monospace',
+    },
+    itemSku: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    quantitiesContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingVertical: theme.space[2],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.md,
+      marginBottom: theme.space[2],
+    },
+    quantityItem: {
+      alignItems: 'center',
+    },
+    quantityLabel: {
+      fontSize: 10,
+      color: theme.color.text.placeholder,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    quantityValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.body,
+    },
+    positive: {
+      color: theme.color.state.success.border,
+    },
+    negative: {
+      color: theme.color.state.danger.border,
+    },
+    notesContainer: {
+      marginTop: theme.space[2],
+      padding: theme.space[2],
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.sm,
+    },
+    notesLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    notesText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    damageNotesContainer: {
+      backgroundColor: theme.color.state.danger.background,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.state.danger.border,
+    },
+    damageNotesLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.danger,
+      marginBottom: theme.space[1],
+    },
+    damageNotesText: {
+      fontSize: 12,
+      color: theme.color.state.danger.text,
+    },
+    emptyContainer: {
+      padding: theme.space[8],
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.placeholder,
+      fontStyle: 'italic',
+    },
+    areasContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    areaInfo: {
+      flex: 1,
+    },
+    areaSeparator: {
+      width: 1,
+      backgroundColor: theme.color.border.default,
+      marginHorizontal: theme.space[3],
+    },
+    areaLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+      textTransform: 'uppercase',
+    },
+    areaValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[0.5],
+    },
+    warehouseValue: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+    },
+  });
 
 export default TransferItemsList;
