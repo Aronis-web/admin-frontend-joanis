@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { transmisionesApi } from '@/services/api';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 import {
   TransmisionWithProducts,
   TransmisionProduct,
@@ -347,17 +349,17 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
           )}
         </ScrollView>
 
-        {/* Floating Add Product Button - Above drawer menu */}
         {!editMode && (
-          <View style={styles.floatingButtonContainer} pointerEvents="box-none">
-            <TouchableOpacity
-              style={styles.floatingButton}
-              onPress={handleAddProduct}
-              activeOpacity={0.9}
-            >
-              <Ionicons name="add" size={28} color={theme.color.text.inverse} />
-            </TouchableOpacity>
-          </View>
+          <ProtectedFAB
+            actions={[
+              {
+                icon: 'add',
+                label: 'Agregar Producto',
+                onPress: handleAddProduct,
+                requiredPermissions: [PERMISSIONS.TRANSMISIONES.UPDATE],
+              },
+            ]}
+          />
         )}
 
         <AddProductModal

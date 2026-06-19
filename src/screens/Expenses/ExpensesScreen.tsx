@@ -37,7 +37,6 @@ import {
   Chip,
   ChipGroup,
   EmptyState,
-  FABGroup,
   Pagination,
   Row,
 } from '@/design-system/components';
@@ -48,6 +47,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface ExpensesScreenProps {
   navigation: any;
@@ -230,16 +231,19 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
       icon: 'add' as const,
       label: 'Nuevo Gasto',
       onPress: handleCreateExpense,
+      requiredPermissions: [PERMISSIONS.EXPENSES.CREATE],
     },
     {
       icon: 'download-outline' as const,
       label: 'Descargar Reporte',
       onPress: () => setReportModalVisible(true),
+      requiredPermissions: [PERMISSIONS.EXPENSES.REPORTS.VIEW],
     },
     {
       icon: 'cloud-upload-outline' as const,
       label: 'Carga Masiva',
       onPress: () => setBulkUploadModalVisible(true),
+      requiredPermissions: [PERMISSIONS.EXPENSES.CREATE],
     },
   ], [handleCreateExpense]);
 
@@ -393,14 +397,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         />
       )}
 
-      {/* FAB */}
-      <FABGroup
-        icon="add"
-        openIcon="close"
-        actions={fabActions}
-        variant="primary"
-        style={{ bottom: 90, right: 20 }}
-      />
+      <ProtectedFAB actions={fabActions} />
 
       {/* Modals */}
       {selectedExpense && (

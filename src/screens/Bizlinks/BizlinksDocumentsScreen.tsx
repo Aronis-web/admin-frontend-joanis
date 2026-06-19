@@ -19,7 +19,7 @@ import Alert from '@/utils/alert';
 import { saveAndShareFile } from '@/utils/fileDownload';
 
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
-import { TaxDocumentsFAB } from '@/components/Bizlinks/TaxDocumentsFAB';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { TaxDocumentsReportModal } from '@/components/Bizlinks/TaxDocumentsReportModal';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useBizlinksDocuments } from '@/hooks/useBizlinks';
@@ -1026,7 +1026,16 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
           onClose={() => setShowTaxDocumentsReportModal(false)}
         />
 
-        <TaxDocumentsFAB onOpenSalesReport={handleOpenTaxDocumentsReport} />
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'download-outline',
+              label: 'Reporte de Ventas',
+              onPress: handleOpenTaxDocumentsReport,
+              requiredPermissions: ['bizlinks.documents.view', 'sales.read'],
+            },
+          ]}
+        />
       </SafeAreaView>
     </ScreenLayout>
   );

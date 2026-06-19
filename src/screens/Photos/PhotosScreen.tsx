@@ -19,6 +19,8 @@ import type { Theme } from '@/design-system/themes';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { photoCampaignsApi } from '@/services/api';
 import { PhotoCampaign, PhotoCampaignStatus } from '@/types/photo-campaigns';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface PhotosScreenProps {
   navigation: any;
@@ -174,15 +176,16 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
         </ScrollView>
       </View>
 
-      <View style={styles.floatingActionsContainer} pointerEvents="box-none">
-        <TouchableOpacity
-          style={styles.floatingCreateButton}
-          onPress={() => setCreateModalVisible(true)}
-          activeOpacity={activeOpacity.medium}
-        >
-          <Text style={styles.floatingCreateButtonText}>+ Campaña</Text>
-        </TouchableOpacity>
-      </View>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'camera-outline',
+            label: 'Crear Campaña',
+            onPress: () => setCreateModalVisible(true),
+            requiredPermissions: [PERMISSIONS.PHOTO_CAMPAIGNS.CREATE],
+          },
+        ]}
+      />
 
       <Modal visible={createModalVisible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>

@@ -22,7 +22,8 @@ import { TemplateCard } from '@/components/Expenses/TemplateCard';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
 import { ExpenseTemplateBulkUploadModal } from '@/components/Expenses/ExpenseTemplateBulkUploadModal';
-import { ExpenseTemplatesFAB } from '@/components/Expenses/ExpenseTemplatesFAB';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -407,13 +408,33 @@ export const ExpenseTemplatesScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Floating Action Button with animations */}
-      <ExpenseTemplatesFAB
-        onCreateTemplate={handleCreateTemplate}
-        onDownloadReport={handleOpenReportModal}
-        onBulkUpload={handleOpenBulkUploadModal}
-        onTestGeneration={handleTestGeneration}
-        generatingExpenses={generatingExpenses}
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'add',
+            label: 'Crear Plantilla',
+            onPress: handleCreateTemplate,
+            requiredPermissions: [PERMISSIONS.EXPENSES.TEMPLATES.CREATE],
+          },
+          {
+            icon: 'download-outline',
+            label: 'Descargar Reporte',
+            onPress: handleOpenReportModal,
+            requiredPermissions: [PERMISSIONS.EXPENSES.REPORTS.VIEW],
+          },
+          {
+            icon: 'cloud-upload-outline',
+            label: 'Carga Masiva',
+            onPress: handleOpenBulkUploadModal,
+            requiredPermissions: [PERMISSIONS.EXPENSES.TEMPLATES.CREATE],
+          },
+          {
+            icon: 'play-circle-outline',
+            label: generatingExpenses ? 'Generando...' : 'Generar Gastos',
+            onPress: handleTestGeneration,
+            requiredPermissions: [PERMISSIONS.EXPENSES.TEMPLATES.GENERATE],
+          },
+        ]}
       />
 
       {/* Report Modal */}

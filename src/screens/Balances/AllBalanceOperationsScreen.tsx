@@ -30,7 +30,8 @@ import {
   currencyToCents,
 } from '@/types/balances';
 import { useAuthStore } from '@/store/auth';
-import { BalanceOperationsFAB } from '@/components/Balances/BalanceOperationsFAB';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { BalanceOperationDetailModal } from '@/components/Balances/BalanceOperationDetailModal';
 import { formatDateToString, getTodayString } from '@/utils/dateHelpers';
@@ -692,8 +693,40 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
             </View>
           )}
 
-          {/* Floating Action Button with Operation Type Selection */}
-          <BalanceOperationsFAB onOperationSelect={handleOperationTypeSelect} />
+          <ProtectedFAB
+            actions={[
+              {
+                icon: 'cube-outline',
+                label: 'Monto de Reparto',
+                onPress: () => handleOperationTypeSelect(OperationType.DISTRIBUTED),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+              {
+                icon: 'cash-outline',
+                label: 'Monto Vendido',
+                onPress: () => handleOperationTypeSelect(OperationType.SOLD),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+              {
+                icon: 'time-outline',
+                label: 'Montos Por Pagar',
+                onPress: () => handleOperationTypeSelect(OperationType.TO_PAY),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+              {
+                icon: 'checkmark-circle-outline',
+                label: 'Registrar Pagos',
+                onPress: () => handleOperationTypeSelect(OperationType.PAID),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+              {
+                icon: 'return-down-back-outline',
+                label: getOperationTypeLabel(OperationType.RETURNED),
+                onPress: () => handleOperationTypeSelect(OperationType.RETURNED),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+            ]}
+          />
         </>
       )}
 

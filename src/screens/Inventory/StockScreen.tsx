@@ -18,7 +18,8 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { BulkUploadModal } from '@/components/Inventory/BulkUploadModal';
 import { ProductBulkUploadV2Modal } from '@/components/Inventory/ProductBulkUploadV2Modal';
 import { StockExportModal } from '@/components/Inventory/StockExportModal';
-import { StockFAB } from '@/components/Inventory/StockFAB';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 import { StockProductDetailModal } from '@/components/Inventory/StockProductDetailModal';
 import {
   ProductStockSortBy,
@@ -646,10 +647,27 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
         {renderPickerModal()}
 
-        <StockFAB
-          onDownloadTemplate={() => setIsProductBulkUploadV2ModalVisible(true)}
-          onUploadFile={() => setIsBulkUploadModalVisible(true)}
-          onExportStock={() => setIsExportModalVisible(true)}
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'document-text-outline',
+              label: 'Descargar Plantilla',
+              onPress: () => setIsProductBulkUploadV2ModalVisible(true),
+              requiredPermissions: [PERMISSIONS.INVENTORY.UPDATE],
+            },
+            {
+              icon: 'cloud-upload-outline',
+              label: 'Subir Archivo',
+              onPress: () => setIsBulkUploadModalVisible(true),
+              requiredPermissions: [PERMISSIONS.INVENTORY.UPDATE],
+            },
+            {
+              icon: 'download-outline',
+              label: 'Exportar Stock',
+              onPress: () => setIsExportModalVisible(true),
+              requiredPermissions: [PERMISSIONS.INVENTORY.READ],
+            },
+          ]}
         />
 
         <StockProductDetailModal

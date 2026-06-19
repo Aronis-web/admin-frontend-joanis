@@ -21,6 +21,7 @@ import {
   UpdateWarehouseAreaRequest,
 } from '@/types/warehouses';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 
 interface WarehouseAreasScreenProps {
   navigation: any;
@@ -406,14 +407,16 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
         </View>
       </Modal>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => setShowCreateModal(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.floatingButtonIcon}>+</Text>
-      </TouchableOpacity>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'grid-outline',
+            label: 'Crear \u00c1rea',
+            onPress: () => setShowCreateModal(true),
+            requiredPermissions: ['areas.create'],
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 };

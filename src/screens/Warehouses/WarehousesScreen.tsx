@@ -18,6 +18,7 @@ import { warehousesApi } from '@/services/api';
 import { Warehouse, CreateWarehouseRequest, UpdateWarehouseRequest } from '@/types/warehouses';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
 
 interface WarehousesScreenProps {
@@ -325,14 +326,16 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
         </Text>
       </View>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => setShowCreateModal(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.floatingButtonIcon}>+</Text>
-      </TouchableOpacity>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'business-outline',
+            label: 'Crear Almac\u00e9n',
+            onPress: () => setShowCreateModal(true),
+            requiredPermissions: [PERMISSIONS.WAREHOUSES.CREATE],
+          },
+        ]}
+      />
 
       {/* Create Warehouse Modal */}
       <Modal visible={showCreateModal} animationType="slide" transparent>

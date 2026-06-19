@@ -35,6 +35,8 @@ import {
   requestMediaLibraryPermissionsAsync,
   MediaTypeOptions,
 } from '@/utils/filePicker';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface PhotoCampaignManagementScreenProps {
   navigation: any;
@@ -1428,16 +1430,16 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
       </View>
 
       {!!selectedCampaign && (
-        <View style={styles.floatingActionsContainer} pointerEvents="box-none">
-          <TouchableOpacity
-            style={styles.floatingWhatsappButton}
-            onPress={() => void openWhatsappModal()}
-            disabled={submitting || whatsappContactsLoading}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.floatingWhatsappButtonText}>WhatsApp</Text>
-          </TouchableOpacity>
-        </View>
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'logo-whatsapp',
+              label: 'Enviar por WhatsApp',
+              onPress: () => void openWhatsappModal(),
+              requiredPermissions: [PERMISSIONS.PHOTO_CAMPAIGNS.UPDATE],
+            },
+          ]}
+        />
       )}
 
       <Modal visible={whatsappModalVisible} transparent animationType="fade">

@@ -90,10 +90,11 @@ const createStyles = (theme: Theme) =>
       position: 'absolute',
       right: theme.space[4],
       zIndex: 1000,
-      alignItems: 'flex-end',
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     reloadWrap: {
-      marginBottom: theme.space[2],
+      marginRight: theme.space[2],
       elevation: 3,
       shadowColor: theme.color.shadow,
       shadowOffset: { width: 0, height: 2 },
@@ -102,7 +103,7 @@ const createStyles = (theme: Theme) =>
     },
     reloadButton: {
       width: 44,
-      height: 32,
+      height: 40,
       borderRadius: theme.radii.full,
       backgroundColor: theme.color.surface.muted,
       borderWidth: 1,
