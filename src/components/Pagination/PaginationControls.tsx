@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface PaginationControlsProps {
   currentPage: number;
@@ -19,8 +20,9 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   itemsPerPage,
   onPreviousPage,
   onNextPage,
-  itemLabel = 'elementos',
+  itemLabel: _itemLabel = 'elementos',
 }) => {
+  const styles = useThemedStyles(createStyles);
   const currentItemsCount = Math.min(itemsPerPage, totalItems - (currentPage - 1) * itemsPerPage);
 
   return (
@@ -70,52 +72,53 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  paginationContainer: {
-    backgroundColor: colors.surface.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  paginationInfo: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  paginationText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  paginationSubtext: {
-    fontSize: 11,
-    color: colors.neutral[400],
-    marginTop: 2,
-  },
-  paginationButtons: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  paginationButton: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[500],
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  paginationButtonDisabled: {
-    backgroundColor: colors.border.default,
-  },
-  paginationButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  paginationButtonTextDisabled: {
-    color: colors.neutral[400],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    paginationContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    paginationInfo: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    paginationText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    paginationSubtext: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+      marginTop: 2,
+    },
+    paginationButtons: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    paginationButton: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.action.primary.background,
+      minWidth: 80,
+      alignItems: 'center',
+    },
+    paginationButtonDisabled: {
+      backgroundColor: theme.color.action.primary.backgroundDisabled,
+    },
+    paginationButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    paginationButtonTextDisabled: {
+      color: theme.color.text.disabled,
+    },
+  });
