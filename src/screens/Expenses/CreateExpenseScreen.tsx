@@ -242,9 +242,9 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
       const { sitesService } = await import('@/services/api');
 
       // Load data one by one to identify which one fails
-      let categoriesData = [];
-      let templatesData = [];
-      let sitesData = [];
+      let categoriesData: any[] = [];
+      let templatesData: any[] = [];
+      let sitesData: any[] = [];
 
       // Load categories
       try {
@@ -784,7 +784,7 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           {/* Date Picker */}
           <DatePicker
             visible={showDueDatePicker}
-            date={dueDate || new Date().toISOString().split('T')[0]}
+            date={dueDate ? new Date(dueDate) : new Date()}
             onConfirm={(date) => {
               setDueDate(formatDateToString(date));
               setShowDueDatePicker(false);
@@ -1025,6 +1025,46 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   createSupplierButtonText: {
     fontSize: 14,
     fontWeight: '600',
+    color: theme.color.brand.accent,
+  },
+  required: {
+    color: theme.color.state.danger.border,
+    fontWeight: '700',
+  },
+  disabledInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.color.border.subtle,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  disabledInputText: {
+    flex: 1,
+    fontSize: 15,
+    color: theme.color.text.body,
+  },
+  infoText: {
+    fontSize: 12,
+    color: theme.color.text.muted,
+    marginTop: 6,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: theme.color.brand.primarySoft,
+    borderWidth: 1,
+    borderColor: theme.color.border.subtle,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    gap: 8,
+  },
+  infoBannerText: {
+    flex: 1,
+    fontSize: 13,
     color: theme.color.brand.accent,
   },
 });
