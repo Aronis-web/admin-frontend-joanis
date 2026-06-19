@@ -15,7 +15,8 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import config from '@/utils/config';
 import {
   BizlinksConfig,
@@ -38,6 +39,8 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
   onSuccess,
   onCancel,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { createConfig, updateConfig, testConnection, uploadLogo, deleteLogo, loading } = useBizlinksConfig();
 
   const [formData, setFormData] = useState({
@@ -437,7 +440,7 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
                   disabled={uploadingLogo || loading}
                 >
                   {uploadingLogo ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={theme.color.text.inverse} size="small" />
                   ) : (
                     <Text style={styles.logoButtonText}>Cambiar Logo</Text>
                   )}
@@ -458,7 +461,7 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
               disabled={uploadingLogo || loading}
             >
               {uploadingLogo ? (
-                <ActivityIndicator color="#007AFF" />
+                <ActivityIndicator color={theme.color.brand.primary} />
               ) : (
                 <>
                   <Text style={styles.uploadLogoIcon}>📷</Text>
@@ -522,7 +525,7 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
             disabled={testing || loading}
           >
             {testing ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.color.text.inverse} />
             ) : (
               <Text style={styles.buttonText}>Probar Conexión</Text>
             )}
@@ -535,7 +538,7 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.color.text.inverse} />
           ) : (
             <Text style={styles.buttonText}>
               {config ? 'Actualizar' : 'Crear'} Configuración
@@ -557,130 +560,132 @@ export const BizlinksConfigForm: React.FC<BizlinksConfigFormProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  section: {
-    backgroundColor: colors.surface.primary,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: spacing[4],
-    color: colors.neutral[700],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: spacing[2],
-    color: colors.neutral[600],
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[4],
-    fontSize: 14,
-    backgroundColor: colors.surface.primary,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  switchLabel: {
-    fontSize: 14,
-    color: colors.neutral[600],
-    flex: 1,
-  },
-  buttonContainer: {
-    padding: spacing[4],
-    gap: spacing[3],
-  },
-  button: {
-    padding: spacing[4],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: colors.success[500],
-  },
-  testButton: {
-    backgroundColor: colors.info[500],
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[500],
-  },
-  buttonText: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  helperText: {
-    fontSize: 12,
-    color: colors.neutral[400],
-    marginBottom: spacing[4],
-    lineHeight: 18,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    gap: spacing[4],
-  },
-  logoPreview: {
-    width: 200,
-    height: 150,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.secondary,
-  },
-  logoActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    width: '100%',
-  },
-  logoButton: {
-    flex: 1,
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  changeLogoButton: {
-    backgroundColor: colors.primary[500],
-  },
-  deleteLogoButton: {
-    backgroundColor: colors.danger[500],
-  },
-  logoButtonText: {
-    color: colors.neutral[0],
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  uploadLogoButton: {
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-    borderStyle: 'dashed',
-    borderRadius: borderRadius.lg,
-    padding: spacing[8],
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background.secondary,
-  },
-  uploadLogoIcon: {
-    fontSize: 48,
-    marginBottom: spacing[2],
-  },
-  uploadLogoText: {
-    fontSize: 16,
-    color: colors.primary[500],
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    section: {
+      backgroundColor: theme.color.surface.base,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: theme.space[4],
+      color: theme.color.text.heading,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: theme.space[2],
+      color: theme.color.text.body,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[4],
+      fontSize: 14,
+      backgroundColor: theme.color.surface.base,
+      color: theme.color.text.body,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    switchLabel: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      flex: 1,
+    },
+    buttonContainer: {
+      padding: theme.space[4],
+      gap: theme.space[3],
+    },
+    button: {
+      padding: theme.space[4],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    saveButton: {
+      backgroundColor: theme.color.text.success,
+    },
+    testButton: {
+      backgroundColor: theme.color.state.info.text,
+    },
+    cancelButton: {
+      backgroundColor: theme.color.text.muted,
+    },
+    buttonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    helperText: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+      marginBottom: theme.space[4],
+      lineHeight: 18,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      gap: theme.space[4],
+    },
+    logoPreview: {
+      width: 200,
+      height: 150,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    logoActions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      width: '100%',
+    },
+    logoButton: {
+      flex: 1,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    changeLogoButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    deleteLogoButton: {
+      backgroundColor: theme.color.text.danger,
+    },
+    logoButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    uploadLogoButton: {
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+      borderStyle: 'dashed',
+      borderRadius: theme.radii.lg,
+      padding: theme.space[8],
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.subtle,
+    },
+    uploadLogoIcon: {
+      fontSize: 48,
+      marginBottom: theme.space[2],
+    },
+    uploadLogoText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+  });
