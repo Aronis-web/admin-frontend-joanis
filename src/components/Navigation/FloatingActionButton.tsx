@@ -58,20 +58,26 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPr
   };
 
   return (
-    <View style={[styles.wrapper, { bottom }]}>
-      <Animated.View style={[styles.reloadContainer, { transform: [{ scale: reloadScaleValue }] }]}>
+    <View style={[styles.wrapper, { bottom }]} pointerEvents="box-none">
+      <Animated.View style={[styles.pill, { transform: [{ scale: scaleValue }] }]}>
         <TouchableOpacity
-          style={styles.reloadButton}
+          style={styles.segment}
           onPress={handleReloadPress}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
+          accessibilityLabel="Recargar"
         >
-          <Ionicons name="refresh" size={20} color={theme.color.icon.inverse} />
+          <Animated.View style={{ transform: [{ scale: reloadScaleValue }] }}>
+            <Ionicons name="refresh" size={18} color={theme.color.icon.muted} />
+          </Animated.View>
         </TouchableOpacity>
-      </Animated.View>
-
-      <Animated.View style={[styles.container, { transform: [{ scale: scaleValue }] }]}>
-        <TouchableOpacity style={styles.button} onPress={handlePress} activeOpacity={0.8}>
-          <Ionicons name="menu" size={28} color={theme.color.icon.inverse} />
+        <View style={styles.divider} />
+        <TouchableOpacity
+          style={styles.segment}
+          onPress={handlePress}
+          activeOpacity={0.7}
+          accessibilityLabel="Abrir menu"
+        >
+          <Ionicons name="menu" size={22} color={theme.color.brand.accent} />
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -82,41 +88,32 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     wrapper: {
       position: 'absolute',
-      right: theme.space[5],
+      right: theme.space[4],
       zIndex: 1000,
+    },
+    pill: {
       flexDirection: 'row',
       alignItems: 'center',
-    },
-    reloadContainer: {
-      marginRight: theme.space[2],
-      elevation: 6,
-      shadowColor: theme.color.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-    },
-    reloadButton: {
-      width: 40,
       height: 40,
       borderRadius: theme.radii.full,
-      backgroundColor: theme.color.icon.muted,
-      justifyContent: 'center',
-      alignItems: 'center',
-      opacity: 0.8,
-    },
-    container: {
-      elevation: 8,
+      backgroundColor: theme.color.surface.elevated,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      elevation: 4,
       shadowColor: theme.color.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4.65,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.18,
+      shadowRadius: 4,
     },
-    button: {
-      width: 60,
-      height: 60,
-      borderRadius: theme.radii.full,
-      backgroundColor: theme.color.brand.accent,
+    segment: {
+      width: 40,
+      height: 40,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    divider: {
+      width: 1,
+      height: 20,
+      backgroundColor: theme.color.border.subtle,
     },
   });
