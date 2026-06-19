@@ -768,12 +768,12 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="swap-horizontal-outline" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="swap-horizontal-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.titleGradient, isTablet && styles.titleTabletGradient]}>
                   Operaciones Bancarias
@@ -1086,7 +1086,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,

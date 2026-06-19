@@ -400,12 +400,12 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="wallet-outline" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="wallet-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Subir Archivos</Text>
               </View>

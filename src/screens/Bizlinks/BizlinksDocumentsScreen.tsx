@@ -786,7 +786,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name="options"
                 size={20}
-                color={showAdvancedFilters ? theme.color.text.inverse : theme.color.text.muted}
+                color={showAdvancedFilters ? theme.color.brand.onHeader : theme.color.text.muted}
               />
               {activeFiltersCount > 0 && (
                 <View style={styles.filterCounter}>

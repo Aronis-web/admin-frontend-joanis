@@ -321,12 +321,12 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="receipt" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="receipt" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
                   Retenciones
@@ -473,7 +473,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   headerTitleTablet: {

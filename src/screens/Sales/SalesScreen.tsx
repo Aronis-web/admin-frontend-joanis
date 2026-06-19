@@ -428,7 +428,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <Ionicons
                 name="options"
                 size={20}
-                color={getActiveFiltersCount() > 0 ? theme.color.text.inverse : theme.color.text.muted}
+                color={getActiveFiltersCount() > 0 ? theme.color.brand.onHeader : theme.color.text.muted}
               />
               {getActiveFiltersCount() > 0 && (
                 <View style={styles.filterBadge}>

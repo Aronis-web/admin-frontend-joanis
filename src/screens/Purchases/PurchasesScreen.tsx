@@ -448,7 +448,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="cart" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Title size="large" style={styles.headerTitle}>Compras</Title>
               </View>
@@ -478,7 +478,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="cart" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Title size="large" style={styles.headerTitle}>Compras</Title>
               </View>
@@ -727,7 +727,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginRight: theme.space[3],
   },
   headerTitle: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   headerSubtitle: {
     color: theme.color.brand.onHeaderMuted,
@@ -746,7 +746,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,

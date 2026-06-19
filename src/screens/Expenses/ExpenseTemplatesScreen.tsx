@@ -272,7 +272,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
               <View style={styles.headerTitleContainer}>
                 <View style={styles.headerIconRow}>
                   <View style={styles.headerIconContainer}>
-                    <Ionicons name="repeat-outline" size={22} color={theme.color.text.inverse} />
+                    <Ionicons name="repeat-outline" size={22} color={theme.color.brand.onHeader} />
                   </View>
                   <Text style={styles.titleGradient}>Gastos Recurrentes</Text>
                 </View>
@@ -303,7 +303,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="repeat-outline" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="repeat-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Gastos Recurrentes</Text>
               </View>
@@ -492,7 +492,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,

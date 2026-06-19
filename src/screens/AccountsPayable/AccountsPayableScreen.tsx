@@ -589,12 +589,12 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="wallet-outline" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="wallet-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.titleGradient, isTablet && styles.titleTabletGradient]}>Cuentas por Pagar</Text>
               </View>
@@ -920,7 +920,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
