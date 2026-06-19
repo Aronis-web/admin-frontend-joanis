@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface DatePickerProps {
   visible: boolean;
@@ -32,6 +33,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   maximumDate,
   title = 'Seleccionar Fecha',
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
 
   // Calcular el ancho de cada celda para que quepan exactamente 7 columnas
@@ -231,7 +234,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             </View>
 
             <View style={styles.dateDisplay}>
-              <Ionicons name="calendar" size={32} color={colors.accent[500]} />
+              <Ionicons name="calendar" size={32} color={theme.color.brand.accent} />
               <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
             </View>
 
@@ -414,6 +417,8 @@ export const DatePickerButton: React.FC<DatePickerButtonProps> = ({
   placeholder = 'Seleccionar fecha',
   icon = 'calendar',
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const formatDate = (dateString: string) => {
     if (!dateString) {
       return placeholder;
@@ -437,69 +442,69 @@ export const DatePickerButton: React.FC<DatePickerButtonProps> = ({
     <View style={styles.buttonContainer}>
       <Text style={styles.buttonLabel}>{label}</Text>
       <TouchableOpacity style={styles.button} onPress={handlePress}>
-        <Ionicons name={icon as any} size={20} color={colors.neutral[500]} style={styles.buttonIcon} />
+        <Ionicons name={icon as any} size={20} color={theme.color.text.muted} style={styles.buttonIcon} />
         <Text style={[styles.buttonText, !value && styles.buttonTextPlaceholder]}>
           {formatDate(value || '')}
         </Text>
-        <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+        <Ionicons name="chevron-forward" size={20} color={theme.color.text.subtle} />
       </TouchableOpacity>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
   },
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
   },
   content: {
     flex: 1,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   headerButton: {
-    paddingVertical: spacing[1],
-    paddingHorizontal: spacing[2],
+    paddingVertical: theme.space[1],
+    paddingHorizontal: theme.space[2],
   },
   headerButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   headerButtonConfirm: {
-    color: colors.accent[500],
+    color: theme.color.brand.accent,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   dateDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[5],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.background.secondary,
+    paddingVertical: theme.space[5],
+    paddingHorizontal: theme.space[4],
+    backgroundColor: theme.color.background.subtle,
   },
   dateText: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.neutral[800],
-    marginLeft: spacing[3],
+    color: theme.color.text.heading,
+    marginLeft: theme.space[3],
   },
   pickerContainer: {
     flex: 1,
@@ -507,29 +512,29 @@ const styles = StyleSheet.create({
   monthYearSelector: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   monthYearButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
   },
   monthYearText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   weekDays: {
     flexDirection: 'row',
-    paddingVertical: spacing[2],
+    paddingVertical: theme.space[2],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   weekDayText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   daysContainer: {
@@ -548,7 +553,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayButtonSelected: {
-    backgroundColor: colors.accent[500],
+    backgroundColor: theme.color.brand.accent,
   },
   dayButtonDisabled: {
     opacity: 0.3,
@@ -559,13 +564,13 @@ const styles = StyleSheet.create({
   dayButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   dayButtonTextSelected: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   dayButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   dayButtonTextEmpty: {
     color: 'transparent',
@@ -579,22 +584,22 @@ const styles = StyleSheet.create({
   monthsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   monthButton: {
     width: 80,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: borderRadius.lg,
-    margin: spacing[2],
-    backgroundColor: colors.background.secondary,
+    borderRadius: theme.radii.lg,
+    margin: theme.space[2],
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   monthButtonSelected: {
-    backgroundColor: colors.accent[500],
-    borderColor: colors.accent[500],
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   monthButtonDisabled: {
     opacity: 0.3,
@@ -602,13 +607,13 @@ const styles = StyleSheet.create({
   monthButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   monthButtonTextSelected: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   monthButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   yearsContainer: {
     flex: 1,
@@ -619,22 +624,22 @@ const styles = StyleSheet.create({
   yearsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   yearButton: {
     width: 80,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: borderRadius.lg,
-    margin: spacing[2],
-    backgroundColor: colors.background.secondary,
+    borderRadius: theme.radii.lg,
+    margin: theme.space[2],
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   yearButtonSelected: {
-    backgroundColor: colors.accent[500],
-    borderColor: colors.accent[500],
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   yearButtonDisabled: {
     opacity: 0.3,
@@ -642,42 +647,42 @@ const styles = StyleSheet.create({
   yearButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   yearButtonTextSelected: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   yearButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   buttonContainer: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   buttonLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
+    color: theme.color.text.muted,
+    marginBottom: theme.space[2],
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[3],
+    borderColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[3],
   },
   buttonIcon: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   buttonText: {
     flex: 1,
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   buttonTextPlaceholder: {
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
   },
 });
