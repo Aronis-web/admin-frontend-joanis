@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { saveAndShareFile, saveAndSharePdf } from '@/utils/fileDownload';
 import { campaignsService, repartosService } from '@/services/api';
 import logger from '@/utils/logger';
