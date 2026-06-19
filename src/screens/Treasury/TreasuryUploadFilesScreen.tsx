@@ -1,8 +1,8 @@
-/**
+﻿/**
  * TreasuryUploadFilesScreen.tsx
  *
- * Pantalla para subir archivos de bancos (Tesorería).
- * Soporta archivos ZIP con múltiples cuentas o Excel individuales.
+ * Pantalla para subir archivos de bancos (TesorerÃ­a).
+ * Soporta archivos ZIP con mÃºltiples cuentas o Excel individuales.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -121,7 +121,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
       {/* Header con banco detectado */}
       <View style={styles.resultHeader}>
         <View style={styles.resultBankBadge}>
-          <Ionicons name="business" size={20} color={theme.color.text.inverse} />
+          <Ionicons name="business" size={20} color={theme.color.brand.onHeader} />
           <Text style={styles.resultBankText}>{result.detectedBank}</Text>
         </View>
         <Text style={styles.resultDuration}>
@@ -129,7 +129,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
         </Text>
       </View>
 
-      {/* Estadísticas principales */}
+      {/* EstadÃ­sticas principales */}
       <View style={styles.resultStats}>
         <View style={styles.resultStatItem}>
           <Text style={styles.resultStatValue}>{result.totalFiles}</Text>
@@ -258,7 +258,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
       const response = await companiesApi.getCompanies({ limit: 100 });
       setCompanies(response.data);
     } catch (error) {
-      console.error('❌ Error al cargar empresas:', error);
+      console.error('âŒ Error al cargar empresas:', error);
       Alert.alert('Error', 'No se pudieron cargar las empresas');
     } finally {
       setIsLoadingCompanies(false);
@@ -284,7 +284,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
         setUploadResult(null); // Limpiar resultado anterior
       }
     } catch (error) {
-      console.error('❌ Error al seleccionar archivo:', error);
+      console.error('âŒ Error al seleccionar archivo:', error);
       Alert.alert('Error', 'No se pudo seleccionar el archivo');
     }
   };
@@ -325,7 +325,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
         } as any);
       }
 
-      // Añadir el companyId al FormData (requerido por el backend)
+      // AÃ±adir el companyId al FormData (requerido por el backend)
       formData.append('companyId', selectedCompanyId);
 
       const result = await apiClient.post<BulkUploadResponse>(
@@ -341,11 +341,11 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
       setUploadResult(result);
 
       Alert.alert(
-        '✅ Archivo Procesado',
+        'âœ… Archivo Procesado',
         `Se procesaron ${result.totalFiles} archivo(s).\n\n` +
-        `• ${result.totalNewTransactions} transacciones nuevas\n` +
-        `• ${result.totalDuplicates} duplicados detectados\n` +
-        `• Banco: ${result.detectedBank}`,
+        `â€¢ ${result.totalNewTransactions} transacciones nuevas\n` +
+        `â€¢ ${result.totalDuplicates} duplicados detectados\n` +
+        `â€¢ Banco: ${result.detectedBank}`,
         [
           {
             text: 'Subir Otro',
@@ -360,7 +360,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
         ]
       );
     } catch (error: any) {
-      console.error('❌ Error al subir archivo:', error);
+      console.error('âŒ Error al subir archivo:', error);
       Alert.alert(
         'Error',
         error.response?.data?.message || error.message || 'No se pudo procesar el archivo'
@@ -400,16 +400,16 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="wallet-outline" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="wallet-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Subir Archivos</Text>
               </View>
-              <Text style={styles.subtitleGradient}>Tesorería - Archivos de Bancos</Text>
+              <Text style={styles.subtitleGradient}>TesorerÃ­a - Archivos de Bancos</Text>
             </View>
           </View>
         </LinearGradient>
@@ -511,12 +511,12 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
               >
                 {isUploading ? (
                   <>
-                    <ActivityIndicator color={theme.color.text.inverse} size="small" />
+                    <ActivityIndicator color={theme.color.brand.onHeader} size="small" />
                     <Text style={styles.uploadButtonText}>Procesando...</Text>
                   </>
                 ) : (
                   <>
-                    <Ionicons name="cloud-upload" size={24} color={theme.color.text.inverse} />
+                    <Ionicons name="cloud-upload" size={24} color={theme.color.brand.onHeader} />
                     <Text style={styles.uploadButtonText}>Subir y Procesar</Text>
                   </>
                 )}
@@ -526,7 +526,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.processingWarning}>
                   <Ionicons name="time-outline" size={24} color={theme.color.state.warning.text} />
                   <Text style={styles.processingWarningText}>
-                    El procesamiento puede tardar según el tamaño del archivo.{'\n'}
+                    El procesamiento puede tardar segÃºn el tamaÃ±o del archivo.{'\n'}
                     No cierres esta pantalla.
                   </Text>
                 </View>
@@ -540,7 +540,7 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <View style={[styles.stepBadge, { backgroundColor: theme.color.icon.success }]}>
-                    <Ionicons name="checkmark" size={16} color={theme.color.text.inverse} />
+                    <Ionicons name="checkmark" size={16} color={theme.color.brand.onHeader} />
                   </View>
                   <Text style={styles.sectionTitle}>Resultado</Text>
                 </View>
@@ -557,14 +557,14 @@ export const TreasuryUploadFilesScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.infoTitle}>Formatos Soportados</Text>
               </View>
               <Text style={styles.infoText}>
-                • <Text style={styles.infoBold}>ZIP:</Text> Archivo ZIP de Interbank con múltiples Excel{'\n'}
-                • <Text style={styles.infoBold}>XLSX:</Text> Archivo Excel individual{'\n'}
-                • <Text style={styles.infoBold}>XLS:</Text> Archivo Excel antiguo{'\n\n'}
-                <Text style={styles.infoBold}>Detección Automática:</Text>{'\n'}
-                • Banco por formato del contenido{'\n'}
-                • Cuenta bancaria por nombre del archivo{'\n'}
-                • Moneda (Soles o Dólares){'\n'}
-                • Tipo de cuenta (Corriente, Ahorros, etc.)
+                â€¢ <Text style={styles.infoBold}>ZIP:</Text> Archivo ZIP de Interbank con mÃºltiples Excel{'\n'}
+                â€¢ <Text style={styles.infoBold}>XLSX:</Text> Archivo Excel individual{'\n'}
+                â€¢ <Text style={styles.infoBold}>XLS:</Text> Archivo Excel antiguo{'\n\n'}
+                <Text style={styles.infoBold}>DetecciÃ³n AutomÃ¡tica:</Text>{'\n'}
+                â€¢ Banco por formato del contenido{'\n'}
+                â€¢ Cuenta bancaria por nombre del archivo{'\n'}
+                â€¢ Moneda (Soles o DÃ³lares){'\n'}
+                â€¢ Tipo de cuenta (Corriente, Ahorros, etc.)
               </Text>
             </View>
           </AnimatedCard>
@@ -625,7 +625,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
@@ -664,7 +664,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   stepNumber: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.bold,
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   sectionTitle: {
     fontSize: fontSizes.lg,
@@ -782,7 +782,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   uploadButtonText: {
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.semibold,
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   processingWarning: {
     flexDirection: 'row',
@@ -829,7 +829,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   resultBankText: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   resultDuration: {
     fontSize: fontSizes.sm,

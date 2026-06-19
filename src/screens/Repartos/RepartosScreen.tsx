@@ -1,5 +1,5 @@
-/**
- * RepartosScreen - Rediseñado con Design System
+﻿/**
+ * RepartosScreen - RediseÃ±ado con Design System
  *
  * Pantalla de listado de repartos profesional y moderna.
  */
@@ -71,7 +71,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     [CampaignStatus.CANCELLED]: theme.color.state.cancelled,
   }), [theme]);
 
-  // ✅ Por defecto mostrar todas menos canceladas y borrador
+  // âœ… Por defecto mostrar todas menos canceladas y borrador
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL' | 'NOT_CANCELLED_DRAFT'>('NOT_CANCELLED_DRAFT');
   const [exportingCampaignId, setExportingCampaignId] = useState<string | null>(null);
   const [showProductSelectionModal, setShowProductSelectionModal] = useState(false);
@@ -90,7 +90,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
 
-  // Build query params con paginación
+  // Build query params con paginaciÃ³n
   const queryParams = useMemo(() => {
     const params: any = {
       page: currentPage,
@@ -227,7 +227,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       const uniqueProducts = Array.from(productMap.values());
 
       if (uniqueProducts.length === 0) {
-        Alert.alert('Sin productos', 'Esta campaña no tiene productos para exportar');
+        Alert.alert('Sin productos', 'Esta campaÃ±a no tiene productos para exportar');
         return;
       }
 
@@ -253,7 +253,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       setShowProductSelectionModal(true);
     } catch (error: any) {
       logger.error('Error loading products:', error);
-      Alert.alert('No se pudieron cargar los productos de la campaña');
+      Alert.alert('No se pudieron cargar los productos de la campaÃ±a');
     }
   }, []);
 
@@ -297,7 +297,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       try {
         await downloadTracker.registerDownloads(selectedCampaign.id, selectedProductsForExport);
       } catch (error) {
-        logger.warn('⚠️ No se pudo registrar la descarga:', error);
+        logger.warn('âš ï¸ No se pudo registrar la descarga:', error);
       }
 
       const timestamp = new Date().getTime();
@@ -312,7 +312,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       });
 
       if (Platform.OS === 'web') {
-        Alert.alert('Éxito', `Las hojas de reparto se están descargando`);
+        Alert.alert('Ã‰xito', `Las hojas de reparto se estÃ¡n descargando`);
       }
     } catch (error: any) {
       logger.error('Error exporting distribution sheets:', error);
@@ -423,7 +423,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                   validated={progress.validated}
                   fontSize={isTablet ? 14 : 12}
                 />
-                <Caption color="tertiary" style={{ marginTop: theme.space[2] }}>Validación</Caption>
+                <Caption color="tertiary" style={{ marginTop: theme.space[2] }}>ValidaciÃ³n</Caption>
               </View>
             )}
           </View>
@@ -443,7 +443,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         {/* Footer */}
         <View style={styles.cardFooter}>
           <Caption color="tertiary">Creado: {formatDate(campaign.createdAt)}</Caption>
-          <Text variant="titleLarge" color={theme.color.border.default}>›</Text>
+          <Text variant="titleLarge" color={theme.color.border.default}>â€º</Text>
         </View>
 
         {/* Export Button */}
@@ -454,8 +454,8 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
             disabled={isExporting}
             activeOpacity={0.7}
           >
-            <Text variant="buttonSmall" color={theme.color.text.inverse}>
-              {isExporting ? '📄 Generando...' : '📄 Descargar Hojas de Reparto'}
+            <Text variant="buttonSmall" color={theme.color.brand.onHeader}>
+              {isExporting ? 'ðŸ“„ Generando...' : 'ðŸ“„ Descargar Hojas de Reparto'}
             </Text>
           </TouchableOpacity>
         )}
@@ -481,14 +481,14 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Repartos</Text>
               </View>
-              <Text style={styles.headerSubtitle}>Distribución de campañas</Text>
+              <Text style={styles.headerSubtitle}>DistribuciÃ³n de campaÃ±as</Text>
             </View>
           </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-            Cargando campañas...
+            Cargando campaÃ±as...
           </Text>
         </View>
       </View>
@@ -513,14 +513,14 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Repartos</Text>
               </View>
-              <Text style={styles.headerSubtitle}>Distribución de campañas</Text>
+              <Text style={styles.headerSubtitle}>DistribuciÃ³n de campaÃ±as</Text>
             </View>
 
             {/* Stats */}
             <View style={styles.statsHeaderContainer}>
               <View style={styles.statHeaderItem}>
                 <Text style={styles.statHeaderValue}>{paginationData.total}</Text>
-                <Text style={styles.statHeaderLabel}>Campañas</Text>
+                <Text style={styles.statHeaderLabel}>CampaÃ±as</Text>
               </View>
             </View>
           </View>
@@ -554,8 +554,8 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           ListEmptyComponent={
             <EmptyState
               icon="calendar-outline"
-              title="No hay campañas disponibles"
-              description="Las campañas con repartos aparecerán aquí"
+              title="No hay campaÃ±as disponibles"
+              description="Las campaÃ±as con repartos aparecerÃ¡n aquÃ­"
             />
           }
           windowSize={5}
@@ -610,7 +610,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                   onPress={() => handleDownloadDistributionSheets('pdf')}
                   disabled={exportingCampaignId !== null}
                 >
-                  <Text style={styles.formatButtonIcon}>📄</Text>
+                  <Text style={styles.formatButtonIcon}>ðŸ“„</Text>
                   <Text variant="titleSmall" color="primary">PDF</Text>
                   <Caption color="secondary" align="center">Hojas detalladas</Caption>
                 </TouchableOpacity>
@@ -620,7 +620,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                   onPress={() => handleDownloadDistributionSheets('excel')}
                   disabled={exportingCampaignId !== null}
                 >
-                  <Text style={styles.formatButtonIcon}>📊</Text>
+                  <Text style={styles.formatButtonIcon}>ðŸ“Š</Text>
                   <Text variant="titleSmall" color="primary">Excel</Text>
                   <Caption color="secondary" align="center">Resumen en tabla</Caption>
                 </TouchableOpacity>

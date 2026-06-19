@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -61,7 +61,7 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Helper para obtener valores numéricos seguros
+  // Helper para obtener valores numÃ©ricos seguros
   const getSafeNumber = (value: number | undefined, defaultValue: number = 0): number => {
     return typeof value === 'number' ? value : defaultValue;
   };
@@ -78,13 +78,13 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
     return value ? parseFloat(value) : 0;
   };
 
-  // Helper para enriquecer datos de la retención con datos del XML
+  // Helper para enriquecer datos de la retenciÃ³n con datos del XML
   const enrichRetencionData = (retencion: Retencion): Retencion => {
     if (!retencion.payloadXml) return retencion;
 
     const xml = retencion.payloadXml;
 
-    // Parsear datos del proveedor si no están presentes
+    // Parsear datos del proveedor si no estÃ¡n presentes
     if (!retencion.razonSocialProveedor) {
       retencion.razonSocialProveedor = parseXmlData(xml, 'razonSocialProveedor') || undefined;
     }
@@ -95,7 +95,7 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
       retencion.direccionProveedor = parseXmlData(xml, 'direccionProveedor') || undefined;
     }
 
-    // Parsear datos numéricos si no están presentes
+    // Parsear datos numÃ©ricos si no estÃ¡n presentes
     if (!retencion.tasaRetencion) {
       retencion.tasaRetencion = parseXmlNumber(xml, 'tasaRetencion');
     }
@@ -121,7 +121,7 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       setLoading(true);
-      console.log('🔄 [RETENCIONES] Loading retenciones...', {
+      console.log('ðŸ”„ [RETENCIONES] Loading retenciones...', {
         timestamp: new Date().toISOString(),
         currentCompany: currentCompany.id,
         currentSite: currentSite.id,
@@ -143,12 +143,12 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       const data = await bizlinksApi.getRetenciones(params);
-      console.log(`📦 Received ${data.length} retenciones from API`);
+      console.log(`ðŸ“¦ Received ${data.length} retenciones from API`);
 
-      // Enriquecer cada retención con datos del XML
+      // Enriquecer cada retenciÃ³n con datos del XML
       const enrichedData = data.map((retencion, index) => {
         const enriched = enrichRetencionData(retencion);
-        console.log(`✨ Enriched retencion ${index + 1}/${data.length}:`, {
+        console.log(`âœ¨ Enriched retencion ${index + 1}/${data.length}:`, {
           serieNumero: enriched.serieNumero,
           razonSocialProveedor: enriched.razonSocialProveedor,
           numeroDocumentoProveedor: enriched.numeroDocumentoProveedor,
@@ -159,10 +159,10 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
         return enriched;
       });
 
-      console.log('✅ All retenciones enriched successfully');
+      console.log('âœ… All retenciones enriched successfully');
       setRetenciones(enrichedData);
     } catch (error: any) {
-      console.error('❌ Error loading retenciones:', error);
+      console.error('âŒ Error loading retenciones:', error);
       Alert.alert('Error', error.message || 'Error al cargar retenciones');
     } finally {
       setLoading(false);
@@ -173,21 +173,21 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
   // Cargar al montar y al hacer focus
   useFocusEffect(
     useCallback(() => {
-      console.log('👁️ [RETENCIONES] Screen focused - loading retenciones');
+      console.log('ðŸ‘ï¸ [RETENCIONES] Screen focused - loading retenciones');
       loadRetenciones();
     }, [loadRetenciones])
   );
 
-  // Recargar cuando cambie el término de búsqueda o el estado seleccionado
-  // NOTA: Solo recargar si la pantalla ya está cargada (no en el primer render)
+  // Recargar cuando cambie el tÃ©rmino de bÃºsqueda o el estado seleccionado
+  // NOTA: Solo recargar si la pantalla ya estÃ¡ cargada (no en el primer render)
   useEffect(() => {
-    // Skip en el primer render (loading será true)
+    // Skip en el primer render (loading serÃ¡ true)
     if (loading) {
-      console.log('⏭️ [RETENCIONES] Skipping reload - still loading');
+      console.log('â­ï¸ [RETENCIONES] Skipping reload - still loading');
       return;
     }
 
-    console.log('🔄 [RETENCIONES] Filter changed - reloading', {
+    console.log('ðŸ”„ [RETENCIONES] Filter changed - reloading', {
       debouncedSearchTerm,
       selectedStatus,
     });
@@ -300,11 +300,11 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
       <Ionicons name="document-text-outline" size={64} color={theme.color.icon.disabled} />
       <Text style={styles.emptyStateTitle}>No hay retenciones</Text>
       <Text style={styles.emptyStateText}>
-        Crea tu primera retención electrónica
+        Crea tu primera retenciÃ³n electrÃ³nica
       </Text>
       <TouchableOpacity style={styles.emptyButton} onPress={handleCreateRetencion}>
-        <Ionicons name="add-circle-outline" size={20} color={theme.color.text.inverse} />
-        <Text style={styles.emptyButtonText}>Crear Retención</Text>
+        <Ionicons name="add-circle-outline" size={20} color={theme.color.brand.onHeader} />
+        <Text style={styles.emptyButtonText}>Crear RetenciÃ³n</Text>
       </TouchableOpacity>
     </View>
   );
@@ -321,19 +321,19 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="receipt" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="receipt" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
                   Retenciones
                 </Text>
               </View>
               <Text style={styles.headerSubtitle}>
-                Gestión de retenciones electrónicas
+                GestiÃ³n de retenciones electrÃ³nicas
               </Text>
             </View>
 
@@ -421,7 +421,7 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
         {/* Floating Action Button */}
         {!loading && retenciones.length > 0 && (
           <TouchableOpacity style={styles.fab} onPress={handleCreateRetencion}>
-            <Ionicons name="add" size={28} color={theme.color.text.inverse} />
+            <Ionicons name="add" size={28} color={theme.color.brand.onHeader} />
           </TouchableOpacity>
         )}
       </SafeAreaView>
@@ -473,7 +473,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   headerTitleTablet: {
@@ -498,7 +498,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statLabel: {
     fontSize: 11,
@@ -567,7 +567,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   filterChipTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   filterDot: {
     width: 8,
@@ -628,7 +628,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   documentTypeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   cardHeaderInfo: {
     flex: 1,
@@ -651,7 +651,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   cardBody: {
     padding: theme.space[4],
@@ -756,7 +756,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   emptyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   fab: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PurchasesScreen - Lista de Compras
  * Migrado al Design System unificado
  */
@@ -254,15 +254,15 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       try {
         setDownloadingReportId(purchase.id);
 
-        logger.info('🔄 Descargando reporte de compra...');
+        logger.info('ðŸ”„ Descargando reporte de compra...');
         const startTime = new Date().getTime();
 
         const pdfBlob = await purchasesService.downloadPurchaseReportPdf(purchase.id);
 
         const endTime = new Date().getTime();
-        logger.info('✅ PDF descargado del servidor');
-        logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-        logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
+        logger.info('âœ… PDF descargado del servidor');
+        logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
+        logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
 
         const timestamp = new Date().getTime();
         const fileName = `reporte-compra-${purchase.code}-${timestamp}.pdf`;
@@ -270,7 +270,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
         await saveAndSharePdf(pdfBlob, fileName, `Reporte de Compra - ${purchase.code}`);
 
         if (Platform.OS === 'web') {
-          Alert.alert('Éxito', 'El reporte se está descargando');
+          Alert.alert('Ã‰xito', 'El reporte se estÃ¡ descargando');
         }
       } catch (error: any) {
         logger.error('Error downloading report:', error);
@@ -376,7 +376,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           </View>
 
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Guía:</Label>
+            <Label color="secondary" style={styles.infoLabel}>GuÃ­a:</Label>
             <Body style={styles.infoValue}>{purchase.guideNumber}</Body>
           </View>
 
@@ -399,7 +399,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                 fontSize={isTablet ? 14 : 12}
               />
               <Caption color="secondary" style={styles.progressLabel}>
-                Validación
+                ValidaciÃ³n
               </Caption>
             </View>
           )}
@@ -417,11 +417,11 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                 activeOpacity={0.7}
               >
                 {isDownloading ? (
-                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
+                  <ActivityIndicator size="small" color={theme.color.brand.onHeader} />
                 ) : (
                   <>
-                    <Ionicons name="document-text-outline" size={14} color={theme.color.text.inverse} />
-                    <Caption color={theme.color.text.inverse} style={styles.downloadButtonText}>
+                    <Ionicons name="document-text-outline" size={14} color={theme.color.brand.onHeader} />
+                    <Caption color={theme.color.brand.onHeader} style={styles.downloadButtonText}>
                       Reporte
                     </Caption>
                   </>
@@ -448,11 +448,11 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="cart" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Title size="large" style={styles.headerTitle}>Compras</Title>
               </View>
-              <Body style={styles.headerSubtitle}>Gestión de compras y validación</Body>
+              <Body style={styles.headerSubtitle}>GestiÃ³n de compras y validaciÃ³n</Body>
             </View>
           </View>
         </LinearGradient>
@@ -478,11 +478,11 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="cart" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Title size="large" style={styles.headerTitle}>Compras</Title>
               </View>
-              <Body style={styles.headerSubtitle}>Gestión de compras y validación</Body>
+              <Body style={styles.headerSubtitle}>GestiÃ³n de compras y validaciÃ³n</Body>
             </View>
 
             {/* Stats */}
@@ -502,7 +502,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchTerm}
                 onChangeText={setSearchTerm}
-                placeholder="Buscar por código, proveedor, productos..."
+                placeholder="Buscar por cÃ³digo, proveedor, productos..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
               {searchTerm.length > 0 && (
@@ -565,8 +565,8 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
               <Label color="secondary">Filtrar por:</Label>
               <View style={styles.dateFieldButtons}>
                 {[
-                  { field: 'guideDate' as DateFieldType, label: 'Fecha de Guía' },
-                  { field: 'createdAt' as DateFieldType, label: 'Fecha de Creación' },
+                  { field: 'guideDate' as DateFieldType, label: 'Fecha de GuÃ­a' },
+                  { field: 'createdAt' as DateFieldType, label: 'Fecha de CreaciÃ³n' },
                   { field: 'closedAt' as DateFieldType, label: 'Fecha de Cierre' },
                 ].map(({ field, label }) => (
                   <TouchableOpacity
@@ -582,7 +582,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                     activeOpacity={0.7}
                   >
                     <Caption
-                      color={dateField === field ? theme.color.text.inverse : 'secondary'}
+                      color={dateField === field ? theme.color.brand.onHeader : 'secondary'}
                     >
                       {label}
                     </Caption>
@@ -727,7 +727,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginRight: theme.space[3],
   },
   headerTitle: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   headerSubtitle: {
     color: theme.color.brand.onHeaderMuted,
@@ -746,7 +746,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,

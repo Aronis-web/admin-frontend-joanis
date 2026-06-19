@@ -1,8 +1,8 @@
-/**
+﻿/**
  * BankOperationsScreen.tsx
  *
  * Pantalla para listar, filtrar y paginar operaciones bancarias.
- * Muestra transacciones de tesorería con múltiples filtros avanzados.
+ * Muestra transacciones de tesorerÃ­a con mÃºltiples filtros avanzados.
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -213,11 +213,11 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         params.maxAmountCents = Math.round(parseFloat(maxAmount) * 100);
       }
 
-      console.log('🔍 Loading bank transactions with params:', params);
+      console.log('ðŸ” Loading bank transactions with params:', params);
 
       const response = await treasuryApi.getTransactions(params);
 
-      console.log('✅ Bank transactions loaded:', {
+      console.log('âœ… Bank transactions loaded:', {
         total: response.total,
         itemsInPage: response.data.length,
         page,
@@ -231,7 +231,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         totalPages: response.totalPages || Math.ceil(response.total / 50),
       });
     } catch (error: any) {
-      console.error('❌ Error loading bank transactions:', error);
+      console.error('âŒ Error loading bank transactions:', error);
       const errorMessage =
         error.response?.data?.message || error.message || 'No se pudieron cargar las operaciones bancarias';
       Alert.alert('Error', errorMessage);
@@ -465,7 +465,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             {/* Direction Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Dirección</Text>
+              <Text style={styles.filterSectionTitle}>DirecciÃ³n</Text>
               <View style={styles.filterChips}>
                 <TouchableOpacity
                   style={[styles.filterChip, selectedDirection === null && styles.filterChipActive]}
@@ -488,7 +488,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                     <Ionicons
                       name={direction === TransactionDirection.INGRESO ? 'arrow-down-circle' : 'arrow-up-circle'}
                       size={16}
-                      color={selectedDirection === direction ? theme.color.text.inverse : DIRECTION_COLORS[direction]}
+                      color={selectedDirection === direction ? theme.color.brand.onHeader : DIRECTION_COLORS[direction]}
                     />
                     <Text
                       style={[
@@ -505,7 +505,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Assignment Status Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Estado de Asignación</Text>
+              <Text style={styles.filterSectionTitle}>Estado de AsignaciÃ³n</Text>
               <View style={styles.filterChips}>
                 <TouchableOpacity
                   style={[styles.filterChip, selectedAssignmentStatus === null && styles.filterChipActive]}
@@ -649,7 +649,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.filterSectionTitle}>Rango de Montos</Text>
               <View style={styles.amountInputsContainer}>
                 <View style={styles.amountInputWrapper}>
-                  <Text style={styles.amountInputLabel}>Mínimo</Text>
+                  <Text style={styles.amountInputLabel}>MÃ­nimo</Text>
                   <TextInput
                     style={styles.amountInput}
                     placeholder="0.00"
@@ -660,7 +660,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                   />
                 </View>
                 <View style={styles.amountInputWrapper}>
-                  <Text style={styles.amountInputLabel}>Máximo</Text>
+                  <Text style={styles.amountInputLabel}>MÃ¡ximo</Text>
                   <TextInput
                     style={styles.amountInput}
                     placeholder="0.00"
@@ -680,7 +680,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                 {[
                   { key: 'transactionDate', label: 'Fecha' },
                   { key: 'amountCents', label: 'Monto' },
-                  { key: 'direction', label: 'Dirección' },
+                  { key: 'direction', label: 'DirecciÃ³n' },
                   { key: 'assignmentStatus', label: 'Estado' },
                 ].map((option) => (
                   <TouchableOpacity
@@ -707,7 +707,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name="arrow-up"
                     size={16}
-                    color={sortOrder === 'ASC' ? theme.color.text.inverse : theme.color.icon.muted}
+                    color={sortOrder === 'ASC' ? theme.color.brand.onHeader : theme.color.icon.muted}
                   />
                   <Text
                     style={[
@@ -725,7 +725,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name="arrow-down"
                     size={16}
-                    color={sortOrder === 'DESC' ? theme.color.text.inverse : theme.color.icon.muted}
+                    color={sortOrder === 'DESC' ? theme.color.brand.onHeader : theme.color.icon.muted}
                   />
                   <Text
                     style={[
@@ -768,18 +768,18 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="swap-horizontal-outline" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="swap-horizontal-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.titleGradient, isTablet && styles.titleTabletGradient]}>
                   Operaciones Bancarias
                 </Text>
               </View>
-              <Text style={styles.subtitleGradient}>Tesorería - Transacciones</Text>
+              <Text style={styles.subtitleGradient}>TesorerÃ­a - Transacciones</Text>
             </View>
             <View style={styles.statsHeaderContainer}>
               <View style={styles.statHeaderItem}>
@@ -795,7 +795,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons name="search" size={20} color={theme.color.text.placeholder} style={styles.searchIcon} />
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                placeholder="Buscar descripción, contraparte, nro. operación..."
+                placeholder="Buscar descripciÃ³n, contraparte, nro. operaciÃ³n..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor={theme.color.text.placeholder}
@@ -823,7 +823,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                 )
               }
             >
-              <Ionicons name="arrow-down-circle" size={16} color={selectedDirection === TransactionDirection.INGRESO ? theme.color.text.inverse : DIRECTION_COLORS[TransactionDirection.INGRESO]} />
+              <Ionicons name="arrow-down-circle" size={16} color={selectedDirection === TransactionDirection.INGRESO ? theme.color.brand.onHeader : DIRECTION_COLORS[TransactionDirection.INGRESO]} />
               <Text
                 style={[
                   styles.quickFilterText,
@@ -844,7 +844,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                 )
               }
             >
-              <Ionicons name="arrow-up-circle" size={16} color={selectedDirection === TransactionDirection.EGRESO ? theme.color.text.inverse : DIRECTION_COLORS[TransactionDirection.EGRESO]} />
+              <Ionicons name="arrow-up-circle" size={16} color={selectedDirection === TransactionDirection.EGRESO ? theme.color.brand.onHeader : DIRECTION_COLORS[TransactionDirection.EGRESO]} />
               <Text
                 style={[
                   styles.quickFilterText,
@@ -865,7 +865,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                 )
               }
             >
-              <Text style={styles.quickFilterIcon}>⏳</Text>
+              <Text style={styles.quickFilterIcon}>â³</Text>
               <Text
                 style={[
                   styles.quickFilterText,
@@ -886,7 +886,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
                 )
               }
             >
-              <Text style={styles.quickFilterIcon}>✓</Text>
+              <Text style={styles.quickFilterIcon}>âœ“</Text>
               <Text
                 style={[
                   styles.quickFilterText,
@@ -901,7 +901,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
             style={[styles.filterButton, activeFiltersCount > 0 && styles.filterButtonActive]}
             onPress={() => setShowFiltersModal(true)}
           >
-            <Ionicons name="options" size={20} color={activeFiltersCount > 0 ? theme.color.text.inverse : theme.color.icon.muted} />
+            <Ionicons name="options" size={20} color={activeFiltersCount > 0 ? theme.color.brand.onHeader : theme.color.icon.muted} />
             {activeFiltersCount > 0 && (
               <View style={styles.filterBadge}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -972,7 +972,7 @@ export const BankOperationsScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.paginationInfo}>
               <Text style={styles.paginationText}>
-                Pág. {pagination.page}/{pagination.totalPages}
+                PÃ¡g. {pagination.page}/{pagination.totalPages}
               </Text>
               <Text style={styles.paginationSubtext}>
                 {transactions.length} de {pagination.total}
@@ -1061,7 +1061,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   titleTabletGradient: {
@@ -1086,7 +1086,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
@@ -1163,7 +1163,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.body,
   },
   quickFilterTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   filterButton: {
     width: 44,
@@ -1194,7 +1194,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   filterBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
 
   // Content
@@ -1590,7 +1590,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.body,
   },
   filterChipTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
 
   // Date inputs
@@ -1694,7 +1694,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   sortOrderTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
 
   // Buttons
@@ -1720,7 +1720,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   applyButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
 });
 

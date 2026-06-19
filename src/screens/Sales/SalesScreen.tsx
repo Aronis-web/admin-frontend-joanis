@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -97,7 +97,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
       const response = await salesApi.getSales(params);
 
-      logger.info('📊 Ventas cargadas:', response.data.length);
+      logger.info('ðŸ“Š Ventas cargadas:', response.data.length);
       setSales(response.data);
       setPage(response.page);
       setTotalPages(response.totalPages);
@@ -233,7 +233,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                   {getSaleStatusLabel(sale.status)}
                 </Text>
               </View>
-              {/* Nota de Crédito */}
+              {/* Nota de CrÃ©dito */}
               {sale.hasCreditNote && (
                 <View style={[styles.badge, { backgroundColor: theme.color.state.warning.background }]}>
                   <Ionicons name="document-text-outline" size={12} color={theme.color.state.warning.text} />
@@ -359,7 +359,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
         <Ionicons
           name={icon as any}
           size={14}
-          color={currentValue === value ? theme.color.text.inverse : theme.color.text.subtle}
+          color={currentValue === value ? theme.color.brand.onHeader : theme.color.text.subtle}
           style={{ marginRight: 4 }}
         />
       )}
@@ -391,7 +391,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                 <Text style={[styles.title, isTablet && styles.titleTablet]}>Ventas</Text>
               </View>
               <Text style={styles.subtitle}>
-                Gestión de ventas B2C y B2B
+                GestiÃ³n de ventas B2C y B2B
               </Text>
             </View>
 
@@ -412,7 +412,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchText}
                 onChangeText={setSearchText}
-                placeholder="Buscar por código, cliente..."
+                placeholder="Buscar por cÃ³digo, cliente..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
               {searchText.length > 0 && (
@@ -428,7 +428,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <Ionicons
                 name="options"
                 size={20}
-                color={getActiveFiltersCount() > 0 ? theme.color.text.inverse : theme.color.text.muted}
+                color={getActiveFiltersCount() > 0 ? theme.color.brand.onHeader : theme.color.text.muted}
               />
               {getActiveFiltersCount() > 0 && (
                 <View style={styles.filterBadge}>
@@ -493,7 +493,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                   Crea una nueva venta para comenzar
                 </Text>
                 <TouchableOpacity style={styles.emptyButton} onPress={handleCreateSale}>
-                  <Ionicons name="add" size={20} color={theme.color.text.inverse} />
+                  <Ionicons name="add" size={20} color={theme.color.brand.onHeader} />
                   <Text style={styles.emptyButtonText}>Nueva Venta</Text>
                 </TouchableOpacity>
               </View>
@@ -529,7 +529,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <Ionicons
                 name="chevron-back"
                 size={20}
-                color={page === 1 ? theme.color.border.default : theme.color.text.inverse}
+                color={page === 1 ? theme.color.border.default : theme.color.brand.onHeader}
               />
               <Text style={[
                 styles.paginationButtonText,
@@ -541,7 +541,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
             <View style={styles.paginationInfo}>
               <Text style={styles.paginationText}>
-                Página {page} de {totalPages}
+                PÃ¡gina {page} de {totalPages}
               </Text>
               <Text style={styles.paginationSubtext}>
                 {sales.length} de {total} ventas
@@ -565,7 +565,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
               <Ionicons
                 name="chevron-forward"
                 size={20}
-                color={page >= totalPages ? theme.color.border.default : theme.color.text.inverse}
+                color={page >= totalPages ? theme.color.border.default : theme.color.brand.onHeader}
               />
             </TouchableOpacity>
           </View>
@@ -658,7 +658,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                       style={[styles.filterOption, filterSaleOrigin === 'INDEPENDENT' && styles.filterOptionActive]}
                       onPress={() => setFilterSaleOrigin('INDEPENDENT')}
                     >
-                      <Ionicons name="person-outline" size={16} color={filterSaleOrigin === 'INDEPENDENT' ? theme.color.text.inverse : theme.color.text.muted} />
+                      <Ionicons name="person-outline" size={16} color={filterSaleOrigin === 'INDEPENDENT' ? theme.color.brand.onHeader : theme.color.text.muted} />
                       <Text style={[styles.filterOptionText, filterSaleOrigin === 'INDEPENDENT' && styles.filterOptionTextActive]}>
                         Independientes
                       </Text>
@@ -667,7 +667,7 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
                       style={[styles.filterOption, filterSaleOrigin === 'CASH_REGISTER' && styles.filterOptionActive]}
                       onPress={() => setFilterSaleOrigin('CASH_REGISTER')}
                     >
-                      <Ionicons name="cash-outline" size={16} color={filterSaleOrigin === 'CASH_REGISTER' ? theme.color.text.inverse : theme.color.text.muted} />
+                      <Ionicons name="cash-outline" size={16} color={filterSaleOrigin === 'CASH_REGISTER' ? theme.color.brand.onHeader : theme.color.text.muted} />
                       <Text style={[styles.filterOptionText, filterSaleOrigin === 'CASH_REGISTER' && styles.filterOptionTextActive]}>
                         De Caja
                       </Text>
@@ -828,7 +828,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   filterBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   quickFiltersContainer: {
     backgroundColor: theme.color.surface.base,
@@ -862,7 +862,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   filterChipTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   filterDivider: {
     width: 1,
@@ -1078,7 +1078,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   emptyButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   loadingMore: {
     paddingVertical: theme.space[5],
@@ -1112,7 +1112,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   paginationButtonTextDisabled: {
     color: theme.color.text.placeholder,
@@ -1195,7 +1195,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   filterOptionTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   filterDot: {
     width: 8,
@@ -1231,6 +1231,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   applyFiltersButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
 });

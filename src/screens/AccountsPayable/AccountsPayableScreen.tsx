@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -155,12 +155,12 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
         params.overdue = true;
       }
 
-      console.log('🔍 Loading accounts payable with params:', params);
+      console.log('ðŸ” Loading accounts payable with params:', params);
 
       // Use standard endpoint for better performance (no details needed for list)
       const response = await accountsPayableService.getAccountsPayable(params);
 
-      console.log('✅ Accounts payable loaded:', {
+      console.log('âœ… Accounts payable loaded:', {
         total: response.total,
         itemsInPage: response.data.length,
         page,
@@ -175,7 +175,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
       });
       setSummary(response.summary);
     } catch (error: any) {
-      console.error('❌ Error loading accounts payable:', error);
+      console.error('âŒ Error loading accounts payable:', error);
       const errorMessage =
         error.response?.data?.message || error.message || 'No se pudieron cargar las cuentas por pagar';
       Alert.alert('Error', errorMessage);
@@ -278,7 +278,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
 
         {/* Supplier */}
         <View style={styles.supplierSection}>
-          <Text style={styles.supplierIcon}>🏢</Text>
+          <Text style={styles.supplierIcon}>ðŸ¢</Text>
           <View style={styles.supplierInfo}>
             <Text style={styles.supplierName} numberOfLines={1}>
               {item.supplierName}
@@ -318,23 +318,23 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
         {/* Dates */}
         <View style={styles.datesSection}>
           <View style={styles.dateItem}>
-            <Text style={styles.dateIcon}>📅</Text>
+            <Text style={styles.dateIcon}>ðŸ“…</Text>
             <View>
-              <Text style={styles.dateLabel}>Emisión</Text>
+              <Text style={styles.dateLabel}>EmisiÃ³n</Text>
               <Text style={styles.dateValue}>{formatDate(item.issueDate)}</Text>
             </View>
           </View>
           <View style={styles.dateItem}>
-            <Text style={styles.dateIcon}>⏰</Text>
+            <Text style={styles.dateIcon}>â°</Text>
             <View>
               <Text style={styles.dateLabel}>Vencimiento</Text>
               <Text style={[styles.dateValue, isOverdue && styles.dateOverdue]}>
                 {formatDate(item.dueDate)}
               </Text>
               {isOverdue ? (
-                <Text style={styles.overdueBadge}>Vencido hace {item.overdueDays} días</Text>
+                <Text style={styles.overdueBadge}>Vencido hace {item.overdueDays} dÃ­as</Text>
               ) : daysUntilDue <= 7 && daysUntilDue >= 0 ? (
-                <Text style={styles.dueSoonBadge}>Vence en {daysUntilDue} días</Text>
+                <Text style={styles.dueSoonBadge}>Vence en {daysUntilDue} dÃ­as</Text>
               ) : null}
             </View>
           </View>
@@ -345,7 +345,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
           <View style={styles.metaSection}>
             {item.documentNumber && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaIcon}>📄</Text>
+                <Text style={styles.metaIcon}>ðŸ“„</Text>
                 <Text style={styles.metaText}>{item.documentNumber}</Text>
               </View>
             )}
@@ -388,7 +388,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filtros Avanzados</Text>
             <TouchableOpacity onPress={() => setShowFiltersModal(false)}>
-              <Text style={styles.modalClose}>✕</Text>
+              <Text style={styles.modalClose}>âœ•</Text>
             </TouchableOpacity>
           </View>
 
@@ -480,7 +480,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
                 style={[styles.filterToggle, showOverdueOnly && styles.filterToggleActive]}
                 onPress={() => setShowOverdueOnly(!showOverdueOnly)}
               >
-                <Text style={styles.filterToggleIcon}>⚠️</Text>
+                <Text style={styles.filterToggleIcon}>âš ï¸</Text>
                 <Text
                   style={[
                     styles.filterToggleText,
@@ -490,7 +490,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
                   Solo vencidas
                 </Text>
                 <View style={[styles.checkbox, showOverdueOnly && styles.checkboxActive]}>
-                  {showOverdueOnly && <Text style={styles.checkmark}>✓</Text>}
+                  {showOverdueOnly && <Text style={styles.checkmark}>âœ“</Text>}
                 </View>
               </TouchableOpacity>
             </View>
@@ -501,10 +501,10 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
               <View style={styles.sortOptions}>
                 {[
                   { key: 'dueDate', label: 'Fecha Vencimiento' },
-                  { key: 'issueDate', label: 'Fecha Emisión' },
+                  { key: 'issueDate', label: 'Fecha EmisiÃ³n' },
                   { key: 'totalAmountCents', label: 'Monto Total' },
                   { key: 'remainingAmountCents', label: 'Saldo Pendiente' },
-                  { key: 'overdueDays', label: 'Días Atraso' },
+                  { key: 'overdueDays', label: 'DÃ­as Atraso' },
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.key}
@@ -527,7 +527,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
                   style={[styles.sortOrderButton, sortOrder === 'ASC' && styles.sortOrderButtonActive]}
                   onPress={() => setSortOrder('ASC')}
                 >
-                  <Text style={styles.sortOrderIcon}>↑</Text>
+                  <Text style={styles.sortOrderIcon}>â†‘</Text>
                   <Text
                     style={[
                       styles.sortOrderText,
@@ -541,7 +541,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
                   style={[styles.sortOrderButton, sortOrder === 'DESC' && styles.sortOrderButtonActive]}
                   onPress={() => setSortOrder('DESC')}
                 >
-                  <Text style={styles.sortOrderIcon}>↓</Text>
+                  <Text style={styles.sortOrderIcon}>â†“</Text>
                   <Text
                     style={[
                       styles.sortOrderText,
@@ -589,16 +589,16 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={theme.color.text.inverse} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="wallet-outline" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="wallet-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.titleGradient, isTablet && styles.titleTabletGradient]}>Cuentas por Pagar</Text>
               </View>
-              <Text style={styles.subtitleGradient}>Gestión de deudas con proveedores</Text>
+              <Text style={styles.subtitleGradient}>GestiÃ³n de deudas con proveedores</Text>
             </View>
             <View style={styles.statsHeaderContainer}>
               <View style={styles.statHeaderItem}>
@@ -614,7 +614,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
               <Ionicons name="search" size={20} color={theme.color.icon.disabled} style={styles.searchIconGradient} />
               <TextInput
                 style={[styles.searchInputGradient, isTablet && styles.searchInputTabletGradient]}
-                placeholder="Buscar por código, proveedor, RUC..."
+                placeholder="Buscar por cÃ³digo, proveedor, RUC..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor={theme.color.text.placeholder}
@@ -635,7 +635,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
             style={[styles.quickFilterChip, showOverdueOnly && styles.quickFilterChipActive]}
             onPress={() => setShowOverdueOnly(!showOverdueOnly)}
           >
-            <Text style={styles.quickFilterIcon}>⚠️</Text>
+            <Text style={styles.quickFilterIcon}>âš ï¸</Text>
             <Text
               style={[
                 styles.quickFilterText,
@@ -653,7 +653,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
             ]}
             onPress={() => toggleStatus(AccountPayableStatus.PENDING)}
           >
-            <Text style={styles.quickFilterIcon}>⏰</Text>
+            <Text style={styles.quickFilterIcon}>â°</Text>
             <Text
               style={[
                 styles.quickFilterText,
@@ -672,7 +672,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
             ]}
             onPress={() => toggleStatus(AccountPayableStatus.PARTIAL)}
           >
-            <Text style={styles.quickFilterIcon}>💰</Text>
+            <Text style={styles.quickFilterIcon}>ðŸ’°</Text>
             <Text
               style={[
                 styles.quickFilterText,
@@ -712,7 +712,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
                 selectedCurrencies.includes('USD') && styles.quickFilterTextActive,
               ]}
             >
-              $ Dólares
+              $ DÃ³lares
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -720,7 +720,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
           style={[styles.filterButton, activeFiltersCount > 0 && styles.filterButtonActive]}
           onPress={() => setShowFiltersModal(true)}
         >
-          <Text style={styles.filterButtonIcon}>⚙️</Text>
+          <Text style={styles.filterButtonIcon}>âš™ï¸</Text>
           {activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
               <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -774,7 +774,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
           </View>
         ) : accountsPayable.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <Text style={styles.emptyIcon}>ðŸ“‹</Text>
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               {debouncedSearchQuery || activeFiltersCount > 0
                 ? 'No se encontraron cuentas por pagar con los filtros aplicados'
@@ -810,13 +810,13 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
                 pagination.page === 1 && styles.paginationButtonTextDisabled,
               ]}
             >
-              ← Anterior
+              â† Anterior
             </Text>
           </TouchableOpacity>
 
           <View style={styles.paginationInfo}>
             <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
+              PÃ¡g. {pagination.page}/{pagination.totalPages}
             </Text>
             <Text style={styles.paginationSubtext}>
               {accountsPayable.length} de {pagination.total}
@@ -837,7 +837,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
                 pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
               ]}
             >
-              Siguiente →
+              Siguiente â†’
             </Text>
           </TouchableOpacity>
         </View>
@@ -895,7 +895,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   titleTabletGradient: {
@@ -920,7 +920,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
@@ -1080,7 +1080,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   quickFilterTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   filterButton: {
     width: 44,
@@ -1110,7 +1110,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 6,
   },
   filterBadgeText: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1401,7 +1401,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
   },
   clearFiltersButtonText: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1462,7 +1462,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   paginationButtonTextDisabled: {
     color: theme.color.text.disabled,
@@ -1581,7 +1581,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderColor: theme.color.icon.warning,
   },
   checkmark: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1636,7 +1636,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   sortOrderTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1668,6 +1668,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   applyButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
 });

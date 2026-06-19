@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -160,7 +160,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
 
   const loadAccountsReceivable = async () => {
     try {
-      // ⚠️ VALIDACIÓN: Fechas obligatorias para evitar escaneo de particiones
+      // âš ï¸ VALIDACIÃ“N: Fechas obligatorias para evitar escaneo de particiones
       if (!fromDate || !toDate) {
         Alert.alert(
           'Fechas Requeridas',
@@ -169,10 +169,10 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
         return;
       }
 
-      // ⚠️ VALIDACIÓN: Rango máximo de 90 días
+      // âš ï¸ VALIDACIÃ“N: Rango mÃ¡ximo de 90 dÃ­as
       const validation = validateDateRange(fromDate, toDate, 90);
       if (!validation.valid) {
-        Alert.alert('Rango de Fechas Inválido', validation.message || 'El rango de fechas no es válido');
+        Alert.alert('Rango de Fechas InvÃ¡lido', validation.message || 'El rango de fechas no es vÃ¡lido');
         return;
       }
 
@@ -218,12 +218,12 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
         params.siteId = selectedSiteId;
       }
 
-      console.log('🔍 Loading accounts receivable with params:', params);
+      console.log('ðŸ” Loading accounts receivable with params:', params);
 
       // Use standard endpoint for better performance (no details needed for list)
       const response = await accountsReceivableService.getAccountsReceivable(params);
 
-      console.log('✅ Accounts receivable loaded:', {
+      console.log('âœ… Accounts receivable loaded:', {
         total: response.total,
         itemsInPage: response.data.length,
         page,
@@ -238,7 +238,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
       });
       setSummary(response.summary);
     } catch (error: any) {
-      console.error('❌ Error loading accounts receivable:', error);
+      console.error('âŒ Error loading accounts receivable:', error);
       const errorMessage =
         error.response?.data?.message || error.message || 'No se pudieron cargar las cuentas por cobrar';
       Alert.alert('Error', errorMessage);
@@ -368,7 +368,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
             )}
             {item.site && (
               <View style={styles.siteInfo}>
-                <Text style={styles.siteIcon}>🏢</Text>
+                <Text style={styles.siteIcon}>ðŸ¢</Text>
                 <Text style={styles.siteName} numberOfLines={1}>
                   {item.site.name}
                 </Text>
@@ -406,23 +406,23 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
         {/* Dates */}
         <View style={styles.datesSection}>
           <View style={styles.dateItem}>
-            <Text style={styles.dateIcon}>📅</Text>
+            <Text style={styles.dateIcon}>ðŸ“…</Text>
             <View>
-              <Text style={styles.dateLabel}>Emisión</Text>
+              <Text style={styles.dateLabel}>EmisiÃ³n</Text>
               <Text style={styles.dateValue}>{formatDate(item.issueDate)}</Text>
             </View>
           </View>
           <View style={styles.dateItem}>
-            <Text style={styles.dateIcon}>⏰</Text>
+            <Text style={styles.dateIcon}>â°</Text>
             <View>
               <Text style={styles.dateLabel}>Vencimiento</Text>
               <Text style={[styles.dateValue, isOverdue && styles.dateOverdue]}>
                 {formatDate(item.dueDate)}
               </Text>
               {isOverdue ? (
-                <Text style={styles.overdueBadge}>Vencido hace {item.overdueDays} días</Text>
+                <Text style={styles.overdueBadge}>Vencido hace {item.overdueDays} dÃ­as</Text>
               ) : daysUntilDue <= 7 && daysUntilDue >= 0 ? (
-                <Text style={styles.dueSoonBadge}>Vence en {daysUntilDue} días</Text>
+                <Text style={styles.dueSoonBadge}>Vence en {daysUntilDue} dÃ­as</Text>
               ) : null}
             </View>
           </View>
@@ -433,7 +433,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
           <View style={styles.metaSection}>
             {item.documentNumber && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaIcon}>📄</Text>
+                <Text style={styles.metaIcon}>ðŸ“„</Text>
                 <Text style={styles.metaText}>{item.documentNumber}</Text>
               </View>
             )}
@@ -476,7 +476,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filtros Avanzados</Text>
             <TouchableOpacity onPress={() => setShowFiltersModal(false)}>
-              <Text style={styles.modalClose}>✕</Text>
+              <Text style={styles.modalClose}>âœ•</Text>
             </TouchableOpacity>
           </View>
 
@@ -591,7 +591,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                 </View>
               </View>
               <Text style={styles.dateRangeHint}>
-                ⚠️ Obligatorio. Máximo 90 días de rango.
+                âš ï¸ Obligatorio. MÃ¡ximo 90 dÃ­as de rango.
               </Text>
             </View>
 
@@ -617,7 +617,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                     ]}
                     onPress={() => setSelectedSiteId(site.id)}
                   >
-                    <Text style={styles.filterChipIcon}>🏢</Text>
+                    <Text style={styles.filterChipIcon}>ðŸ¢</Text>
                     <Text style={styles.filterChipText}>{site.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -631,7 +631,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                 style={[styles.filterToggle, showOverdueOnly && styles.filterToggleActive]}
                 onPress={() => setShowOverdueOnly(!showOverdueOnly)}
               >
-                <Text style={styles.filterToggleIcon}>⚠️</Text>
+                <Text style={styles.filterToggleIcon}>âš ï¸</Text>
                 <Text
                   style={[
                     styles.filterToggleText,
@@ -641,7 +641,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                   Solo vencidas
                 </Text>
                 <View style={[styles.checkbox, showOverdueOnly && styles.checkboxActive]}>
-                  {showOverdueOnly && <Text style={styles.checkmark}>✓</Text>}
+                  {showOverdueOnly && <Text style={styles.checkmark}>âœ“</Text>}
                 </View>
               </TouchableOpacity>
             </View>
@@ -652,10 +652,10 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
               <View style={styles.sortOptions}>
                 {[
                   { key: 'dueDate', label: 'Fecha Vencimiento' },
-                  { key: 'issueDate', label: 'Fecha Emisión' },
+                  { key: 'issueDate', label: 'Fecha EmisiÃ³n' },
                   { key: 'totalAmountCents', label: 'Monto Total' },
                   { key: 'balanceCents', label: 'Saldo Pendiente' },
-                  { key: 'overdueDays', label: 'Días Atraso' },
+                  { key: 'overdueDays', label: 'DÃ­as Atraso' },
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.key}
@@ -678,7 +678,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                   style={[styles.sortOrderButton, sortOrder === 'ASC' && styles.sortOrderButtonActive]}
                   onPress={() => setSortOrder('ASC')}
                 >
-                  <Text style={styles.sortOrderIcon}>↑</Text>
+                  <Text style={styles.sortOrderIcon}>â†‘</Text>
                   <Text
                     style={[
                       styles.sortOrderText,
@@ -692,7 +692,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                   style={[styles.sortOrderButton, sortOrder === 'DESC' && styles.sortOrderButtonActive]}
                   onPress={() => setSortOrder('DESC')}
                 >
-                  <Text style={styles.sortOrderIcon}>↓</Text>
+                  <Text style={styles.sortOrderIcon}>â†“</Text>
                   <Text
                     style={[
                       styles.sortOrderText,
@@ -750,7 +750,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                 </View>
                 <Text style={[styles.titleGradient, isTablet && styles.titleTabletGradient]}>Cuentas por Cobrar</Text>
               </View>
-              <Text style={styles.subtitleGradient}>Gestión de cuentas pendientes</Text>
+              <Text style={styles.subtitleGradient}>GestiÃ³n de cuentas pendientes</Text>
             </View>
             <View style={styles.statsHeaderContainer}>
               <View style={styles.statHeaderItem}>
@@ -766,7 +766,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
               <Ionicons name="search" size={20} color={theme.color.text.placeholder} style={styles.searchIconGradient} />
               <TextInput
                 style={[styles.searchInputGradient, isTablet && styles.searchInputTabletGradient]}
-                placeholder="Buscar por código, deudor, RUC..."
+                placeholder="Buscar por cÃ³digo, deudor, RUC..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor={theme.color.text.placeholder}
@@ -815,7 +815,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
           ]}
           onPress={() => setShowCustomDateModal(true)}
         >
-          <Text style={styles.quickDateFilterIcon}>📅</Text>
+          <Text style={styles.quickDateFilterIcon}>ðŸ“…</Text>
           <Text
             style={[
               styles.quickDateFilterText,
@@ -834,7 +834,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
             style={[styles.quickFilterChip, showOverdueOnly && styles.quickFilterChipActive]}
             onPress={() => setShowOverdueOnly(!showOverdueOnly)}
           >
-            <Text style={styles.quickFilterIcon}>⚠️</Text>
+            <Text style={styles.quickFilterIcon}>âš ï¸</Text>
             <Text
               style={[
                 styles.quickFilterText,
@@ -852,7 +852,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
             ]}
             onPress={() => toggleStatus(AccountReceivableStatus.PENDING)}
           >
-            <Text style={styles.quickFilterIcon}>⏰</Text>
+            <Text style={styles.quickFilterIcon}>â°</Text>
             <Text
               style={[
                 styles.quickFilterText,
@@ -871,7 +871,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
             ]}
             onPress={() => toggleStatus(AccountReceivableStatus.PARTIAL)}
           >
-            <Text style={styles.quickFilterIcon}>💰</Text>
+            <Text style={styles.quickFilterIcon}>ðŸ’°</Text>
             <Text
               style={[
                 styles.quickFilterText,
@@ -911,7 +911,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                 selectedCurrencies.includes('USD') && styles.quickFilterTextActive,
               ]}
             >
-              $ Dólares
+              $ DÃ³lares
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -919,7 +919,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
           style={[styles.filterButton, activeFiltersCount > 0 && styles.filterButtonActive]}
           onPress={() => setShowFiltersModal(true)}
         >
-          <Text style={styles.filterButtonIcon}>⚙️</Text>
+          <Text style={styles.filterButtonIcon}>âš™ï¸</Text>
           {activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
               <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
@@ -973,7 +973,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
           </View>
         ) : accountsReceivable.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <Text style={styles.emptyIcon}>ðŸ“‹</Text>
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               {debouncedSearchQuery || activeFiltersCount > 0
                 ? 'No se encontraron cuentas por cobrar con los filtros aplicados'
@@ -1009,13 +1009,13 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                 pagination.page === 1 && styles.paginationButtonTextDisabled,
               ]}
             >
-              ← Anterior
+              â† Anterior
             </Text>
           </TouchableOpacity>
 
           <View style={styles.paginationInfo}>
             <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
+              PÃ¡g. {pagination.page}/{pagination.totalPages}
             </Text>
             <Text style={styles.paginationSubtext}>
               {accountsReceivable.length} de {pagination.total}
@@ -1036,7 +1036,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                 pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
               ]}
             >
-              Siguiente →
+              Siguiente â†’
             </Text>
           </TouchableOpacity>
         </View>
@@ -1055,9 +1055,9 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>📅 Fecha Personalizada</Text>
+              <Text style={styles.modalTitle}>ðŸ“… Fecha Personalizada</Text>
               <TouchableOpacity onPress={() => setShowCustomDateModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Text style={styles.modalClose}>âœ•</Text>
               </TouchableOpacity>
             </View>
 
@@ -1080,7 +1080,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                       <Text style={styles.dateInputText}>
                         {fromDate || 'Seleccionar fecha'}
                       </Text>
-                      <Text style={styles.dateInputIcon}>📅</Text>
+                      <Text style={styles.dateInputIcon}>ðŸ“…</Text>
                     </TouchableOpacity>
                   </View>
                   <View style={styles.dateInputGroup}>
@@ -1098,7 +1098,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                       <Text style={styles.dateInputText}>
                         {toDate || 'Seleccionar fecha'}
                       </Text>
-                      <Text style={styles.dateInputIcon}>📅</Text>
+                      <Text style={styles.dateInputIcon}>ðŸ“…</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1139,7 +1139,7 @@ export const AccountsReceivableScreen: React.FC<AccountsReceivableScreenProps> =
                   />
                 )}
                 <Text style={styles.dateRangeHint}>
-                  💡 Máximo 90 días de diferencia
+                  ðŸ’¡ MÃ¡ximo 90 dÃ­as de diferencia
                 </Text>
               </View>
             </ScrollView>
@@ -1399,7 +1399,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   quickFilterTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   filterButton: {
     width: 44,
@@ -1429,7 +1429,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: 6,
   },
   filterBadgeText: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1526,7 +1526,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
   },
   clearFiltersButtonText: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1749,7 +1749,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.color.border.subtle,
   },
   paginationButtonText: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
@@ -1885,7 +1885,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderColor: theme.color.icon.danger,
   },
   checkmark: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1911,7 +1911,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.subtle,
   },
   sortOptionTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   sortOrder: {
     flexDirection: 'row',
@@ -1943,7 +1943,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.subtle,
   },
   sortOrderTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1976,7 +1976,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   applyButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     textAlign: 'center',
   },
   quickDateFiltersContainer: {

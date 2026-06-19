@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -42,7 +42,7 @@ const CODIGO_AFECTACION_IGV = {
 const AFECTACION_IGV_OPTIONS = [
   { value: '10', label: 'Gravado (IGV)', icon: 'checkmark-circle' },
   { value: '20', label: 'Exonerado', icon: 'remove-circle' },
-  { value: '15', label: 'Bonificación', icon: 'gift' },
+  { value: '15', label: 'BonificaciÃ³n', icon: 'gift' },
 ];
 
 interface SaleItem {
@@ -139,7 +139,7 @@ export const CreateSaleScreen: React.FC = () => {
         setSelectedPaymentMethod(data[0]);
       }
     } catch (error) {
-      logger.error('Error cargando métodos de pago:', error);
+      logger.error('Error cargando mÃ©todos de pago:', error);
     } finally {
       setLoadingPaymentMethods(false);
     }
@@ -220,7 +220,7 @@ export const CreateSaleScreen: React.FC = () => {
         stock: filteredStock,
         availableStock: totalStock,
         warehouseId: warehouseWithMostStock.warehouseId,
-        warehouseName: warehouseWithMostStock.warehouse?.name || 'Almacén',
+        warehouseName: warehouseWithMostStock.warehouse?.name || 'AlmacÃ©n',
         codigoAfectacionIgv: CODIGO_AFECTACION_IGV.GRAVADO_ONEROSA,
         notes: '',
       };
@@ -302,14 +302,14 @@ export const CreateSaleScreen: React.FC = () => {
 
     const itemsWithoutWarehouse = items.filter(item => !item.warehouseId);
     if (itemsWithoutWarehouse.length > 0) {
-      Alert.alert('Error', 'Algunos productos no tienen almacén asignado');
+      Alert.alert('Error', 'Algunos productos no tienen almacÃ©n asignado');
       return;
     }
 
     const warehouseId = items[0].warehouseId;
     const differentWarehouse = items.find(item => item.warehouseId !== warehouseId);
     if (differentWarehouse) {
-      Alert.alert('Error', 'Todos los productos deben estar en el mismo almacén.');
+      Alert.alert('Error', 'Todos los productos deben estar en el mismo almacÃ©n.');
       return;
     }
 
@@ -338,11 +338,11 @@ export const CreateSaleScreen: React.FC = () => {
 
       const sale = await salesApi.createSale(saleData);
 
-      Alert.alert('Éxito', `Venta ${sale.code} creada exitosamente`, [
+      Alert.alert('Ã‰xito', `Venta ${sale.code} creada exitosamente`, [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
-      logger.error('❌ Error creando venta:', error);
+      logger.error('âŒ Error creando venta:', error);
       const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido';
       Alert.alert('Error', `No se pudo crear la venta: ${errorMessage}`);
     } finally {
@@ -387,7 +387,7 @@ export const CreateSaleScreen: React.FC = () => {
               <Ionicons
                 name="person-outline"
                 size={24}
-                color={saleType === SaleType.B2C ? theme.color.text.inverse : theme.color.text.muted}
+                color={saleType === SaleType.B2C ? theme.color.brand.onHeader : theme.color.text.muted}
               />
               <Text style={[styles.typeButtonText, saleType === SaleType.B2C && styles.typeButtonTextActive]}>
                 B2C - Cliente
@@ -400,7 +400,7 @@ export const CreateSaleScreen: React.FC = () => {
               <Ionicons
                 name="business-outline"
                 size={24}
-                color={saleType === SaleType.B2B ? theme.color.text.inverse : theme.color.text.muted}
+                color={saleType === SaleType.B2B ? theme.color.brand.onHeader : theme.color.text.muted}
               />
               <Text style={[styles.typeButtonText, saleType === SaleType.B2B && styles.typeButtonTextActive]}>
                 B2B - Empresa
@@ -429,7 +429,7 @@ export const CreateSaleScreen: React.FC = () => {
                 <Ionicons
                   name={doc.icon as any}
                   size={24}
-                  color={documentType === doc.type ? theme.color.text.inverse : theme.color.text.subtle}
+                  color={documentType === doc.type ? theme.color.brand.onHeader : theme.color.text.subtle}
                 />
                 <Text style={[styles.documentTypeText, documentType === doc.type && styles.documentTypeTextActive]}>
                   {doc.label}
@@ -459,7 +459,7 @@ export const CreateSaleScreen: React.FC = () => {
                   <Text style={styles.selectedCardSubtitle}>{selectedCustomer.documentNumber}</Text>
                 </View>
                 <TouchableOpacity style={styles.removeButton} onPress={() => setSelectedCustomer(null)}>
-                  <Ionicons name="close" size={20} color={theme.color.text.inverse} />
+                  <Ionicons name="close" size={20} color={theme.color.brand.onHeader} />
                 </TouchableOpacity>
               </View>
             ) : (
@@ -493,7 +493,7 @@ export const CreateSaleScreen: React.FC = () => {
                       <Ionicons
                         name="business"
                         size={20}
-                        color={selectedCompany?.id === company.id ? theme.color.text.inverse : theme.color.text.subtle}
+                        color={selectedCompany?.id === company.id ? theme.color.brand.onHeader : theme.color.text.subtle}
                       />
                     </View>
                     <View style={styles.pickerItemContent}>
@@ -507,7 +507,7 @@ export const CreateSaleScreen: React.FC = () => {
                       )}
                     </View>
                     {selectedCompany?.id === company.id && (
-                      <Ionicons name="checkmark-circle" size={24} color={theme.color.text.inverse} />
+                      <Ionicons name="checkmark-circle" size={24} color={theme.color.brand.onHeader} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -520,7 +520,7 @@ export const CreateSaleScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="wallet-outline" size={20} color={theme.color.icon.muted} />
-            <Text style={styles.sectionTitle}>Método de Pago</Text>
+            <Text style={styles.sectionTitle}>MÃ©todo de Pago</Text>
             <Text style={styles.optionalTag}>Opcional</Text>
           </View>
           {loadingPaymentMethods ? (
@@ -533,7 +533,7 @@ export const CreateSaleScreen: React.FC = () => {
                   onPress={() => setSelectedPaymentMethod(null)}
                 >
                   <Text style={[styles.chipButtonText, !selectedPaymentMethod && styles.chipButtonTextActive]}>
-                    Sin método
+                    Sin mÃ©todo
                   </Text>
                 </TouchableOpacity>
                 {paymentMethods.map((method) => (
@@ -681,7 +681,7 @@ export const CreateSaleScreen: React.FC = () => {
                           <Ionicons
                             name={option.icon as any}
                             size={14}
-                            color={item.codigoAfectacionIgv === option.value ? theme.color.text.inverse : theme.color.text.subtle}
+                            color={item.codigoAfectacionIgv === option.value ? theme.color.brand.onHeader : theme.color.text.subtle}
                           />
                           <Text style={[styles.igvButtonText, item.codigoAfectacionIgv === option.value && styles.igvButtonTextActive]}>
                             {option.label}
@@ -748,10 +748,10 @@ export const CreateSaleScreen: React.FC = () => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={theme.color.text.inverse} />
+            <ActivityIndicator size="small" color={theme.color.brand.onHeader} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={22} color={theme.color.text.inverse} />
+              <Ionicons name="checkmark-circle" size={22} color={theme.color.brand.onHeader} />
               <Text style={styles.createButtonText}>Crear Venta</Text>
             </>
           )}
@@ -856,7 +856,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   typeButtonTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   documentTypeButtons: {
     flexDirection: 'row',
@@ -882,7 +882,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   documentTypeTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   documentTypeHint: {
     fontSize: 10,
@@ -965,7 +965,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.body,
   },
   pickerItemTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   pickerItemSubtext: {
     fontSize: 12,
@@ -998,7 +998,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   chipButtonTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   emptyProducts: {
     alignItems: 'center',
@@ -1155,7 +1155,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   igvButtonTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   productTotal: {
     flexDirection: 'row',
@@ -1243,7 +1243,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   createButtonText: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   bottomSpacer: {
     height: theme.space[10],

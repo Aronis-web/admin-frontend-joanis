@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+﻿import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -49,12 +49,12 @@ const DEFAULT_LIMIT = 20;
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   '01': 'Factura',
   '03': 'Boleta',
-  '07': 'N. Crédito',
-  '08': 'N. Débito',
-  '09': 'Guía Remisión',
+  '07': 'N. CrÃ©dito',
+  '08': 'N. DÃ©bito',
+  '09': 'GuÃ­a RemisiÃ³n',
   '31': 'G.R. Transportista',
-  '20': 'Retención',
-  '40': 'Percepción',
+  '20': 'RetenciÃ³n',
+  '40': 'PercepciÃ³n',
 };
 
 const DOCUMENT_TYPE_COLORS: Record<string, string> = {
@@ -86,7 +86,7 @@ const STATUS_LABELS: Record<string, string> = {
   AC_03: 'Aceptado SUNAT',
   RC_05: 'Rechazado SUNAT',
   PE_02: 'Pendiente',
-  ED_06: 'Error envío',
+  ED_06: 'Error envÃ­o',
   SIGNED: 'Firmado',
   ACCEPTED: 'Aceptado',
   REJECTED: 'Rechazado',
@@ -105,9 +105,9 @@ const documentTypeOptions = [
   { value: 'ALL', label: 'Todos', color: '#6366F1' },
   { value: '01', label: 'Facturas', color: DOCUMENT_TYPE_COLORS['01'] },
   { value: '03', label: 'Boletas', color: DOCUMENT_TYPE_COLORS['03'] },
-  { value: '07', label: 'N. Crédito', color: DOCUMENT_TYPE_COLORS['07'] },
-  { value: '08', label: 'N. Débito', color: DOCUMENT_TYPE_COLORS['08'] },
-  { value: '09', label: 'Guías', color: DOCUMENT_TYPE_COLORS['09'] },
+  { value: '07', label: 'N. CrÃ©dito', color: DOCUMENT_TYPE_COLORS['07'] },
+  { value: '08', label: 'N. DÃ©bito', color: DOCUMENT_TYPE_COLORS['08'] },
+  { value: '09', label: 'GuÃ­as', color: DOCUMENT_TYPE_COLORS['09'] },
 ];
 
 // Nota: el valor 'FAILED' filtra por el campo general `status` (no por statusSunat).
@@ -138,7 +138,7 @@ const sortOptions: {
   label: string;
 }[] = [
   { value: 'createdAt', label: 'Registro' },
-  { value: 'fecha', label: 'Emisión' },
+  { value: 'fecha', label: 'EmisiÃ³n' },
   { value: 'serieNumero', label: 'Serie' },
   { value: 'total', label: 'Total' },
 ];
@@ -421,7 +421,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     if (artifact && !artifact.available) {
       Alert.alert(
         'Archivo no disponible',
-        `El ${artifactKind.toUpperCase()} aún no está disponible para este documento.`
+        `El ${artifactKind.toUpperCase()} aÃºn no estÃ¡ disponible para este documento.`
       );
       return;
     }
@@ -433,7 +433,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
       const downloadUrl = buildDownloadUrl(document, artifactKind);
       const fileName = `${document.serieNumero || document.id}.${artifactKind}`;
 
-      // Descargar con headers de auth (funciona en web/electron y móvil)
+      // Descargar con headers de auth (funciona en web/electron y mÃ³vil)
       const response = await fetch(downloadUrl, {
         method: 'GET',
         headers: buildAuthHeaders(),
@@ -469,7 +469,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     const serie = document.serieNumero || `${document.serie || ''}-${document.numero || ''}`;
     Alert.alert(
       'Reintentar documento',
-      `¿Deseas reintentar el envío de ${serie}? Se reseteará el contador y se re-encolará la tarea fiscal.`,
+      `Â¿Deseas reintentar el envÃ­o de ${serie}? Se resetearÃ¡ el contador y se re-encolarÃ¡ la tarea fiscal.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -480,7 +480,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               await retryDocument(document.id);
               Alert.alert(
                 'Reintento encolado',
-                'El documento se re-encoló. El scheduler lo procesará en el próximo ciclo (~30s).'
+                'El documento se re-encolÃ³. El scheduler lo procesarÃ¡ en el prÃ³ximo ciclo (~30s).'
               );
               await loadDocuments();
             } catch (error: any) {
@@ -520,7 +520,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         <Ionicons
           name={option.icon}
           size={14}
-          color={selectedValue === option.value ? theme.color.text.inverse : theme.color.text.muted}
+          color={selectedValue === option.value ? theme.color.brand.onHeader : theme.color.text.muted}
         />
       ) : (
         <View
@@ -561,10 +561,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         disabled={!available || isDownloading}
       >
         {isDownloading ? (
-          <ActivityIndicator size="small" color={theme.color.text.inverse} />
+          <ActivityIndicator size="small" color={theme.color.brand.onHeader} />
         ) : (
           <>
-            <Ionicons name={icon} size={16} color={theme.color.text.inverse} />
+            <Ionicons name={icon} size={16} color={theme.color.brand.onHeader} />
             <Text style={styles.actionButtonText}>{label}</Text>
           </>
         )}
@@ -642,7 +642,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Emisión:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>EmisiÃ³n:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {formatDate(document.fecha || document.fechaEmision)}
             </Text>
@@ -695,10 +695,10 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                 disabled={retryingId === document.id}
               >
                 {retryingId === document.id ? (
-                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
+                  <ActivityIndicator size="small" color={theme.color.brand.onHeader} />
                 ) : (
                   <>
-                    <Ionicons name="refresh" size={16} color={theme.color.text.inverse} />
+                    <Ionicons name="refresh" size={16} color={theme.color.brand.onHeader} />
                     <Text style={styles.actionButtonText}>Reintentar</Text>
                   </>
                 )}
@@ -744,7 +744,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                   Documentos Tributarios
                 </Text>
               </View>
-              <Text style={styles.subtitle}>Consulta de comprobantes electrónicos SUNAT</Text>
+              <Text style={styles.subtitle}>Consulta de comprobantes electrÃ³nicos SUNAT</Text>
             </View>
 
             <View style={styles.statsContainer}>
@@ -786,7 +786,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name="options"
                 size={20}
-                color={showAdvancedFilters ? theme.color.text.inverse : theme.color.text.muted}
+                color={showAdvancedFilters ? theme.color.brand.onHeader : theme.color.text.muted}
               />
               {activeFiltersCount > 0 && (
                 <View style={styles.filterCounter}>
@@ -839,7 +839,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.dateRangePickers}>
               <View style={styles.datePickerWrapper}>
                 <DatePickerButton
-                  label="Desde creación"
+                  label="Desde creaciÃ³n"
                   value={fromDate}
                   onPress={() => setShowFromDatePicker(true)}
                   placeholder="Seleccionar"
@@ -848,7 +848,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               </View>
               <View style={styles.datePickerWrapper}>
                 <DatePickerButton
-                  label="Hasta creación"
+                  label="Hasta creaciÃ³n"
                   value={toDate}
                   onPress={() => setShowToDatePicker(true)}
                   placeholder="Seleccionar"
@@ -907,7 +907,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                 }
               >
                 <Ionicons name="list-outline" size={16} color={theme.color.icon.default} />
-                <Text style={styles.limitButtonText}>{limit} por página</Text>
+                <Text style={styles.limitButtonText}>{limit} por pÃ¡gina</Text>
               </TouchableOpacity>
 
               {activeFiltersCount > 0 && (
@@ -937,7 +937,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
           {documents.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>📄</Text>
+              <Text style={[styles.emptyIcon, isTablet && styles.emptyIconTablet]}>ðŸ“„</Text>
               <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
                 No hay documentos tributarios
               </Text>
@@ -968,16 +968,16 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                   !pagination.hasPreviousPage && page === 1 && styles.paginationButtonTextDisabled,
                 ]}
               >
-                ← Anterior
+                â† Anterior
               </Text>
             </TouchableOpacity>
 
             <View style={styles.paginationInfo}>
               <Text style={styles.paginationText}>
-                Pág. {pagination.page}/{pagination.totalPages || 1}
+                PÃ¡g. {pagination.page}/{pagination.totalPages || 1}
               </Text>
               <Text style={styles.paginationSubtext}>
-                {documents.length} de {pagination.total} · {pagination.limit}/pág.
+                {documents.length} de {pagination.total} Â· {pagination.limit}/pÃ¡g.
               </Text>
             </View>
 
@@ -999,7 +999,7 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
                     styles.paginationButtonTextDisabled,
                 ]}
               >
-                Siguiente →
+                Siguiente â†’
               </Text>
             </TouchableOpacity>
           </View>
@@ -1168,7 +1168,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   filterCounterText: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   quickFiltersContainer: {
     backgroundColor: theme.color.surface.base,
@@ -1203,7 +1203,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   filterChipTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   filterDot: {
     width: 8,
@@ -1488,7 +1488,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   actionButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   emptyContainer: {
     flex: 1,

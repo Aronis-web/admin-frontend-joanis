@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -39,7 +39,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   // Screen tracking
   useScreenTracking('CampaignsScreen', 'CampaignsScreen');
 
-  // ✅ Por defecto mostrar todas menos canceladas
+  // âœ… Por defecto mostrar todas menos canceladas
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL' | 'NOT_CANCELLED'>(
     'NOT_CANCELLED'
   );
@@ -54,7 +54,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
 
-  // ✅ React Query: Reemplaza loadCampaigns() con caché automático
+  // âœ… React Query: Reemplaza loadCampaigns() con cachÃ© automÃ¡tico
   const params = useMemo(
     () => ({
       page,
@@ -67,10 +67,10 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
 
   const { data: campaignsResponse, isLoading, isRefetching, refetch } = useCampaigns(params);
 
-  // Extraer campaigns y paginación de la respuesta
+  // Extraer campaigns y paginaciÃ³n de la respuesta
   const campaigns = useMemo(() => {
     const allCampaigns = campaignsResponse?.data || [];
-    // ✅ Filtrar canceladas si selectedStatus es 'NOT_CANCELLED'
+    // âœ… Filtrar canceladas si selectedStatus es 'NOT_CANCELLED'
     if (selectedStatus === 'NOT_CANCELLED') {
       return allCampaigns.filter((c) => c.status !== CampaignStatus.CANCELLED);
     }
@@ -89,7 +89,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
   // Auto-reload campaigns when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      logger.debug('📱 CampaignsScreen focused - refetching campaigns...');
+      logger.debug('ðŸ“± CampaignsScreen focused - refetching campaigns...');
       refetch();
     }, [refetch])
   );
@@ -99,7 +99,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
     setPage(1);
   }, [selectedStatus]);
 
-  // ✅ Handlers simplificados
+  // âœ… Handlers simplificados
   const handleRefresh = useCallback(() => {
     refetch();
   }, [refetch]);
@@ -151,7 +151,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
 
   const renderStatusFilter = () => {
     const statuses: Array<CampaignStatus | 'ALL' | 'NOT_CANCELLED'> = [
-      'NOT_CANCELLED', // ✅ Por defecto
+      'NOT_CANCELLED', // âœ… Por defecto
       'ALL',
       CampaignStatus.DRAFT,
       CampaignStatus.ACTIVE,
@@ -311,7 +311,7 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
             <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
               Creado: {formatDate(campaign.createdAt)}
             </Text>
-            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
+            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>â€º</Text>
           </View>
         </TouchableOpacity>
       );
@@ -335,16 +335,16 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
                   <Ionicons name="megaphone" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-                  Campañas
+                  CampaÃ±as
                 </Text>
               </View>
-              <Text style={styles.headerSubtitle}>Gestión de campañas de distribución</Text>
+              <Text style={styles.headerSubtitle}>GestiÃ³n de campaÃ±as de distribuciÃ³n</Text>
             </View>
           </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.primary} />
-          <Text style={styles.loadingText}>Cargando campañas...</Text>
+          <Text style={styles.loadingText}>Cargando campaÃ±as...</Text>
         </View>
       </SafeAreaView>
     );
@@ -367,10 +367,10 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
                   <Ionicons name="megaphone" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-                  Campañas
+                  CampaÃ±as
                 </Text>
               </View>
-              <Text style={styles.headerSubtitle}>Gestión de campañas de distribución</Text>
+              <Text style={styles.headerSubtitle}>GestiÃ³n de campaÃ±as de distribuciÃ³n</Text>
             </View>
 
             {/* Stats */}
@@ -395,10 +395,10 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
           {campaigns.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No hay campañas disponibles
+                No hay campaÃ±as disponibles
               </Text>
               <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                Crea una nueva campaña para comenzar
+                Crea una nueva campaÃ±a para comenzar
               </Text>
             </View>
           ) : (
@@ -540,7 +540,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
   },
   filterButtonTextActive: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   scrollView: {
     flex: 1,

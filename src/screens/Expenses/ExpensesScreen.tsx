@@ -1,5 +1,5 @@
-/**
- * ExpensesScreen - Rediseñado con Design System
+﻿/**
+ * ExpensesScreen - RediseÃ±ado con Design System
  *
  * Pantalla de listado de gastos profesional y moderna.
  */
@@ -181,7 +181,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   const handleDeleteExpense = useCallback((expense: Expense) => {
     Alert.alert(
       'Eliminar Gasto',
-      `¿Estás seguro de que deseas eliminar el gasto "${expense.name}"?`,
+      `Â¿EstÃ¡s seguro de que deseas eliminar el gasto "${expense.name}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -190,7 +190,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
           onPress: async () => {
             try {
               await deleteExpenseMutation.mutateAsync(expense.id);
-              Alert.alert('Éxito', 'Gasto eliminado correctamente');
+              Alert.alert('Ã‰xito', 'Gasto eliminado correctamente');
             } catch (error) {
               Alert.alert('Error', 'No se pudo eliminar el gasto');
             }
@@ -261,7 +261,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         <EmptyState
           icon="receipt-outline"
           title="No hay gastos registrados"
-          description="Presiona el botón + para crear un nuevo gasto"
+          description="Presiona el botÃ³n + para crear un nuevo gasto"
           actionLabel="Crear Gasto"
           onAction={handleCreateExpense}
         />
@@ -320,7 +320,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="receipt-outline" size={22} color={theme.color.text.inverse} />
+                  <Ionicons name="receipt-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Gastos</Text>
               </View>
@@ -342,7 +342,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
                 style={styles.searchInputGradient}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Buscar por factura, descripción..."
+                placeholder="Buscar por factura, descripciÃ³n..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
@@ -483,7 +483,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
@@ -505,7 +505,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
