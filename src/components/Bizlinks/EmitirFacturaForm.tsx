@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useBizlinksDocuments, useBizlinksConfig } from '../../hooks/useBizlinks';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   EmitirFacturaDto,
   BizlinksItemDto,
@@ -53,6 +54,8 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   onSuccess,
   onCancel,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { emitirFactura, emitirComprobante, loading } = useBizlinksDocuments();
   const { getActiveConfig, loading: loadingConfig } = useBizlinksConfig();
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -442,7 +445,7 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   if (loadingConfig || !configLoaded) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#10B981" />
+        <ActivityIndicator size="large" color={theme.color.text.success} />
         <Text style={styles.loadingText}>Cargando configuración de Bizlinks...</Text>
       </View>
     );
@@ -721,7 +724,7 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.color.text.inverse} />
           ) : (
             <Text style={styles.buttonText}>Emitir Factura</Text>
           )}
@@ -741,219 +744,221 @@ export const EmitirFacturaForm: React.FC<EmitirFacturaFormProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-    backgroundColor: colors.background.secondary,
-  },
-  loadingText: {
-    marginTop: spacing[4],
-    fontSize: 16,
-    color: colors.neutral[500],
-    textAlign: 'center',
-  },
-  section: {
-    backgroundColor: colors.surface.primary,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[4],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.neutral[700],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: spacing[2],
-    color: colors.neutral[600],
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[4],
-    fontSize: 14,
-    backgroundColor: colors.surface.primary,
-  },
-  picker: {
-    marginBottom: spacing[4],
-    color: colors.neutral[800],
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  halfWidth: {
-    flex: 1,
-  },
-  addButton: {
-    backgroundColor: colors.success[500],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-  },
-  addButtonText: {
-    color: colors.neutral[0],
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  itemCard: {
-    backgroundColor: colors.background.secondary,
-    padding: spacing[4],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[4],
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  itemNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.neutral[700],
-  },
-  removeButton: {
-    color: colors.danger[500],
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  itemTotals: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing[1],
-  },
-  itemTotalLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  itemTotalValue: {
-    fontSize: 14,
-    color: colors.neutral[700],
-  },
-  itemTotalValueBold: {
-    fontSize: 14,
-    color: colors.neutral[700],
-    fontWeight: 'bold',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  totalLabel: {
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  totalValue: {
-    fontSize: 16,
-    color: colors.neutral[700],
-    fontWeight: '600',
-  },
-  totalRowFinal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[3],
-    marginTop: spacing[2],
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.lg,
-  },
-  totalLabelFinal: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.neutral[700],
-  },
-  totalValueFinal: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.success[500],
-  },
-  buttonContainer: {
-    padding: spacing[4],
-    gap: spacing[3],
-  },
-  button: {
-    padding: spacing[4],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  submitButton: {
-    backgroundColor: colors.success[500],
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[500],
-  },
-  buttonText: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  seriesSelectedContainer: {
-    marginBottom: spacing[4],
-  },
-  seriesSelectedBadge: {
-    backgroundColor: colors.primary[50],
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-    borderRadius: borderRadius.xl,
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[5],
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  seriesSelectedText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primary[700],
-    letterSpacing: 1,
-  },
-  seriesSelectedNote: {
-    fontSize: 13,
-    color: colors.success[500],
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  customerSelectedInfo: {
-    backgroundColor: colors.success[50],
-    borderWidth: 1,
-    borderColor: colors.success[500],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[4],
-  },
-  customerSelectedLabel: {
-    fontSize: 12,
-    color: colors.success[600],
-    fontWeight: '600',
-    marginBottom: spacing[1],
-  },
-  customerSelectedName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.success[800],
-    marginBottom: spacing[0.5],
-  },
-  customerSelectedDoc: {
-    fontSize: 14,
-    color: colors.success[700],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+      backgroundColor: theme.color.surface.subtle,
+    },
+    loadingText: {
+      marginTop: theme.space[4],
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    section: {
+      backgroundColor: theme.color.surface.base,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: theme.space[2],
+      color: theme.color.text.body,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[4],
+      fontSize: 14,
+      backgroundColor: theme.color.surface.base,
+      color: theme.color.text.body,
+    },
+    picker: {
+      marginBottom: theme.space[4],
+      color: theme.color.text.heading,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    halfWidth: {
+      flex: 1,
+    },
+    addButton: {
+      backgroundColor: theme.color.text.success,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+    },
+    addButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    itemCard: {
+      backgroundColor: theme.color.surface.subtle,
+      padding: theme.space[4],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[4],
+    },
+    itemHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    itemNumber: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    removeButton: {
+      color: theme.color.text.danger,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    itemTotals: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[1],
+    },
+    itemTotalLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    itemTotalValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    itemTotalValueBold: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      fontWeight: 'bold',
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    totalLabel: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    totalValue: {
+      fontSize: 16,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+    },
+    totalRowFinal: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[3],
+      marginTop: theme.space[2],
+      backgroundColor: theme.color.surface.subtle,
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+    },
+    totalLabelFinal: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    totalValueFinal: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.success,
+    },
+    buttonContainer: {
+      padding: theme.space[4],
+      gap: theme.space[3],
+    },
+    button: {
+      padding: theme.space[4],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    submitButton: {
+      backgroundColor: theme.color.text.success,
+    },
+    cancelButton: {
+      backgroundColor: theme.color.text.muted,
+    },
+    buttonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    seriesSelectedContainer: {
+      marginBottom: theme.space[4],
+    },
+    seriesSelectedBadge: {
+      backgroundColor: theme.color.state.info.background,
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+      borderRadius: theme.radii.xl,
+      paddingVertical: theme.space[4],
+      paddingHorizontal: theme.space[5],
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    seriesSelectedText: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.state.info.text,
+      letterSpacing: 1,
+    },
+    seriesSelectedNote: {
+      fontSize: 13,
+      color: theme.color.text.success,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    customerSelectedInfo: {
+      backgroundColor: theme.color.state.success.background,
+      borderWidth: 1,
+      borderColor: theme.color.text.success,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[4],
+    },
+    customerSelectedLabel: {
+      fontSize: 12,
+      color: theme.color.state.success.text,
+      fontWeight: '600',
+      marginBottom: theme.space[1],
+    },
+    customerSelectedName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.state.success.text,
+      marginBottom: 2,
+    },
+    customerSelectedDoc: {
+      fontSize: 14,
+      color: theme.color.state.success.text,
+    },
+  });
