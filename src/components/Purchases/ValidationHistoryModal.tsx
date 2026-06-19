@@ -10,7 +10,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { PurchaseProductValidation } from '@/types/purchases';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ValidationHistoryModalProps {
   visible: boolean;
@@ -23,6 +24,7 @@ export const ValidationHistoryModal: React.FC<ValidationHistoryModalProps> = ({
   validations,
   onClose,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
@@ -150,193 +152,194 @@ export const ValidationHistoryModal: React.FC<ValidationHistoryModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[6],
-    width: '100%',
-    maxWidth: 700,
-    maxHeight: '90%',
-  },
-  modalContentTablet: {
-    padding: spacing[8],
-    maxWidth: 900,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[5],
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: 'bold',
-  },
-  emptyState: {
-    paddingVertical: spacing[10],
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: colors.neutral[400],
-  },
-  validationCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  validationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  validationNumber: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  validationDate: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  validationInfo: {
-    marginBottom: spacing[3],
-  },
-  infoRow: {
-    marginBottom: spacing[2],
-  },
-  infoLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: 2,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: colors.neutral[800],
-  },
-  mediaSection: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  mediaSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[3],
-  },
-  mediaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  mediaItem: {
-    flex: 1,
-    minWidth: 250,
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  mediaLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
-  },
-  photoImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.secondary,
-  },
-  signatureImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  viewFullButton: {
-    marginTop: spacing[2],
-    paddingVertical: spacing[1.5],
-    alignItems: 'center',
-  },
-  viewFullButtonText: {
-    fontSize: 12,
-    color: colors.primary[500],
-    fontWeight: '600',
-  },
-  changesSection: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  changesSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
-  },
-  changeRow: {
-    flexDirection: 'row',
-    marginBottom: spacing[1],
-  },
-  changeKey: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.neutral[500],
-    marginRight: spacing[2],
-  },
-  changeValue: {
-    fontSize: 13,
-    color: colors.neutral[800],
-    flex: 1,
-  },
-  closeModalButton: {
-    marginTop: spacing[4],
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  closeModalButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      padding: theme.space[6],
+      width: '100%',
+      maxWidth: 700,
+      maxHeight: '90%',
+    },
+    modalContentTablet: {
+      padding: theme.space[8],
+      maxWidth: 900,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[5],
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: 'bold',
+    },
+    emptyState: {
+      paddingVertical: theme.space[10],
+      alignItems: 'center',
+    },
+    emptyStateText: {
+      fontSize: 14,
+      color: theme.color.text.placeholder,
+    },
+    validationCard: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    validationHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+      paddingBottom: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    validationNumber: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    validationDate: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    validationInfo: {
+      marginBottom: theme.space[3],
+    },
+    infoRow: {
+      marginBottom: theme.space[2],
+    },
+    infoLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 2,
+    },
+    infoValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    mediaSection: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    mediaSectionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[3],
+    },
+    mediaGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+    },
+    mediaItem: {
+      flex: 1,
+      minWidth: 250,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    mediaLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+    },
+    photoImage: {
+      width: '100%',
+      height: 200,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    signatureImage: {
+      width: '100%',
+      height: 150,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    viewFullButton: {
+      marginTop: theme.space[2],
+      paddingVertical: 6,
+      alignItems: 'center',
+    },
+    viewFullButtonText: {
+      fontSize: 12,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+    changesSection: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    changesSectionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+    },
+    changeRow: {
+      flexDirection: 'row',
+      marginBottom: theme.space[1],
+    },
+    changeKey: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+      marginRight: theme.space[2],
+    },
+    changeValue: {
+      fontSize: 13,
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    closeModalButton: {
+      marginTop: theme.space[4],
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    closeModalButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });

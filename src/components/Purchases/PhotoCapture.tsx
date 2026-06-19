@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   launchCameraAsync,
   launchImageLibraryAsync,
@@ -20,6 +21,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   onCancel,
   currentPhoto,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const [photo, setPhoto] = useState<string | undefined>(currentPhoto);
 
   const requestCameraPermission = async () => {
@@ -132,124 +134,125 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing[5],
-    backgroundColor: colors.surface.primary,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[5],
-    textAlign: 'center',
-  },
-  photoContainer: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.background.secondary,
-    marginBottom: spacing[5],
-    overflow: 'hidden',
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderIcon: {
-    fontSize: 64,
-    marginBottom: spacing[3],
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: colors.neutral[400],
-  },
-  retakeButton: {
-    position: 'absolute',
-    bottom: spacing[4],
-    left: spacing[4],
-    right: spacing[4],
-    backgroundColor: 'rgba(99, 102, 241, 0.9)',
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  retakeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  captureButtons: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[5],
-  },
-  cameraButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[500],
-    alignItems: 'center',
-  },
-  cameraButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  galleryButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    alignItems: 'center',
-  },
-  galleryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.danger[50],
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.danger[600],
-  },
-  confirmButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[500],
-    alignItems: 'center',
-  },
-  confirmButtonDisabled: {
-    backgroundColor: colors.border.default,
-  },
-  confirmButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: theme.space[5],
+      backgroundColor: theme.color.surface.base,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[5],
+      textAlign: 'center',
+    },
+    photoContainer: {
+      flex: 1,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.subtle,
+      marginBottom: theme.space[5],
+      overflow: 'hidden',
+    },
+    photo: {
+      width: '100%',
+      height: '100%',
+    },
+    placeholder: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    placeholderIcon: {
+      fontSize: 64,
+      marginBottom: theme.space[3],
+    },
+    placeholderText: {
+      fontSize: 16,
+      color: theme.color.text.placeholder,
+    },
+    retakeButton: {
+      position: 'absolute',
+      bottom: theme.space[4],
+      left: theme.space[4],
+      right: theme.space[4],
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    retakeButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    captureButtons: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginBottom: theme.space[5],
+    },
+    cameraButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.primary,
+      alignItems: 'center',
+    },
+    cameraButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    galleryButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+    },
+    galleryButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.state.danger.background,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.state.danger.text,
+    },
+    confirmButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.primary,
+      alignItems: 'center',
+    },
+    confirmButtonDisabled: {
+      backgroundColor: theme.color.border.default,
+    },
+    confirmButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });

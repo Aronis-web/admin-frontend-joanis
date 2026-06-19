@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, TouchableOpacity, PanResponder, Platform} from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import Svg, { Path } from 'react-native-svg';
 import ViewShot from 'react-native-view-shot';
 
@@ -14,6 +15,7 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
   onSignatureCapture,
   onCancel,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const [paths, setPaths] = useState<string[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('');
   const viewShotRef = useRef<ViewShot>(null);
@@ -182,94 +184,95 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing[5],
-    backgroundColor: colors.surface.primary,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[5],
-    textAlign: 'center',
-  },
-  signatureContainer: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
-    marginBottom: spacing[5],
-    overflow: 'hidden',
-  },
-  canvas: {
-    flex: 1,
-    backgroundColor: colors.surface.primary,
-  },
-  placeholder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none',
-  },
-  placeholderText: {
-    fontSize: 18,
-    color: colors.neutral[300],
-    fontStyle: 'italic',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  clearButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.danger[50],
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.danger[600],
-  },
-  confirmButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[500],
-    alignItems: 'center',
-  },
-  confirmButtonDisabled: {
-    backgroundColor: colors.border.default,
-  },
-  confirmButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: theme.space[5],
+      backgroundColor: theme.color.surface.base,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+      textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[5],
+      textAlign: 'center',
+    },
+    signatureContainer: {
+      flex: 1,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.base,
+      marginBottom: theme.space[5],
+      overflow: 'hidden',
+    },
+    canvas: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+    },
+    placeholder: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      pointerEvents: 'none',
+    },
+    placeholderText: {
+      fontSize: 18,
+      color: theme.color.text.placeholder,
+      fontStyle: 'italic',
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    clearButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+    },
+    clearButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.state.danger.background,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.state.danger.text,
+    },
+    confirmButton: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.primary,
+      alignItems: 'center',
+    },
+    confirmButtonDisabled: {
+      backgroundColor: theme.color.border.default,
+    },
+    confirmButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });
