@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { customersService } from '@/services/api/customers';
 import { Customer, CustomerType } from '@/types/customers';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -27,6 +28,8 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
   onSelectCustomer,
   customerType,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [searchText, setSearchText] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
@@ -132,13 +135,13 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
               value={searchText}
               onChangeText={setSearchText}
               placeholder={`Buscar por nombre, ${customerType === CustomerType.EMPRESA ? 'RUC' : 'DNI'}...`}
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.color.text.placeholder}
               autoFocus
             />
             {loading && (
               <ActivityIndicator
                 size="small"
-                color="#007bff"
+                color={theme.color.brand.accent}
                 style={styles.loader}
               />
             )}
@@ -173,128 +176,130 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-  },
-  searchContainer: {
-    padding: spacing[4],
-    position: 'relative',
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 16,
-    backgroundColor: colors.surface.primary,
-  },
-  loader: {
-    position: 'absolute',
-    right: 28,
-    top: 28,
-  },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: spacing[4],
-  },
-  customerItem: {
-    padding: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-    backgroundColor: colors.surface.primary,
-  },
-  customerInfo: {
-    gap: spacing[1.5],
-  },
-  customerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  customerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    flex: 1,
-  },
-  companyBadge: {
-    backgroundColor: colors.info[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: 2,
-    borderRadius: borderRadius.xs,
-  },
-  companyBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.info[800],
-  },
-  personBadge: {
-    backgroundColor: colors.warning[50],
-    paddingHorizontal: spacing[2],
-    paddingVertical: 2,
-    borderRadius: borderRadius.xs,
-  },
-  personBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.warning[800],
-  },
-  customerDocument: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  customerEmail: {
-    fontSize: 13,
-    color: colors.neutral[400],
-  },
-  customerPhone: {
-    fontSize: 13,
-    color: colors.neutral[400],
-  },
-  emptyContainer: {
-    padding: spacing[10],
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.neutral[400],
-    textAlign: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+    },
+    searchContainer: {
+      padding: theme.space[4],
+      position: 'relative',
+    },
+    searchInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 16,
+      backgroundColor: theme.color.surface.base,
+      color: theme.color.text.body,
+    },
+    loader: {
+      position: 'absolute',
+      right: 28,
+      top: 28,
+    },
+    list: {
+      flex: 1,
+    },
+    listContent: {
+      paddingHorizontal: theme.space[4],
+    },
+    customerItem: {
+      padding: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    customerInfo: {
+      gap: theme.space[1.5],
+    },
+    customerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    customerName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    companyBadge: {
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: 2,
+      borderRadius: theme.radii.xs,
+    },
+    companyBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.state.info.text,
+    },
+    personBadge: {
+      backgroundColor: theme.color.state.warning.background,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: 2,
+      borderRadius: theme.radii.xs,
+    },
+    personBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+    },
+    customerDocument: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    customerEmail: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+    },
+    customerPhone: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+    },
+    emptyContainer: {
+      padding: theme.space[10],
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.color.text.placeholder,
+      textAlign: 'center',
+    },
+  });
