@@ -639,10 +639,14 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       </ProtectedElement>
 
       <ProtectedFAB
-        icon="+"
-        onPress={handleCreateProduct}
-        requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'cube-outline',
+            label: 'Crear Producto',
+            onPress: handleCreateProduct,
+            requiredPermissions: [PERMISSIONS.PRODUCTS.CREATE],
+          },
+        ]}
       />
 
       {/* Product Form Modal */}

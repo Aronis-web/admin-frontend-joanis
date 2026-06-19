@@ -164,10 +164,14 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ na
         {renderStatusFilter()}
         {renderContent()}
         <ProtectedFAB
-          icon="+"
-          onPress={handleCreateProject}
-          requiredPermissions={['expenses.projects.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'folder-outline',
+              label: 'Crear Proyecto',
+              onPress: handleCreateProject,
+              requiredPermissions: ['expenses.projects.create'],
+            },
+          ]}
         />
       </View>
     </SafeAreaView>

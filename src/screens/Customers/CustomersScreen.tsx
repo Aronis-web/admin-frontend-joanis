@@ -340,10 +340,14 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
 
       {/* Add Button */}
       <ProtectedFAB
-        icon="👥"
-        onPress={handleAddCustomer}
-        requiredPermissions={['customers.create']}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'person-add-outline',
+            label: 'Crear Cliente',
+            onPress: handleAddCustomer,
+            requiredPermissions: ['customers.create'],
+          },
+        ]}
       />
     </SafeAreaView>
   );

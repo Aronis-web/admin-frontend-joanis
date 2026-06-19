@@ -594,10 +594,14 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
 
       {/* Create Button */}
       <ProtectedFAB
-        icon="🏢"
-        onPress={handleCreateSupplier}
-        requiredPermissions={['suppliers.create']}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'business-outline',
+            label: 'Crear Proveedor',
+            onPress: handleCreateSupplier,
+            requiredPermissions: ['suppliers.create'],
+          },
+        ]}
       />
     </SafeAreaView>
   );

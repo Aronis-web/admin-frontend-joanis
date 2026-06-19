@@ -887,10 +887,14 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
 
       {/* Create Button */}
       <ProtectedFAB
-        icon="🚚"
-        onPress={handleCreateTransfer}
-        requiredPermissions={['transfers.create']}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'swap-horizontal-outline',
+            label: 'Crear Transferencia',
+            onPress: handleCreateTransfer,
+            requiredPermissions: ['transfers.create'],
+          },
+        ]}
       />
 
       {/* Create Transfer Modal */}

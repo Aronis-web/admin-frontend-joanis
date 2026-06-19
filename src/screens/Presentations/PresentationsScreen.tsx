@@ -311,10 +311,14 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
         fallback={null}
       >
         <ProtectedFAB
-          icon="📋"
-          onPress={handleCreatePresentation}
-          requiredPermissions={['presentations.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'easel-outline',
+              label: 'Crear Presentaci\u00f3n',
+              onPress: handleCreatePresentation,
+              requiredPermissions: ['presentations.create'],
+            },
+          ]}
         />
       </ProtectedElement>
 

@@ -666,10 +666,14 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
         {/* Add Button */}
         <ProtectedFAB
-          icon="+"
-          onPress={handleCreatePurchase}
-          requiredPermissions={['purchases.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'cart-outline',
+              label: 'Crear Compra',
+              onPress: handleCreatePurchase,
+              requiredPermissions: ['purchases.create'],
+            },
+          ]}
         />
 
         {/* Date Pickers */}

@@ -137,10 +137,14 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
       <View style={styles.container}>
         {renderContent()}
         <ProtectedFAB
-          icon="+"
-          onPress={handleCreateCategory}
-          requiredPermissions={['expenses.categories.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'pricetag-outline',
+              label: 'Crear Categor\u00eda',
+              onPress: handleCreateCategory,
+              requiredPermissions: ['expenses.categories.create'],
+            },
+          ]}
         />
       </View>
     </SafeAreaView>

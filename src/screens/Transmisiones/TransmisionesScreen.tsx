@@ -346,10 +346,14 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
 
         {/* Add Button */}
         <ProtectedFAB
-          icon="+"
-          onPress={handleCreateTransmision}
-          requiredPermissions={['transmisiones.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'send-outline',
+              label: 'Crear Transmisi\u00f3n',
+              onPress: handleCreateTransmision,
+              requiredPermissions: ['transmisiones.create'],
+            },
+          ]}
         />
       </SafeAreaView>
     </ScreenLayout>

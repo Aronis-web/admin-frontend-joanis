@@ -422,10 +422,14 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
       {/* Add Button */}
       <ProtectedFAB
-        icon="👥"
-        onPress={handleCreateUser}
-        requiredPermissions={['users.create']}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'person-add-outline',
+            label: 'Crear Usuario',
+            onPress: handleCreateUser,
+            requiredPermissions: ['users.create'],
+          },
+        ]}
       />
     </SafeAreaView>
   );

@@ -361,10 +361,14 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
 
         {/* Add Button */}
         <ProtectedFAB
-          icon="+"
-          onPress={handleCreateBalance}
-          requiredPermissions={['balances.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'wallet-outline',
+              label: 'Crear Balance',
+              onPress: handleCreateBalance,
+              requiredPermissions: ['balances.create'],
+            },
+          ]}
         />
 
         {/* Operations Modal */}

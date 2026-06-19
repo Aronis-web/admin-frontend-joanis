@@ -650,10 +650,14 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
 
       {/* Create Button */}
       <ProtectedFAB
-        icon="🔄"
-        onPress={openCreateModal}
-        requiredPermissions={['transfers.create']}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'swap-vertical-outline',
+            label: 'Crear Transferencia',
+            onPress: openCreateModal,
+            requiredPermissions: ['transfers.create'],
+          },
+        ]}
       />
 
       {/* Create Transfer Modal */}

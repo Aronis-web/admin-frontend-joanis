@@ -419,10 +419,14 @@ export const CampaignsScreen: React.FC<CampaignsScreenProps> = ({ navigation }) 
         )}
       </SafeAreaView>
       <ProtectedFAB
-        icon="+"
-        onPress={handleCreateCampaign}
-        requiredPermissions={['campaigns.create']}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'megaphone-outline',
+            label: 'Crear Campa\u00f1a',
+            onPress: handleCreateCampaign,
+            requiredPermissions: ['campaigns.create'],
+          },
+        ]}
       />
     </ScreenLayout>
   );

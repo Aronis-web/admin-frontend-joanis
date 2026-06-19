@@ -696,10 +696,14 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
         {/* FAB */}
         <ProtectedFAB
-          icon="+"
-          onPress={handleCreateSale}
-          requiredPermissions={['sales.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'receipt-outline',
+              label: 'Crear Venta',
+              onPress: handleCreateSale,
+              requiredPermissions: ['sales.create'],
+            },
+          ]}
         />
       </SafeAreaView>
     </ScreenLayout>
