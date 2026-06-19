@@ -11,7 +11,8 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles, useTheme } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { transmisionesApi, productsApi } from '@/services/api';
 import {
   TransmisionProduct,
@@ -37,6 +38,10 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
   products,
   onProductsChanged,
 }) => {
+  const styles = useThemedStyles(createStyles);
+  const theme = useTheme();
+  const placeholderColor = theme.color.text.placeholder;
+  const inverseTextColor = theme.color.text.inverse;
   const [selectedProduct, setSelectedProduct] = useState<TransmisionProduct | null>(null);
   const [quickEditModalVisible, setQuickEditModalVisible] = useState(false);
   const [bannerModalVisible, setBannerModalVisible] = useState(false);
@@ -312,7 +317,7 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
               disabled={isProcessing}
             >
               {isProcessing ? (
-                <ActivityIndicator size="small" color={colors.neutral[0]} />
+                <ActivityIndicator size="small" color={inverseTextColor} />
               ) : (
                 <Text style={styles.validateButtonText}>🔍 Verificar Validación</Text>
               )}
@@ -326,7 +331,7 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
               disabled={isProcessing}
             >
               {isProcessing ? (
-                <ActivityIndicator size="small" color={colors.neutral[0]} />
+                <ActivityIndicator size="small" color={inverseTextColor} />
               ) : (
                 <Text style={styles.updateButtonText}>🔄 Actualizar Datos</Text>
               )}
@@ -366,13 +371,13 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
         <Text style={styles.headerTitle}>Productos ({products.length})</Text>
 
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={placeholderColor} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar en todos los productos..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor={colors.neutral[400]}
+            placeholderTextColor={placeholderColor}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity
@@ -382,7 +387,7 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
               }}
               style={styles.clearButton}
             >
-              <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+              <Ionicons name="close-circle" size={20} color={placeholderColor} />
             </TouchableOpacity>
           )}
           {isSearching && (
@@ -473,308 +478,309 @@ export const TransmisionProductsList: React.FC<TransmisionProductsListProps> = (
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    backgroundColor: colors.neutral[0],
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    marginBottom: spacing[3],
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  searchIcon: {
-    marginRight: spacing[2],
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: spacing[2.5],
-    fontSize: 14,
-    color: colors.neutral[900],
-  },
-  clearButton: {
-    padding: 4,
-  },
-  searchLoader: {
-    marginLeft: spacing[2],
-  },
-  searchResultsContainer: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    maxHeight: 400,
-  },
-  searchResultsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  noResultsContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  noResultsText: {
-    fontSize: 14,
-    color: colors.neutral[400],
-  },
-  searchResultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[2],
-  },
-  searchResultInfo: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  searchResultTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
-  },
-  searchResultSku: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[0.5],
-  },
-  searchResultStatus: {
-    fontSize: 11,
-    color: colors.neutral[400],
-  },
-  inTransmissionBadge: {
-    backgroundColor: colors.success[100],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.success[500],
-  },
-  inTransmissionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.success[600],
-  },
-  addFromSearchButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: '#8B5CF6',
-  },
-  addFromSearchText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#8B5CF6',
-    marginLeft: spacing[1],
-  },
-  card: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cardTablet: {
-    padding: 20,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing[3],
-  },
-  productInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    marginRight: spacing[3],
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    marginRight: spacing[3],
-  },
-  productDetails: {
-    flex: 1,
-  },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
-  },
-  productTitleTablet: {
-    fontSize: 18,
-  },
-  productSku: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginBottom: spacing[1.5],
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  deleteButtonText: {
-    fontSize: 20,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[3],
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.neutral[100],
-    marginBottom: spacing[3],
-  },
-  priceItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  priceLabel: {
-    fontSize: 12,
-    color: colors.neutral[400],
-    marginBottom: spacing[1],
-  },
-  priceValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[900],
-  },
-  profitPositive: {
-    color: colors.success[500],
-  },
-  profitNegative: {
-    color: colors.danger[500],
-  },
-  notesContainer: {
-    backgroundColor: colors.neutral[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[3],
-  },
-  notesLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  notesText: {
-    fontSize: 14,
-    color: colors.neutral[700],
-    lineHeight: 20,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  actionButton: {
-    flex: 1,
-    minWidth: '45%',
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editButton: {
-    backgroundColor: colors.primary[500],
-  },
-  editButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  validateButton: {
-    backgroundColor: colors.warning[500],
-  },
-  validateButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  updateButton: {
-    backgroundColor: colors.success[500],
-  },
-  updateButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  bannerButton: {
-    backgroundColor: '#8B5CF6',
-  },
-  bannerButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  emptyContainer: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[10],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: spacing[4],
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    marginBottom: spacing[2],
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      padding: theme.space[4],
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    searchIcon: {
+      marginRight: theme.space[2],
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: 10,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    clearButton: {
+      padding: 4,
+    },
+    searchLoader: {
+      marginLeft: theme.space[2],
+    },
+    searchResultsContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      maxHeight: 400,
+    },
+    searchResultsTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[3],
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    noResultsContainer: {
+      padding: 20,
+      alignItems: 'center',
+    },
+    noResultsText: {
+      fontSize: 14,
+      color: theme.color.text.placeholder,
+    },
+    searchResultItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[2],
+    },
+    searchResultInfo: {
+      flex: 1,
+      marginRight: theme.space[3],
+    },
+    searchResultTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    searchResultSku: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: 2,
+    },
+    searchResultStatus: {
+      fontSize: 11,
+      color: theme.color.text.placeholder,
+    },
+    inTransmissionBadge: {
+      backgroundColor: theme.color.state.success.background,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 6,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+    },
+    inTransmissionText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.state.success.text,
+    },
+    addFromSearchButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#F3E8FF',
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: '#8B5CF6',
+    },
+    addFromSearchText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#8B5CF6',
+      marginLeft: theme.space[1],
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cardTablet: {
+      padding: 20,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[3],
+    },
+    productInfo: {
+      flex: 1,
+      flexDirection: 'row',
+      marginRight: theme.space[3],
+    },
+    productImage: {
+      width: 60,
+      height: 60,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      marginRight: theme.space[3],
+    },
+    productDetails: {
+      flex: 1,
+    },
+    productTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    productTitleTablet: {
+      fontSize: 18,
+    },
+    productSku: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: 6,
+    },
+    statusBadge: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+      borderWidth: 1,
+    },
+    statusText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    deleteButton: {
+      padding: 8,
+    },
+    deleteButtonText: {
+      fontSize: 20,
+    },
+    priceContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[3],
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: theme.color.border.subtle,
+      marginBottom: theme.space[3],
+    },
+    priceItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    priceLabel: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+      marginBottom: theme.space[1],
+    },
+    priceValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    profitPositive: {
+      color: theme.color.text.success,
+    },
+    profitNegative: {
+      color: theme.color.text.danger,
+    },
+    notesContainer: {
+      backgroundColor: theme.color.surface.subtle,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[3],
+    },
+    notesLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    notesText: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      lineHeight: 20,
+    },
+    actionsContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    actionButton: {
+      flex: 1,
+      minWidth: '45%',
+      paddingVertical: 10,
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    editButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    editButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    validateButton: {
+      backgroundColor: theme.color.icon.warning,
+    },
+    validateButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    updateButton: {
+      backgroundColor: theme.color.action.success.background,
+    },
+    updateButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.action.success.text,
+    },
+    bannerButton: {
+      backgroundColor: '#8B5CF6',
+    },
+    bannerButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    emptyContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[10],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: theme.space[4],
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+  });
