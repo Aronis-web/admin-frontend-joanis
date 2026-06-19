@@ -119,6 +119,8 @@ export const palette = {
   },
 
   alpha: {
+    black10: 'rgba(0, 0, 0, 0.1)',
+    black15: 'rgba(0, 0, 0, 0.15)',
     black30: 'rgba(0, 0, 0, 0.3)',
     black50: 'rgba(0, 0, 0, 0.5)',
     black70: 'rgba(0, 0, 0, 0.7)',
