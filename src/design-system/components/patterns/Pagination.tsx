@@ -17,6 +17,7 @@ import { iconSizes } from '../../tokens/spacing';
 import { activeOpacity } from '../../tokens/animations';
 import { useTheme, useThemedStyles } from '../../themes';
 import type { Theme } from '../../themes';
+import { useMeasuredFloatingFooter } from '../../layout/FloatingFooterProvider';
 
 export interface PaginationProps {
   /**
@@ -72,6 +73,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { onLayout: onFooterLayout } = useMeasuredFloatingFooter();
   const canGoPrevious = currentPage > 1 && !loading;
   const canGoNext = currentPage < totalPages && !loading;
 
@@ -90,7 +92,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   // Compact variant - Solo flechas
   if (variant === 'compact') {
     return (
-      <View style={[styles.compactContainer, style]}>
+      <View onLayout={onFooterLayout} style={[styles.compactContainer, style]}>
         <TouchableOpacity
           style={[styles.compactButton, !canGoPrevious && styles.buttonDisabled]}
           onPress={handlePrevious}
@@ -127,7 +129,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   // Simple variant - Sin info adicional
   if (variant === 'simple') {
     return (
-      <View style={[styles.simpleContainer, style]}>
+      <View onLayout={onFooterLayout} style={[styles.simpleContainer, style]}>
         <TouchableOpacity
           style={[styles.navButton, !canGoPrevious && styles.buttonDisabled]}
           onPress={handlePrevious}
@@ -179,7 +181,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   // Full variant - Con toda la información
   return (
-    <View style={[styles.container, theme.shadow.xs, style]}>
+    <View onLayout={onFooterLayout} style={[styles.container, theme.shadow.xs, style]}>
       {/* Previous Button */}
       <TouchableOpacity
         style={[styles.navButton, !canGoPrevious && styles.buttonDisabled]}

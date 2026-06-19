@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { useFloatingActionBottomOffset } from '@/design-system/layout/FloatingFooterProvider';
 
 interface ProtectedFABProps {
   icon: string;
@@ -12,7 +13,7 @@ interface ProtectedFABProps {
   style?: ViewStyle;
   iconStyle?: TextStyle;
   labelStyle?: TextStyle;
-  bottom?: number; // Offset desde el bottom (default: 90px para estar sobre el menú)
+  bottom?: number; // Override manual; por defecto se calcula via FloatingFooterProvider
 
   // Permission props
   requiredPermissions?: string[];
@@ -55,7 +56,7 @@ export const ProtectedFAB: React.FC<ProtectedFABProps> = ({
   style,
   iconStyle,
   labelStyle,
-  bottom = 90,
+  bottom,
   requiredPermissions = [],
   requiredRoles = [],
   requireAll = false,
@@ -67,6 +68,8 @@ export const ProtectedFAB: React.FC<ProtectedFABProps> = ({
   const isTablet = width >= 768;
   const styles = useThemedStyles(createStyles);
   const { hasPermission, hasAnyPermission, hasAllPermissions } = usePermissions();
+  const autoBottom = useFloatingActionBottomOffset('module', insets.bottom);
+  const fabBottom = bottom !== undefined ? insets.bottom + bottom : autoBottom;
 
   // Si no hay permisos requeridos, mostrar el FAB normalmente
   if (requiredPermissions.length === 0 && requiredRoles.length === 0) {
@@ -75,7 +78,7 @@ export const ProtectedFAB: React.FC<ProtectedFABProps> = ({
         style={[
           styles.fabContainer,
           {
-            bottom: insets.bottom + bottom,
+            bottom: fabBottom,
           },
           style,
         ]}
@@ -124,7 +127,7 @@ export const ProtectedFAB: React.FC<ProtectedFABProps> = ({
         style={[
           styles.fabContainer,
           {
-            bottom: insets.bottom + bottom,
+            bottom: fabBottom,
             opacity: 0.5,
           },
           style,
@@ -156,7 +159,7 @@ export const ProtectedFAB: React.FC<ProtectedFABProps> = ({
       style={[
         styles.fabContainer,
         {
-          bottom: insets.bottom + bottom,
+          bottom: fabBottom,
         },
         style,
       ]}
