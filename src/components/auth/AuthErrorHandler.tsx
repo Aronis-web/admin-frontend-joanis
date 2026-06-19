@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, TouchableOpacity} from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useAuthStore } from '@/store/auth';
 import { AuthError } from '@/types/auth';
 
@@ -16,6 +17,7 @@ export const AuthErrorHandler: React.FC<AuthErrorHandlerProps> = ({
   onError,
   fallback,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const { error, setError, logout } = useAuthStore();
 
   useEffect(() => {
@@ -162,6 +164,7 @@ export const AuthErrorDisplay: React.FC<AuthErrorDisplayProps> = ({
   onDismiss,
   type = 'card',
 }) => {
+  const styles = useThemedStyles(createStyles);
   if (!error) {
     return null;
   }
@@ -216,20 +219,20 @@ export const AuthErrorDisplay: React.FC<AuthErrorDisplayProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[5],
-    backgroundColor: colors.background.secondary,
+    padding: theme.space[5],
+    backgroundColor: theme.color.background.subtle,
   },
   errorCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[6],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[6],
     alignItems: 'center',
-    shadowColor: colors.neutral[950],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -239,59 +242,59 @@ const styles = StyleSheet.create({
   },
   errorIcon: {
     fontSize: 48,
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   errorTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.danger[500],
-    marginBottom: spacing[2],
+    color: theme.color.text.danger,
+    marginBottom: theme.space[2],
     textAlign: 'center',
   },
   errorMessage: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
     lineHeight: 20,
   },
   buttonContainer: {
     width: '100%',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   button: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[6],
-    borderRadius: borderRadius.lg,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[6],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   retryButton: {
-    backgroundColor: colors.primary[500],
+    backgroundColor: theme.color.brand.accent,
   },
   logoutButton: {
-    backgroundColor: colors.danger[500],
+    backgroundColor: theme.color.action.danger.background,
   },
   cancelButton: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.action.secondary.background,
     borderWidth: 1,
-    borderColor: colors.neutral[300],
+    borderColor: theme.color.border.default,
   },
   buttonText: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: '600',
   },
   cancelButtonText: {
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   dismissButton: {
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.brand.accent,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.md,
   },
   dismissButtonText: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -304,41 +307,41 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   banner: {
-    backgroundColor: colors.danger[100],
+    backgroundColor: theme.color.state.danger.background,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing[3],
+    padding: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.danger[300],
+    borderBottomColor: theme.color.state.danger.border,
   },
   bannerIcon: {
     fontSize: 16,
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   bannerText: {
     flex: 1,
     fontSize: 14,
-    color: colors.danger[800],
+    color: theme.color.state.danger.text,
     fontWeight: '500',
   },
   bannerClose: {
-    padding: spacing[1],
+    padding: theme.space[1],
   },
   bannerCloseText: {
     fontSize: 16,
-    color: colors.danger[800],
+    color: theme.color.state.danger.text,
     fontWeight: '600',
   },
   // Inline styles
   inlineContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.danger[50],
-    padding: spacing[2],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.danger.background,
+    padding: theme.space[2],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.danger[200],
-    marginVertical: spacing[1],
+    borderColor: theme.color.state.danger.border,
+    marginVertical: theme.space[1],
   },
   inlineIcon: {
     fontSize: 14,
@@ -347,7 +350,7 @@ const styles = StyleSheet.create({
   inlineText: {
     flex: 1,
     fontSize: 12,
-    color: colors.danger[800],
+    color: theme.color.state.danger.text,
     fontWeight: '500',
   },
   inlineClose: {
@@ -355,7 +358,7 @@ const styles = StyleSheet.create({
   },
   inlineCloseText: {
     fontSize: 12,
-    color: colors.danger[800],
+    color: theme.color.state.danger.text,
     fontWeight: '600',
   },
 });
