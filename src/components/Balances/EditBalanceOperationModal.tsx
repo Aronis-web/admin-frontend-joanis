@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   BalanceOperation,
   OperationType,
@@ -38,6 +39,8 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
   onClose,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [operationType, setOperationType] = useState<OperationType>(OperationType.DISTRIBUTED);
   const [amountCents, setAmountCents] = useState('');
   const [currency, setCurrency] = useState('PEN');
@@ -112,7 +115,7 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Editar Operación</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color="#64748B" />
+              <Ionicons name="close" size={28} color={theme.color.icon.muted} />
             </TouchableOpacity>
           </View>
 
@@ -270,10 +273,10 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={theme.color.text.inverse} />
               ) : (
                 <>
-                  <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                  <Ionicons name="checkmark" size={20} color={theme.color.text.inverse} />
                   <Text style={styles.saveButtonText}>Guardar</Text>
                 </>
               )}
@@ -285,193 +288,194 @@ export const EditBalanceOperationModal: React.FC<EditBalanceOperationModalProps>
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    paddingBottom: Platform.OS === 'ios' ? spacing[5] : 0,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    padding: spacing[1],
-  },
-  section: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
-  },
-  operationTypeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  operationTypeButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  operationTypeButtonActive: {
-    backgroundColor: colors.accent[500],
-    borderColor: colors.accent[500],
-  },
-  operationTypeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  operationTypeButtonTextActive: {
-    color: colors.neutral[0],
-  },
-  amountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    paddingHorizontal: spacing[4],
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    paddingVertical: spacing[3],
-  },
-  currencyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginLeft: spacing[2],
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3.5],
-    gap: spacing[3],
-  },
-  dateButtonText: {
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  paymentMethodContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  paymentMethodButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  paymentMethodButtonActive: {
-    backgroundColor: colors.accent[50],
-    borderColor: colors.accent[500],
-  },
-  paymentMethodButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  paymentMethodButtonTextActive: {
-    color: colors.accent[500],
-  },
-  input: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  textArea: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[800],
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-    gap: spacing[3],
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: colors.neutral[100],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  saveButton: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      paddingBottom: Platform.OS === 'ios' ? theme.space[5] : 0,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      padding: theme.space[1],
+    },
+    section: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[2],
+    },
+    operationTypeContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    operationTypeButton: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    operationTypeButtonActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    operationTypeButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    operationTypeButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    amountContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      paddingHorizontal: theme.space[4],
+    },
+    amountInput: {
+      flex: 1,
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      paddingVertical: theme.space[3],
+    },
+    currencyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginLeft: theme.space[2],
+    },
+    dateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3.5],
+      gap: theme.space[3],
+    },
+    dateButtonText: {
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    paymentMethodContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    paymentMethodButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    paymentMethodButtonActive: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderColor: theme.color.brand.accent,
+    },
+    paymentMethodButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    paymentMethodButtonTextActive: {
+      color: theme.color.brand.accent,
+    },
+    input: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    textArea: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    footer: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+      gap: theme.space[3],
+    },
+    cancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    saveButton: {
+      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+    },
+    saveButtonDisabled: {
+      opacity: 0.6,
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });
