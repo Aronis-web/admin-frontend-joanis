@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { purchasesService } from '@/services/api';
 import {
   PurchaseAutocompleteSuggestion,
@@ -43,6 +44,8 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
   minChars = 2,
   maxSuggestions = 10,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [internalValue, setInternalValue] = useState(value);
   const [suggestions, setSuggestions] = useState<PurchaseAutocompleteSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -206,7 +209,7 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
       </View>
       {item.matchedProduct && (
         <View style={styles.matchedProductContainer}>
-          <Ionicons name="checkmark-circle" size={14} color={colors.success[500]} />
+          <Ionicons name="checkmark-circle" size={14} color={theme.color.icon.success} />
           <Text style={styles.matchedProductText} numberOfLines={1}>
             {item.matchedProduct}
           </Text>
@@ -223,7 +226,7 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
   return (
     <View style={[styles.container, style]}>
       <View style={styles.searchBarContainer}>
-        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={theme.color.text.muted} style={styles.searchIcon} />
         <TextInput
           ref={inputRef}
           style={styles.input}
@@ -233,18 +236,18 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
           onBlur={handleBlur}
           onSubmitEditing={handleSubmitEditing}
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={theme.color.text.placeholder}
           autoCapitalize="none"
           autoCorrect={false}
           autoFocus={autoFocus}
           returnKeyType="search"
         />
         {isLoading && (
-          <ActivityIndicator size="small" color={colors.accent[500]} style={styles.loadingIndicator} />
+          <ActivityIndicator size="small" color={theme.color.brand.accent} style={styles.loadingIndicator} />
         )}
         {internalValue.length > 0 && !isLoading && (
           <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={20} color="#999" />
+            <Ionicons name="close-circle" size={20} color={theme.color.text.muted} />
           </TouchableOpacity>
         )}
       </View>
@@ -277,7 +280,7 @@ export const SearchBarWithAutocomplete: React.FC<SearchBarWithAutocompleteProps>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     position: 'relative',
     zIndex: 1000,
@@ -285,38 +288,38 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[3],
     height: 44,
   },
   searchIcon: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     paddingVertical: 0,
   },
   loadingIndicator: {
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
   clearButton: {
-    padding: spacing[1],
-    marginLeft: spacing[2],
+    padding: theme.space[1],
+    marginLeft: theme.space[2],
   },
   suggestionsContainer: {
     position: 'absolute',
     top: 48,
     left: 0,
     right: 0,
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     maxHeight: 400,
-    shadowColor: colors.neutral[950],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -328,9 +331,9 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   suggestionItem: {
-    padding: spacing[3],
+    padding: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
+    borderBottomColor: theme.color.border.subtle,
   },
   suggestionHeader: {
     flexDirection: 'row',
@@ -345,7 +348,7 @@ const styles = StyleSheet.create({
   },
   suggestionIcon: {
     fontSize: 20,
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   suggestionInfo: {
     flex: 1,
@@ -353,19 +356,19 @@ const styles = StyleSheet.create({
   suggestionCode: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   suggestionSupplier: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   statusBadge: {
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: theme.space[2],
     paddingVertical: 3,
-    borderRadius: borderRadius.lg,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
   statusText: {
     fontSize: 10,
@@ -374,30 +377,30 @@ const styles = StyleSheet.create({
   suggestionDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   suggestionGuide: {
     fontSize: 11,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   suggestionDate: {
     fontSize: 11,
-    color: colors.neutral[400],
+    color: theme.color.text.subtle,
   },
   matchedProductContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.success[50],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-    marginBottom: spacing[1],
+    backgroundColor: theme.color.state.success.background,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[1],
   },
   matchedProductText: {
     fontSize: 11,
-    color: colors.success[500],
+    color: theme.color.text.success,
     fontWeight: '500',
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
     flex: 1,
   },
   matchTypeContainer: {
@@ -405,7 +408,7 @@ const styles = StyleSheet.create({
   },
   matchTypeText: {
     fontSize: 10,
-    color: colors.neutral[400],
+    color: theme.color.text.subtle,
     fontStyle: 'italic',
   },
   noResultsContainer: {
@@ -413,12 +416,12 @@ const styles = StyleSheet.create({
     top: 48,
     left: 0,
     right: 0,
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    padding: spacing[4],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    padding: theme.space[4],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -427,7 +430,7 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
 });
