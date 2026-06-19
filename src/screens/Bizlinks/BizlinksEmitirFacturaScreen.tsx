@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/auth';
 import { useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
-type Props = NativeStackScreenProps<any, 'BizlinksEmitirFactura'>;
+type Props = NativeStackScreenProps<any, any>;
 
 export const BizlinksEmitirFacturaScreen: React.FC<Props> = ({ navigation, route }) => {
   const { currentCompany, currentSite } = useAuthStore();

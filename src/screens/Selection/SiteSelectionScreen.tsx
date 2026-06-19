@@ -38,7 +38,7 @@ interface LegacySiteSelectionScreenProps {
   };
 }
 
-export const SiteSelectionScreen: React.FC<SiteSelectionScreenProps> = ({ navigation, route }) => {
+export const SiteSelectionScreen: React.FC<any> = ({ navigation, route }: SiteSelectionScreenProps) => {
   const { user, logout, currentCompany, setCurrentSite } = useAuthStore();
   const { setSelectedSite } = useTenantStore();
   const theme = useTheme();

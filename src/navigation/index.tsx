@@ -680,9 +680,9 @@ const MainStack = React.memo(() => {
           title: 'Nueva Venta',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['sales.create']}>
-            <CreateSaleScreen {...props} />
+            <CreateSaleScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -699,9 +699,9 @@ const MainStack = React.memo(() => {
           title: 'Registrar Pago',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['sales.payment.register']}>
-            <RegisterSalePaymentScreen {...props} />
+            <RegisterSalePaymentScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -889,9 +889,9 @@ const MainStack = React.memo(() => {
           title: 'Gastos Recurrentes',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['expenses.templates.read']}>
-            <ExpenseTemplatesScreen {...props} />
+            <ExpenseTemplatesScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1118,12 +1118,12 @@ const MainStack = React.memo(() => {
           title: 'Reconocimiento Facial',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute
             requiredPermissions={['biometric.read', 'biometric.register', 'biometric.verify']}
             requireAll={false}
           >
-            <FaceRecognitionMenuScreen {...props} />
+            <FaceRecognitionMenuScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1133,9 +1133,9 @@ const MainStack = React.memo(() => {
           title: 'Perfiles Biométricos',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['biometric.read']}>
-            <BiometricProfilesScreen {...props} />
+            <BiometricProfilesScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1145,9 +1145,9 @@ const MainStack = React.memo(() => {
           title: 'Registrar Rostro',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['biometric.register']}>
-            <RegisterFaceScreen {...props} />
+            <RegisterFaceScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1157,9 +1157,9 @@ const MainStack = React.memo(() => {
           title: 'Verificar Rostro',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['biometric.verify']}>
-            <VerifyFaceScreen {...props} />
+            <VerifyFaceScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1169,7 +1169,7 @@ const MainStack = React.memo(() => {
           title: 'Organigrama',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute
             requiredPermissions={[
               'organization.positions.company.read',
@@ -1177,7 +1177,7 @@ const MainStack = React.memo(() => {
             ]}
             requireAll={false}
           >
-            <OrganizationChartScreen {...props} />
+            <OrganizationChartScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1475,11 +1475,11 @@ const MainStack = React.memo(() => {
           title: 'Generar Documentos',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute
             requiredPermissions={['bizlinks.documents.send']}
           >
-            <BizlinksGenerateDocumentsScreen {...props} />
+            <BizlinksGenerateDocumentsScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1726,7 +1726,7 @@ const MainStack = React.memo(() => {
           title: 'Transportistas',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute
             requiredPermissions={[
               'transport.transporters.read',
@@ -1736,7 +1736,7 @@ const MainStack = React.memo(() => {
             ]}
             requireAll={false}
           >
-            <TransportersScreen {...props} />
+            <TransportersScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1753,9 +1753,9 @@ const MainStack = React.memo(() => {
           title: 'Crear Transportista',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['transport.transporters.create']}>
-            <CreateTransporterScreen {...props} />
+            <CreateTransporterScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

@@ -31,10 +31,10 @@ interface EditParticipantScreenProps {
   };
 }
 
-export const EditParticipantScreen: React.FC<EditParticipantScreenProps> = ({
+export const EditParticipantScreen: React.FC<any> = ({
   navigation,
   route,
-}) => {
+}: EditParticipantScreenProps) => {
   const { campaignId, participantId, participant } = route.params;
   const [assignedAmount, setAssignedAmount] = useState(
     (participant.assignedAmountCents / 100).toFixed(2)
