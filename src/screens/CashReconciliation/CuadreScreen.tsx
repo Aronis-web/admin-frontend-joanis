@@ -1,8 +1,8 @@
-﻿/**
+/**
  * CuadreScreen.tsx
  *
  * Pantalla principal de Cuadre de Caja.
- * RediseÃ±ada con el sistema de diseÃ±o global.
+ * Rediseñada con el sistema de diseño global.
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -360,36 +360,36 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
   // ==================== Bank Accounts Functions ====================
 
   const loadBankAccounts = async () => {
-    console.log('ðŸ¦ [CuadreScreen] Starting to load bank accounts...');
+    console.log('🏦 [CuadreScreen] Starting to load bank accounts...');
     try {
       setIsLoadingBankAccounts(true);
-      console.log('ðŸ¦ [CuadreScreen] Calling treasuryApi.getActiveBankAccounts()...');
+      console.log('🏦 [CuadreScreen] Calling treasuryApi.getActiveBankAccounts()...');
 
       const accounts = await treasuryApi.getActiveBankAccounts();
 
-      console.log('ðŸ¦ [CuadreScreen] Received accounts:', accounts);
-      console.log('ðŸ¦ [CuadreScreen] Accounts count:', accounts?.length || 0);
-      console.log('ðŸ¦ [CuadreScreen] Accounts type:', typeof accounts);
-      console.log('ðŸ¦ [CuadreScreen] Is array:', Array.isArray(accounts));
+      console.log('🏦 [CuadreScreen] Received accounts:', accounts);
+      console.log('🏦 [CuadreScreen] Accounts count:', accounts?.length || 0);
+      console.log('🏦 [CuadreScreen] Accounts type:', typeof accounts);
+      console.log('🏦 [CuadreScreen] Is array:', Array.isArray(accounts));
 
       if (accounts && accounts.length > 0) {
-        console.log('ðŸ¦ [CuadreScreen] First account sample:', JSON.stringify(accounts[0], null, 2));
+        console.log('🏦 [CuadreScreen] First account sample:', JSON.stringify(accounts[0], null, 2));
       }
 
       setBankAccounts(accounts || []);
       // Select all accounts by default
       const accountIds = (accounts || []).map((a: any) => a.id);
-      console.log('ðŸ¦ [CuadreScreen] Account IDs:', accountIds);
+      console.log('🏦 [CuadreScreen] Account IDs:', accountIds);
       setSelectedBankAccountIds(new Set(accountIds));
-      console.log('ðŸ¦ [CuadreScreen] Bank accounts loaded successfully!');
+      console.log('🏦 [CuadreScreen] Bank accounts loaded successfully!');
     } catch (error: any) {
-      console.error('ðŸ¦ [CuadreScreen] Error loading bank accounts:', error);
-      console.error('ðŸ¦ [CuadreScreen] Error message:', error?.message);
-      console.error('ðŸ¦ [CuadreScreen] Error response:', error?.response?.data);
+      console.error('🏦 [CuadreScreen] Error loading bank accounts:', error);
+      console.error('🏦 [CuadreScreen] Error message:', error?.message);
+      console.error('🏦 [CuadreScreen] Error response:', error?.response?.data);
       Alert.alert('Error', 'No se pudieron cargar las cuentas bancarias');
     } finally {
       setIsLoadingBankAccounts(false);
-      console.log('ðŸ¦ [CuadreScreen] Loading finished');
+      console.log('🏦 [CuadreScreen] Loading finished');
     }
   };
 
@@ -551,7 +551,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       setAutoMatchingTotalIngresos(totalIngresos);
     } catch (error: any) {
       console.error('Error loading automatching bank info:', error);
-      Alert.alert('Error', error?.message || 'No se pudo cargar la informaciÃ³n bancaria por automatching');
+      Alert.alert('Error', error?.message || 'No se pudo cargar la información bancaria por automatching');
       setAutoMatchingTransactions([]);
       setAutoMatchingTotalIngresos(0);
     } finally {
@@ -599,12 +599,12 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
         params.bank_account_ids = bankAccountIdsArray.join(',');
         params.bank_fecha_inicio = formatDate(bankFechaInicio);
         params.bank_fecha_fin = formatDate(bankFechaFin);
-        console.log('ðŸ“Š [Cuadre] Cuentas bancarias seleccionadas:', bankAccountIdsArray.length, 'de', bankAccounts.length);
-        console.log('ðŸ“Š [Cuadre] Fechas bancarias:', params.bank_fecha_inicio, 'al', params.bank_fecha_fin);
+        console.log('📊 [Cuadre] Cuentas bancarias seleccionadas:', bankAccountIdsArray.length, 'de', bankAccounts.length);
+        console.log('📊 [Cuadre] Fechas bancarias:', params.bank_fecha_inicio, 'al', params.bank_fecha_fin);
       }
 
-      console.log('ðŸ“Š [Cuadre] Enviando peticiÃ³n con params:', JSON.stringify(params, null, 2));
-      console.log('ðŸ“Š [Cuadre] Sedes seleccionadas:', sedeIdsArray.length, 'de', sedes.length);
+      console.log('📊 [Cuadre] Enviando petición con params:', JSON.stringify(params, null, 2));
+      console.log('📊 [Cuadre] Sedes seleccionadas:', sedeIdsArray.length, 'de', sedes.length);
 
       const data = await cashReconciliationApi.getCuadreCaja(params);
       setCuadreData(data as CuadreCajaResponse);
@@ -650,7 +650,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const token = authService.getAccessToken();
       if (!token) {
-        Alert.alert('Error', 'No hay sesiÃ³n activa');
+        Alert.alert('Error', 'No hay sesión activa');
         return;
       }
 
@@ -707,7 +707,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
         // Clean up blob URL after download
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-        Alert.alert('Ã‰xito', 'PDF descargado correctamente');
+        Alert.alert('Éxito', 'PDF descargado correctamente');
       } else {
         const timestamp = Date.now();
         const fileName = `cuadre-caja-${formatDate(fechaInicio)}-${formatDate(fechaFin)}-${timestamp}.pdf`;
@@ -726,7 +726,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
             dialogTitle: 'Cuadre de Caja',
             UTI: 'com.adobe.pdf',
           });
-          Alert.alert('Ã‰xito', 'PDF descargado correctamente');
+          Alert.alert('Éxito', 'PDF descargado correctamente');
         } else {
           throw new Error('Error al descargar el PDF');
         }
@@ -745,7 +745,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
       baja: { label: 'Discrepancia Baja', color: theme.color.state.warning.text, bgColor: theme.color.state.warning.background, icon: 'alert-circle' },
       media: { label: 'Discrepancia Media', color: theme.color.state.warning.text, bgColor: theme.color.state.warning.background, icon: 'alert-circle' },
       alta: { label: 'Discrepancia Alta', color: theme.color.state.danger.text, bgColor: theme.color.state.danger.background, icon: 'warning' },
-      critica: { label: 'Discrepancia CrÃ­tica', color: theme.color.state.danger.text, bgColor: theme.color.state.danger.background, icon: 'warning' },
+      critica: { label: 'Discrepancia Crítica', color: theme.color.state.danger.text, bgColor: theme.color.state.danger.background, icon: 'warning' },
     };
     return severities[severidad] || { label: severidad, color: theme.color.text.muted, bgColor: theme.color.background.muted, icon: 'help-circle' as keyof typeof Ionicons.glyphMap };
   };
@@ -757,7 +757,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
     ? cuadreData.izipay.bruto + cuadreData.prosegur.depositos + (cuadreData.notas_credito.total * -1) - cuadreData.ventas.total
     : 0;
 
-  // Estimated payment for external sedes (Ventas neto - comisiÃ³n franquicia)
+  // Estimated payment for external sedes (Ventas neto - comisión franquicia)
   const estimacionPago = cuadreData
     ? (cuadreData.ventas.total - cuadreData.notas_credito.total) / 1.15
     : 0;
@@ -783,7 +783,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
                 <Text style={styles.titleGradient}>Cuadre de Caja</Text>
               </View>
-              <Text style={styles.subtitleGradient}>ConciliaciÃ³n de ventas y pagos</Text>
+              <Text style={styles.subtitleGradient}>Conciliación de ventas y pagos</Text>
             </View>
           </View>
         </LinearGradient>
@@ -826,7 +826,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.dateRangeTextContainer}>
                   <Text style={styles.dateRangeLabel}>Periodo</Text>
                   <Text style={styles.dateRangeValue}>
-                    {formatDisplayDate(fechaInicio)} â€” {formatDisplayDate(fechaFin)}
+                    {formatDisplayDate(fechaInicio)} — {formatDisplayDate(fechaFin)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={theme.color.icon.disabled} />
@@ -848,7 +848,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   activeOpacity={0.7}
                 >
                   <View style={[styles.sedeToggleCheck, showInternas && styles.sedeToggleCheckActive]}>
-                    {showInternas && <Ionicons name="checkmark" size={14} color={theme.color.brand.onHeader} />}
+                    {showInternas && <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />}
                   </View>
                   <View style={styles.sedeToggleContent}>
                     <Ionicons name="business" size={18} color={showInternas ? theme.color.brand.primary : theme.color.icon.disabled} />
@@ -868,7 +868,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   activeOpacity={0.7}
                 >
                   <View style={[styles.sedeToggleCheck, showExternas && styles.sedeToggleCheckActive]}>
-                    {showExternas && <Ionicons name="checkmark" size={14} color={theme.color.brand.onHeader} />}
+                    {showExternas && <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />}
                   </View>
                   <View style={styles.sedeToggleContent}>
                     <Ionicons name="storefront" size={18} color={showExternas ? theme.color.brand.accent : theme.color.icon.disabled} />
@@ -909,7 +909,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       activeOpacity={0.7}
                     >
                       <View style={[styles.checkbox, allVisibleSelected && styles.checkboxChecked]}>
-                        {allVisibleSelected && <Ionicons name="checkmark" size={12} color={theme.color.brand.onHeader} />}
+                        {allVisibleSelected && <Ionicons name="checkmark" size={12} color={theme.color.text.inverse} />}
                       </View>
                       <Text style={styles.selectAllText}>Todas</Text>
                     </TouchableOpacity>
@@ -931,7 +931,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                               isExternal && styles.checkboxExternas,
                               selectedSedeIds.has(sede.id) && (isExternal ? styles.checkboxExternasChecked : styles.checkboxChecked)
                             ]}>
-                              {selectedSedeIds.has(sede.id) && <Ionicons name="checkmark" size={12} color={theme.color.brand.onHeader} />}
+                              {selectedSedeIds.has(sede.id) && <Ionicons name="checkmark" size={12} color={theme.color.text.inverse} />}
                             </View>
                             <View style={styles.sedeListItemInfo}>
                               <View style={styles.sedeListItemHeader}>
@@ -971,7 +971,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Bank Accounts Section */}
             <View style={styles.bankAccountsSection}>
-              <Text style={styles.sedeLabel}>InformaciÃ³n Bancaria</Text>
+              <Text style={styles.sedeLabel}>Información Bancaria</Text>
 
               {/* Optional automatching bank info */}
               <TouchableOpacity
@@ -983,12 +983,12 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 activeOpacity={0.7}
               >
                 <View style={[styles.sedeToggleCheck, includeAutoMatchingBankInfo && styles.bankToggleCheckActive]}>
-                  {includeAutoMatchingBankInfo && <Ionicons name="checkmark" size={14} color={theme.color.brand.onHeader} />}
+                  {includeAutoMatchingBankInfo && <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />}
                 </View>
                 <View style={styles.sedeToggleContent}>
                   <Ionicons name="git-compare-outline" size={18} color={includeAutoMatchingBankInfo ? theme.color.state.info.border : theme.color.icon.disabled} />
                   <Text style={[styles.sedeToggleText, includeAutoMatchingBankInfo && styles.sedeToggleTextActive]}>
-                    Incluir informaciÃ³n de bancos (AutoMatching)
+                    Incluir información de bancos (AutoMatching)
                   </Text>
                 </View>
                 {isLoadingAutoMatching && (
@@ -1031,12 +1031,12 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 activeOpacity={0.7}
               >
                 <View style={[styles.sedeToggleCheck, includeBankInfo && styles.bankToggleCheckActive]}>
-                  {includeBankInfo && <Ionicons name="checkmark" size={14} color={theme.color.brand.onHeader} />}
+                  {includeBankInfo && <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />}
                 </View>
                 <View style={styles.sedeToggleContent}>
                   <Ionicons name="wallet-outline" size={18} color={includeBankInfo ? theme.color.state.info.border : theme.color.icon.disabled} />
                   <Text style={[styles.sedeToggleText, includeBankInfo && styles.sedeToggleTextActive]}>
-                    Incluir informaciÃ³n de bancos
+                    Incluir información de bancos
                   </Text>
                 </View>
                 {isLoadingBankAccounts && (
@@ -1047,7 +1047,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               {/* Bank Date Range - Only show when includeBankInfo is true */}
               {includeBankInfo && (
                 <View style={styles.bankDateSection}>
-                  <Text style={styles.bankDateLabel}>PerÃ­odo de Transacciones Bancarias</Text>
+                  <Text style={styles.bankDateLabel}>Período de Transacciones Bancarias</Text>
 
                   {/* Quick Filters for Bank Dates */}
                   <View style={styles.bankQuickFiltersContainer}>
@@ -1077,9 +1077,9 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                   >
                     <Ionicons name="calendar-outline" size={20} color={theme.color.state.info.border} />
                     <View style={styles.dateRangeTextContainer}>
-                      <Text style={[styles.dateRangeLabel, { color: theme.color.state.info.border }]}>PerÃ­odo Bancos</Text>
+                      <Text style={[styles.dateRangeLabel, { color: theme.color.state.info.border }]}>Período Bancos</Text>
                       <Text style={styles.dateRangeValue}>
-                        {formatDisplayDate(bankFechaInicio)} â€” {formatDisplayDate(bankFechaFin)}
+                        {formatDisplayDate(bankFechaInicio)} — {formatDisplayDate(bankFechaFin)}
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={theme.color.icon.disabled} />
@@ -1092,7 +1092,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.bankAccountsListContainer}>
                   {__DEV__ && (
                     <Text style={{ fontSize: 10, color: theme.color.text.link, padding: 4 }}>
-                      âœ“ Lista visible - {bankAccounts.length} cuentas - Currencies: {Object.keys(bankAccountsByCurrency).join(', ')}
+                      ✓ Lista visible - {bankAccounts.length} cuentas - Currencies: {Object.keys(bankAccountsByCurrency).join(', ')}
                     </Text>
                   )}
                   <TouchableOpacity
@@ -1117,7 +1117,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                       activeOpacity={0.7}
                     >
                       <View style={[styles.checkbox, styles.checkboxBank, allBankAccountsSelected && styles.checkboxBankChecked]}>
-                        {allBankAccountsSelected && <Ionicons name="checkmark" size={12} color={theme.color.brand.onHeader} />}
+                        {allBankAccountsSelected && <Ionicons name="checkmark" size={12} color={theme.color.text.inverse} />}
                       </View>
                       <Text style={styles.selectAllText}>Todas</Text>
                     </TouchableOpacity>
@@ -1130,7 +1130,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                           {/* Currency Header */}
                           <View style={styles.currencyHeader}>
                             <Text style={styles.currencyHeaderText}>
-                              {currency === 'PEN' ? 'ðŸ‡µðŸ‡ª Soles (PEN)' : currency === 'USD' ? 'ðŸ‡ºðŸ‡¸ DÃ³lares (USD)' : currency}
+                              {currency === 'PEN' ? '🇵🇪 Soles (PEN)' : currency === 'USD' ? '🇺🇸 Dólares (USD)' : currency}
                             </Text>
                           </View>
                           {/* Accounts in this currency */}
@@ -1146,7 +1146,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                                 styles.checkboxBank,
                                 selectedBankAccountIds.has(account.id) && styles.checkboxBankChecked
                               ]}>
-                                {selectedBankAccountIds.has(account.id) && <Ionicons name="checkmark" size={12} color={theme.color.brand.onHeader} />}
+                                {selectedBankAccountIds.has(account.id) && <Ionicons name="checkmark" size={12} color={theme.color.text.inverse} />}
                               </View>
                               <View style={styles.bankAccountItemInfo}>
                                 <View style={styles.bankAccountItemHeader}>
@@ -1202,10 +1202,10 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               activeOpacity={0.8}
             >
               {isLoading ? (
-                <ActivityIndicator color={theme.color.brand.onHeader} size="small" />
+                <ActivityIndicator color={theme.color.text.inverse} size="small" />
               ) : (
                 <>
-                  <Ionicons name="analytics" size={22} color={theme.color.brand.onHeader} />
+                  <Ionicons name="analytics" size={22} color={theme.color.text.inverse} />
                   <Text style={styles.generateButtonText}>Generar Cuadre</Text>
                 </>
               )}
@@ -1240,8 +1240,8 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               <DataRow label="Operaciones" value={cuadreData.ventas.cantidad_operaciones.toString()} />
             </DataCard>
 
-            {/* Notas de CrÃ©dito Card */}
-            <DataCard title="Notas de CrÃ©dito" icon="document-text-outline" iconColor={theme.color.icon.danger} delay={300} variant="danger">
+            {/* Notas de Crédito Card */}
+            <DataCard title="Notas de Crédito" icon="document-text-outline" iconColor={theme.color.icon.danger} delay={300} variant="danger">
               <DataRow label="Efectivo" value={formatCurrency(cuadreData.notas_credito.efectivo)} valueColor={theme.color.icon.danger} />
               <DataRow label="Tarjeta" value={formatCurrency(cuadreData.notas_credito.tarjeta)} valueColor={theme.color.icon.danger} />
               <DataRow label="Total" value={formatCurrency(cuadreData.notas_credito.total)} isBold isTotal valueColor={theme.color.icon.danger} />
@@ -1256,17 +1256,17 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 <DataRow label="Neto" value={formatCurrency(cuadreData.izipay.neto)} isBold isTotal />
                 <DataRow label="Operaciones" value={cuadreData.izipay.cantidad_operaciones.toString()} />
                 <DataRow label="Matcheadas" value={cuadreData.izipay.transacciones_matcheadas.toString()} />
-                <DataRow label="% ComisiÃ³n Prom." value={`${cuadreData.izipay.porcentaje_comision_promedio.toFixed(2)}%`} />
+                <DataRow label="% Comisión Prom." value={`${cuadreData.izipay.porcentaje_comision_promedio.toFixed(2)}%`} />
               </DataCard>
             )}
 
             {/* Prosegur Card - Only for internal sedes */}
             {!isOnlyExternas && (
               <DataCard title="Prosegur" icon="business-outline" iconColor={theme.color.icon.warning} delay={500}>
-                <DataRow label="DepÃ³sitos" value={formatCurrency(cuadreData.prosegur.depositos)} />
+                <DataRow label="Depósitos" value={formatCurrency(cuadreData.prosegur.depositos)} />
                 <DataRow label="Balance" value={formatCurrency(cuadreData.prosegur.balances)} isBold isTotal />
                 <DataRow label="Operaciones" value={cuadreData.prosegur.cantidad_operaciones.toString()} />
-                <DataRow label="DepÃ³sitos (#)" value={cuadreData.prosegur.cantidad_depositos.toString()} />
+                <DataRow label="Depósitos (#)" value={cuadreData.prosegur.cantidad_depositos.toString()} />
                 <DataRow label="Recogidas" value={cuadreData.prosegur.cantidad_recogidas.toString()} />
               </DataCard>
             )}
@@ -1300,15 +1300,15 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
               </DataCard>
             )}
 
-            {/* EstimaciÃ³n de Pago Card - Only for external sedes */}
+            {/* Estimación de Pago Card - Only for external sedes */}
             {isOnlyExternas && (
-              <DataCard title="EstimaciÃ³n de Pago" icon="wallet-outline" iconColor={theme.color.icon.success} delay={400} variant="success">
+              <DataCard title="Estimación de Pago" icon="wallet-outline" iconColor={theme.color.icon.success} delay={400} variant="success">
                 <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de CrÃ©dito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={theme.color.icon.danger} />
+                <DataRow label="Notas de Crédito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={theme.color.icon.danger} />
                 <DataRow label="Ventas Netas" value={formatCurrency(cuadreData.ventas.total - cuadreData.notas_credito.total)} isBold />
-                <DataRow label="ComisiÃ³n Franquicia (15%)" value={`-${formatCurrency((cuadreData.ventas.total - cuadreData.notas_credito.total) - estimacionPago)}`} valueColor={theme.color.text.muted} />
+                <DataRow label="Comisión Franquicia (15%)" value={`-${formatCurrency((cuadreData.ventas.total - cuadreData.notas_credito.total) - estimacionPago)}`} valueColor={theme.color.text.muted} />
                 <DataRow
-                  label="EstimaciÃ³n a Pagar"
+                  label="Estimación a Pagar"
                   value={formatCurrency(estimacionPago)}
                   isBold
                   isTotal
@@ -1321,7 +1321,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
             {!isOnlyExternas ? (
               <DataCard title="Resumen de Totales" icon="calculator-outline" iconColor={theme.color.state.info.border} delay={600} variant="success">
                 <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de CrÃ©dito" value={formatCurrency(cuadreData.notas_credito.total)} valueColor={theme.color.icon.danger} />
+                <DataRow label="Notas de Crédito" value={formatCurrency(cuadreData.notas_credito.total)} valueColor={theme.color.icon.danger} />
                 <DataRow label="Izipay (Bruto)" value={formatCurrency(cuadreData.izipay.bruto)} />
                 <DataRow label="Comisiones" value={`-${formatCurrency(cuadreData.izipay.comisiones)}`} valueColor={theme.color.icon.danger} />
                 <DataRow label="Prosegur" value={formatCurrency(cuadreData.prosegur.depositos)} />
@@ -1385,10 +1385,10 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
             ) : (
               <DataCard title="Resumen Sedes Externas" icon="calculator-outline" iconColor={theme.color.state.info.border} delay={500} variant="success">
                 <DataRow label="Total Ventas" value={formatCurrency(cuadreData.ventas.total)} />
-                <DataRow label="Notas de CrÃ©dito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={theme.color.icon.danger} />
+                <DataRow label="Notas de Crédito" value={`-${formatCurrency(cuadreData.notas_credito.total)}`} valueColor={theme.color.icon.danger} />
                 <DataRow label="Ventas Netas" value={formatCurrency(cuadreData.ventas.total - cuadreData.notas_credito.total)} isBold />
                 <DataRow
-                  label="EstimaciÃ³n a Pagar"
+                  label="Estimación a Pagar"
                   value={formatCurrency(estimacionPago)}
                   isBold
                   isTotal
@@ -1405,7 +1405,7 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 <DataRow label="Prosegur" value={cuadreData.operaciones.prosegur.toString()} />
                 <DataRow
                   label="Coinciden"
-                  value={cuadreData.operaciones.coinciden ? 'âœ“ SÃ­' : 'âœ— No'}
+                  value={cuadreData.operaciones.coinciden ? '✓ Sí' : '✗ No'}
                   valueColor={cuadreData.operaciones.coinciden ? theme.color.icon.success : theme.color.icon.warning}
                   isBold
                 />
@@ -1447,10 +1447,10 @@ export const CuadreScreen: React.FC<Props> = ({ navigation }) => {
                 activeOpacity={0.8}
               >
                 {isDownloadingPDF ? (
-                  <ActivityIndicator color={theme.color.brand.onHeader} size="small" />
+                  <ActivityIndicator color={theme.color.text.inverse} size="small" />
                 ) : (
                   <>
-                    <Ionicons name="document-text" size={24} color={theme.color.brand.onHeader} />
+                    <Ionicons name="document-text" size={24} color={theme.color.text.inverse} />
                     <Text style={styles.pdfButtonText}>Descargar PDF</Text>
                   </>
                 )}
@@ -1949,7 +1949,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   generateButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
 
   // Severity Badge
@@ -2064,7 +2064,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   pdfButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
 
   // Empty State
@@ -2327,7 +2327,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   bankAccountDetailBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   bankAccountDetailCurrency: {
     fontSize: 12,

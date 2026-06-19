@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -42,11 +42,11 @@ type PickerType = 'warehouse' | 'area' | 'stockStatus' | 'sortBy' | null;
 
 const STOCK_STATUS_OPTIONS: Array<{ value: 'all' | ProductStockStatus; label: string; helper: string }> = [
   { value: 'all', label: 'Todos', helper: 'Respeta la regla por defecto del backend' },
-  { value: 'with_stock', label: 'Con stock fÃ­sico', helper: 'Stock total mayor a cero' },
-  { value: 'without_stock', label: 'Sin stock fÃ­sico', helper: 'Stock total igual a cero' },
+  { value: 'with_stock', label: 'Con stock físico', helper: 'Stock total mayor a cero' },
+  { value: 'without_stock', label: 'Sin stock físico', helper: 'Stock total igual a cero' },
   { value: 'available', label: 'Disponible', helper: 'Disponible mayor a cero' },
   { value: 'reserved', label: 'Reservado', helper: 'Reservado mayor a cero' },
-  { value: 'low_stock', label: 'Stock bajo', helper: 'Disponible menor o igual al mÃ­nimo' },
+  { value: 'low_stock', label: 'Stock bajo', helper: 'Disponible menor o igual al mínimo' },
   { value: 'negative', label: 'Negativo', helper: 'Disponible negativo' },
 ];
 
@@ -56,7 +56,7 @@ const SORT_OPTIONS: Array<{ value: ProductStockSortBy; label: string }> = [
   { value: 'totalStock', label: 'Stock total' },
   { value: 'reservedStock', label: 'Stock reservado' },
   { value: 'availableStock', label: 'Stock disponible' },
-  { value: 'updatedAt', label: 'ActualizaciÃ³n' },
+  { value: 'updatedAt', label: 'Actualización' },
 ];
 
 const limit = 50;
@@ -223,9 +223,9 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             <View style={styles.modalHeader}>
               <Text variant="titleMedium" color="primary">
                 {activePicker === 'warehouse'
-                  ? 'Seleccionar almacÃ©n'
+                  ? 'Seleccionar almacén'
                   : activePicker === 'area'
-                    ? 'Seleccionar Ã¡rea'
+                    ? 'Seleccionar área'
                     : activePicker === 'stockStatus'
                       ? 'Estado de stock'
                       : 'Ordenar por'}
@@ -259,7 +259,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                     >
                       <View style={styles.modalItemContent}>
                         <Text variant="bodyMedium" color="primary">{warehouse.name}</Text>
-                        <Caption color="tertiary">CÃ³digo: {warehouse.code}</Caption>
+                        <Caption color="tertiary">Código: {warehouse.code}</Caption>
                       </View>
                       {selectedWarehouseId === warehouse.id && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                     </TouchableOpacity>
@@ -276,12 +276,12 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                       close();
                     }}
                   >
-                    <Text variant="bodyMedium" color="primary">Todas las Ã¡reas</Text>
+                    <Text variant="bodyMedium" color="primary">Todas las áreas</Text>
                     {selectedAreaId === 'all' && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                   </TouchableOpacity>
                   {areas.length === 0 ? (
                     <View style={styles.modalItem}>
-                      <Caption color="tertiary">No hay Ã¡reas disponibles para este almacÃ©n.</Caption>
+                      <Caption color="tertiary">No hay áreas disponibles para este almacén.</Caption>
                     </View>
                   ) : (
                     areas.map((area: WarehouseArea) => (
@@ -295,9 +295,9 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                       >
                         <View style={styles.modalItemContent}>
                           <Text variant="bodyMedium" color="primary">
-                            {area.name || area.code || `Ãrea ${area.id.substring(0, 8)}`}
+                            {area.name || area.code || `Área ${area.id.substring(0, 8)}`}
                           </Text>
-                          {!!area.code && <Caption color="tertiary">CÃ³digo: {area.code}</Caption>}
+                          {!!area.code && <Caption color="tertiary">Código: {area.code}</Caption>}
                         </View>
                         {selectedAreaId === area.id && <Ionicons name="checkmark" size={20} color={theme.color.brand.accent} />}
                       </TouchableOpacity>
@@ -359,13 +359,13 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 <Text variant="titleSmall" color="primary" numberOfLines={2}>{product.name}</Text>
                 <Caption color="tertiary" numberOfLines={1}>
                   SKU: {product.sku || 'Sin SKU'}
-                  {product.correlativeNumber ? ` â€¢ #${product.correlativeNumber}` : ''}
+                  {product.correlativeNumber ? ` • #${product.correlativeNumber}` : ''}
                 </Caption>
                 {!!product.categoryName && <Caption color="tertiary">{product.categoryName}</Caption>}
               </View>
               <View style={[styles.stockLevelBadge, { backgroundColor: stockState.color }]}>
-                <Ionicons name={stockState.icon} size={13} color={theme.color.brand.onHeader} />
-                <Text variant="labelSmall" color={theme.color.brand.onHeader}>{stockState.label}</Text>
+                <Ionicons name={stockState.icon} size={13} color={theme.color.text.inverse} />
+                <Text variant="labelSmall" color={theme.color.text.inverse}>{stockState.label}</Text>
               </View>
             </View>
 
@@ -390,12 +390,12 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               <View style={styles.productDetailRow}>
                 <Caption color="tertiary">Ubicaciones</Caption>
                 <Text variant="labelMedium" color="primary">
-                  {warehousesCount} almacÃ©n(es) / {areasCount} Ã¡rea(s)
+                  {warehousesCount} almacén(es) / {areasCount} área(s)
                 </Text>
               </View>
               {!!product.minStockAlert && (
                 <View style={styles.productDetailRow}>
-                  <Caption color="tertiary">Stock mÃ­nimo</Caption>
+                  <Caption color="tertiary">Stock mínimo</Caption>
                   <Text variant="labelMedium" color="primary">{formatQuantity(product.minStockAlert)}</Text>
                 </View>
               )}
@@ -410,8 +410,8 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                         {warehouse.warehouseName}
                       </Text>
                       <Caption color="tertiary" numberOfLines={1}>
-                        {warehouse.warehouseCode || 'Sin cÃ³digo'}
-                        {warehouse.siteCode ? ` â€¢ ${warehouse.siteCode}` : ''}
+                        {warehouse.warehouseCode || 'Sin código'}
+                        {warehouse.siteCode ? ` • ${warehouse.siteCode}` : ''}
                       </Caption>
                     </View>
                     <Text variant="numericSmall" color={theme.color.brand.accent}>
@@ -420,7 +420,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   </View>
                 ))}
                 {product.warehouses.length > 2 && (
-                  <Caption color="tertiary">+{product.warehouses.length - 2} almacÃ©n(es) mÃ¡s</Caption>
+                  <Caption color="tertiary">+{product.warehouses.length - 2} almacén(es) más</Caption>
                 )}
               </View>
             )}
@@ -432,7 +432,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             style={[styles.actionButton, styles.detailButton]}
             onPress={() => setSelectedDetailProduct(product)}
           >
-            <Text variant="labelMedium" color={theme.color.brand.onHeader}>Ver detalle</Text>
+            <Text variant="labelMedium" color={theme.color.text.inverse}>Ver detalle</Text>
           </TouchableOpacity>
         </View>
       </Card>
@@ -505,7 +505,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Buscar por nombre, SKU, cÃ³digo o correlativo..."
+                placeholder="Buscar por nombre, SKU, código o correlativo..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
@@ -529,7 +529,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
             <TouchableOpacity style={styles.filterButton} onPress={() => setActivePicker('warehouse')}>
               <View style={styles.flexOne}>
-                <Caption color="tertiary">AlmacÃ©n</Caption>
+                <Caption color="tertiary">Almacén</Caption>
                 <Text variant="labelMedium" color="primary" numberOfLines={1}>
                   {loadingWarehouses ? 'Cargando...' : selectedWarehouse?.name || 'Todos'}
                 </Text>
@@ -540,7 +540,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             {selectedWarehouseId !== 'all' && (
               <TouchableOpacity style={styles.filterButton} onPress={() => setActivePicker('area')}>
                 <View style={styles.flexOne}>
-                  <Caption color="tertiary">Ãrea</Caption>
+                  <Caption color="tertiary">Área</Caption>
                   <Text variant="labelMedium" color="primary" numberOfLines={1}>
                     {loadingAreas ? 'Cargando...' : selectedArea?.name || selectedArea?.code || 'Todas'}
                   </Text>
@@ -576,9 +576,9 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               <Ionicons
                 name={includeZeroStock ? 'checkbox' : 'square-outline'}
                 size={18}
-                color={includeZeroStock ? theme.color.brand.onHeader : theme.color.icon.muted}
+                color={includeZeroStock ? theme.color.text.inverse : theme.color.icon.muted}
               />
-              <Text variant="labelMedium" color={includeZeroStock ? theme.color.brand.onHeader : 'primary'}>
+              <Text variant="labelMedium" color={includeZeroStock ? theme.color.text.inverse : 'primary'}>
                 Incluir ceros
               </Text>
             </TouchableOpacity>
@@ -587,7 +587,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           <View style={styles.statsContainer}>
             <View style={[styles.statCard, { backgroundColor: theme.color.brand.accentSoft }]}>
               <Text variant="numericMedium" color="primary">{products.length}</Text>
-              <Caption color="tertiary">En pÃ¡gina</Caption>
+              <Caption color="tertiary">En página</Caption>
             </View>
             <View style={[styles.statCard, { backgroundColor: theme.color.state.success.background }]}>
               <Text variant="numericMedium" color="primary">{formatQuantity(pageStats.availableStock)}</Text>
@@ -621,7 +621,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 title="No hay productos con stock"
                 description={
                   debouncedSearchQuery
-                    ? 'No se encontraron productos con ese criterio de bÃºsqueda.'
+                    ? 'No se encontraron productos con ese criterio de búsqueda.'
                     : 'Ajusta los filtros o incluye productos con stock cero.'
                 }
                 actionLabel={!includeZeroStock ? 'Incluir stock cero' : undefined}

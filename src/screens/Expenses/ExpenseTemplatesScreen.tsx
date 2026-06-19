@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -154,7 +154,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
   const handleTestGeneration = async () => {
     Alert.alert(
       'Generar Gastos',
-      'Â¿Deseas ejecutar la generaciÃ³n manual de gastos desde las plantillas activas?',
+      '¿Deseas ejecutar la generación manual de gastos desde las plantillas activas?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -162,14 +162,14 @@ export const ExpenseTemplatesScreen: React.FC = () => {
           onPress: async () => {
             try {
               setGeneratingExpenses(true);
-              console.log('ðŸš€ Iniciando generaciÃ³n manual de gastos...');
+              console.log('🚀 Iniciando generación manual de gastos...');
 
               const result = await expensesService.testGeneration();
 
-              console.log('âœ… Resultado de generaciÃ³n:', result);
+              console.log('✅ Resultado de generación:', result);
 
               Alert.alert(
-                'Ã‰xito',
+                'Éxito',
                 result.message || `Se generaron ${result.generated} gastos correctamente.`,
                 [
                   {
@@ -182,7 +182,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
                 ]
               );
             } catch (error: any) {
-              console.error('âŒ Error en generaciÃ³n manual:', error);
+              console.error('❌ Error en generación manual:', error);
               Alert.alert(
                 'Error',
                 error.response?.data?.message || error.message ||
@@ -222,7 +222,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
   const handleDeleteTemplate = (template: ExpenseTemplate) => {
     Alert.alert(
       'Eliminar Plantilla',
-      `Â¿EstÃ¡s seguro de que deseas eliminar la plantilla "${template.name}"?`,
+      `¿Estás seguro de que deseas eliminar la plantilla "${template.name}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -231,7 +231,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
           onPress: async () => {
             try {
               await expensesService.deleteTemplate(template.id);
-              Alert.alert('Ã‰xito', 'Plantilla eliminada correctamente');
+              Alert.alert('Éxito', 'Plantilla eliminada correctamente');
               loadTemplates();
             } catch (error) {
               console.error('Error deleting template:', error);
@@ -245,7 +245,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyIcon}>ðŸ”„</Text>
+      <Text style={styles.emptyIcon}>🔄</Text>
       <Text style={styles.emptyTitle}>No hay plantillas</Text>
       <Text style={styles.emptyText}>
         {showInactive
@@ -272,11 +272,11 @@ export const ExpenseTemplatesScreen: React.FC = () => {
               <View style={styles.headerTitleContainer}>
                 <View style={styles.headerIconRow}>
                   <View style={styles.headerIconContainer}>
-                    <Ionicons name="repeat-outline" size={22} color={theme.color.brand.onHeader} />
+                    <Ionicons name="repeat-outline" size={22} color={theme.color.text.inverse} />
                   </View>
                   <Text style={styles.titleGradient}>Gastos Recurrentes</Text>
                 </View>
-                <Text style={styles.subtitleGradient}>Plantillas de gastos automÃ¡ticos</Text>
+                <Text style={styles.subtitleGradient}>Plantillas de gastos automáticos</Text>
               </View>
             </View>
           </LinearGradient>
@@ -303,11 +303,11 @@ export const ExpenseTemplatesScreen: React.FC = () => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="repeat-outline" size={22} color={theme.color.brand.onHeader} />
+                  <Ionicons name="repeat-outline" size={22} color={theme.color.text.inverse} />
                 </View>
                 <Text style={styles.titleGradient}>Gastos Recurrentes</Text>
               </View>
-              <Text style={styles.subtitleGradient}>Plantillas de gastos automÃ¡ticos</Text>
+              <Text style={styles.subtitleGradient}>Plantillas de gastos automáticos</Text>
             </View>
             <View style={styles.statsHeaderContainer}>
               <View style={styles.statHeaderItem}>
@@ -374,13 +374,13 @@ export const ExpenseTemplatesScreen: React.FC = () => {
                 pagination.page === 1 && styles.paginationButtonTextDisabled,
               ]}
             >
-              â† Anterior
+              ← Anterior
             </Text>
           </TouchableOpacity>
 
           <View style={styles.paginationInfo}>
             <Text style={styles.paginationText}>
-              PÃ¡g. {pagination.page}/{pagination.totalPages}
+              Pág. {pagination.page}/{pagination.totalPages}
             </Text>
             <Text style={styles.paginationSubtext}>
               {templates.length} de {pagination.total}
@@ -401,7 +401,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
                 pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
               ]}
             >
-              Siguiente â†’
+              Siguiente →
             </Text>
           </TouchableOpacity>
         </View>
@@ -470,7 +470,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
@@ -492,7 +492,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   statHeaderLabel: {
     fontSize: 11,
@@ -539,7 +539,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   filterTabTextActive: {
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   scrollView: {
     flex: 1,
@@ -589,7 +589,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 8,
   },
   createButtonText: {
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -633,7 +633,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   paginationButtonTextDisabled: {
     color: theme.color.text.placeholder,

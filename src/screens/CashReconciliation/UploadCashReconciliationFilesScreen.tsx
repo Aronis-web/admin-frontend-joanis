@@ -1,8 +1,8 @@
-﻿/**
+/**
  * UploadCashReconciliationFilesScreen.tsx
  *
  * Pantalla para subir archivos de cuadre de caja.
- * RediseÃ±ada con el sistema de diseÃ±o global.
+ * Rediseñada con el sistema de diseño global.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -119,7 +119,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
     {
       id: 'prosegur',
       label: 'Prosegur',
-      description: 'Reporte de recaudaciÃ³n Prosegur',
+      description: 'Reporte de recaudación Prosegur',
       color: theme.color.icon.warning,
       icon: 'business-outline',
     },
@@ -155,7 +155,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           ]}
         >
           <View style={[styles.reportTypeIcon, { backgroundColor: type.color }]}>
-            <Ionicons name={type.icon} size={28} color={theme.color.brand.onHeader} />
+            <Ionicons name={type.icon} size={28} color={theme.color.text.inverse} />
           </View>
           <View style={styles.reportTypeContent}>
             <Text style={styles.reportTypeLabel}>{type.label}</Text>
@@ -163,7 +163,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           </View>
           {isSelected && (
             <View style={styles.checkmark}>
-              <Ionicons name="checkmark" size={18} color={theme.color.brand.onHeader} />
+              <Ionicons name="checkmark" size={18} color={theme.color.text.inverse} />
             </View>
           )}
         </Animated.View>
@@ -200,7 +200,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       });
       setSedes(sortedSedes);
     } catch (error) {
-      console.error('âŒ Error al cargar sedes:', error);
+      console.error('❌ Error al cargar sedes:', error);
       Alert.alert('Error', 'No se pudieron cargar las sedes');
     } finally {
       setIsLoadingSedes(false);
@@ -232,16 +232,16 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         setSelectedFile(result.assets[0]);
       }
     } catch (error) {
-      console.error('âŒ Error al seleccionar archivo:', error);
+      console.error('❌ Error al seleccionar archivo:', error);
       Alert.alert('Error', 'No se pudo seleccionar el archivo');
     }
   };
 
   const handleUpload = async () => {
-    console.log('ðŸš€ [Upload] handleUpload called');
-    console.log('ðŸ“„ selectedFile:', selectedFile);
-    console.log('ðŸ“‹ selectedReportType:', selectedReportType);
-    console.log('ðŸ¢ selectedSede:', selectedSede);
+    console.log('🚀 [Upload] handleUpload called');
+    console.log('📄 selectedFile:', selectedFile);
+    console.log('📋 selectedReportType:', selectedReportType);
+    console.log('🏢 selectedSede:', selectedSede);
 
     if (!selectedFile || !selectedReportType) {
       Alert.alert('Error', 'Por favor selecciona un tipo de reporte y un archivo');
@@ -254,7 +254,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
     }
 
     setIsUploading(true);
-    console.log('â³ [Upload] Starting upload process...');
+    console.log('⏳ [Upload] Starting upload process...');
 
     try {
       const formData = new FormData();
@@ -262,10 +262,10 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       if (Platform.OS === 'web') {
         // Web/Electron: Need to read file content into memory before sending
         // In Electron, File objects can lose their content after selection
-        console.log('ðŸ“¤ [Web/Electron] Preparing file upload...');
-        console.log('ðŸ“„ selectedFile:', selectedFile);
-        console.log('ðŸ“„ selectedFile.file:', selectedFile.file);
-        console.log('ðŸ“„ selectedFile.uri:', selectedFile.uri);
+        console.log('📤 [Web/Electron] Preparing file upload...');
+        console.log('📄 selectedFile:', selectedFile);
+        console.log('📄 selectedFile.file:', selectedFile.file);
+        console.log('📄 selectedFile.uri:', selectedFile.uri);
 
         try {
           let fileToUpload: File;
@@ -273,9 +273,9 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           if (selectedFile.file) {
             // Read the File object into an ArrayBuffer to ensure content is loaded
             // This fixes issues in Electron where File objects may lose content
-            console.log('ðŸ“– Reading File object into memory...');
+            console.log('📖 Reading File object into memory...');
             const arrayBuffer = await selectedFile.file.arrayBuffer();
-            console.log('ðŸ“¦ ArrayBuffer size:', arrayBuffer.byteLength, 'bytes');
+            console.log('📦 ArrayBuffer size:', arrayBuffer.byteLength, 'bytes');
 
             if (arrayBuffer.byteLength === 0) {
               throw new Error('El archivo esta vacio o no se pudo leer');
@@ -285,16 +285,16 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
             fileToUpload = new File([blob], selectedFile.file.name || selectedFile.name, {
               type: selectedFile.file.type || selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             });
-            console.log('âœ… File recreated:', fileToUpload.name, fileToUpload.type, fileToUpload.size);
+            console.log('✅ File recreated:', fileToUpload.name, fileToUpload.type, fileToUpload.size);
           } else if (selectedFile.uri) {
             // Fallback: fetch the blob from URI
-            console.log('âš ï¸ No File object, fetching from URI:', selectedFile.uri);
+            console.log('⚠️ No File object, fetching from URI:', selectedFile.uri);
             const blobResponse = await fetch(selectedFile.uri);
             if (!blobResponse.ok) {
               throw new Error(`Failed to fetch blob: ${blobResponse.status}`);
             }
             const blob = await blobResponse.blob();
-            console.log('ðŸ“¦ Blob created:', blob.size, 'bytes, type:', blob.type);
+            console.log('📦 Blob created:', blob.size, 'bytes, type:', blob.type);
 
             if (blob.size === 0) {
               throw new Error('El archivo esta vacio o no se pudo leer desde URI');
@@ -303,15 +303,15 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
             fileToUpload = new File([blob], selectedFile.name, {
               type: selectedFile.mimeType || blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             });
-            console.log('ðŸ“ File created from URI:', fileToUpload.name, fileToUpload.type, fileToUpload.size);
+            console.log('📁 File created from URI:', fileToUpload.name, fileToUpload.type, fileToUpload.size);
           } else {
             throw new Error('No se encontro el archivo para subir');
           }
 
           formData.append('file', fileToUpload);
-          console.log('âœ… File appended to FormData');
+          console.log('✅ File appended to FormData');
         } catch (fileError: any) {
-          console.error('âŒ Error preparing file:', fileError);
+          console.error('❌ Error preparing file:', fileError);
           throw new Error(`Error preparando archivo: ${fileError.message}`);
         }
       } else {
@@ -330,8 +330,8 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       }
 
       const uploadUrl = `${config.API_URL}/cash-reconciliation/upload`;
-      console.log('ðŸŒ [Upload] Sending to:', uploadUrl);
-      console.log('ðŸ”‘ [Upload] Token present:', !!token);
+      console.log('🌐 [Upload] Sending to:', uploadUrl);
+      console.log('🔑 [Upload] Token present:', !!token);
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
@@ -343,16 +343,16 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         body: formData,
       });
 
-      console.log('ðŸ“¥ [Upload] Response status:', response.status);
+      console.log('📥 [Upload] Response status:', response.status);
 
       const responseText = await response.text();
-      console.log('ðŸ“„ [Upload] Response text:', responseText.substring(0, 500));
+      console.log('📄 [Upload] Response text:', responseText.substring(0, 500));
 
       let result;
       try {
         result = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('âŒ [Upload] Failed to parse JSON:', parseError);
+        console.error('❌ [Upload] Failed to parse JSON:', parseError);
         throw new Error(`Error del servidor: ${responseText.substring(0, 200)}`);
       }
 
@@ -367,11 +367,11 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         const reportLabel = reportTypeLabels[selectedReportType];
 
         Alert.alert(
-          'âœ… Archivo Recibido',
-          `El archivo de ${reportLabel} se ha recibido correctamente y se estÃ¡ procesando en segundo plano.\n\n` +
-          `ðŸ“‚ Archivo: ${selectedFile.name}\n\n` +
-          `â³ El procesamiento puede tardar varios minutos dependiendo del tamaÃ±o del archivo.\n\n` +
-          `ðŸ“Š PodrÃ¡s revisar los resultados mÃ¡s tarde en la secciÃ³n de "Archivos Subidos" o "Cuadre de Caja".`,
+          '✅ Archivo Recibido',
+          `El archivo de ${reportLabel} se ha recibido correctamente y se está procesando en segundo plano.\n\n` +
+          `📂 Archivo: ${selectedFile.name}\n\n` +
+          `⏳ El procesamiento puede tardar varios minutos dependiendo del tamaño del archivo.\n\n` +
+          `📊 Podrás revisar los resultados más tarde en la sección de "Archivos Subidos" o "Cuadre de Caja".`,
           [
             {
               text: 'Ver Archivos Subidos',
@@ -397,7 +397,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         throw new Error(result.message || 'Error al procesar el archivo');
       }
     } catch (error: any) {
-      console.error('âŒ Error al subir archivo:', error);
+      console.error('❌ Error al subir archivo:', error);
       Alert.alert('Error', error.message || 'No se pudo subir el archivo');
     } finally {
       setIsUploading(false);
@@ -591,39 +591,39 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
           <View style={styles.infoSection}>
             <View style={styles.infoHeader}>
               <Ionicons name="information-circle" size={24} color={theme.color.state.info.border} />
-              <Text style={styles.infoTitle}>InformaciÃ³n</Text>
+              <Text style={styles.infoTitle}>Información</Text>
             </View>
             {selectedReportType === 'ventas' && (
               <Text style={styles.infoText}>
-                â€¢ Debes seleccionar una sede especÃ­fica{'\n'}
-                â€¢ Puedes seleccionar sedes de todas las empresas{'\n'}
-                â€¢ El archivo debe contener el reporte de ventas del sistema{'\n'}
-                â€¢ Se excluyen: Notas de CrÃ©dito y ventas anuladas{'\n'}
-                â€¢ Se detectarÃ¡n duplicados automÃ¡ticamente
+                • Debes seleccionar una sede específica{'\n'}
+                • Puedes seleccionar sedes de todas las empresas{'\n'}
+                • El archivo debe contener el reporte de ventas del sistema{'\n'}
+                • Se excluyen: Notas de Crédito y ventas anuladas{'\n'}
+                • Se detectarán duplicados automáticamente
               </Text>
             )}
             {selectedReportType === 'izipay' && (
               <Text style={styles.infoText}>
-                â€¢ NO requiere seleccionar sede (se detecta automÃ¡ticamente){'\n'}
-                â€¢ Las sedes se asignan segÃºn el cÃ³digo de comercio{'\n'}
-                â€¢ Solo se procesan transacciones tipo "COMPRA"{'\n'}
-                â€¢ Se excluyen: Comisiones, devoluciones y ajustes
+                • NO requiere seleccionar sede (se detecta automáticamente){'\n'}
+                • Las sedes se asignan según el código de comercio{'\n'}
+                • Solo se procesan transacciones tipo "COMPRA"{'\n'}
+                • Se excluyen: Comisiones, devoluciones y ajustes
               </Text>
             )}
             {selectedReportType === 'prosegur' && (
               <Text style={styles.infoText}>
-                â€¢ Acepta archivos Excel (.xlsx) o ZIP (.zip){'\n'}
-                â€¢ Si es ZIP, se procesarÃ¡ el primer Excel encontrado{'\n'}
-                â€¢ El sistema extrae y procesa automÃ¡ticamente{'\n'}
-                â€¢ Se detecta automÃ¡ticamente el tipo de archivo
+                • Acepta archivos Excel (.xlsx) o ZIP (.zip){'\n'}
+                • Si es ZIP, se procesará el primer Excel encontrado{'\n'}
+                • El sistema extrae y procesa automáticamente{'\n'}
+                • Se detecta automáticamente el tipo de archivo
               </Text>
             )}
             {!selectedReportType && (
               <Text style={styles.infoText}>
-                â€¢ Selecciona un tipo de reporte para ver informaciÃ³n especÃ­fica{'\n'}
-                â€¢ El archivo debe estar en formato Excel (.xlsx){'\n'}
-                â€¢ Se validarÃ¡n los datos antes de insertarlos{'\n'}
-                â€¢ RecibirÃ¡s un resumen al finalizar
+                • Selecciona un tipo de reporte para ver información específica{'\n'}
+                • El archivo debe estar en formato Excel (.xlsx){'\n'}
+                • Se validarán los datos antes de insertarlos{'\n'}
+                • Recibirás un resumen al finalizar
               </Text>
             )}
           </View>
@@ -636,7 +636,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
             onPress={() => navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any)}
             activeOpacity={0.8}
           >
-            <Ionicons name="folder-open-outline" size={24} color={theme.color.brand.onHeader} />
+            <Ionicons name="folder-open-outline" size={24} color={theme.color.text.inverse} />
             <Text style={styles.viewFilesButtonText}>Ver Archivos Subidos</Text>
           </TouchableOpacity>
         </AnimatedCard>
@@ -773,7 +773,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   stepNumber: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   sectionTitle: {
     fontSize: 18,
@@ -973,7 +973,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   viewFilesButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   bottomSpacer: {
     height: theme.space[8],

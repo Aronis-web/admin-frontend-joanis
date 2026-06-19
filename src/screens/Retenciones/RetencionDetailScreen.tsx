@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -64,7 +64,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const [refreshing, setRefreshing] = useState(false);
   const [downloading, setDownloading] = useState<'pdf' | 'xml' | 'cdr' | null>(null);
 
-  // Helper para obtener valores numÃ©ricos seguros
+  // Helper para obtener valores numéricos seguros
   const getSafeNumber = (value: number | undefined, defaultValue: number = 0): number => {
     return typeof value === 'number' ? value : defaultValue;
   };
@@ -81,13 +81,13 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
     return value ? parseFloat(value) : 0;
   };
 
-  // Helper para enriquecer datos de la retenciÃ³n con datos del XML
+  // Helper para enriquecer datos de la retención con datos del XML
   const enrichRetencionData = (retencion: Retencion): Retencion => {
     if (!retencion.payloadXml) return retencion;
 
     const xml = retencion.payloadXml;
 
-    // Parsear datos del proveedor si no estÃ¡n presentes
+    // Parsear datos del proveedor si no están presentes
     if (!retencion.razonSocialProveedor) {
       retencion.razonSocialProveedor = parseXmlData(xml, 'razonSocialProveedor') || undefined;
     }
@@ -99,7 +99,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       retencion.direccionProveedor = parseXmlData(xml, 'direccionProveedor') || undefined;
     }
 
-    // Parsear datos numÃ©ricos si no estÃ¡n presentes
+    // Parsear datos numéricos si no están presentes
     if (!retencion.tasaRetencion) {
       retencion.tasaRetencion = parseXmlNumber(xml, 'tasaRetencion');
     }
@@ -122,9 +122,9 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const loadRetencion = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('ðŸ”„ [RETENCION DETAIL] Loading retencion:', retencionId);
+      console.log('🔄 [RETENCION DETAIL] Loading retencion:', retencionId);
       const data = await bizlinksApi.getRetencionById(retencionId);
-      console.log('ðŸ“¦ [RETENCION DETAIL] Retencion data received:', {
+      console.log('📦 [RETENCION DETAIL] Retencion data received:', {
         id: data.id,
         serieNumero: data.serieNumero,
         hasPdfUrl: !!data.pdfUrl,
@@ -134,7 +134,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
         hasPayloadXml: !!data.payloadXml,
       });
       const enrichedData = enrichRetencionData(data);
-      console.log('âœ¨ [RETENCION DETAIL] Enriched data:', {
+      console.log('✨ [RETENCION DETAIL] Enriched data:', {
         razonSocialProveedor: enrichedData.razonSocialProveedor,
         numeroDocumentoProveedor: enrichedData.numeroDocumentoProveedor,
         tasaRetencion: enrichedData.tasaRetencion,
@@ -144,8 +144,8 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       });
       setRetencion(enrichedData);
     } catch (error: any) {
-      console.error('âŒ [RETENCION DETAIL] Error loading retencion:', error);
-      Alert.alert('Error', error.message || 'Error al cargar retenciÃ³n');
+      console.error('❌ [RETENCION DETAIL] Error loading retencion:', error);
+      Alert.alert('Error', error.message || 'Error al cargar retención');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -156,7 +156,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   // Cargar solo cuando la pantalla recibe el foco
   useFocusEffect(
     useCallback(() => {
-      console.log('ðŸ‘ï¸ [RETENCION DETAIL] Screen focused - loading retencion');
+      console.log('👁️ [RETENCION DETAIL] Screen focused - loading retencion');
       loadRetencion();
     }, [loadRetencion])
   );
@@ -166,7 +166,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       setRefreshing(true);
       const data = await bizlinksApi.refreshRetencionStatus(retencionId);
       setRetencion(data);
-      Alert.alert('Ã‰xito', 'Estado actualizado correctamente');
+      Alert.alert('Éxito', 'Estado actualizado correctamente');
     } catch (error: any) {
       console.error('Error refreshing retencion:', error);
       Alert.alert('Error', error.message || 'Error al actualizar estado');
@@ -178,19 +178,19 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const handleDownloadPDF = async () => {
     if (!retencion) return;
 
-    console.log('ðŸ“„ Attempting to download PDF:', {
+    console.log('📄 Attempting to download PDF:', {
       hasPdfUrl: !!retencion.pdfUrl,
       pdfUrl: retencion.pdfUrl,
       serieNumero: retencion.serieNumero,
     });
 
-    // En mÃ³vil, si hay pdfUrl pÃºblica, abrir en navegador
+    // En móvil, si hay pdfUrl pública, abrir en navegador
     if (retencion.pdfUrl && !isWeb()) {
       try {
         setDownloading('pdf');
-        console.log('ðŸ”— Opening PDF URL:', retencion.pdfUrl);
+        console.log('🔗 Opening PDF URL:', retencion.pdfUrl);
         await Linking.openURL(retencion.pdfUrl);
-        Alert.alert('Ã‰xito', 'PDF abierto en el navegador');
+        Alert.alert('Éxito', 'PDF abierto en el navegador');
       } catch (error: any) {
         console.error('Error opening PDF URL:', error);
         Alert.alert('Error', `No se pudo abrir el PDF: ${error.message}`);
@@ -205,7 +205,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       const blob = await bizlinksApi.downloadRetencionPDF(retencion.id);
       const fileName = `${retencion.serieNumero}.pdf`;
 
-      await saveAndSharePdf(blob, fileName, `RetenciÃ³n ${retencion.serieNumero}`);
+      await saveAndSharePdf(blob, fileName, `Retención ${retencion.serieNumero}`);
     } catch (error: any) {
       console.error('Error downloading PDF:', error);
       Alert.alert('Error', error.message || 'Error al descargar PDF');
@@ -217,19 +217,19 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const handleDownloadXML = async () => {
     if (!retencion) return;
 
-    console.log('ðŸ“„ Attempting to download XML:', {
+    console.log('📄 Attempting to download XML:', {
       hasXmlSignUrl: !!retencion.xmlSignUrl,
       xmlSignUrl: retencion.xmlSignUrl,
       serieNumero: retencion.serieNumero,
     });
 
-    // En mÃ³vil, si hay xmlSignUrl pÃºblica, abrir en navegador
+    // En móvil, si hay xmlSignUrl pública, abrir en navegador
     if (retencion.xmlSignUrl && !isWeb()) {
       try {
         setDownloading('xml');
-        console.log('ðŸ”— Opening XML URL:', retencion.xmlSignUrl);
+        console.log('🔗 Opening XML URL:', retencion.xmlSignUrl);
         await Linking.openURL(retencion.xmlSignUrl);
-        Alert.alert('Ã‰xito', 'XML abierto en el navegador');
+        Alert.alert('Éxito', 'XML abierto en el navegador');
       } catch (error: any) {
         console.error('Error opening XML URL:', error);
         Alert.alert('Error', `No se pudo abrir el XML: ${error.message}`);
@@ -248,7 +248,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
         blob,
         fileName,
         mimeType: 'application/xml',
-        dialogTitle: `RetenciÃ³n ${retencion.serieNumero}`,
+        dialogTitle: `Retención ${retencion.serieNumero}`,
       });
     } catch (error: any) {
       console.error('Error downloading XML:', error);
@@ -278,8 +278,8 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
 
     if (retencion.isReversed) {
       Alert.alert(
-        'RetenciÃ³n ya anulada',
-        `Esta retenciÃ³n ya fue anulada el ${formatDateToString(new Date(retencion.reversedAt!))}.\n\nDocumento de reversiÃ³n: ${retencion.reversedBySerieNumero}`
+        'Retención ya anulada',
+        `Esta retención ya fue anulada el ${formatDateToString(new Date(retencion.reversedAt!))}.\n\nDocumento de reversión: ${retencion.reversedBySerieNumero}`
       );
       return;
     }
@@ -306,8 +306,8 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       });
 
       Alert.alert(
-        'RetenciÃ³n Anulada',
-        `La retenciÃ³n ${retencion.serieNumero} ha sido anulada exitosamente.\n\nDocumento de reversiÃ³n: ${result.reversedBySerieNumero}\n\nMotivo: ${motivoAnulacion}`,
+        'Retención Anulada',
+        `La retención ${retencion.serieNumero} ha sido anulada exitosamente.\n\nDocumento de reversión: ${result.reversedBySerieNumero}\n\nMotivo: ${motivoAnulacion}`,
         [
           {
             text: 'OK',
@@ -318,8 +318,8 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
         ]
       );
     } catch (error: any) {
-      console.error('Error al anular retenciÃ³n:', error);
-      Alert.alert('Error', error.message || 'No se pudo anular la retenciÃ³n');
+      console.error('Error al anular retención:', error);
+      Alert.alert('Error', error.message || 'No se pudo anular la retención');
     } finally {
       setLoading(false);
       setMotivoAnulacion('');
@@ -332,7 +332,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.color.brand.accent} />
-            <Text style={styles.loadingText}>Cargando retenciÃ³n...</Text>
+            <Text style={styles.loadingText}>Cargando retención...</Text>
           </View>
         </SafeAreaView>
       </ScreenLayout>
@@ -367,7 +367,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 </View>
                 <Text style={styles.headerTitle}>{retencion.serieNumero}</Text>
               </View>
-              <Text style={styles.headerSubtitle}>Detalle de RetenciÃ³n</Text>
+              <Text style={styles.headerSubtitle}>Detalle de Retención</Text>
             </View>
             <View style={styles.headerActions}>
               <View
@@ -406,13 +406,13 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 <View style={styles.reversedAlert}>
                   <Ionicons name="warning" size={24} color={theme.color.icon.danger} />
                   <View style={styles.reversedAlertContent}>
-                    <Text style={styles.reversedAlertTitle}>âš ï¸ RETENCIÃ“N ANULADA</Text>
+                    <Text style={styles.reversedAlertTitle}>⚠️ RETENCIÓN ANULADA</Text>
                     <Text style={styles.reversedAlertText}>
                       Revertida por: {retencion.reversedBySerieNumero}
                     </Text>
                     <Text style={styles.reversedAlertText}>Motivo: {retencion.reversalReason}</Text>
                     <Text style={styles.reversedAlertText}>
-                      Fecha de anulaciÃ³n: {formatDateToString(new Date(retencion.reversedAt!))}
+                      Fecha de anulación: {formatDateToString(new Date(retencion.reversedAt!))}
                     </Text>
                   </View>
                 </View>
@@ -420,18 +420,18 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             </View>
           )}
 
-          {/* InformaciÃ³n General */}
+          {/* Información General */}
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>InformaciÃ³n General</Text>
+            <Text style={styles.sectionTitle}>Información General</Text>
             <View style={styles.infoGrid}>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Fecha de EmisiÃ³n</Text>
+                <Text style={styles.infoLabel}>Fecha de Emisión</Text>
                 <Text style={styles.infoValue}>
                   {formatDateToString(new Date(retencion.fechaEmision))}
                 </Text>
               </View>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>RÃ©gimen</Text>
+                <Text style={styles.infoLabel}>Régimen</Text>
                 <Text style={styles.infoValue}>
                   {retencion.regimenRetencion
                     ? REGIMEN_LABELS[retencion.regimenRetencion] || retencion.regimenRetencion
@@ -439,7 +439,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 </Text>
               </View>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Tasa de RetenciÃ³n</Text>
+                <Text style={styles.infoLabel}>Tasa de Retención</Text>
                 <Text style={styles.infoValue}>
                   {getSafeNumber(retencion.tasaRetencion).toFixed(2)}%
                 </Text>
@@ -456,7 +456,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             <Text style={styles.sectionTitle}>Proveedor</Text>
             <View style={styles.infoGrid}>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>RazÃ³n Social</Text>
+                <Text style={styles.infoLabel}>Razón Social</Text>
                 <Text style={styles.infoValue}>
                   {retencion.proveedor?.razonSocialProveedor ||
                     retencion.razonSocialProveedor ||
@@ -473,7 +473,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
               </View>
               {(retencion.proveedor?.direccionProveedor || retencion.direccionProveedor) && (
                 <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>DirecciÃ³n</Text>
+                  <Text style={styles.infoLabel}>Dirección</Text>
                   <Text style={styles.infoValue}>
                     {retencion.proveedor?.direccionProveedor || retencion.direccionProveedor}
                   </Text>
@@ -536,7 +536,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                       </Text>
                     </View>
                     <View style={styles.itemRow}>
-                      <Text style={styles.itemLabel}>Pago sin RetenciÃ³n:</Text>
+                      <Text style={styles.itemLabel}>Pago sin Retención:</Text>
                       <Text style={styles.itemValue}>
                         {item.monedaPago} {getSafeNumber(item.importePagoSinRetencion).toFixed(2)}
                       </Text>
@@ -622,7 +622,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             </View>
           </View>
 
-          {/* BotÃ³n de Anular */}
+          {/* Botón de Anular */}
           {!retencion.isReversed && (
             <View style={styles.actionsCard}>
               <Text style={styles.sectionTitle}>Acciones</Text>
@@ -631,19 +631,19 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 onPress={handleAnularRetencion}
                 disabled={loading}
               >
-                <Ionicons name="ban" size={24} color={theme.color.brand.onHeader} />
+                <Ionicons name="ban" size={24} color={theme.color.text.inverse} />
                 <Text style={styles.anularButtonText}>
-                  {loading ? 'Procesando...' : 'Anular RetenciÃ³n'}
+                  {loading ? 'Procesando...' : 'Anular Retención'}
                 </Text>
               </TouchableOpacity>
               <Text style={styles.anularWarning}>
-                âš ï¸ Esta acciÃ³n generarÃ¡ un documento de reversiÃ³n y no se puede deshacer
+                ⚠️ Esta acción generará un documento de reversión y no se puede deshacer
               </Text>
             </View>
           )}
         </ScrollView>
 
-        {/* Modal de AnulaciÃ³n */}
+        {/* Modal de Anulación */}
         <Modal
           visible={showAnularModal}
           transparent
@@ -652,16 +652,16 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Anular RetenciÃ³n</Text>
+              <Text style={styles.modalTitle}>Anular Retención</Text>
               <Text style={styles.modalSubtitle}>{retencion?.serieNumero}</Text>
               <Text style={styles.modalWarning}>
-                âš ï¸ Esta acciÃ³n generarÃ¡ un documento de reversiÃ³n y no se puede deshacer.
+                ⚠️ Esta acción generará un documento de reversión y no se puede deshacer.
               </Text>
 
-              <Text style={styles.modalLabel}>Motivo de anulaciÃ³n *</Text>
+              <Text style={styles.modalLabel}>Motivo de anulación *</Text>
               <TextInput
                 style={styles.modalInput}
-                placeholder="Ingrese el motivo (mÃ­nimo 5 caracteres)"
+                placeholder="Ingrese el motivo (mínimo 5 caracteres)"
                 value={motivoAnulacion}
                 onChangeText={setMotivoAnulacion}
                 multiline
@@ -809,7 +809,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   serieNumero: {
     fontSize: 20,

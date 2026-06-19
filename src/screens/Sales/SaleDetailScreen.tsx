@@ -1,4 +1,4 @@
-﻿import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -84,14 +84,14 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       });
 
       setSale(data);
-      logger.info('ðŸ“Š Venta cargada:', data);
+      logger.info('📊 Venta cargada:', data);
 
       if (data.documents && Array.isArray(data.documents)) {
         const creditNotesList = data.documents.filter((doc: any) =>
-          doc.documentType?.code === '07' || doc.documentType?.name?.toLowerCase().includes('crÃ©dito')
+          doc.documentType?.code === '07' || doc.documentType?.name?.toLowerCase().includes('crédito')
         );
         const debitNotesList = data.documents.filter((doc: any) =>
-          doc.documentType?.code === '08' || doc.documentType?.name?.toLowerCase().includes('dÃ©bito')
+          doc.documentType?.code === '08' || doc.documentType?.name?.toLowerCase().includes('débito')
         );
 
         setCreditNotes(creditNotesList);
@@ -133,7 +133,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         : [];
 
       if (creditNotesResult.status === 'rejected') {
-        logger.error('âŒ Error cargando notas de crÃ©dito admin:', creditNotesResult.reason);
+        logger.error('❌ Error cargando notas de crédito admin:', creditNotesResult.reason);
       }
 
       setCreditNotes(adminCreditNotes);
@@ -151,7 +151,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         }
       }
     } catch (error: any) {
-      logger.error('âŒ Error cargando documentos:', error);
+      logger.error('❌ Error cargando documentos:', error);
     } finally {
       setLoadingDocuments(false);
     }
@@ -215,11 +215,11 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
             dialogTitle: `${sale?.documentType} ${document.documentNumber}`,
           });
         } else {
-          Alert.alert('Ã‰xito', `PDF guardado en: ${downloadResult.uri}`);
+          Alert.alert('Éxito', `PDF guardado en: ${downloadResult.uri}`);
         }
       }
     } catch (error: any) {
-      logger.error('âŒ Error al descargar documento:', error);
+      logger.error('❌ Error al descargar documento:', error);
       Alert.alert('Error', error.message || 'Error al descargar el documento');
     } finally {
       setLoadingDocuments(false);
@@ -260,7 +260,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         }
       }
     } catch (error: any) {
-      logger.error('âŒ Error al descargar nota:', error);
+      logger.error('❌ Error al descargar nota:', error);
       Alert.alert('Error', error.message || 'Error al descargar la nota');
     } finally {
       setLoadingDocuments(false);
@@ -277,13 +277,13 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       const result = await salesApi.createCreditNote(sale.id, data);
       setShowCreditNoteModal(false);
       Alert.alert(
-        'Ã‰xito',
-        result?.message || `Nota de crÃ©dito creada: ${result?.documentNumber || ''}`,
+        'Éxito',
+        result?.message || `Nota de crédito creada: ${result?.documentNumber || ''}`,
         [{ text: 'OK', onPress: () => loadSale(true) }]
       );
     } catch (error: any) {
-      logger.error('Error creando nota de crÃ©dito:', error);
-      Alert.alert('Error', error?.response?.data?.message || 'No se pudo crear la nota de crÃ©dito');
+      logger.error('Error creando nota de crédito:', error);
+      Alert.alert('Error', error?.response?.data?.message || 'No se pudo crear la nota de crédito');
     } finally {
       creatingCreditNoteRef.current = false;
       setCreatingCreditNote(false);
@@ -318,13 +318,13 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       const result = await salesApi.createDebitNote(sale.id, data);
       setShowDebitNoteModal(false);
       Alert.alert(
-        'Ã‰xito',
-        `Nota de dÃ©bito creada: ${result.documentNumber}`,
+        'Éxito',
+        `Nota de débito creada: ${result.documentNumber}`,
         [{ text: 'OK', onPress: () => loadSale(true) }]
       );
     } catch (error: any) {
-      logger.error('Error creando nota de dÃ©bito:', error);
-      Alert.alert('Error', error?.response?.data?.message || 'No se pudo crear la nota de dÃ©bito');
+      logger.error('Error creando nota de débito:', error);
+      Alert.alert('Error', error?.response?.data?.message || 'No se pudo crear la nota de débito');
     } finally {
       setLoadingDocuments(false);
     }
@@ -363,7 +363,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     return (
       <View style={styles.loadingContainer}>
         <Ionicons name="alert-circle-outline" size={64} color={theme.color.icon.danger} />
-        <Text style={styles.errorText}>No se encontrÃ³ la venta</Text>
+        <Text style={styles.errorText}>No se encontró la venta</Text>
         <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonErrorText}>Volver</Text>
         </TouchableOpacity>
@@ -464,7 +464,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
             )}
             {sale.customerSnapshot?.phone && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>TelÃ©fono</Text>
+                <Text style={styles.infoLabel}>Teléfono</Text>
                 <Text style={styles.infoValue}>{sale.customerSnapshot.phone}</Text>
               </View>
             )}
@@ -475,7 +475,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="information-circle-outline" size={20} color={theme.color.icon.muted} />
-            <Text style={styles.sectionTitle}>InformaciÃ³n de la Venta</Text>
+            <Text style={styles.sectionTitle}>Información de la Venta</Text>
           </View>
           <View style={styles.card}>
             <View style={styles.infoRow}>
@@ -665,7 +665,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="document-text-outline" size={20} color={theme.color.icon.warning} />
-              <Text style={styles.sectionTitle}>Notas de CrÃ©dito ({creditNotes.length})</Text>
+              <Text style={styles.sectionTitle}>Notas de Crédito ({creditNotes.length})</Text>
             </View>
             {creditNotes.map((note, index) => (
               <View key={note.id || index} style={styles.noteCard}>
@@ -686,7 +686,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                   onPress={() => handleDownloadNoteDocument(note.id, note.documentNumber)}
                   disabled={loadingDocuments}
                 >
-                  <Ionicons name="download-outline" size={18} color={theme.color.brand.onHeader} />
+                  <Ionicons name="download-outline" size={18} color={theme.color.text.inverse} />
                   <Text style={styles.downloadNoteButtonText}>Descargar PDF</Text>
                 </TouchableOpacity>
               </View>
@@ -699,7 +699,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
           <View style={styles.actionsSection}>
             {sale.balanceCents > 0 && (
               <TouchableOpacity style={styles.actionButton} onPress={handleRegisterPayment}>
-                <Ionicons name="add-circle-outline" size={20} color={theme.color.brand.onHeader} />
+                <Ionicons name="add-circle-outline" size={20} color={theme.color.text.inverse} />
                 <Text style={styles.actionButtonText}>Registrar Pago</Text>
               </TouchableOpacity>
             )}
@@ -712,19 +712,19 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                   disabled={creatingCreditNote}
                 >
                   {creatingCreditNote ? (
-                    <ActivityIndicator size="small" color={theme.color.brand.onHeader} />
+                    <ActivityIndicator size="small" color={theme.color.text.inverse} />
                   ) : (
-                    <Ionicons name="document-text-outline" size={20} color={theme.color.brand.onHeader} />
+                    <Ionicons name="document-text-outline" size={20} color={theme.color.text.inverse} />
                   )}
-                  <Text style={styles.actionButtonText}>{creatingCreditNote ? 'Generando NC...' : 'Nota de CrÃ©dito'}</Text>
+                  <Text style={styles.actionButtonText}>{creatingCreditNote ? 'Generando NC...' : 'Nota de Crédito'}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: theme.color.state.info.border }]}
                   onPress={() => setShowDebitNoteModal(true)}
                 >
-                  <Ionicons name="add-outline" size={20} color={theme.color.brand.onHeader} />
-                  <Text style={styles.actionButtonText}>Nota de DÃ©bito</Text>
+                  <Ionicons name="add-outline" size={20} color={theme.color.text.inverse} />
+                  <Text style={styles.actionButtonText}>Nota de Débito</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -741,19 +741,19 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Crear Nota de CrÃ©dito</Text>
+              <Text style={styles.modalTitle}>Crear Nota de Crédito</Text>
               <TouchableOpacity onPress={() => setShowCreditNoteModal(false)} disabled={creatingCreditNote}>
                 <Ionicons name="close" size={24} color={creatingCreditNote ? theme.color.border.default : theme.color.icon.subtle} />
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
-              <Text style={styles.modalDescription}>Genera una nota de crÃ©dito para anular la operaciÃ³n:</Text>
+              <Text style={styles.modalDescription}>Genera una nota de crédito para anular la operación:</Text>
               <TouchableOpacity
                 style={[styles.modalOption, creatingCreditNote && styles.disabledModalOption]}
                 onPress={() => createCreditNote({
                   motivoNota: '01',
-                  sustentoNota: 'AnulaciÃ³n de la operaciÃ³n',
-                  observaciones: 'Nota de crÃ©dito generada desde Admin',
+                  sustentoNota: 'Anulación de la operación',
+                  observaciones: 'Nota de crédito generada desde Admin',
                 })}
                 disabled={creatingCreditNote}
               >
@@ -765,8 +765,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                   )}
                 </View>
                 <View style={styles.modalOptionContent}>
-                  <Text style={styles.modalOptionTitle}>{creatingCreditNote ? 'Generando NC...' : 'AnulaciÃ³n de la operaciÃ³n'}</Text>
-                  <Text style={styles.modalOptionSubtitle}>Crear y encolar envÃ­o a Bizlinks</Text>
+                  <Text style={styles.modalOptionTitle}>{creatingCreditNote ? 'Generando NC...' : 'Anulación de la operación'}</Text>
+                  <Text style={styles.modalOptionSubtitle}>Crear y encolar envío a Bizlinks</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={theme.color.icon.disabled} />
               </TouchableOpacity>
@@ -780,7 +780,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Crear Nota de DÃ©bito</Text>
+              <Text style={styles.modalTitle}>Crear Nota de Débito</Text>
               <TouchableOpacity onPress={() => setShowDebitNoteModal(false)}>
                 <Ionicons name="close" size={24} color={theme.color.icon.subtle} />
               </TouchableOpacity>
@@ -844,7 +844,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   backButtonErrorText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   headerGradient: {
     paddingHorizontal: theme.space[4],
@@ -1221,7 +1221,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   downloadNoteButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   actionsSection: {
     gap: theme.space[3],
@@ -1243,7 +1243,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   bottomSpacer: {
     height: theme.space[10],

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -59,7 +59,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
     try {
       const updated = await refreshDocumentStatus(document.id);
       setDocument(updated);
-      Alert.alert('Ã‰xito', 'Estado actualizado correctamente');
+      Alert.alert('Éxito', 'Estado actualizado correctamente');
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -72,7 +72,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
 
     Alert.alert(
       'Reintentar documento',
-      `Â¿Deseas reintentar el envÃ­o de ${document.serieNumero}? Se resetearÃ¡ el contador de intentos y se re-encolarÃ¡ la tarea fiscal.`,
+      `¿Deseas reintentar el envío de ${document.serieNumero}? Se reseteará el contador de intentos y se re-encolará la tarea fiscal.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -84,7 +84,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
               setDocument(updated);
               Alert.alert(
                 'Reintento encolado',
-                'El documento se re-encolÃ³ correctamente. El scheduler lo procesarÃ¡ en el prÃ³ximo ciclo (~30s).'
+                'El documento se re-encoló correctamente. El scheduler lo procesará en el próximo ciclo (~30s).'
               );
             } catch (error: any) {
               Alert.alert(
@@ -111,7 +111,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
         downloadXml: true,
         downloadCdr: true,
       });
-      Alert.alert('Ã‰xito', 'Archivos descargados correctamente');
+      Alert.alert('Éxito', 'Archivos descargados correctamente');
       loadDocument();
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -169,10 +169,10 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
           {(document.fechaEmision || document.horaEmision || document.tipoMoneda) && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>InformaciÃ³n General</Text>
+              <Text style={styles.sectionTitle}>Información General</Text>
               {document.fechaEmision && (
                 <View style={styles.infoRow}>
-                  <Text style={styles.label}>Fecha de EmisiÃ³n:</Text>
+                  <Text style={styles.label}>Fecha de Emisión:</Text>
                   <Text style={styles.value}>
                     {new Date(document.fechaEmision).toLocaleDateString('es-PE')}
                   </Text>
@@ -198,7 +198,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
               <Text style={styles.sectionTitle}>Cliente</Text>
               {document.razonSocialAdquiriente && (
                 <View style={styles.infoRow}>
-                  <Text style={styles.label}>RazÃ³n Social:</Text>
+                  <Text style={styles.label}>Razón Social:</Text>
                   <Text style={styles.value}>{document.razonSocialAdquiriente}</Text>
                 </View>
               )}
@@ -270,19 +270,19 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
               <Text style={styles.sectionTitle}>Archivos</Text>
               {document.pdfPath && (
                 <View style={styles.fileRow}>
-                  <Text style={styles.fileIcon}>ðŸ“„</Text>
+                  <Text style={styles.fileIcon}>📄</Text>
                   <Text style={styles.fileName}>PDF disponible</Text>
                 </View>
               )}
               {document.xmlSignPath && (
                 <View style={styles.fileRow}>
-                  <Text style={styles.fileIcon}>ðŸ“</Text>
+                  <Text style={styles.fileIcon}>📝</Text>
                   <Text style={styles.fileName}>XML firmado disponible</Text>
                 </View>
               )}
               {document.xmlSunatPath && (
                 <View style={styles.fileRow}>
-                  <Text style={styles.fileIcon}>âœ…</Text>
+                  <Text style={styles.fileIcon}>✅</Text>
                   <Text style={styles.fileName}>CDR disponible</Text>
                 </View>
               )}
@@ -295,7 +295,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
               onPress={handleRefresh}
               disabled={refreshing}
             >
-              <Ionicons name="refresh" size={20} color={theme.color.brand.onHeader} />
+              <Ionicons name="refresh" size={20} color={theme.color.text.inverse} />
               <Text style={styles.buttonText}>
                 {refreshing ? 'Actualizando...' : 'Actualizar Estado'}
               </Text>
@@ -307,9 +307,9 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
                 onPress={handleRetry}
                 disabled={retrying}
               >
-                <Ionicons name="reload" size={20} color={theme.color.brand.onHeader} />
+                <Ionicons name="reload" size={20} color={theme.color.text.inverse} />
                 <Text style={styles.buttonText}>
-                  {retrying ? 'Reintentando...' : 'Reintentar envÃ­o'}
+                  {retrying ? 'Reintentando...' : 'Reintentar envío'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -318,7 +318,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
               style={[styles.button, styles.downloadButton]}
               onPress={handleDownload}
             >
-              <Ionicons name="download" size={20} color={theme.color.brand.onHeader} />
+              <Ionicons name="download" size={20} color={theme.color.text.inverse} />
               <Text style={styles.buttonText}>Descargar Archivos</Text>
             </TouchableOpacity>
           </View>
@@ -524,7 +524,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.color.action.danger.background,
   },
   buttonText: {
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '600',
   },

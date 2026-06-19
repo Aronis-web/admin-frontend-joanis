@@ -1,5 +1,5 @@
-﻿/**
- * ProductsScreen - RediseÃ±ado con Design System
+/**
+ * ProductsScreen - Rediseñado con Design System
  *
  * Pantalla de listado de productos profesional y moderna.
  */
@@ -65,7 +65,7 @@ interface ProductsScreenProps {
 // Status configuration
 const getStatusConfig = (theme: Theme): Record<string, { color: string; label: string }> => ({
   active: { color: theme.color.icon.success, label: 'Activo' },
-  preliminary: { color: theme.color.icon.warning, label: 'âš ï¸ Preliminar' },
+  preliminary: { color: theme.color.icon.warning, label: '⚠️ Preliminar' },
   draft: { color: theme.color.icon.warning, label: 'Borrador' },
   archived: { color: theme.color.icon.subtle, label: 'Archivado' },
 });
@@ -156,7 +156,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
   useFocusEffect(
     useCallback(() => {
-      logger.debug('ðŸ“± ProductsScreen focused - refetching products...');
+      logger.debug('📱 ProductsScreen focused - refetching products...');
       refetch();
     }, [refetch])
   );
@@ -203,7 +203,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       // Obtener datos completos del producto (incluye weightKg y otros campos)
       const fullProduct = await productsApi.getProductById(product.id);
 
-      // Obtener imÃ¡genes si no estÃ¡n incluidas
+      // Obtener imágenes si no están incluidas
       let productWithImages = fullProduct;
       if (!fullProduct.imageUrl && !fullProduct.imageUrls) {
         try {
@@ -216,26 +216,26 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             };
           }
         } catch (error) {
-          logger.debug(`âš ï¸ No images found for product ${product.id}`);
+          logger.debug(`⚠️ No images found for product ${product.id}`);
         }
       }
       setViewProduct(productWithImages);
       setIsViewModalVisible(true);
     } catch (error: any) {
-      logger.error('âŒ Error loading product details:', error);
+      logger.error('❌ Error loading product details:', error);
       Alert.alert('Error', 'No se pudo cargar los detalles del producto');
     }
   };
 
   const handleEditProduct = async (product: Product) => {
     try {
-      logger.debug('ðŸ“¦ Fetching full product details for edit:', product.id);
+      logger.debug('📦 Fetching full product details for edit:', product.id);
       const fullProduct = await productsApi.getProductById(product.id);
       setSelectedProduct(fullProduct);
       setModalMode('edit');
       setIsProductModalVisible(true);
     } catch (error: any) {
-      logger.error('âŒ Error loading product details:', error);
+      logger.error('❌ Error loading product details:', error);
       Alert.alert('Error', 'No se pudo cargar los detalles del producto');
     }
   };
@@ -251,7 +251,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   };
 
   const handleDeleteProduct = (product: Product) => {
-    Alert.alert('Eliminar Producto', `Â¿EstÃ¡s seguro de que deseas eliminar "${product.title}"?`, [
+    Alert.alert('Eliminar Producto', `¿Estás seguro de que deseas eliminar "${product.title}"?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',
@@ -259,7 +259,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         onPress: async () => {
           try {
             await productsApi.deleteProduct(product.id);
-            Alert.alert('Ã‰xito', 'Producto eliminado correctamente');
+            Alert.alert('Éxito', 'Producto eliminado correctamente');
             refetch();
           } catch (error: any) {
             logger.error('Error deleting product:', error);
@@ -311,7 +311,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               />
             ) : (
               <View style={styles.productThumbnailPlaceholder}>
-                <Text style={styles.productThumbnailPlaceholderText}>ðŸ“¦</Text>
+                <Text style={styles.productThumbnailPlaceholderText}>📦</Text>
               </View>
             )}
 
@@ -328,7 +328,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 <Caption color="tertiary">SKU: {product.sku}</Caption>
                 {hasDuplicateSKU(product.sku) && (
                   <View style={styles.duplicateBadge}>
-                    <Text variant="labelSmall" color={theme.color.text.warning}>âš ï¸ Duplicado</Text>
+                    <Text variant="labelSmall" color={theme.color.text.warning}>⚠️ Duplicado</Text>
                   </View>
                 )}
               </View>
@@ -336,11 +336,11 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
             <View style={styles.badgesContainer}>
               <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
-                <Text variant="labelSmall" color={theme.color.brand.onHeader}>{statusConfig.label}</Text>
+                <Text variant="labelSmall" color={theme.color.text.inverse}>{statusConfig.label}</Text>
               </View>
               {!hasImage && (
                 <View style={styles.noPhotoBadge}>
-                  <Text variant="labelSmall" color={theme.color.text.danger}>ðŸ“· Sin foto</Text>
+                  <Text variant="labelSmall" color={theme.color.text.danger}>📷 Sin foto</Text>
                 </View>
               )}
             </View>
@@ -356,7 +356,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             </View>
             {product.category?.name && (
               <View style={styles.productDetailItem}>
-                <Caption color="tertiary">CategorÃ­a:</Caption>
+                <Caption color="tertiary">Categoría:</Caption>
                 <Text variant="labelMedium" color="primary">{product.category.name}</Text>
               </View>
             )}
@@ -367,18 +367,18 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           {/* Product Footer Info */}
           <View style={styles.productFooter}>
             <View style={styles.productFooterInfo}>
-              <Caption color="tertiary">ðŸ“¦ {product.presentations?.length || 0} presentaciones</Caption>
+              <Caption color="tertiary">📦 {product.presentations?.length || 0} presentaciones</Caption>
               {product.salePrices && product.salePrices.length > 0 && (
-                <Caption color="tertiary">ðŸ’° {product.salePrices.length} precios</Caption>
+                <Caption color="tertiary">💰 {product.salePrices.length} precios</Caption>
               )}
               {product.status !== 'preliminary' && product.stockItems && product.stockItems.length > 0 && (
-                <Caption color="tertiary">ðŸ“Š Stock en {product.stockItems.length} almacÃ©n(es)</Caption>
+                <Caption color="tertiary">📊 Stock en {product.stockItems.length} almacén(es)</Caption>
               )}
               {product.status === 'preliminary' && product.stock && (
-                <Caption color="tertiary">ðŸ“¦ Stock preliminar: {product.stock.available || 0} unidades</Caption>
+                <Caption color="tertiary">📦 Stock preliminar: {product.stock.available || 0} unidades</Caption>
               )}
             </View>
-            <Text variant="titleLarge" color={theme.color.text.placeholder}>â€º</Text>
+            <Text variant="titleLarge" color={theme.color.text.placeholder}>›</Text>
           </View>
         </TouchableOpacity>
 
@@ -388,21 +388,21 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.actionButton, styles.viewButton]}
             onPress={() => handleViewProduct(product)}
           >
-            <Text variant="labelMedium" color={theme.color.brand.accent}>ðŸ‘ï¸ Ver</Text>
+            <Text variant="labelMedium" color={theme.color.brand.accent}>👁️ Ver</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionButton, styles.imagesButton]}
             onPress={() => handleManageImages(product)}
           >
-            <Text variant="labelMedium" color={theme.color.text.warning}>ðŸ“¸ Fotos</Text>
+            <Text variant="labelMedium" color={theme.color.text.warning}>📸 Fotos</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionButton, styles.pricesButton]}
             onPress={() => handleManagePrices(product)}
           >
-            <Text variant="labelMedium" color={theme.color.text.success}>ðŸ’° Precios</Text>
+            <Text variant="labelMedium" color={theme.color.text.success}>💰 Precios</Text>
           </TouchableOpacity>
 
           <ProtectedTouchableOpacity
@@ -411,7 +411,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             requiredPermissions={[PERMISSIONS.PRODUCTS.UPDATE]}
             hideIfNoPermission={true}
           >
-            <Text variant="labelMedium" color={theme.color.text.muted}>âœï¸ Editar</Text>
+            <Text variant="labelMedium" color={theme.color.text.muted}>✏️ Editar</Text>
           </ProtectedTouchableOpacity>
 
           <ProtectedTouchableOpacity
@@ -420,7 +420,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             requiredPermissions={[PERMISSIONS.PRODUCTS.DELETE]}
             hideIfNoPermission={true}
           >
-            <Text variant="labelMedium" color={theme.color.text.danger}>ðŸ—‘ï¸ Eliminar</Text>
+            <Text variant="labelMedium" color={theme.color.text.danger}>🗑️ Eliminar</Text>
           </ProtectedTouchableOpacity>
         </View>
       </Card>
@@ -446,7 +446,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                   </View>
                   <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
                 </View>
-                <Text style={styles.subtitle}>CatÃ¡logo de productos</Text>
+                <Text style={styles.subtitle}>Catálogo de productos</Text>
               </View>
             </View>
           </LinearGradient>
@@ -479,7 +479,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               </View>
               <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
             </View>
-            <Text style={styles.subtitle}>CatÃ¡logo de productos</Text>
+            <Text style={styles.subtitle}>Catálogo de productos</Text>
           </View>
 
           {/* Stats */}
@@ -567,7 +567,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       {/* Duplicate SKUs Warning */}
       {duplicateSKUs.length > 0 && (
         <View style={styles.warningBanner}>
-          <Text style={styles.warningIcon}>âš ï¸</Text>
+          <Text style={styles.warningIcon}>⚠️</Text>
           <View style={styles.warningContent}>
             <Text variant="titleSmall" color={theme.color.text.warning}>SKUs Duplicados Detectados</Text>
             <Caption color={theme.color.text.warning}>
@@ -598,7 +598,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             title="No hay productos"
             description={
               debouncedSearchQuery
-                ? 'No se encontraron productos con ese criterio de bÃºsqueda'
+                ? 'No se encontraron productos con ese criterio de búsqueda'
                 : 'Comienza creando tu primer producto'
             }
             actionLabel={!debouncedSearchQuery ? 'Crear Producto' : undefined}
@@ -634,7 +634,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           onPress={() => setIsBulkUpdateModalVisible(true)}
           activeOpacity={0.9}
         >
-          <Text style={styles.floatingButtonText}>ðŸ’µ</Text>
+          <Text style={styles.floatingButtonText}>💵</Text>
         </TouchableOpacity>
       </ProtectedElement>
 
@@ -692,7 +692,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               {(viewProduct.imageUrl || (viewProduct.imageUrls && viewProduct.imageUrls.length > 0)) && (
                 <Card variant="outlined" style={styles.viewSection}>
                   <Text variant="titleSmall" color="primary" style={styles.viewSectionTitle}>
-                    ðŸ–¼ï¸ ImÃ¡genes del Producto
+                    🖼️ Imágenes del Producto
                   </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.imageGallery}>
@@ -707,13 +707,13 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 </Card>
               )}
 
-              {/* InformaciÃ³n BÃ¡sica */}
+              {/* Información Básica */}
               <Card variant="outlined" style={styles.viewSection}>
                 <Text variant="titleSmall" color="primary" style={styles.viewSectionTitle}>
-                  ðŸ“‹ InformaciÃ³n BÃ¡sica
+                  📋 Información Básica
                 </Text>
                 <View style={styles.viewRow}>
-                  <Caption color="tertiary">TÃ­tulo:</Caption>
+                  <Caption color="tertiary">Título:</Caption>
                   <Text variant="bodyMedium" color="primary">{viewProduct.title}</Text>
                 </View>
                 {viewProduct.correlativeNumber && (
@@ -728,22 +728,22 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 </View>
                 {viewProduct.barcode && (
                   <View style={styles.viewRow}>
-                    <Caption color="tertiary">CÃ³digo de Barras:</Caption>
+                    <Caption color="tertiary">Código de Barras:</Caption>
                     <Text variant="bodyMedium" color="primary">{viewProduct.barcode}</Text>
                   </View>
                 )}
                 <View style={styles.viewRow}>
                   <Caption color="tertiary">Estado:</Caption>
                   <View style={[styles.viewStatusBadge, { backgroundColor: STATUS_CONFIG[viewProduct.status]?.color || theme.color.icon.subtle }]}>
-                    <Text variant="labelSmall" color={theme.color.brand.onHeader}>{STATUS_CONFIG[viewProduct.status]?.label}</Text>
+                    <Text variant="labelSmall" color={theme.color.text.inverse}>{STATUS_CONFIG[viewProduct.status]?.label}</Text>
                   </View>
                 </View>
               </Card>
 
-              {/* InformaciÃ³n Financiera */}
+              {/* Información Financiera */}
               <Card variant="outlined" style={styles.viewSection}>
                 <Text variant="titleSmall" color="primary" style={styles.viewSectionTitle}>
-                  ðŸ’° InformaciÃ³n Financiera
+                  💰 Información Financiera
                 </Text>
                 <View style={styles.viewRow}>
                   <Caption color="tertiary">Costo:</Caption>
@@ -769,17 +769,17 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               {viewProduct.presentations && viewProduct.presentations.length > 0 && (
                 <Card variant="outlined" style={styles.viewSection}>
                   <Text variant="titleSmall" color="primary" style={styles.viewSectionTitle}>
-                    ðŸ“¦ Presentaciones ({viewProduct.presentations.length})
+                    📦 Presentaciones ({viewProduct.presentations.length})
                   </Text>
                   {viewProduct.presentations.map((pres, index) => (
                     <View key={index} style={styles.presentationCard}>
                       <View style={styles.presentationHeader}>
                         <Text variant="labelLarge" color="primary">
-                          {pres.presentation?.name || pres.presentation?.code || 'PresentaciÃ³n'}
+                          {pres.presentation?.name || pres.presentation?.code || 'Presentación'}
                         </Text>
                         {pres.isBase && (
                           <View style={styles.baseBadge}>
-                            <Text variant="labelSmall" color={theme.color.brand.onHeader}>BASE</Text>
+                            <Text variant="labelSmall" color={theme.color.text.inverse}>BASE</Text>
                           </View>
                         )}
                       </View>
@@ -945,7 +945,7 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
   },
   filterChipTextActive: {
-    color: theme.color.brand.onHeader,
+    color: theme.color.text.inverse,
   },
   filterDivider: {
     width: 1,
