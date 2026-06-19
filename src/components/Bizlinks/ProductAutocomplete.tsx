@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { productsApi, Product } from '@/services/api/products';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface ProductAutocompleteProps {
@@ -23,6 +24,8 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
   placeholder = 'Buscar producto por nombre o código...',
   excludeProductIds = [],
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [searchText, setSearchText] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -120,12 +123,12 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
           value={searchText}
           onChangeText={setSearchText}
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={theme.color.text.placeholder}
         />
         {loading && (
           <ActivityIndicator
             size="small"
-            color="#007bff"
+            color={theme.color.brand.accent}
             style={styles.loader}
           />
         )}
@@ -151,107 +154,109 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing[4],
-    zIndex: 1000,
-  },
-  inputContainer: {
-    position: 'relative',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 16,
-    backgroundColor: colors.surface.primary,
-  },
-  loader: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-  },
-  dropdown: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    maxHeight: 300,
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    zIndex: 1001,
-  },
-  dropdownList: {
-    maxHeight: 300,
-  },
-  dropdownItem: {
-    padding: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  productInfo: {
-    gap: spacing[1.5],
-  },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    flex: 1,
-  },
-  productCode: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.sm,
-    marginLeft: spacing[2],
-  },
-  productDetails: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  productBrand: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  productCategory: {
-    fontSize: 13,
-    color: colors.neutral[400],
-  },
-  presentationsContainer: {
-    marginTop: spacing[1],
-    paddingTop: spacing[1.5],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-  },
-  presentationsLabel: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontWeight: '600',
-    marginBottom: spacing[0.5],
-  },
-  presentationItem: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginLeft: spacing[2],
-  },
-  emptyText: {
-    padding: spacing[4],
-    textAlign: 'center',
-    color: colors.neutral[400],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      marginBottom: theme.space[4],
+      zIndex: 1000,
+    },
+    inputContainer: {
+      position: 'relative',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 16,
+      backgroundColor: theme.color.surface.base,
+      color: theme.color.text.body,
+    },
+    loader: {
+      position: 'absolute',
+      right: 12,
+      top: 12,
+    },
+    dropdown: {
+      position: 'absolute',
+      top: 50,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      maxHeight: 300,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 5,
+      zIndex: 1001,
+    },
+    dropdownList: {
+      maxHeight: 300,
+    },
+    dropdownItem: {
+      padding: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    productInfo: {
+      gap: 6,
+    },
+    productHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    productName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      flex: 1,
+    },
+    productCode: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: 2,
+      borderRadius: theme.radii.sm,
+      marginLeft: theme.space[2],
+    },
+    productDetails: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    productBrand: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    productCategory: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+    },
+    presentationsContainer: {
+      marginTop: theme.space[1],
+      paddingTop: 6,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.surface.muted,
+    },
+    presentationsLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+      marginBottom: 2,
+    },
+    presentationItem: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginLeft: theme.space[2],
+    },
+    emptyText: {
+      padding: theme.space[4],
+      textAlign: 'center',
+      color: theme.color.text.placeholder,
+    },
+  });
