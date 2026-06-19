@@ -7,7 +7,8 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomNavigationProps {
@@ -25,6 +26,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   chatBadge = 0,
   notificationsBadge = 0,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
 
@@ -88,13 +90,13 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    backgroundColor: theme.color.surface.elevated,
     zIndex: 1001,
     elevation: 10,
   },
@@ -103,21 +105,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: '5%',
-    paddingVertical: spacing[2],
+    paddingVertical: theme.space[2],
     minHeight: 60,
     backgroundColor: 'transparent',
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     borderTopWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.8)',
+    borderColor: theme.color.border.subtle,
   },
   navButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[1.5],
+    paddingVertical: theme.space[1.5],
     minWidth: 60,
     maxWidth: 100,
   },
@@ -125,12 +127,12 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing[0.5],
+    marginBottom: theme.space[0.5],
   },
   iconContainer: {
     width: 32,
     height: 32,
-    borderRadius: borderRadius.full,
+    borderRadius: theme.radii.full,
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
@@ -141,24 +143,24 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     fontSize: 10,
-    color: colors.neutral[400],
+    color: theme.color.text.subtle,
     fontWeight: '400',
-    marginTop: spacing[0.5],
+    marginTop: theme.space[0.5],
   },
   menuButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing[3],
+    paddingHorizontal: theme.space[3],
     minWidth: 60,
   },
   menuButtonInner: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.accent[500],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.accent[500],
+    shadowColor: theme.color.brand.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -166,43 +168,43 @@ const styles = StyleSheet.create({
   },
   menuIcon: {
     fontSize: 20,
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     fontWeight: '600',
   },
   menuLabel: {
     fontSize: 10,
-    color: colors.neutral[400],
+    color: theme.color.text.subtle,
     fontWeight: '400',
-    marginTop: spacing[1],
+    marginTop: theme.space[1],
   },
   badge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: colors.danger[500],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.action.danger.background,
+    borderRadius: theme.radii.lg,
     minWidth: 16,
     height: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing[1],
-    shadowColor: '#000',
+    paddingHorizontal: theme.space[1],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 1,
   },
   badgeText: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     fontSize: 8,
     fontWeight: '600',
   },
   // Landscape-specific styles
   safeAreaLandscape: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: theme.color.surface.elevated,
   },
   containerLandscape: {
-    paddingVertical: spacing[1],
+    paddingVertical: theme.space[1],
     minHeight: 50,
   },
 });
