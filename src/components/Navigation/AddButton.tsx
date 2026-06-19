@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated, useWindowDimensions } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AddButtonProps {
@@ -10,6 +11,7 @@ interface AddButtonProps {
 }
 
 export const AddButton: React.FC<AddButtonProps> = ({ onPress, icon = '+', label }) => {
+  const styles = useThemedStyles(createStyles);
   const [scaleAnim] = useState(new Animated.Value(1));
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -56,60 +58,61 @@ export const AddButton: React.FC<AddButtonProps> = ({ onPress, icon = '+', label
   );
 };
 
-const styles = StyleSheet.create({
-  fabContainer: {
-    position: 'absolute',
-    zIndex: 9998, // Just below the menu FAB (9999)
-    alignItems: 'center',
-  },
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.success[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.success[500],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: colors.neutral[0],
-  },
-  fabTablet: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  fabIcon: {
-    fontSize: 28,
-    color: colors.neutral[0],
-    fontWeight: '700',
-  },
-  fabIconTablet: {
-    fontSize: 32,
-  },
-  fabLabel: {
-    marginTop: spacing[1.5],
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    backgroundColor: colors.neutral[0],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  fabLabelTablet: {
-    fontSize: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    fabContainer: {
+      position: 'absolute',
+      zIndex: 9998,
+      alignItems: 'center',
+    },
+    fab: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.color.action.success.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.action.success.background,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 8,
+      borderWidth: 3,
+      borderColor: theme.color.surface.base,
+    },
+    fabTablet: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      shadowRadius: 16,
+      elevation: 10,
+    },
+    fabIcon: {
+      fontSize: 28,
+      color: theme.color.action.success.text,
+      fontWeight: '700',
+    },
+    fabIconTablet: {
+      fontSize: 32,
+    },
+    fabLabel: {
+      marginTop: theme.space[1.5],
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[0.5],
+      borderRadius: theme.radii.lg,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    fabLabelTablet: {
+      fontSize: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+  });
