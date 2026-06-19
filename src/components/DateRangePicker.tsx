@@ -18,7 +18,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface DateRangePickerProps {
   visible: boolean;
@@ -41,6 +42,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   maximumDate,
   title = 'Seleccionar Rango de Fechas',
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
 
   // Calcular el ancho de cada celda para que quepan exactamente 7 columnas
@@ -302,7 +305,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   <Ionicons
                     name="calendar"
                     size={18}
-                    color={selectingDate === 'start' ? colors.primary[600] : colors.neutral[500]}
+                    color={selectingDate === 'start' ? theme.color.brand.primary : theme.color.text.muted}
                   />
                   <Text style={[
                     styles.dateBoxValue,
@@ -314,7 +317,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
               </TouchableOpacity>
 
               <View style={styles.dateRangeSeparator}>
-                <Ionicons name="arrow-forward" size={20} color={colors.neutral[400]} />
+                <Ionicons name="arrow-forward" size={20} color={theme.color.text.subtle} />
               </View>
 
               <TouchableOpacity
@@ -329,7 +332,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   <Ionicons
                     name="calendar"
                     size={18}
-                    color={selectingDate === 'end' ? colors.primary[600] : colors.neutral[500]}
+                    color={selectingDate === 'end' ? theme.color.brand.primary : theme.color.text.muted}
                   />
                   <Text style={[
                     styles.dateBoxValue,
@@ -346,7 +349,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
               {/* Month/Year Navigation */}
               <View style={styles.monthYearNav}>
                 <TouchableOpacity onPress={goToPreviousMonth} style={styles.navButton}>
-                  <Ionicons name="chevron-back" size={24} color={colors.neutral[700]} />
+                  <Ionicons name="chevron-back" size={24} color={theme.color.text.body} />
                 </TouchableOpacity>
 
                 <View style={styles.monthYearSelector}>
@@ -365,7 +368,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 </View>
 
                 <TouchableOpacity onPress={goToNextMonth} style={styles.navButton}>
-                  <Ionicons name="chevron-forward" size={24} color={colors.neutral[700]} />
+                  <Ionicons name="chevron-forward" size={24} color={theme.color.text.body} />
                 </TouchableOpacity>
               </View>
 
@@ -505,7 +508,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
             {/* Instructions */}
             <View style={styles.instructions}>
-              <Ionicons name="information-circle-outline" size={16} color={colors.neutral[500]} />
+              <Ionicons name="information-circle-outline" size={16} color={theme.color.text.muted} />
               <Text style={styles.instructionsText}>
                 {selectingDate === 'start'
                   ? 'Selecciona la fecha de inicio'
@@ -519,92 +522,92 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
+    backgroundColor: theme.color.surface.base,
+    borderTopLeftRadius: theme.radii['2xl'],
+    borderTopRightRadius: theme.radii['2xl'],
     maxHeight: '85%',
   },
   content: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
+    backgroundColor: theme.color.surface.base,
+    borderTopLeftRadius: theme.radii['2xl'],
+    borderTopRightRadius: theme.radii['2xl'],
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   headerButton: {
-    paddingVertical: spacing[1],
-    paddingHorizontal: spacing[2],
+    paddingVertical: theme.space[1],
+    paddingHorizontal: theme.space[2],
   },
   headerButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   headerButtonConfirm: {
-    color: colors.primary[600],
+    color: theme.color.brand.primary,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   dateRangeDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.background.secondary,
+    paddingVertical: theme.space[4],
+    paddingHorizontal: theme.space[4],
+    backgroundColor: theme.color.background.subtle,
   },
   dateBox: {
     flex: 1,
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
+    borderColor: theme.color.border.subtle,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
     alignItems: 'center',
   },
   dateBoxActive: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
+    borderColor: theme.color.brand.primary,
+    backgroundColor: theme.color.brand.primarySoft,
   },
   dateBoxLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
+    color: theme.color.text.muted,
+    marginBottom: theme.space[1],
   },
   dateBoxContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   dateBoxValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   dateBoxValueActive: {
-    color: colors.primary[700],
+    color: theme.color.brand.primary,
   },
   dateRangeSeparator: {
-    paddingHorizontal: spacing[3],
+    paddingHorizontal: theme.space[3],
   },
   pickerContainer: {
     minHeight: 320,
@@ -613,37 +616,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[2],
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[2],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   navButton: {
-    padding: spacing[2],
+    padding: theme.space[2],
   },
   monthYearSelector: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   monthYearButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
   },
   monthYearText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   weekDays: {
     flexDirection: 'row',
-    paddingVertical: spacing[2],
+    paddingVertical: theme.space[2],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   weekDayText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   daysContainer: {
@@ -662,20 +665,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayButtonInRange: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: theme.color.brand.primarySoft,
   },
   dayButtonStart: {
-    backgroundColor: colors.primary[500],
-    borderTopLeftRadius: borderRadius.full,
-    borderBottomLeftRadius: borderRadius.full,
+    backgroundColor: theme.color.brand.primary,
+    borderTopLeftRadius: theme.radii.full,
+    borderBottomLeftRadius: theme.radii.full,
   },
   dayButtonEnd: {
-    backgroundColor: colors.primary[500],
-    borderTopRightRadius: borderRadius.full,
-    borderBottomRightRadius: borderRadius.full,
+    backgroundColor: theme.color.brand.primary,
+    borderTopRightRadius: theme.radii.full,
+    borderBottomRightRadius: theme.radii.full,
   },
   dayButtonSingle: {
-    borderRadius: borderRadius.full,
+    borderRadius: theme.radii.full,
   },
   dayButtonDisabled: {
     opacity: 0.3,
@@ -686,16 +689,16 @@ const styles = StyleSheet.create({
   dayButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   dayButtonTextInRange: {
-    color: colors.primary[700],
+    color: theme.color.brand.primary,
   },
   dayButtonTextSelected: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   dayButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   dayButtonTextEmpty: {
     color: 'transparent',
@@ -709,7 +712,7 @@ const styles = StyleSheet.create({
   monthsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: spacing[4],
+    padding: theme.space[4],
     justifyContent: 'center',
   },
   monthButton: {
@@ -717,15 +720,15 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: borderRadius.lg,
-    margin: spacing[2],
-    backgroundColor: colors.background.secondary,
+    borderRadius: theme.radii.lg,
+    margin: theme.space[2],
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   monthButtonSelected: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   monthButtonDisabled: {
     opacity: 0.3,
@@ -733,13 +736,13 @@ const styles = StyleSheet.create({
   monthButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   monthButtonTextSelected: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   monthButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   yearsContainer: {
     flex: 1,
@@ -750,7 +753,7 @@ const styles = StyleSheet.create({
   yearsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: spacing[4],
+    padding: theme.space[4],
     justifyContent: 'center',
   },
   yearButton: {
@@ -758,15 +761,15 @@ const styles = StyleSheet.create({
     height: 45,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: borderRadius.lg,
-    margin: spacing[1.5],
-    backgroundColor: colors.background.secondary,
+    borderRadius: theme.radii.lg,
+    margin: theme.space[1.5],
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   yearButtonSelected: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   yearButtonDisabled: {
     opacity: 0.3,
@@ -774,28 +777,28 @@ const styles = StyleSheet.create({
   yearButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   yearButtonTextSelected: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   yearButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   instructions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.neutral[50],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
+    backgroundColor: theme.color.background.subtle,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    gap: spacing[2],
+    borderTopColor: theme.color.border.subtle,
+    gap: theme.space[2],
   },
   instructionsText: {
     fontSize: 13,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
 });
 
