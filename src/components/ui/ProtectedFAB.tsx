@@ -2,7 +2,8 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePermissions } from '@/hooks/usePermissions';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ProtectedFABProps {
   icon: string;
@@ -64,6 +65,7 @@ export const ProtectedFAB: React.FC<ProtectedFABProps> = ({
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const styles = useThemedStyles(createStyles);
   const { hasPermission, hasAnyPermission, hasAllPermissions } = usePermissions();
 
   // Si no hay permisos requeridos, mostrar el FAB normalmente
@@ -179,21 +181,21 @@ export const ProtectedFAB: React.FC<ProtectedFABProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   fabContainer: {
     position: 'absolute',
-    right: spacing[5],
+    right: theme.space[5],
     alignItems: 'center',
     zIndex: 9998,
   },
   fab: {
     width: 60,
     height: 60,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[500],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.action.primary.background,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.neutral[950],
+    shadowColor: theme.color.shadow,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -209,21 +211,21 @@ const styles = StyleSheet.create({
   },
   fabIcon: {
     fontSize: 28,
-    color: colors.neutral[0],
+    color: theme.color.action.primary.text,
   },
   fabIconTablet: {
     fontSize: 32,
   },
   fabLabel: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
     fontSize: 12,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     fontWeight: '600',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.xl,
-    shadowColor: colors.neutral[950],
+    backgroundColor: theme.color.surface.elevated,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.xl,
+    shadowColor: theme.color.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -234,8 +236,8 @@ const styles = StyleSheet.create({
   },
   fabLabelTablet: {
     fontSize: 14,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[1.5],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[1.5],
   },
 });
 
