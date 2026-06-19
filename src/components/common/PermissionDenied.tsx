@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface PermissionDeniedProps {
@@ -17,11 +18,14 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
   onGoBack,
   onContactAdmin,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name="lock-closed" size={80} color={colors.danger[500]} />
+          <Ionicons name="lock-closed" size={80} color={theme.color.icon.danger} />
         </View>
 
         <Text style={styles.title}>Acceso Denegado</Text>
@@ -33,7 +37,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
             <Text style={styles.permissionsTitle}>Permisos requeridos:</Text>
             {requiredPermissions.map((permission, index) => (
               <View key={index} style={styles.permissionItem}>
-                <Ionicons name="key" size={16} color={colors.accent[500]} />
+                <Ionicons name="key" size={16} color={theme.color.icon.accent} />
                 <Text style={styles.permissionText}>{permission}</Text>
               </View>
             ))}
@@ -43,7 +47,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
         <View style={styles.actionsContainer}>
           {onGoBack && (
             <TouchableOpacity style={styles.button} onPress={onGoBack}>
-              <Ionicons name="arrow-back" size={20} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={20} color={theme.color.text.onAction} />
               <Text style={styles.buttonText}>Volver</Text>
             </TouchableOpacity>
           )}
@@ -53,7 +57,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
               style={[styles.button, styles.buttonSecondary]}
               onPress={onContactAdmin}
             >
-              <Ionicons name="mail" size={20} color={colors.accent[500]} />
+              <Ionicons name="mail" size={20} color={theme.color.icon.accent} />
               <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
                 Contactar Administrador
               </Text>
@@ -62,7 +66,7 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
         </View>
 
         <View style={styles.infoContainer}>
-          <Ionicons name="information-circle" size={20} color={colors.neutral[500]} />
+          <Ionicons name="information-circle" size={20} color={theme.color.icon.muted} />
           <Text style={styles.infoText}>
             Si crees que esto es un error, contacta al administrador del sistema para solicitar los
             permisos necesarios.
@@ -73,109 +77,109 @@ export const PermissionDenied: React.FC<PermissionDeniedProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.background.canvas,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   content: {
-    padding: spacing[6],
+    padding: theme.space[6],
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '100%',
   },
   iconContainer: {
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[4],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[4],
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     textAlign: 'center',
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
     lineHeight: 24,
   },
   permissionsContainer: {
     width: '100%',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[6],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[6],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   permissionsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
+    color: theme.color.text.muted,
+    marginBottom: theme.space[3],
   },
   permissionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[2],
+    backgroundColor: theme.color.background.muted,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
+    marginBottom: theme.space[2],
   },
   permissionText: {
     fontSize: 14,
-    color: colors.neutral[800],
-    marginLeft: spacing[2],
+    color: theme.color.text.body,
+    marginLeft: theme.space[2],
     fontFamily: 'monospace',
   },
   actionsContainer: {
     width: '100%',
-    gap: spacing[3],
-    marginBottom: spacing[6],
+    gap: theme.space[3],
+    marginBottom: theme.space[6],
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent[500],
-    paddingHorizontal: spacing[6],
+    backgroundColor: theme.color.brand.accent,
+    paddingHorizontal: theme.space[6],
     paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    gap: spacing[2],
+    borderRadius: theme.radii.xl,
+    gap: theme.space[2],
   },
   buttonSecondary: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderWidth: 2,
-    borderColor: colors.accent[500],
+    borderColor: theme.color.brand.accent,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
   },
   buttonTextSecondary: {
-    color: colors.accent[500],
+    color: theme.color.brand.accent,
   },
   infoContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.warning[100],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.state.warning.background,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.xl,
     width: '100%',
   },
   infoText: {
     fontSize: 13,
-    color: colors.warning[800],
-    marginLeft: spacing[2],
+    color: theme.color.state.warning.text,
+    marginLeft: theme.space[2],
     flex: 1,
     lineHeight: 20,
   },
