@@ -59,25 +59,25 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPr
 
   return (
     <View style={[styles.wrapper, { bottom }]} pointerEvents="box-none">
-      <Animated.View style={[styles.pill, { transform: [{ scale: scaleValue }] }]}>
+      <Animated.View style={[styles.reloadWrap, { transform: [{ scale: reloadScaleValue }] }]}>
         <TouchableOpacity
-          style={styles.segment}
+          style={styles.reloadButton}
           onPress={handleReloadPress}
           activeOpacity={0.7}
           accessibilityLabel="Recargar"
         >
-          <Animated.View style={{ transform: [{ scale: reloadScaleValue }] }}>
-            <Ionicons name="refresh" size={18} color={theme.color.icon.muted} />
-          </Animated.View>
+          <Ionicons name="refresh" size={18} color={theme.color.icon.muted} />
         </TouchableOpacity>
-        <View style={styles.divider} />
+      </Animated.View>
+
+      <Animated.View style={[styles.menuWrap, { transform: [{ scale: scaleValue }] }]}>
         <TouchableOpacity
-          style={styles.segment}
+          style={styles.menuButton}
           onPress={handlePress}
-          activeOpacity={0.7}
+          activeOpacity={0.85}
           accessibilityLabel="Abrir menu"
         >
-          <Ionicons name="menu" size={22} color={theme.color.brand.accent} />
+          <Ionicons name="menu" size={26} color={theme.color.action.primary.text} />
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -90,30 +90,39 @@ const createStyles = (theme: Theme) =>
       position: 'absolute',
       right: theme.space[4],
       zIndex: 1000,
+      alignItems: 'flex-end',
     },
-    pill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      height: 40,
-      borderRadius: theme.radii.full,
-      backgroundColor: theme.color.surface.elevated,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-      elevation: 4,
+    reloadWrap: {
+      marginBottom: theme.space[2],
+      elevation: 3,
       shadowColor: theme.color.shadow,
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.18,
-      shadowRadius: 4,
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
     },
-    segment: {
-      width: 40,
-      height: 40,
+    reloadButton: {
+      width: 44,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
       justifyContent: 'center',
       alignItems: 'center',
     },
-    divider: {
-      width: 1,
-      height: 20,
-      backgroundColor: theme.color.border.subtle,
+    menuWrap: {
+      elevation: 8,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+    },
+    menuButton: {
+      width: 52,
+      height: 52,
+      borderRadius: 16,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
   });
