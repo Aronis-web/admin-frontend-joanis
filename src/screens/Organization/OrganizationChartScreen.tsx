@@ -20,6 +20,7 @@ import { OrganizationInteractiveTree } from '@/components/Organization';
 import { CreatePositionModal } from '@/components/Organization';
 import { EditPositionModal } from '@/components/Organization';
 import { PositionDetailModal } from '@/components/Organization';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -276,10 +277,15 @@ export const OrganizationChartScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={handleCreateRoot}>
-        <Text style={styles.fabIcon}>➕</Text>
-      </TouchableOpacity>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'add-circle-outline',
+            label: 'Crear Posici\u00f3n Ra\u00edz',
+            onPress: handleCreateRoot,
+          },
+        ]}
+      />
 
       {/* Modals */}
       <CreatePositionModal

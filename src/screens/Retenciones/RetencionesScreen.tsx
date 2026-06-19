@@ -22,6 +22,7 @@ import { Retencion, GetRetencionesParams } from '@/types/bizlinks';
 import { formatDateToString } from '@/utils/dateHelpers';
 import { useDebounce } from '@/hooks/useDebounce';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -418,11 +419,16 @@ export const RetencionesScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </ScrollView>
 
-        {/* Floating Action Button */}
         {!loading && retenciones.length > 0 && (
-          <TouchableOpacity style={styles.fab} onPress={handleCreateRetencion}>
-            <Ionicons name="add" size={28} color={theme.color.text.inverse} />
-          </TouchableOpacity>
+          <ProtectedFAB
+            actions={[
+              {
+                icon: 'add',
+                label: 'Crear Retenci\u00f3n',
+                onPress: handleCreateRetencion,
+              },
+            ]}
+          />
         )}
       </SafeAreaView>
     </ScreenLayout>

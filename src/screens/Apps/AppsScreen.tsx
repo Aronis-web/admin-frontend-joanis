@@ -16,6 +16,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { appsApi, App, GetAppsParams } from '@/services/api';
 import { AppType } from '@/services/api/apps';
 import { CreateAppModal } from '@/components/apps/CreateAppModal';
@@ -323,16 +324,16 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <ProtectedElement requiredPermissions={['apps.manage']}>
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => setShowCreateModal(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.fabIcon}>+</Text>
-        </TouchableOpacity>
-      </ProtectedElement>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'apps-outline',
+            label: 'Crear App',
+            onPress: () => setShowCreateModal(true),
+            requiredPermissions: ['apps.manage'],
+          },
+        ]}
+      />
 
       {/* Modals */}
       <CreateAppModal

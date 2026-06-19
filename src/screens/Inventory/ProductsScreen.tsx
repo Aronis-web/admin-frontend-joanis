@@ -623,21 +623,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         />
       )}
 
-      {/* Floating Action Buttons */}
-      <ProtectedElement
-        requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
-        requireAll={false}
-        fallback={null}
-      >
-        <TouchableOpacity
-          style={styles.pricesFloatingButton}
-          onPress={() => setIsBulkUpdateModalVisible(true)}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.floatingButtonText}>💵</Text>
-        </TouchableOpacity>
-      </ProtectedElement>
-
       <ProtectedFAB
         actions={[
           {
@@ -645,6 +630,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             label: 'Crear Producto',
             onPress: handleCreateProduct,
             requiredPermissions: [PERMISSIONS.PRODUCTS.CREATE],
+          },
+          {
+            icon: 'cash-outline',
+            label: 'Actualizar Precios',
+            onPress: () => setIsBulkUpdateModalVisible(true),
+            requiredPermissions: [PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE],
           },
         ]}
       />

@@ -25,6 +25,7 @@ import {
 } from '@/types/expenses';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { ReconcileAmountModal } from '@/components/Expenses/ReconcileAmountModal';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -678,10 +679,15 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
         </View>
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={handleAddExpense}>
-        <Ionicons name="add" size={28} color={theme.color.text.inverse} />
-      </TouchableOpacity>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'add',
+            label: 'Agregar Gasto',
+            onPress: handleAddExpense,
+          },
+        ]}
+      />
 
       {/* Expenses Modal */}
       <Modal
