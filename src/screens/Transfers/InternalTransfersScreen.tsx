@@ -38,6 +38,7 @@ import {
 import { logger } from '@/utils/logger';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { Pagination } from '@/design-system';
 
 interface InternalTransfersScreenProps {
   navigation: any;
@@ -68,6 +69,12 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [chatBadge] = useState(3);
   const [notificationsBadge] = useState(7);
+
+  // Server-side pagination
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Create transfer modal
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
@@ -103,19 +110,24 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   const effectiveSite = selectedSite || currentSite;
   const effectiveCompany = selectedCompany || currentCompany;
 
+  // Reset page when filters that affect the dataset change
+  useEffect(() => {
+    setPage(1);
+  }, [effectiveSite?.id, effectiveCompany?.id]);
+
   // Auto-reload transfers when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       logger.debug('📱 InternalTransfersScreen focused - reloading transfers...');
       loadTransfers();
-    }, [effectiveSite?.id, effectiveCompany?.id])
+    }, [effectiveSite?.id, effectiveCompany?.id, page])
   );
 
   useEffect(() => {
     if (effectiveSite?.id || effectiveCompany?.id) {
       loadTransfers();
     }
-  }, [effectiveSite?.id, effectiveCompany?.id]);
+  }, [effectiveSite?.id, effectiveCompany?.id, page]);
 
   useEffect(() => {
     if (!Array.isArray(transfers)) {
@@ -142,25 +154,13 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       const response = await transfersApi.getTransfers({
         type: TransferType.INTERNAL,
         currentSiteId: effectiveSite?.id,
-        page: 1,
-        limit: 100,
+        page,
+        limit: PAGE_SIZE,
       });
 
-      // Debug: Log first transfer to see structure
-      if (response.data && response.data.length > 0) {
-        logger.debug('🔍 InternalTransfers - First transfer data:', {
-          id: response.data[0].id,
-          transferNumber: response.data[0].transferNumber,
-          hasOriginArea: !!response.data[0].originArea,
-          hasDestinationArea: !!response.data[0].destinationArea,
-          originAreaId: response.data[0].originAreaId,
-          destinationAreaId: response.data[0].destinationAreaId,
-          originArea: response.data[0].originArea,
-          destinationArea: response.data[0].destinationArea,
-        });
-      }
-
       setTransfers(response.data || []);
+      setTotalItems(response.meta?.total ?? (response.data?.length ?? 0));
+      setTotalPages(response.meta?.totalPages ?? 1);
     } catch (error: any) {
       logger.error('Error loading internal transfers:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar los traslados internos');
@@ -635,6 +635,18 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
 
       {/* Content */}
       {renderContent()}
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={PAGE_SIZE}
+          onPageChange={setPage}
+          loading={loading || refreshing}
+        />
+      )}
 
       {/* Create Button */}
       <ProtectedFAB

@@ -42,6 +42,7 @@ import { downloadRemissionGuidePdf } from '@/utils/remissionGuideDownload';
 import { Driver, Transporter, Vehicle } from '@/types/transport';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { Pagination } from '@/design-system';
 
 interface ExternalTransfersScreenProps {
   navigation: any;
@@ -73,6 +74,12 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   const [chatBadge] = useState(3);
   const [notificationsBadge] = useState(7);
   const [selectedStatus, setSelectedStatus] = useState<TransferStatus | 'ALL'>('ALL');
+
+  // Server-side pagination
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Create transfer modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -130,19 +137,24 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     { key: TransferStatus.COMPLETED, label: 'Completado', color: theme.color.state.success.text },
   ];
 
+  // Reset page when filters that affect the dataset change
+  useEffect(() => {
+    setPage(1);
+  }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id]);
+
   // Auto-reload transfers when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       logger.debug('📱 ExternalTransfersScreen focused - reloading transfers...');
       loadTransfers();
-    }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id])
+    }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id, page])
   );
 
   useEffect(() => {
     if (effectiveSite?.id || effectiveCompany?.id) {
       loadTransfers();
     }
-  }, [effectiveSite?.id, effectiveCompany?.id]);
+  }, [effectiveSite?.id, effectiveCompany?.id, page]);
 
   useEffect(() => {
     if (!Array.isArray(transfers)) {
@@ -169,29 +181,17 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       const params: any = {
         type: TransferType.EXTERNAL,
         currentSiteId: effectiveSite?.id,
-        page: 1,
-        limit: 100,
+        page,
+        limit: PAGE_SIZE,
       };
       if (selectedStatus !== 'ALL') {
         params.status = selectedStatus;
       }
       const response = await transfersApi.getTransfers(params);
 
-      // Debug: Log first transfer to see structure
-      if (response.data && response.data.length > 0) {
-        logger.debug('🔍 ExternalTransfers - First transfer data:', {
-          id: response.data[0].id,
-          transferNumber: response.data[0].transferNumber,
-          hasOriginArea: !!response.data[0].originArea,
-          hasDestinationArea: !!response.data[0].destinationArea,
-          originAreaId: response.data[0].originAreaId,
-          destinationAreaId: response.data[0].destinationAreaId,
-          originArea: response.data[0].originArea,
-          destinationArea: response.data[0].destinationArea,
-        });
-      }
-
       setTransfers(response.data || []);
+      setTotalItems(response.meta?.total ?? (response.data?.length ?? 0));
+      setTotalPages(response.meta?.totalPages ?? 1);
     } catch (error: any) {
       logger.error('Error loading external transfers:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar los traslados externos');
@@ -872,6 +872,18 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
 
       {/* Content */}
       {renderContent()}
+
+      {/* Pagination */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={PAGE_SIZE}
+          onPageChange={setPage}
+          loading={loading || refreshing}
+        />
+      )}
 
       {/* Create Button */}
       <ProtectedFAB
