@@ -212,8 +212,9 @@ const CreateTransporterScreen = lazyLoad(() => import('@/screens/Transport').the
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // Navigation Components
-import { FloatingActionButton } from '@/components/Navigation/FloatingActionButton';
+import { GlobalFab } from '@/components/Navigation/GlobalFab';
 import { DrawerMenu } from '@/components/Navigation/DrawerMenu';
+import { useUIStore } from '@/store/ui';
 
 const AuthStackNavigator = createNativeStackNavigator<AuthStackParamList>();
 const MainStackNavigator = createNativeStackNavigator<MainStackParamList>();
@@ -1767,7 +1768,8 @@ const NAVIGATION_PERSISTENCE_KEY = 'NAVIGATION_STATE_V1';
 
 export const Navigation = () => {
   const { isAuthenticated, currentCompany, currentSite, user } = useAuthStore();
-  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const isDrawerVisible = useUIStore((s) => s.isDrawerOpen);
+  const closeDrawer = useUIStore((s) => s.closeDrawer);
   const [isReady, setIsReady] = useState(false);
   const [initialState, setInitialState] = useState();
   const navigationRef = useRef<any>(null);
@@ -1866,8 +1868,8 @@ export const Navigation = () => {
         {showMainStack ? <MainStack /> : <AuthStack />}
         {showMainStack && (
           <>
-            <FloatingActionButton onPress={() => setIsDrawerVisible(true)} />
-            <DrawerMenu visible={isDrawerVisible} onClose={() => setIsDrawerVisible(false)} />
+            <GlobalFab />
+            <DrawerMenu visible={isDrawerVisible} onClose={closeDrawer} />
           </>
         )}
       </View>
