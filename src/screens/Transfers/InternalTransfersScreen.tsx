@@ -115,19 +115,24 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     setPage(1);
   }, [effectiveSite?.id, effectiveCompany?.id]);
 
-  // Auto-reload transfers when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      logger.debug('📱 InternalTransfersScreen focused - reloading transfers...');
-      loadTransfers();
-    }, [effectiveSite?.id, effectiveCompany?.id, page])
-  );
-
+  // Single source of truth: cargar cuando cambian tenant o page
   useEffect(() => {
     if (effectiveSite?.id || effectiveCompany?.id) {
       loadTransfers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSite?.id, effectiveCompany?.id, page]);
+
+  // Refrescar al volver a la pantalla (sin duplicar con el effect de page)
+  useFocusEffect(
+    useCallback(() => {
+      logger.debug('📱 InternalTransfersScreen focused');
+      if (effectiveSite?.id || effectiveCompany?.id) {
+        loadTransfers();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [effectiveSite?.id, effectiveCompany?.id])
+  );
 
   useEffect(() => {
     if (!Array.isArray(transfers)) {
@@ -158,9 +163,11 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
         limit: PAGE_SIZE,
       });
 
-      setTransfers(response.data || []);
-      setTotalItems(response.meta?.total ?? (response.data?.length ?? 0));
-      setTotalPages(response.meta?.totalPages ?? 1);
+      const data = response.data || [];
+      const total = response.meta?.total ?? data.length;
+      setTransfers(data);
+      setTotalItems(total);
+      setTotalPages(response.meta?.totalPages ?? Math.max(1, Math.ceil(total / PAGE_SIZE)));
     } catch (error: any) {
       logger.error('Error loading internal transfers:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar los traslados internos');

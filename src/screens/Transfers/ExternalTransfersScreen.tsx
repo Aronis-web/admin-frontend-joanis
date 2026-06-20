@@ -142,19 +142,24 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     setPage(1);
   }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id]);
 
-  // Auto-reload transfers when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      logger.debug('📱 ExternalTransfersScreen focused - reloading transfers...');
-      loadTransfers();
-    }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id, page])
-  );
-
+  // Single source of truth: cargar cuando cambian tenant, status o page
   useEffect(() => {
     if (effectiveSite?.id || effectiveCompany?.id) {
       loadTransfers();
     }
-  }, [effectiveSite?.id, effectiveCompany?.id, page]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id, page]);
+
+  // Refrescar al volver a la pantalla (sin duplicar con el effect de page)
+  useFocusEffect(
+    useCallback(() => {
+      logger.debug('📱 ExternalTransfersScreen focused');
+      if (effectiveSite?.id || effectiveCompany?.id) {
+        loadTransfers();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id])
+  );
 
   useEffect(() => {
     if (!Array.isArray(transfers)) {
@@ -189,9 +194,11 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       }
       const response = await transfersApi.getTransfers(params);
 
-      setTransfers(response.data || []);
-      setTotalItems(response.meta?.total ?? (response.data?.length ?? 0));
-      setTotalPages(response.meta?.totalPages ?? 1);
+      const data = response.data || [];
+      const total = response.meta?.total ?? data.length;
+      setTransfers(data);
+      setTotalItems(total);
+      setTotalPages(response.meta?.totalPages ?? Math.max(1, Math.ceil(total / PAGE_SIZE)));
     } catch (error: any) {
       logger.error('Error loading external transfers:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar los traslados externos');
