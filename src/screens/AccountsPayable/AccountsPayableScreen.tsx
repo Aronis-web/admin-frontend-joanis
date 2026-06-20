@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { spacing, borderRadius } from '@/design-system/tokens';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -795,52 +796,14 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
 
       {/* Pagination Controls */}
       {!loading && pagination.total > 0 && (
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page === 1 && styles.paginationButtonDisabled,
-            ]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page === 1 && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.paginationInfo}>
-            <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
-            </Text>
-            <Text style={styles.paginationSubtext}>
-              {accountsPayable.length} de {pagination.total}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={pagination.page >= pagination.totalPages}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.limit}
+          onPageChange={setPage}
+          loading={loading}
+        />
       )}
 
       {/* Filters Modal */}

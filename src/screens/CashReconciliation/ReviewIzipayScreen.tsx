@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { Picker } from '@react-native-picker/picker';
 
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { durations } from '@/design-system/tokens/animations';
@@ -495,31 +496,14 @@ export const ReviewIzipayScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Pagination */}
       {!isLoading && transactions.length > 0 && (
-        <View style={styles.pagination}>
-          <TouchableOpacity
-            style={[styles.paginationButton, pagination.page === 1 && styles.paginationButtonDisabled]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text style={[styles.paginationButtonText, pagination.page === 1 && styles.paginationButtonTextDisabled]}>
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.paginationInfoContainer}>
-            <Text style={styles.paginationInfo}>
-              {pagination.page} / {pagination.total_pages}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.paginationButton, pagination.page === pagination.total_pages && styles.paginationButtonDisabled]}
-            onPress={handleNextPage}
-            disabled={pagination.page === pagination.total_pages}
-          >
-            <Text style={[styles.paginationButtonText, pagination.page === pagination.total_pages && styles.paginationButtonTextDisabled]}>
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Pagination
+          currentPage={pagination.page}
+          totalPages={pagination.total_pages}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.limit}
+          onPageChange={loadTransactions}
+          loading={isLoading}
+        />
       )}
 
       {/* Custom Date Modal */}

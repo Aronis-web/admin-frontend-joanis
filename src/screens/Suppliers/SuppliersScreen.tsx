@@ -20,6 +20,7 @@ import { suppliersService } from '@/services/api/suppliers';
 import { Supplier, SupplierType } from '@/types/suppliers';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { SUPPLIER_TYPE_LABELS, SUPPLIER_TYPE_ICONS, SUPPLIER_TYPE_COLORS } from '@/constants/supplierTypes';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -544,52 +545,14 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
 
       {/* Pagination Controls */}
       {!loading && pagination.total > 0 && (
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page === 1 && styles.paginationButtonDisabled,
-            ]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page === 1 && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.paginationInfo}>
-            <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
-            </Text>
-            <Text style={styles.paginationSubtext}>
-              {suppliers.length} de {pagination.total} proveedores
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={pagination.page >= pagination.totalPages}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.limit}
+          onPageChange={setPage}
+          loading={loading}
+        />
       )}
 
       {/* Create Button */}

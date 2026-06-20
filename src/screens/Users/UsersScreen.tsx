@@ -20,7 +20,7 @@ import { usersApi, User, GetUsersParams } from '@/services/api';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
 import { UserDetailModal } from '@/components/users/UserDetailModal';
 import { EditUserModal } from '@/components/users/EditUserModal';
-import { PaginationControls } from '@/components/Pagination/PaginationControls';
+import { Pagination } from '@/design-system';
 import { MAIN_ROUTES } from '@/constants/routes';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
@@ -383,14 +383,12 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
       {/* Pagination Controls */}
       {pagination.totalPages > 0 && (
-        <PaginationControls
+        <Pagination
           currentPage={pagination.page}
           totalPages={pagination.totalPages}
           totalItems={pagination.total}
           itemsPerPage={pagination.limit}
-          onPreviousPage={handlePreviousPage}
-          onNextPage={handleNextPage}
-          itemLabel="usuarios"
+          onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
         />
       )}
 

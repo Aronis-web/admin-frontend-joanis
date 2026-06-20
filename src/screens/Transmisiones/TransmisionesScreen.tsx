@@ -22,6 +22,7 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -261,33 +262,14 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
     }
 
     return (
-      <View style={styles.pagination}>
-        <TouchableOpacity
-          style={[
-            styles.paginationButton,
-            pagination.page === 1 && styles.paginationButtonDisabled,
-          ]}
-          onPress={handlePreviousPage}
-          disabled={pagination.page === 1}
-        >
-          <Text style={styles.paginationButtonText}>← Anterior</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.paginationText}>
-          Página {pagination.page} de {pagination.totalPages}
-        </Text>
-
-        <TouchableOpacity
-          style={[
-            styles.paginationButton,
-            pagination.page === pagination.totalPages && styles.paginationButtonDisabled,
-          ]}
-          onPress={handleNextPage}
-          disabled={pagination.page === pagination.totalPages}
-        >
-          <Text style={styles.paginationButtonText}>Siguiente →</Text>
-        </TouchableOpacity>
-      </View>
+      <Pagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.total}
+        itemsPerPage={pagination.limit}
+        onPageChange={loadTransmisiones}
+        loading={loading}
+      />
     );
   };
 
@@ -337,12 +319,12 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
                 </View>
 
                 {transmisiones.map(renderTransmisionCard)}
-
-                {renderPagination()}
               </>
             )}
           </ScrollView>
         )}
+
+        {!loading && renderPagination()}
 
         {/* Add Button */}
         <ProtectedFAB

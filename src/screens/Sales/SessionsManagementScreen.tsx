@@ -20,6 +20,7 @@ import {
   PosSessionSaleDetail,
 } from '@/types/pos-sessions';
 import { Badge, Button, Card, Text } from '@/design-system/components';
+import { Pagination } from '@/design-system';
 import { activeOpacity } from '@/design-system/tokens';
 import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
@@ -292,31 +293,12 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
             )}
           </ScrollView>
 
-          <View style={styles.paginationFixedContainer}>
-            <View style={[styles.paginationContainer, { paddingBottom: Math.max(insets.bottom, theme.space[2]) }]}>
-              <View style={styles.paginationButtonsRow}>
-                <Button
-                  title="Anterior"
-                  variant="secondary"
-                  onPress={handlePrevPage}
-                  disabled={page <= 1}
-                  style={styles.paginationButton}
-                />
-
-                <Button
-                  title="Siguiente"
-                  variant="secondary"
-                  onPress={handleNextPage}
-                  disabled={page >= totalPages}
-                  style={styles.paginationButton}
-                />
-              </View>
-
-              <Text variant="caption" color="secondary" align="center" style={styles.paginationInfo}>
-                Página {page} de {Math.max(totalPages, 1)} • Total: {total}
-              </Text>
-            </View>
-          </View>
+          <Pagination
+            currentPage={page}
+            totalPages={Math.max(totalPages, 1)}
+            totalItems={total}
+            onPageChange={setPage}
+          />
         </View>
       )}
 

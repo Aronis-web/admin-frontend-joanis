@@ -28,6 +28,7 @@ import {
 } from '@/types/sales';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
@@ -517,58 +518,14 @@ export const SalesScreen: React.FC<SalesScreenProps> = ({ navigation }) => {
 
         {/* Pagination */}
         {total > 0 && (
-          <View style={styles.paginationContainer}>
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                page === 1 && styles.paginationButtonDisabled,
-              ]}
-              onPress={() => page > 1 && setPage(page - 1)}
-              disabled={page === 1}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={20}
-                color={page === 1 ? theme.color.border.default : theme.color.text.inverse}
-              />
-              <Text style={[
-                styles.paginationButtonText,
-                page === 1 && styles.paginationButtonTextDisabled,
-              ]}>
-                Anterior
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.paginationInfo}>
-              <Text style={styles.paginationText}>
-                Página {page} de {totalPages}
-              </Text>
-              <Text style={styles.paginationSubtext}>
-                {sales.length} de {total} ventas
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                page >= totalPages && styles.paginationButtonDisabled,
-              ]}
-              onPress={() => page < totalPages && setPage(page + 1)}
-              disabled={page >= totalPages}
-            >
-              <Text style={[
-                styles.paginationButtonText,
-                page >= totalPages && styles.paginationButtonTextDisabled,
-              ]}>
-                Siguiente
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={page >= totalPages ? theme.color.border.default : theme.color.text.inverse}
-              />
-            </TouchableOpacity>
-          </View>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={total}
+            itemsPerPage={20}
+            onPageChange={setPage}
+            loading={loading}
+          />
         )}
 
         {/* Filters Modal */}

@@ -34,6 +34,7 @@ import {
 import { config } from '@/utils/config';
 import { formatDateToString } from '@/utils/dateHelpers';
 import { spacing, borderRadius } from '@/design-system/tokens';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -953,56 +954,14 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
         </ScrollView>
 
         {pagination.total > 0 && (
-          <View style={styles.paginationContainer}>
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                !pagination.hasPreviousPage && page === 1 && styles.paginationButtonDisabled,
-              ]}
-              onPress={handlePreviousPage}
-              disabled={!pagination.hasPreviousPage && page === 1}
-            >
-              <Text
-                style={[
-                  styles.paginationButtonText,
-                  !pagination.hasPreviousPage && page === 1 && styles.paginationButtonTextDisabled,
-                ]}
-              >
-                ← Anterior
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.paginationInfo}>
-              <Text style={styles.paginationText}>
-                Pág. {pagination.page}/{pagination.totalPages || 1}
-              </Text>
-              <Text style={styles.paginationSubtext}>
-                {documents.length} de {pagination.total} · {pagination.limit}/pág.
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                !pagination.hasNextPage &&
-                  page >= pagination.totalPages &&
-                  styles.paginationButtonDisabled,
-              ]}
-              onPress={handleNextPage}
-              disabled={!pagination.hasNextPage && page >= pagination.totalPages}
-            >
-              <Text
-                style={[
-                  styles.paginationButtonText,
-                  !pagination.hasNextPage &&
-                    page >= pagination.totalPages &&
-                    styles.paginationButtonTextDisabled,
-                ]}
-              >
-                Siguiente →
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.totalPages || 1}
+            totalItems={pagination.total}
+            itemsPerPage={pagination.limit}
+            onPageChange={setPage}
+            loading={loading}
+          />
         )}
 
         <DatePicker

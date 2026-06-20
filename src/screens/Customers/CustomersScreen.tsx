@@ -18,6 +18,7 @@ import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { customersService } from '@/services/api/customers';
 import { Customer, CustomerType } from '@/types/customers';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -226,44 +227,14 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
     if (pagination.totalPages <= 1) return null;
 
     return (
-      <View style={styles.paginationContainer}>
-        <TouchableOpacity
-          style={[styles.paginationButton, pagination.page === 1 && styles.paginationButtonDisabled]}
-          onPress={() => loadCustomers(pagination.page - 1)}
-          disabled={pagination.page === 1}
-        >
-          <Text
-            style={[
-              styles.paginationButtonText,
-              pagination.page === 1 && styles.paginationButtonTextDisabled,
-            ]}
-          >
-            ← Anterior
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.paginationText}>
-          Página {pagination.page} de {pagination.totalPages}
-        </Text>
-
-        <TouchableOpacity
-          style={[
-            styles.paginationButton,
-            pagination.page === pagination.totalPages && styles.paginationButtonDisabled,
-          ]}
-          onPress={() => loadCustomers(pagination.page + 1)}
-          disabled={pagination.page === pagination.totalPages}
-        >
-          <Text
-            style={[
-              styles.paginationButtonText,
-              pagination.page === pagination.totalPages && styles.paginationButtonTextDisabled,
-            ]}
-          >
-            Siguiente →
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <Pagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.total}
+        itemsPerPage={pagination.limit}
+        onPageChange={loadCustomers}
+        loading={loading}
+      />
     );
   };
 
@@ -333,10 +304,10 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           {filteredCustomers.map(renderCustomerCard)}
-          {renderPagination()}
           <View style={styles.bottomPadding} />
         </ScrollView>
       )}
+      {renderPagination()}
 
       {/* Add Button */}
       <ProtectedFAB

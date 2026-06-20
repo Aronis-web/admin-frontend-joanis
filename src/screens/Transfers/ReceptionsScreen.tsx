@@ -34,6 +34,7 @@ import {
   ValidateItemDto,
   CompleteReceptionDto,
 } from '@/types/transfers';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -912,30 +913,6 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           );
         })}
 
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[styles.paginationButton, currentPage <= 1 && styles.paginationButtonDisabled]}
-            onPress={handlePrevPage}
-            disabled={currentPage <= 1}
-          >
-            <Text style={styles.paginationButtonText}>Anterior</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.paginationInfo}>
-            Página {currentPage} de {Math.max(totalPages, 1)} • Total: {totalReceptions}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              currentPage >= totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={currentPage >= totalPages}
-          >
-            <Text style={styles.paginationButtonText}>Siguiente</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     );
   };
@@ -1028,6 +1005,17 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         </View>
       ) : (
         renderList()
+      )}
+
+      {!loading && totalReceptions > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.max(totalPages, 1)}
+          totalItems={totalReceptions}
+          itemsPerPage={pageSize}
+          onPageChange={setCurrentPage}
+          loading={loading}
+        />
       )}
 
       <Modal visible={showValidateModal} animationType="slide" presentationStyle="pageSheet">

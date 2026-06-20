@@ -27,6 +27,7 @@ import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 
 // Design System Imports
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { durations } from '@/design-system/tokens/animations';
@@ -537,43 +538,22 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
               />
             ))}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <View style={styles.paginationContainer}>
-                <TouchableOpacity
-                  style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
-                  onPress={() => setPage(page - 1)}
-                  disabled={page === 1}
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={20}
-                    color={page === 1 ? theme.color.text.placeholder : theme.color.surface.base}
-                  />
-                </TouchableOpacity>
-
-                <Text style={styles.paginationInfo}>
-                  {page} / {totalPages}
-                </Text>
-
-                <TouchableOpacity
-                  style={[styles.paginationButton, page === totalPages && styles.paginationButtonDisabled]}
-                  onPress={() => setPage(page + 1)}
-                  disabled={page === totalPages}
-                >
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={page === totalPages ? theme.color.text.placeholder : theme.color.surface.base}
-                  />
-                </TouchableOpacity>
-              </View>
-            )}
           </>
         )}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={total}
+          onPageChange={setPage}
+          loading={isLoading}
+        />
+      )}
 
       {/* Revert Modal */}
       <Modal
