@@ -37,7 +37,7 @@ $sdkPath = $env:ANDROID_HOME -replace '\\','/'
 
 Set-Location "$BUILD_DIR\android"
 Write-Host '==> gradlew assembleRelease...'
-./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --console=plain
 if ($LASTEXITCODE -ne 0) { throw 'gradlew assembleRelease failed' }
 
 $APK_SOURCE = "$BUILD_DIR\android\app\build\outputs\apk\release\app-release.apk"
