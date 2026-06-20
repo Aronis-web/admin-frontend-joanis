@@ -504,6 +504,20 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
     setShowTaxDocumentsReportModal(true);
   }, []);
 
+  const handleOpenRegistroVentas = useCallback(() => {
+    Alert.alert(
+      'Registro de Ventas 14.1',
+      'La exportación del Registro de Ventas estará disponible próximamente.'
+    );
+  }, []);
+
+  const handleOpenKardexExport = useCallback(() => {
+    Alert.alert(
+      'Kardex 12.1 (Salidas)',
+      'La exportación del Kardex de salidas estará disponible próximamente.'
+    );
+  }, []);
+
   const renderFilterChip = (
     option: { value: string; label: string; color?: string; icon?: keyof typeof Ionicons.glyphMap },
     selectedValue: string,
@@ -992,6 +1006,18 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
               label: 'Reporte de Ventas',
               onPress: handleOpenTaxDocumentsReport,
               requiredPermissions: ['bizlinks.documents.view', 'sales.read'],
+            },
+            {
+              icon: 'receipt-outline',
+              label: 'Registro de Ventas 14.1',
+              onPress: handleOpenRegistroVentas,
+              requiredPermissions: ['bizlinks.documents.view', 'sales.read'],
+            },
+            {
+              icon: 'cube-outline',
+              label: 'Kardex 12.1 (Salidas)',
+              onPress: handleOpenKardexExport,
+              requiredPermissions: ['bizlinks.documents.view', 'inventory.read'],
             },
           ]}
         />
