@@ -142,15 +142,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     setPage(1);
   }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id]);
 
-  // Single source of truth: cargar cuando cambian tenant, status o page
-  useEffect(() => {
-    if (effectiveSite?.id || effectiveCompany?.id) {
-      loadTransfers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id, page]);
-
-  // Refrescar al volver a la pantalla (sin duplicar con el effect de page)
+  // Single source of truth: recarga al enfocar y cuando cambian tenant, status o page
   useFocusEffect(
     useCallback(() => {
       logger.debug('📱 ExternalTransfersScreen focused');
@@ -158,7 +150,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         loadTransfers();
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id])
+    }, [selectedStatus, effectiveSite?.id, effectiveCompany?.id, page])
   );
 
   useEffect(() => {

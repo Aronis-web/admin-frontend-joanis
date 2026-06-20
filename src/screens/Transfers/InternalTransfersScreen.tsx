@@ -115,15 +115,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     setPage(1);
   }, [effectiveSite?.id, effectiveCompany?.id]);
 
-  // Single source of truth: cargar cuando cambian tenant o page
-  useEffect(() => {
-    if (effectiveSite?.id || effectiveCompany?.id) {
-      loadTransfers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveSite?.id, effectiveCompany?.id, page]);
-
-  // Refrescar al volver a la pantalla (sin duplicar con el effect de page)
+  // Single source of truth: recarga al enfocar y cuando cambian tenant o page
   useFocusEffect(
     useCallback(() => {
       logger.debug('📱 InternalTransfersScreen focused');
@@ -131,7 +123,7 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
         loadTransfers();
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [effectiveSite?.id, effectiveCompany?.id])
+    }, [effectiveSite?.id, effectiveCompany?.id, page])
   );
 
   useEffect(() => {
