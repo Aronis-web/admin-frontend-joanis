@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -102,11 +102,29 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const [error, setError] = useState<string | null>(null);
   const [salesError, setSalesError] = useState<string | null>(null);
 
-  // Sede selector states
+  // Sede selector states (multi-select con patrón draft + applied)
   const [sedes, setSedes] = useState<Site[]>([]);
-  const [selectedSedeId, setSelectedSedeId] = useState<string>('');
+  const [selectedSedeIds, setSelectedSedeIds] = useState<string[]>([]);
+  const [draftSedeIds, setDraftSedeIds] = useState<string[]>([]);
   const [loadingSedes, setLoadingSedes] = useState(false);
   const [showSedeModal, setShowSedeModal] = useState(false);
+
+  const allSedesSelected = sedes.length > 0 && draftSedeIds.length === sedes.length;
+  const sedeKey = selectedSedeIds.slice().sort().join(',');
+  const getSedeIdParam = useCallback((): string | undefined => {
+    if (sedes.length === 0 || selectedSedeIds.length === 0) return undefined;
+    if (selectedSedeIds.length === sedes.length) return undefined;
+    return selectedSedeIds.length === 1 ? selectedSedeIds[0] : selectedSedeIds.join(',');
+  }, [sedes, selectedSedeIds]);
+  const selectedSedesLabel = useMemo(() => {
+    if (sedes.length === 0 || selectedSedeIds.length === 0 || selectedSedeIds.length === sedes.length) {
+      return 'Todas';
+    }
+    if (selectedSedeIds.length === 1) {
+      return sedes.find((s) => s.id === selectedSedeIds[0])?.name || 'Todas';
+    }
+    return `${selectedSedeIds.length} sedes`;
+  }, [sedes, selectedSedeIds]);
 
   // Reports states
   const [showReportsModal, setShowReportsModal] = useState(false);
@@ -129,7 +147,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   }, [currentCompany?.id]);
 
   useEffect(() => {
-    console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'canViewSales:', canViewSales, 'selectedFilter:', selectedFilter, 'selectedSedeId:', selectedSedeId);
+    console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'canViewSales:', canViewSales, 'selectedFilter:', selectedFilter, 'selectedSedeIds:', selectedSedeIds);
 
     // ✅ OPTIMIZACIÓN: Carga secuencial priorizada
     const loadDataSequentially = async () => {
@@ -159,7 +177,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     };
 
     loadDataSequentially();
-  }, [selectedFilter, selectedSedeId, canViewPurchases, canViewSales]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFilter, sedeKey, canViewPurchases, canViewSales]);
 
   const getDateRange = (filter: DateFilter): { startDate: string; endDate: string } => {
     const now = new Date();
@@ -260,15 +279,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       setError(null);
 
       const { startDate, endDate } = getDateRange(selectedFilter);
-      console.log('📅 Loading purchases summary:', { startDate, endDate, filter: selectedFilter, sedeId: selectedSedeId });
+      const sedeIdParam = getSedeIdParam();
+      console.log('📅 Loading purchases summary:', { startDate, endDate, filter: selectedFilter, sedeId: sedeIdParam });
 
       const params: any = {
         fecha_inicio: startDate,
         fecha_fin: endDate,
       };
 
-      if (selectedSedeId) {
-        params.sede_id = selectedSedeId;
+      if (sedeIdParam) {
+        params.sede_id = sedeIdParam;
       }
 
       const data = await apiClient.get<PurchasesSummary>('/admin/purchases/summary/by-date', {
@@ -320,8 +340,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         groupBy,
       };
 
-      if (selectedSedeId) {
-        params.sede_id = selectedSedeId;
+      const sedeIdParam = getSedeIdParam();
+      if (sedeIdParam) {
+        params.sede_id = sedeIdParam;
       }
 
       console.log('📊 Loading purchases grouped:', {
@@ -329,7 +350,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         fecha_fin: params.fecha_fin,
         groupBy: params.groupBy,
         filter: selectedFilter,
-        sedeId: selectedSedeId,
+        sedeId: sedeIdParam,
       });
 
       const data = await apiClient.get<PurchasesGroupedSummary>('/admin/purchases/summary/grouped', {
@@ -376,15 +397,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       setSalesError(null);
 
       const { startDate, endDate } = getDateRange(selectedFilter);
-      console.log('📅 Loading sales summary:', { startDate, endDate, filter: selectedFilter, sedeId: selectedSedeId });
+      const sedeIdParam = getSedeIdParam();
+      console.log('📅 Loading sales summary:', { startDate, endDate, filter: selectedFilter, sedeId: sedeIdParam });
 
       const params: any = {
         fecha_inicio: startDate,
         fecha_fin: endDate,
       };
 
-      if (selectedSedeId) {
-        params.sede_id = selectedSedeId;
+      if (sedeIdParam) {
+        params.sede_id = sedeIdParam;
       }
 
       const data = await cashReconciliationApi.getResumenDiario(params);
@@ -903,7 +925,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           {sedes.length > 0 && (
             <TouchableOpacity
               style={styles.sedeSelector}
-              onPress={() => setShowSedeModal(true)}
+              onPress={() => {
+                setDraftSedeIds(selectedSedeIds);
+                setShowSedeModal(true);
+              }}
               disabled={loadingSedes}
               activeOpacity={0.7}
             >
@@ -911,9 +936,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               <View style={styles.sedeSelectorText}>
                 <Text style={styles.sedeSelectorLabel}>Sede</Text>
                 <Text style={styles.sedeSelectorValue} numberOfLines={1}>
-                  {selectedSedeId
-                    ? sedes.find(s => s.id === selectedSedeId)?.name || 'Todas'
-                    : 'Todas'}
+                  {selectedSedesLabel}
                 </Text>
               </View>
               <Ionicons name="chevron-down" size={14} color={theme.color.brand.onHeaderMuted} />
@@ -1260,7 +1283,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         title="Rango Personalizado"
       />
 
-      {/* Sede Selection Modal */}
+      {/* Sede Selection Modal (multi-select con draft + applied) */}
       <Modal
         visible={showSedeModal}
         transparent
@@ -1268,64 +1291,103 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         onRequestClose={() => setShowSedeModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, styles.sedeModalContent]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>🏪 Seleccionar Sede</Text>
+              <Text style={styles.modalTitle}>🏪 Seleccionar Sedes</Text>
               <TouchableOpacity onPress={() => setShowSedeModal(false)}>
                 <Text style={styles.modalCloseButton}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
-              {/* Opción "Todas las sedes" */}
+            <ScrollView style={styles.sedeModalScroll}>
+              {/* Toggle Seleccionar todos */}
+              <TouchableOpacity
+                style={[styles.sedeModalItem, allSedesSelected && styles.sedeModalItemSelected]}
+                onPress={() => setDraftSedeIds(allSedesSelected ? [] : sedes.map((s) => s.id))}
+                activeOpacity={0.7}
+              >
+                <View style={styles.sedeModalItemContent}>
+                  <View style={styles.sedeModalItemIconBadge}>
+                    <Ionicons
+                      name="business"
+                      size={18}
+                      color={allSedesSelected ? theme.color.brand.accent : theme.color.icon.muted}
+                    />
+                  </View>
+                  <View style={styles.sedeModalItemText}>
+                    <Text style={styles.sedeModalItemName}>Seleccionar todos</Text>
+                    <Text style={styles.sedeModalItemCode}>
+                      {allSedesSelected ? 'Todas las sedes seleccionadas' : 'Marcar todas las sedes'}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons
+                  name={allSedesSelected ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={allSedesSelected ? theme.color.brand.accent : theme.color.icon.muted}
+                />
+              </TouchableOpacity>
+
+              {/* Lista de sedes con checkbox */}
+              {sedes.map((sede) => {
+                const checked = draftSedeIds.includes(sede.id);
+                return (
+                  <TouchableOpacity
+                    key={sede.id}
+                    style={[styles.sedeModalItem, checked && styles.sedeModalItemSelected]}
+                    onPress={() =>
+                      setDraftSedeIds((prev) =>
+                        prev.includes(sede.id) ? prev.filter((id) => id !== sede.id) : [...prev, sede.id]
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.sedeModalItemContent}>
+                      <View style={styles.sedeModalItemIconBadge}>
+                        <Ionicons
+                          name="storefront"
+                          size={18}
+                          color={checked ? theme.color.brand.accent : theme.color.icon.muted}
+                        />
+                      </View>
+                      <View style={styles.sedeModalItemText}>
+                        <Text style={styles.sedeModalItemName}>{sede.name}</Text>
+                        {sede.code && (
+                          <Text style={styles.sedeModalItemCode}>Código: {sede.code}</Text>
+                        )}
+                      </View>
+                    </View>
+                    <Ionicons
+                      name={checked ? 'checkbox' : 'square-outline'}
+                      size={22}
+                      color={checked ? theme.color.brand.accent : theme.color.icon.muted}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowSedeModal(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[
-                  styles.sedeModalItem,
-                  !selectedSedeId && styles.sedeModalItemSelected,
+                  styles.modalApplyButton,
+                  draftSedeIds.length === 0 && styles.modalApplyButtonDisabled,
                 ]}
+                disabled={draftSedeIds.length === 0}
                 onPress={() => {
-                  setSelectedSedeId('');
+                  setSelectedSedeIds(draftSedeIds);
                   setShowSedeModal(false);
                 }}
               >
-                <View style={styles.sedeModalItemContent}>
-                  <Text style={styles.sedeModalItemIcon}>🏢</Text>
-                  <View style={styles.sedeModalItemText}>
-                    <Text style={styles.sedeModalItemName}>Todas las Sedes</Text>
-                    <Text style={styles.sedeModalItemCode}>Ver datos consolidados</Text>
-                  </View>
-                </View>
-                {!selectedSedeId && <Text style={styles.sedeModalItemCheck}>✓</Text>}
+                <Text style={styles.modalApplyButtonText}>Aplicar</Text>
               </TouchableOpacity>
-
-              {/* Lista de sedes */}
-              {sedes.map((sede) => (
-                <TouchableOpacity
-                  key={sede.id}
-                  style={[
-                    styles.sedeModalItem,
-                    selectedSedeId === sede.id && styles.sedeModalItemSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedSedeId(sede.id);
-                    setShowSedeModal(false);
-                  }}
-                >
-                  <View style={styles.sedeModalItemContent}>
-                    <Text style={styles.sedeModalItemIcon}>🏪</Text>
-                    <View style={styles.sedeModalItemText}>
-                      <Text style={styles.sedeModalItemName}>{sede.name}</Text>
-                      {sede.code && (
-                        <Text style={styles.sedeModalItemCode}>Código: {sede.code}</Text>
-                      )}
-                    </View>
-                  </View>
-                  {selectedSedeId === sede.id && (
-                    <Text style={styles.sedeModalItemCheck}>✓</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            </View>
           </View>
         </View>
       </Modal>
@@ -2099,8 +2161,23 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  sedeModalContent: {
+    maxHeight: '85%',
+  },
+  sedeModalScroll: {
+    maxHeight: 420,
+  },
   sedeModalItemIcon: {
     fontSize: 22,
+    marginRight: theme.space[3],
+  },
+  sedeModalItemIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: theme.space[3],
   },
   sedeModalItemText: {
