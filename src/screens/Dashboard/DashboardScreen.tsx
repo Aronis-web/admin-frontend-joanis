@@ -18,7 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
-import { apiClient } from '@/services/api';
+import { apiClient, scopesApi } from '@/services/api';
+import type { ResolvedScope } from '@/services/api';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import Svg, { Line, Text as SvgText, Circle, Polyline, Path } from 'react-native-svg';
 import { cashReconciliationApi, ResumenDiarioResponse } from '@/services/api/cash-reconciliation';
@@ -84,7 +85,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const { hasPermission } = usePermissions();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
-  const { currentCompany } = useAuthStore();
+  const { currentCompany, user } = useAuthStore();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
@@ -111,17 +112,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
   const allSedesSelected = sedes.length > 0 && draftSedeIds.length === sedes.length;
   const sedeKey = selectedSedeIds.slice().sort().join(',');
+  // Siempre envía CSV de sedes seleccionadas (nunca vacío) para respetar permisos del usuario.
   const getSedeIdParam = useCallback((): string | undefined => {
-    if (sedes.length === 0 || selectedSedeIds.length === 0) return undefined;
-    if (selectedSedeIds.length === sedes.length) return undefined;
+    if (selectedSedeIds.length === 0) return undefined;
     return selectedSedeIds.length === 1 ? selectedSedeIds[0] : selectedSedeIds.join(',');
-  }, [sedes, selectedSedeIds]);
+  }, [selectedSedeIds]);
   const selectedSedesLabel = useMemo(() => {
-    if (sedes.length === 0 || selectedSedeIds.length === 0 || selectedSedeIds.length === sedes.length) {
-      return 'Todas';
+    if (sedes.length === 0 || selectedSedeIds.length === 0) {
+      return 'Sin sedes';
+    }
+    if (selectedSedeIds.length === sedes.length) {
+      return sedes.length === 1
+        ? sedes[0].name
+        : `Todas (${sedes.length})`;
     }
     if (selectedSedeIds.length === 1) {
-      return sedes.find((s) => s.id === selectedSedeIds[0])?.name || 'Todas';
+      return sedes.find((s) => s.id === selectedSedeIds[0])?.name || '1 sede';
     }
     return `${selectedSedeIds.length} sedes`;
   }, [sedes, selectedSedeIds]);
@@ -148,6 +154,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
   useEffect(() => {
     console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'canViewSales:', canViewSales, 'selectedFilter:', selectedFilter, 'selectedSedeIds:', selectedSedeIds);
+
+    // No disparar peticiones sin sedes seleccionadas: el backend devolvería todo y violaría permisos.
+    if (selectedSedeIds.length === 0) {
+      setLoadingSales(false);
+      setLoading(false);
+      return;
+    }
 
     // ✅ OPTIMIZACIÓN: Carga secuencial priorizada
     const loadDataSequentially = async () => {
@@ -282,14 +295,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       const sedeIdParam = getSedeIdParam();
       console.log('📅 Loading purchases summary:', { startDate, endDate, filter: selectedFilter, sedeId: sedeIdParam });
 
+      if (!sedeIdParam) {
+        console.warn('⚠️ Sin sedes seleccionadas — omitiendo petición de compras.');
+        return;
+      }
+
       const params: any = {
         fecha_inicio: startDate,
         fecha_fin: endDate,
+        sede_id: sedeIdParam,
       };
-
-      if (sedeIdParam) {
-        params.sede_id = sedeIdParam;
-      }
 
       const data = await apiClient.get<PurchasesSummary>('/admin/purchases/summary/by-date', {
         params,
@@ -341,9 +356,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       };
 
       const sedeIdParam = getSedeIdParam();
-      if (sedeIdParam) {
-        params.sede_id = sedeIdParam;
+      if (!sedeIdParam) {
+        console.warn('⚠️ Sin sedes seleccionadas — omitiendo petición de compras agrupadas.');
+        return;
       }
+      params.sede_id = sedeIdParam;
 
       console.log('📊 Loading purchases grouped:', {
         fecha_inicio: params.fecha_inicio,
@@ -372,6 +389,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       if (!currentCompany?.id) {
         console.warn('No hay empresa seleccionada');
         setSedes([]);
+        setSelectedSedeIds([]);
+        setDraftSedeIds([]);
         return;
       }
 
@@ -380,12 +399,44 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         limit: 100,
         isActive: true,
       });
+      const companySites = response.data || [];
 
-      console.log('✅ Sedes cargadas:', response.data?.length || 0);
-      setSedes(response.data || []);
+      // Filtrar por scopes del usuario (mismo criterio que SiteSelectionScreen al hacer login).
+      let permittedSites = companySites;
+      if (user?.id) {
+        try {
+          const scopesResponse = await scopesApi.getUserResolvedScopes(user.id, config.APP_ID, {
+            limit: 1000,
+          });
+          const userScopes: ResolvedScope[] = Array.isArray(scopesResponse)
+            ? scopesResponse
+            : (scopesResponse as any)?.items || [];
+          const companyScopes = userScopes.filter((s) => s.companyId === currentCompany.id);
+          const hasCompanyLevel = companyScopes.some((s) => s.level === 'COMPANY');
+          if (!hasCompanyLevel) {
+            const permittedIds = new Set(
+              companyScopes
+                .filter((s) => s.level === 'SITE' && s.siteId)
+                .map((s) => s.siteId as string)
+            );
+            permittedSites = companySites.filter((s) => permittedIds.has(s.id));
+          }
+        } catch (scopeError) {
+          console.error('Error cargando scopes del usuario, usando sedes de empresa sin filtrar:', scopeError);
+        }
+      }
+
+      console.log('✅ Sedes permitidas:', permittedSites.length, 'de', companySites.length);
+      setSedes(permittedSites);
+      // Por defecto todas las sedes permitidas quedan seleccionadas para respetar permisos.
+      const allIds = permittedSites.map((s) => s.id);
+      setSelectedSedeIds(allIds);
+      setDraftSedeIds(allIds);
     } catch (error) {
       console.error('Error loading sedes:', error);
       setSedes([]);
+      setSelectedSedeIds([]);
+      setDraftSedeIds([]);
     } finally {
       setLoadingSedes(false);
     }
@@ -400,14 +451,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       const sedeIdParam = getSedeIdParam();
       console.log('📅 Loading sales summary:', { startDate, endDate, filter: selectedFilter, sedeId: sedeIdParam });
 
+      if (!sedeIdParam) {
+        console.warn('⚠️ Sin sedes seleccionadas — omitiendo petición de ventas.');
+        return;
+      }
+
       const params: any = {
         fecha_inicio: startDate,
         fecha_fin: endDate,
+        sede_id: sedeIdParam,
       };
-
-      if (sedeIdParam) {
-        params.sede_id = sedeIdParam;
-      }
 
       const data = await cashReconciliationApi.getResumenDiario(params);
 
