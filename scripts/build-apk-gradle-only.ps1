@@ -4,7 +4,7 @@ $PROJECT = 'C:/Users/aaron/IdeaProjects/admin-frontend-joanis'
 $BUILD_DIR = 'C:\erp'
 $OUTPUT_DIR = 'C:\Users\Aaron\OneDrive\Desktop\apps Erp aio'
 
-$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-17.0.17.10-hotspot'
+$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot'
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:GRADLE_USER_HOME = 'C:\gradle_cache'
 $env:GRADLE_OPTS = '-Xmx4g -XX:MaxMetaspaceSize=1g'
