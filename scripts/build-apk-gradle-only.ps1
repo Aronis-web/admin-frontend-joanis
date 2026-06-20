@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$PROJECT = 'C:/Users/Aaron/IdeaProjects/admin-frontend-joanis/admin-frontend-joanis'
+$PROJECT = 'C:/Users/aaron/IdeaProjects/admin-frontend-joanis'
 $BUILD_DIR = 'C:\erp'
 $OUTPUT_DIR = 'C:\Users\Aaron\OneDrive\Desktop\apps Erp aio'
 
