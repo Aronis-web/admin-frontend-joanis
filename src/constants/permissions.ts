@@ -345,6 +345,8 @@ export const PERMISSIONS = {
     UPDATE: 'inventory.update',
     ADJUST: 'stock.adjust',
     TRANSFER: 'stock.transfer',
+    DOWNLOAD_FORMAT: 'stock.download.format',
+    UPLOAD_FORMAT: 'stock.upload.format',
   },
 
   // ========== ALMACENES ==========

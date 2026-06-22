@@ -653,19 +653,19 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               icon: 'document-text-outline',
               label: 'Descargar Plantilla',
               onPress: () => setIsProductBulkUploadV2ModalVisible(true),
-              requiredPermissions: [PERMISSIONS.INVENTORY.UPDATE],
+              requiredPermissions: [PERMISSIONS.INVENTORY.DOWNLOAD_FORMAT],
             },
             {
               icon: 'cloud-upload-outline',
               label: 'Subir Archivo',
               onPress: () => setIsBulkUploadModalVisible(true),
-              requiredPermissions: [PERMISSIONS.INVENTORY.UPDATE],
+              requiredPermissions: [PERMISSIONS.INVENTORY.UPLOAD_FORMAT],
             },
             {
               icon: 'download-outline',
               label: 'Exportar Stock',
               onPress: () => setIsExportModalVisible(true),
-              requiredPermissions: [PERMISSIONS.INVENTORY.READ],
+              requiredPermissions: [PERMISSIONS.INVENTORY.DOWNLOAD_FORMAT],
             },
           ]}
         />
