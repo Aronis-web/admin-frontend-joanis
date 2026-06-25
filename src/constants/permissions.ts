@@ -313,6 +313,12 @@ export const PERMISSIONS = {
     },
   },
 
+  // ========== APP RELEASES (versiones APK / EXE / IPA) ==========
+  APP_RELEASES: {
+    UPLOAD: 'app_releases.upload',
+    DELETE: 'app_releases.delete',
+  },
+
   // ========== ARCHIVOS ==========
   FILES: {
     UPLOAD: 'files.upload',
