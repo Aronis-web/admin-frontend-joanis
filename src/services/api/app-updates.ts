@@ -5,6 +5,7 @@
  * Para failover de lectura/descarga (app POS), están duplicados en svc-pos bajo
  * `/api/pos/app-updates/*` — usar `usePosMirror: true` en los métodos públicos.
  */
+import { Platform as RNPlatform } from 'react-native';
 import apiClient from './client';
 import { config } from '@/utils/config';
 import { DocumentPickerAsset } from '@/utils/filePicker';
@@ -195,15 +196,26 @@ export const appUpdatesApi = {
   ): Promise<AppRelease> => {
     const formData = new FormData();
 
-    const fileUri = file.uri;
     const fileName = file.name || `app-${version}.${platform === 'android' ? 'apk' : 'exe'}`;
     const mimeType = file.mimeType || 'application/octet-stream';
 
-    formData.append('file', {
-      uri: fileUri,
-      name: fileName,
-      type: mimeType,
-    } as any);
+    if (RNPlatform.OS === 'web') {
+      let fileToUpload: File | Blob;
+      if (file.file) {
+        fileToUpload = file.file;
+      } else {
+        const fetched = await fetch(file.uri);
+        const blob = await fetched.blob();
+        fileToUpload = new File([blob], fileName, { type: mimeType });
+      }
+      formData.append('file', fileToUpload, fileName);
+    } else {
+      formData.append('file', {
+        uri: file.uri,
+        name: fileName,
+        type: mimeType,
+      } as any);
+    }
 
     if (onProgress) onProgress(10);
 
