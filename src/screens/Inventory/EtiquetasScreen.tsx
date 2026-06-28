@@ -14,15 +14,24 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View, Image } from 'react-native';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { Body, Caption, Card, Heading, Input, Label } from '@/design-system/components';
+import { Body, Caption, Card, Heading, Input } from '@/design-system/components';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { productsApi, Product } from '@/services/api/products';
-import { canvasToLeekaBitmap, drawTicket } from '@/utils/esl/eslRender';
-import { requestLeekaTag, sendBitmap } from '@/utils/esl/eslBleClient';
+import { renderTicketBitmap } from '@/utils/esl/eslRender';
+import { requestLeekaTag, sendBitmap, disconnectTag } from '@/utils/esl/eslBleClient';
 import { cleanProductTitle } from '@/utils/esl/cleanProductTitle';
 import { DEFAULT_LEEKA_MODEL } from '@/types/esl';
 import { logger } from '@/utils/logger';
+import { EslRenderHost, type EslRenderHostHandle } from '@/components/esl/EslRenderHost';
+// `attachEslRenderHost` solo existe en la versión native del módulo. En web
+// el import resuelve al archivo `.ts` que no lo exporta; lo cargamos
+// dinámicamente para evitar errores de bundle.
+let attachEslRenderHost: ((h: EslRenderHostHandle | null) => void) | null = null;
+if (Platform.OS !== 'web') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  attachEslRenderHost = require('@/utils/esl/eslRender').attachEslRenderHost ?? null;
+}
 
 interface EtiquetasScreenProps {
   navigation: any;
@@ -87,12 +96,15 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [busyCount, setBusyCount] = useState(0);
   const [hint, setHint] = useState<string>('');
-  const [manualOpen, setManualOpen] = useState(false);
+  // En native el TextInput permanece siempre abierto: hace de buffer para el
+  // lector HID BT y también para tecleo manual.
+  const [manualOpen, setManualOpen] = useState(!isWeb);
   const [manualValue, setManualValue] = useState('');
+  const manualInputRef = useRef<any>(null);
 
   // device BLE de la etiqueta actualmente "armada" (esperando producto).
   const pairedDeviceRef = useRef<{ code: string; device: any } | null>(null);
-  const offscreenRef = useRef<HTMLCanvasElement | null>(null);
+  const renderHostRef = useRef<EslRenderHostHandle | null>(null);
   const modeRef = useRef<Mode>('AWAIT_TAG');
   const bufferRef = useRef<string>('');
   const lastKeyRef = useRef<number>(0);
@@ -101,6 +113,13 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  // Registra el host del WebView para que el módulo `eslRender.native` pueda usarlo.
+  const setRenderHost = useCallback((h: EslRenderHostHandle | null) => {
+    renderHostRef.current = h;
+    if (attachEslRenderHost) attachEslRenderHost(h);
+  }, []);
+  useEffect(() => () => attachEslRenderHost?.(null), []);
 
   // ---- procesador serial: render + send + disconnect ----
   const processSend = useCallback(
@@ -111,24 +130,17 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
       }
       queueLockRef.current = true;
       try {
-        if (!offscreenRef.current) {
-          offscreenRef.current = document.createElement('canvas');
-        }
         const price = productPriceSoles(product);
         const original = randomOriginalPriceStable(product.id, price);
         const discount = Math.max(1, Math.round(((original - price) / original) * 100));
-        const { canvas } = drawTicket(
-          {
-            title: product.title,
-            sku: product.sku,
-            price,
-            originalPrice: original,
-            tagCode: tag,
-            bannerText: `OFERTA -${discount}%`,
-          },
-          { canvas: offscreenRef.current }
-        );
-        const bitmap = canvasToLeekaBitmap(canvas);
+        const bitmap = await renderTicketBitmap({
+          title: product.title,
+          sku: product.sku,
+          price,
+          originalPrice: original,
+          tagCode: tag,
+          bannerText: `OFERTA -${discount}%`,
+        });
 
         await sendBitmap(device, bitmap, {
           model: DEFAULT_LEEKA_MODEL,
@@ -144,7 +156,7 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
         );
       } finally {
         try {
-          device?.gatt?.disconnect?.();
+          await disconnectTag(device);
         } catch {
           /* ignore */
         }
@@ -175,17 +187,20 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
   );
 
   // ---- emparejar BLE: requiere gesto fresco (la pulsación Enter del lector cuenta) ----
-  const pairTag = useCallback(async (tag: string): Promise<any | null> => {
-    try {
-      const { device } = await requestLeekaTag(tag);
-      return device;
-    } catch (err) {
-      if (!isUserCancel(err)) {
-        logger.error('Error emparejando etiqueta', formatBleError(err));
+  const pairTag = useCallback(
+    async (tag: string): Promise<{ device: any; error?: string } | null> => {
+      try {
+        const { device } = await requestLeekaTag(tag);
+        return { device };
+      } catch (err) {
+        if (isUserCancel(err)) return null;
+        const msg = formatBleError(err);
+        logger.error('Error emparejando etiqueta', msg);
+        return { device: null, error: msg };
       }
-      return null;
-    }
-  }, []);
+    },
+    []
+  );
 
   // ---- lookup producto ----
   const lookupProduct = useCallback(async (code: string): Promise<Product[]> => {
@@ -237,14 +252,18 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
         setHint('');
         setTagCode(code);
         setMode('PAIRING');
-        const device = await pairTag(code);
-        if (!device) {
-          setHint(`No se pudo emparejar LK${code}. Reintenta el escaneo.`);
+        const result = await pairTag(code);
+        if (!result || !result.device) {
+          setHint(
+            result?.error
+              ? `No se pudo emparejar LK${code}: ${result.error}`
+              : `No se pudo emparejar LK${code}. Reintenta el escaneo.`
+          );
           setTagCode('');
           setMode('AWAIT_TAG');
           return;
         }
-        pairedDeviceRef.current = { code, device };
+        pairedDeviceRef.current = { code, device: result.device };
         setMode('AWAIT_PRODUCT');
         setHint('');
         return;
@@ -303,7 +322,19 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
     if (!v) return;
     setManualValue('');
     void handleScanned(v);
-  }, [manualValue, handleScanned]);
+    // Mantener el foco en native para el siguiente escaneo HID.
+    if (!isWeb) {
+      setTimeout(() => manualInputRef.current?.focus?.(), 50);
+    }
+  }, [manualValue, handleScanned, isWeb]);
+
+  // En native: re-enfocar el input cada vez que el modo vuelve a esperar tag/producto.
+  useEffect(() => {
+    if (isWeb) return;
+    if (mode === 'AWAIT_TAG' || mode === 'AWAIT_PRODUCT') {
+      setTimeout(() => manualInputRef.current?.focus?.(), 100);
+    }
+  }, [isWeb, mode]);
 
   const onCancelSelection = useCallback(() => {
     setCandidates([]);
@@ -313,11 +344,7 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
 
   /** Botón "Cancelar etiqueta" (descarta la etiqueta armada). */
   const onCancelPairing = useCallback(() => {
-    try {
-      pairedDeviceRef.current?.device?.gatt?.disconnect?.();
-    } catch {
-      /* ignore */
-    }
+    void disconnectTag(pairedDeviceRef.current?.device);
     pairedDeviceRef.current = null;
     setTagCode('');
     setCandidates([]);
@@ -400,6 +427,7 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
                 <View style={styles.manualRow}>
                   <View style={{ flex: 1 }}>
                     <Input
+                      ref={manualInputRef}
                       autoFocus
                       value={manualValue}
                       onChangeText={setManualValue}
@@ -515,11 +543,8 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
           </Card>
         )}
 
-        {!isWeb && (
-          <Card style={styles.card}>
-            <Label color="warning">BLE solo disponible en Electron/Web por ahora.</Label>
-          </Card>
-        )}
+        {/* Host invisible para rasterizar el ticket en native (WebView oculto). */}
+        {!isWeb && <EslRenderHost ref={setRenderHost} />}
       </ScrollView>
     </ScreenLayout>
   );

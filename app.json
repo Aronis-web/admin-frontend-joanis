@@ -82,7 +82,7 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "neverForLocation": true
+          "neverForLocation": false
         }
       ]
     ]
