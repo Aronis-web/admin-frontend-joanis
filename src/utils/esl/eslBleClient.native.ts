@@ -34,7 +34,18 @@ import { logger } from '@/utils/logger';
 // ---------------------------------------------------------------------------
 let _manager: BleManager | null = null;
 function getManager(): BleManager {
-  if (!_manager) _manager = new BleManager();
+  if (!_manager) {
+    try {
+      _manager = new BleManager();
+    } catch (err) {
+      logger.error('BleManager init falló', err);
+      throw new Error(
+        'Bluetooth no disponible en este build. Necesitas un APK nativo ' +
+          '(no Expo Go) compilado tras instalar react-native-ble-plx. ' +
+          'Ejecuta `npx expo prebuild --clean && npx expo run:android`.'
+      );
+    }
+  }
   return _manager;
 }
 
