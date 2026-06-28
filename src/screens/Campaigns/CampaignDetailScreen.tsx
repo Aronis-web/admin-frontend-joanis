@@ -111,13 +111,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   >('all');
   const [supplierFilter, setSupplierFilter] = useState<string>('all');
   // Filtro por estado del producto subyacente (PurchaseProduct):
-  //  - 'preliminary' = compra aÃºn no validada (ProductStatus.PRELIMINARY)
+  //  - 'preliminary' = compra aún no validada (ProductStatus.PRELIMINARY)
   //  - 'active'      = compra validada (ProductStatus.ACTIVE)
   const [productStatusFilter, setProductStatusFilter] = useState<'all' | 'preliminary' | 'active'>(
     'all'
   );
-  // Set de campaignProductIds que estÃ¡n actualmente cerrando validaciÃ³n
-  // (para mostrar spinner en el botÃ³n "Activar").
+  // Set de campaignProductIds que están actualmente cerrando validación
+  // (para mostrar spinner en el botón "Activar").
   const [activatingProductIds, setActivatingProductIds] = useState<Set<string>>(new Set());
   const [participantTotals, setParticipantTotals] = useState<ParticipantTotalsResponse | null>(
     null
@@ -157,8 +157,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
   const isTablet = width >= 768 || height >= 768;
 
-  // âœ… Nuevo endpoint compacto: trae todos los datos de productos de la
-  // campaÃ±a (stock site, costo, precios, proveedor, fotos) en un Ãºnico
+  // ✅ Nuevo endpoint compacto: trae todos los datos de productos de la
+  // campaña (stock site, costo, precios, proveedor, fotos) en un único
   // request. Reemplaza el flujo de "getCampaign embed + batch products
   // + sale prices".
   const { data: productsDetailData, refetch: refetchProductsDetail } =
@@ -239,12 +239,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }
 
       // Load products for campaign products
-      // âš¡ [PERF] Solo poblamos el map con datos embebidos. El endpoint
+      // ⚡ [PERF] Solo poblamos el map con datos embebidos. El endpoint
       // compacto `useCampaignProductsDetail` ya trae fotos, stock, precios
-      // y proveedor en un Ãºnico request, asÃ­ que NO disparamos el batch
+      // y proveedor en un único request, así que NO disparamos el batch
       // `getProductsByIds` ni las N llamadas paralelas a
-      // `getProductSalePrices`. En campaÃ±as con muchos productos eso
-      // saturaba memoria/red y crasheaba el build Electron en producciÃ³n.
+      // `getProductSalePrices`. En campañas con muchos productos eso
+      // saturaba memoria/red y crasheaba el build Electron en producción.
       if (data.products && data.products.length > 0) {
         const productsMap: Record<string, Product> = {};
         data.products.forEach((campaignProduct) => {
@@ -254,12 +254,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         });
         setProducts(productsMap);
         logger.info(
-          `ðŸ“¦ Campaign products: ${data.products.length} (detalle compacto vÃ­a useCampaignProductsDetail)`
+          `📦 Campaign products: ${data.products.length} (detalle compacto vía useCampaignProductsDetail)`
         );
       }
     } catch (error: any) {
       logger.error('Error loading campaign:', error);
-      Alert.alert('Error', 'No se pudo cargar la campaÃ±a');
+      Alert.alert('Error', 'No se pudo cargar la campaña');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -283,7 +283,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const updatedProductId = params?.updatedProductId;
       const forceReload = params?.forceReload;
 
-      logger.debug('â‰¡Æ’Ã¶Ã¤ [CAMPAIGN] useFocusEffect triggered:', {
+      logger.debug('≡ƒöä [CAMPAIGN] useFocusEffect triggered:', {
         shouldReload,
         skipReloadOnce,
         updatedProductId,
@@ -292,11 +292,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       });
 
       if (updatedProductId) {
-        // OPTIMIZATION: Solo actualizar el producto especÃ­fico sin recargar toda la campaÃ±a
-        logger.debug('âš¡ [CAMPAIGN] Actualizando solo producto:', updatedProductId);
+        // OPTIMIZATION: Solo actualizar el producto específico sin recargar toda la campaña
+        logger.debug('⚡ [CAMPAIGN] Actualizando solo producto:', updatedProductId);
         navigation.setParams({ updatedProductId: undefined } as any);
 
-        // Actualizar solo el producto especÃ­fico en el estado
+        // Actualizar solo el producto específico en el estado
         campaignsService
           .getProduct(campaignId, updatedProductId)
           .then((updatedProduct) => {
@@ -310,14 +310,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 ),
               };
             });
-            logger.debug('âœ… [CAMPAIGN] Producto actualizado en estado local');
+            logger.debug('✅ [CAMPAIGN] Producto actualizado en estado local');
           })
           .catch((error) => {
-            logger.error('âŒ [CAMPAIGN] Error actualizando producto:', error);
+            logger.error('❌ [CAMPAIGN] Error actualizando producto:', error);
           });
       } else if (shouldReload || forceReload) {
         // Clear the param to avoid reloading again
-        logger.debug('â‰¡Æ’Ã¶Ã¤ [CAMPAIGN] Reloading due to shouldReload/forceReload param');
+        logger.debug('≡ƒöä [CAMPAIGN] Reloading due to shouldReload/forceReload param');
         navigation.setParams({
           shouldReload: undefined,
           forceReload: undefined,
@@ -327,17 +327,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         loadCampaign();
       } else if (skipReloadOnce) {
         // Skip reload this time (coming back from product detail)
-        logger.debug('â­• [CAMPAIGN] Skipping reload due to skipReloadOnce param');
+        logger.debug('⭕ [CAMPAIGN] Skipping reload due to skipReloadOnce param');
         navigation.setParams({ skipReloadOnce: undefined } as any);
         // Don't reload, just mark as loaded
         hasLoadedRef.current = true;
       } else if (!hasLoadedRef.current) {
         // Only load on first mount, not on every focus
-        logger.debug('â‰¡Æ’Ã´Ã‘ [CAMPAIGN] Loading campaign (first time)');
+        logger.debug('≡ƒôÑ [CAMPAIGN] Loading campaign (first time)');
         hasLoadedRef.current = true;
         loadCampaign();
       } else {
-        logger.debug('âœ… [CAMPAIGN] Already loaded, skipping reload');
+        logger.debug('✅ [CAMPAIGN] Already loaded, skipping reload');
       }
 
       // OPTIMIZATION: Don't reset hasLoadedRef on cleanup
@@ -357,6 +357,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
   // Track whether stock has been loaded (lazy: only when user starts searching)
   const stockLoadedRef = useRef(false);
+
+  // Ref a handleOpenBannerFromSearch para poder usarlo desde handleSearchSubmit
+  // sin generar TDZ (la función real se asigna más abajo en el render).
+  const handleOpenBannerFromSearchRef = useRef<((product: any) => Promise<void>) | null>(null);
 
   // Load stock items for quick add functionality (lazy)
   const loadStockItems = useCallback(async () => {
@@ -433,7 +437,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
     try {
       setIsGlobalSearching(true);
-      console.log('â‰¡Æ’Ã¶Ã¬ Global search:', query);
+      console.log('≡ƒöì Global search:', query);
 
       try {
         const response = await productsApi.searchProductsV2({
@@ -443,18 +447,18 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           includePhotos: true,
         });
 
-        console.log('â‰¡Æ’Ã¶Ã¬ Search results:', response.results.length, 'products found');
-        console.log('âš¡ Search time:', response.searchTime, 'ms');
-        console.log('â‰¡Æ’Ã†â•› Cached:', response.cached);
+        console.log('≡ƒöì Search results:', response.results.length, 'products found');
+        console.log('⚡ Search time:', response.searchTime, 'ms');
+        console.log('≡ƒÆ╛ Cached:', response.cached);
 
         // Log product statuses for debugging
         const statusCounts = response.results.reduce((acc: any, p: any) => {
           acc[p.status] = (acc[p.status] || 0) + 1;
           return acc;
         }, {});
-        console.log('â‰¡Æ’Ã´Ã¨ Products by status:', statusCounts);
+        console.log('≡ƒôè Products by status:', statusCounts);
         console.log(
-          'ðŸ“¦ Sample products:',
+          '📦 Sample products:',
           response.results.slice(0, 5).map((p: any) => ({
             id: p.id,
             sku: p.sku,
@@ -466,12 +470,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         setGlobalSearchResults(response.results);
         setShowGlobalSearchSuggestions(response.results.length > 0);
       } catch (v2Error) {
-        console.warn('âš ï¸ V2 endpoint failed, falling back to v1:', v2Error);
+        console.warn('⚠️ V2 endpoint failed, falling back to v1:', v2Error);
         const response = await productsApi.getProducts({
           q: query.trim(),
           limit: 20,
         });
-        console.log('â‰¡Æ’Ã¶Ã¬ Search results (v1):', response.products.length, 'products found');
+        console.log('≡ƒöì Search results (v1):', response.products.length, 'products found');
         setGlobalSearchResults(response.products);
         setShowGlobalSearchSuggestions(response.products.length > 0);
       }
@@ -483,17 +487,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   }, []);
 
   /**
-   * Cuando el usuario escanea con un lector de cÃ³digo de barras, el
-   * dispositivo envÃ­a todo el cÃ³digo rÃ¡pido seguido de Enter. Capturamos
-   * `onSubmitEditing`: si el texto coincide exactamente con el barcode de
-   * algÃºn producto de la campaÃ±a, abrimos directamente su banner.
+   * Cuando el usuario escanea con un lector de código de barras, el
+   * dispositivo envía todo el código rápido seguido de Enter. Capturamos
+   * `onSubmitEditing`:
+   *  1. Si el texto coincide con el barcode de un producto YA en la campaña,
+   *     abrimos su banner directamente.
+   *  2. Si no, buscamos el producto en el catálogo global por barcode y
+   *     abrimos su banner (modal "desde búsqueda") para poder agregarlo.
    */
-  const handleSearchSubmit = useCallback(() => {
+  const handleSearchSubmit = useCallback(async () => {
     const raw = searchQuery.trim();
-    if (!raw || !campaign?.products) return;
+    if (!raw) return;
     const target = raw.toLowerCase();
 
-    const match = campaign.products.find((product) => {
+    // 1) Buscar en productos de la campaña
+    const match = campaign?.products?.find((product) => {
       const detail = productsDetailMap[product.id];
       const productDetails = product.product || products[product.productId];
       const barcode = (detail?.barcode || (productDetails as any)?.barcode || '')
@@ -509,6 +517,40 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       setSearchQuery('');
       setGlobalSearchResults([]);
       setShowGlobalSearchSuggestions(false);
+      return;
+    }
+
+    // 2) Buscar en el catálogo global por barcode (lector de barras)
+    try {
+      setIsGlobalSearching(true);
+      let candidates: any[] = [];
+      try {
+        const response = await productsApi.searchProductsV2({
+          q: raw,
+          limit: 20,
+          status: 'active,preliminary',
+          includePhotos: true,
+        });
+        candidates = response.results || [];
+      } catch (v2Error) {
+        const response = await productsApi.getProducts({ q: raw, limit: 20 });
+        candidates = response.products || [];
+      }
+
+      const apiMatch = candidates.find(
+        (p: any) => (p?.barcode || '').toString().toLowerCase() === target
+      );
+
+      if (apiMatch) {
+        setSearchQuery('');
+        setGlobalSearchResults([]);
+        setShowGlobalSearchSuggestions(false);
+        await handleOpenBannerFromSearchRef.current?.(apiMatch);
+      }
+    } catch (error) {
+      console.error('Error buscando producto por barcode:', error);
+    } finally {
+      setIsGlobalSearching(false);
     }
   }, [searchQuery, campaign?.products, productsDetailMap, products]);
 
@@ -572,7 +614,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         await campaignsService.addProduct(campaignId, data);
 
-        Alert.alert('Ã‰xito', `Producto agregado con ${stockInfo.available} unidades disponibles`);
+        Alert.alert('Éxito', `Producto agregado con ${stockInfo.available} unidades disponibles`);
 
         // Don't clear search - keep it to allow adding multiple products
         // Just reload campaign to update the list
@@ -602,12 +644,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const handleOpenBannerFromSearch = useCallback(
     async (product: any) => {
       try {
-        console.log('ðŸŽ¯ Opening banner from search for product:', product.sku);
+        console.log('🎯 Opening banner from search for product:', product.sku);
 
         // Fetch full product details to get costCents and other info
         const fullProductDetails = await productsApi.getProduct(product.id);
-        console.log('ðŸ“¦ Full product details:', fullProductDetails);
-        console.log('ðŸ’° Cost from API:', (fullProductDetails as any).costCents);
+        console.log('📦 Full product details:', fullProductDetails);
+        console.log('💰 Cost from API:', (fullProductDetails as any).costCents);
 
         // Create a mock campaign product structure for the banner modal
         const mockCampaignProduct = {
@@ -631,6 +673,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     [campaignId]
   );
 
+  // Mantener el ref sincronizado para handleSearchSubmit (lector de barras)
+  handleOpenBannerFromSearchRef.current = handleOpenBannerFromSearch;
+
   // Handle custom add product with specific quantity
   const handleCustomAddProduct = useCallback(async () => {
     if (!campaign || !selectedProductForCustomAdd) return;
@@ -639,7 +684,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     const stockInfo = getProductStock(selectedProductForCustomAdd);
 
     if (isNaN(quantity) || quantity <= 0) {
-      Alert.alert('Error', 'Por favor ingresa una cantidad vÃ¡lida');
+      Alert.alert('Error', 'Por favor ingresa una cantidad válida');
       return;
     }
 
@@ -668,7 +713,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
       await campaignsService.addProduct(campaignId, data);
 
-      Alert.alert('Ã‰xito', `Producto agregado con ${quantity} unidades`);
+      Alert.alert('Éxito', `Producto agregado con ${quantity} unidades`);
 
       // Close modal and reset
       setShowCustomAddModal(false);
@@ -706,8 +751,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     Alert.alert(
-      'Activar CampaÃ±a',
-      'Â¿EstÃ¡s seguro de activar esta campaÃ±a? PodrÃ¡s seguir editando y eliminando participantes y productos hasta que cierres la campaÃ±a.',
+      'Activar Campaña',
+      '¿Estás seguro de activar esta campaña? Podrás seguir editando y eliminando participantes y productos hasta que cierres la campaña.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -717,12 +762,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setActionLoading(true);
             try {
               await campaignsService.activateCampaign(campaignId);
-              Alert.alert('Ã‰xito', 'CampaÃ±a activada exitosamente');
+              Alert.alert('Éxito', 'Campaña activada exitosamente');
               loadCampaign();
             } catch (error: any) {
               Alert.alert(
                 'Error',
-                error.response?.data?.message || 'No se pudo activar la campaÃ±a'
+                error.response?.data?.message || 'No se pudo activar la campaña'
               );
             } finally {
               setActionLoading(false);
@@ -739,8 +784,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     Alert.alert(
-      'Cerrar CampaÃ±a',
-      'Â¿EstÃ¡s seguro de cerrar esta campaÃ±a? Esta acciÃ³n no se puede deshacer.',
+      'Cerrar Campaña',
+      '¿Estás seguro de cerrar esta campaña? Esta acción no se puede deshacer.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -750,13 +795,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             setActionLoading(true);
             try {
               await campaignsService.closeCampaign(campaignId);
-              Alert.alert('Ã‰xito', 'CampaÃ±a cerrada exitosamente');
+              Alert.alert('Éxito', 'Campaña cerrada exitosamente');
               loadCampaign();
             } catch (error: any) {
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'No se pudo cerrar la campaÃ±a'
-              );
+              Alert.alert('Error', error.response?.data?.message || 'No se pudo cerrar la campaña');
             } finally {
               setActionLoading(false);
             }
@@ -771,22 +813,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       return;
     }
 
-    Alert.alert('Cancelar CampaÃ±a', 'Â¿EstÃ¡s seguro de cancelar esta campaÃ±a?', [
+    Alert.alert('Cancelar Campaña', '¿Estás seguro de cancelar esta campaña?', [
       { text: 'No', style: 'cancel' },
       {
-        text: 'SÃ­, Cancelar',
+        text: 'Sí, Cancelar',
         style: 'destructive',
         onPress: async () => {
           setActionLoading(true);
           try {
             await campaignsService.cancelCampaign(campaignId);
-            Alert.alert('Ã‰xito', 'CampaÃ±a cancelada exitosamente');
+            Alert.alert('Éxito', 'Campaña cancelada exitosamente');
             loadCampaign();
           } catch (error: any) {
-            Alert.alert(
-              'Error',
-              error.response?.data?.message || 'No se pudo cancelar la campaÃ±a'
-            );
+            Alert.alert('Error', error.response?.data?.message || 'No se pudo cancelar la campaña');
           } finally {
             setActionLoading(false);
           }
@@ -874,11 +913,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {/* Campaign Info */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            InformaciÃ³n General
+            Información General
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>CÃ³digo:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Código:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {campaign.code}
             </Text>
@@ -894,7 +933,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           {campaign.description && (
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                DescripciÃ³n:
+                Descripción:
               </Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {campaign.description}
@@ -963,7 +1002,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {/* Statistics */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            EstadÃ­sticas
+            Estadísticas
           </Text>
 
           <View style={styles.statsGrid}>
@@ -1016,16 +1055,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     try {
       setDownloadingReport(true);
 
-      logger.info('â‰¡Æ’Ã¶Ã¤ Descargando reporte general de totales de participantes...');
+      logger.info('≡ƒöä Descargando reporte general de totales de participantes...');
       const startTime = new Date().getTime();
 
       // Call the campaigns API to get the participant totals PDF (uses VALIDATED quantities)
       const pdfBlob = await campaignsService.exportParticipantTotalsPdf(campaignId);
 
       const endTime = new Date().getTime();
-      logger.info('âœ… PDF descargado del servidor');
-      logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
-      logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       const timestamp = new Date().getTime();
       const fileName = `reporte-totales-participantes-${campaign?.code || campaignId}-${timestamp}.pdf`;
@@ -1033,7 +1072,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       await saveAndSharePdf(pdfBlob, fileName, 'Reporte de Totales de Participantes');
 
       if (Platform.OS === 'web') {
-        Alert.alert('Ã‰xito', 'El reporte se estÃ¡ descargando');
+        Alert.alert('Éxito', 'El reporte se está descargando');
       }
     } catch (error: any) {
       logger.error('Error downloading report:', error);
@@ -1051,7 +1090,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     async (sourceCampaign: Campaign) => {
       try {
         if (!sourceCampaign || !sourceCampaign.participants) {
-          Alert.alert('Error', 'No se encontraron participantes en la campaÃ±a seleccionada');
+          Alert.alert('Error', 'No se encontraron participantes en la campaña seleccionada');
           setActionLoading(false);
           return;
         }
@@ -1088,12 +1127,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         if (successCount > 0) {
           Alert.alert(
-            'Ã‰xito',
+            'Éxito',
             `Se copiaron ${successCount} participante(s) correctamente${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
             [{ text: 'OK', onPress: () => loadCampaign() }]
           );
         } else {
-          Alert.alert('Error', 'No se pudo copiar ningÃºn participante');
+          Alert.alert('Error', 'No se pudo copiar ningún participante');
         }
       } catch (error: any) {
         Alert.alert('Error', error.message || 'No se pudieron copiar los participantes');
@@ -1119,7 +1158,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const otherCampaigns = response.data.filter((c) => c.id !== campaignId);
 
       if (otherCampaigns.length === 0) {
-        Alert.alert('Error', 'No hay otras campaÃ±as disponibles para copiar participantes');
+        Alert.alert('Error', 'No hay otras campañas disponibles para copiar participantes');
         setActionLoading(false);
         return;
       }
@@ -1128,13 +1167,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const latestCampaign = otherCampaigns[0];
 
       // Load the full campaign details with participants
-      logger.info('â‰¡Æ’Ã´Ã‘ Cargando participantes de la campaÃ±a:', latestCampaign.code);
+      logger.info('≡ƒôÑ Cargando participantes de la campaña:', latestCampaign.code);
       const fullCampaign = await campaignsService.getCampaign(latestCampaign.id);
 
       if (!fullCampaign.participants || fullCampaign.participants.length === 0) {
         Alert.alert(
           'Error',
-          `La campaÃ±a "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`
+          `La campaña "${latestCampaign.code} - ${latestCampaign.name}" no tiene participantes para copiar`
         );
         setActionLoading(false);
         return;
@@ -1143,7 +1182,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Show confirmation dialog
       Alert.alert(
         'Copiar Participantes',
-        `Â¿Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaÃ±a "${latestCampaign.code} - ${latestCampaign.name}"?`,
+        `¿Deseas copiar los ${fullCampaign.participants.length} participante(s) de la campaña "${latestCampaign.code} - ${latestCampaign.name}"?`,
         [
           {
             text: 'Cancelar',
@@ -1158,7 +1197,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       );
     } catch (error: any) {
       logger.error('Error loading campaigns for copy:', error);
-      Alert.alert('Error', error.message || 'No se pudieron cargar las campaÃ±as');
+      Alert.alert('Error', error.message || 'No se pudieron cargar las campañas');
       setActionLoading(false);
     }
   }, [campaignId, handleCopyParticipantsFromCampaign]);
@@ -1171,7 +1210,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
     Alert.alert(
       'Eliminar Todos los Participantes',
-      `Â¿EstÃ¡s seguro de eliminar los ${campaign.participants.length} participante(s)? Esta acciÃ³n no se puede deshacer.`,
+      `¿Estás seguro de eliminar los ${campaign.participants.length} participante(s)? Esta acción no se puede deshacer.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -1180,7 +1219,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           onPress: async () => {
             try {
               setActionLoading(true);
-              logger.info('ðŸ—‘ï¸ Eliminando todos los participantes...');
+              logger.info('🗑️ Eliminando todos los participantes...');
 
               let successCount = 0;
               let errorCount = 0;
@@ -1197,12 +1236,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
               if (successCount > 0) {
                 Alert.alert(
-                  'Ã‰xito',
+                  'Éxito',
                   `Se eliminaron ${successCount} participante(s)${errorCount > 0 ? `. ${errorCount} fallaron.` : ''}`,
                   [{ text: 'OK', onPress: () => loadCampaign() }]
                 );
               } else {
-                Alert.alert('Error', 'No se pudo eliminar ningÃºn participante');
+                Alert.alert('Error', 'No se pudo eliminar ningún participante');
               }
             } catch (error: any) {
               logger.error('Error deleting participants:', error);
@@ -1249,7 +1288,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         isTablet && styles.deleteAllButtonTextTablet,
                       ]}
                     >
-                      ðŸ—‘ï¸ Eliminar Todos
+                      🗑️ Eliminar Todos
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1258,7 +1297,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   onPress={() => setIsCopyParticipantsModalVisible(true)}
                 >
                   <Text style={[styles.copyButtonText, isTablet && styles.copyButtonTextTablet]}>
-                    ðŸ“‹ Copiar
+                    📋 Copiar
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1351,8 +1390,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   ]}
                 >
                   {downloadingReport
-                    ? 'ðŸ“„ Generando...'
-                    : 'ðŸ“„ Descargar Reporte General de Totales de Participantes'}
+                    ? '📄 Generando...'
+                    : '📄 Descargar Reporte General de Totales de Participantes'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1403,7 +1442,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 );
 
                 // Debug: Log participant data to identify the issue
-                logger.debug(`ðŸ” Participant ${participant.id}:`, {
+                logger.debug(`🔍 Participant ${participant.id}:`, {
                   participantId: participant.id,
                   participantType: participant.participantType,
                   companyId: participant.companyId,
@@ -1423,7 +1462,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 // Debug: Log all available participant totals
                 if (participantTotals?.participants) {
                   logger.debug(
-                    `ðŸ“Š Available participant totals (${participantTotals.participants.length}):`,
+                    `📊 Available participant totals (${participantTotals.participants.length}):`,
                     participantTotals.participants.map((pt) => ({
                       participantId: pt.participantId,
                       participantName: pt.participantName,
@@ -1497,7 +1536,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                   isTablet && styles.editParticipantButtonTextTablet,
                                 ]}
                               >
-                                âœï¸ Editar
+                                ✏️ Editar
                               </Text>
                             </TouchableOpacity>
                           )}
@@ -1577,7 +1616,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         )}
                       </View>
                       <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>
-                        Î“Ã‡â•‘
+                        ΓÇ║
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1603,7 +1642,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     async (product: CampaignProduct) => {
       Alert.alert(
         'Eliminar Producto',
-        `Â¿EstÃ¡s seguro de eliminar "${product.product?.title || 'este producto'}" de la campaÃ±a?`,
+        `¿Estás seguro de eliminar "${product.product?.title || 'este producto'}" de la campaña?`,
         [
           { text: 'Cancelar', style: 'cancel' },
           {
@@ -1631,7 +1670,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   return rest;
                 });
 
-                Alert.alert('Ã‰xito', 'Producto eliminado de la campaÃ±a');
+                Alert.alert('Éxito', 'Producto eliminado de la campaña');
               } catch (error: any) {
                 logger.error('Error deleting product:', error);
                 Alert.alert('Error', error.message || 'No se pudo eliminar el producto');
@@ -1663,22 +1702,22 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         return;
       }
 
-      logger.debug('â‰¡Æ’Ã¶Ã¤ [BANNER] Actualizando producto especÃ­fico:', selectedProduct.id);
+      logger.debug('≡ƒöä [BANNER] Actualizando producto específico:', selectedProduct.id);
 
       try {
         // Use provided updated product or fetch it
         let updatedProduct: CampaignProduct;
 
         if (updatedProductParam) {
-          logger.debug('âœ… [BANNER] Usando producto actualizado proporcionado');
+          logger.debug('✅ [BANNER] Usando producto actualizado proporcionado');
           updatedProduct = updatedProductParam;
         } else {
-          logger.debug('â‰¡Æ’Ã¶Ã¤ [BANNER] Obteniendo producto actualizado del servidor');
+          logger.debug('≡ƒöä [BANNER] Obteniendo producto actualizado del servidor');
           // Fetch only the updated product
           updatedProduct = await campaignsService.getProduct(campaignId, selectedProduct.productId);
         }
 
-        logger.debug('âœ… [BANNER] Producto actualizado:', {
+        logger.debug('✅ [BANNER] Producto actualizado:', {
           productId: updatedProduct.id,
           distributionGenerated: updatedProduct.distributionGenerated,
           productStatus: updatedProduct.productStatus,
@@ -1697,11 +1736,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // Update selected product
         setSelectedProduct(updatedProduct);
 
-        logger.debug('âœ… [BANNER] Producto actualizado en la lista sin recargar toda la campaÃ±a');
+        logger.debug('✅ [BANNER] Producto actualizado en la lista sin recargar toda la campaña');
       } catch (error: any) {
-        logger.error('âŒ [BANNER] Error actualizando producto:', error);
+        logger.error('❌ [BANNER] Error actualizando producto:', error);
         // Fallback: reload entire campaign
-        logger.debug('âš ï¸ [BANNER] Fallback: recargando toda la campaÃ±a');
+        logger.debug('⚠️ [BANNER] Fallback: recargando toda la campaña');
         loadCampaign();
       }
     },
@@ -1718,14 +1757,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           newSet.add(productId);
 
           // OPTIMIZATION: Cargar precios solo cuando se expande por primera vez
-          // Solo si no estÃ¡n ya cargados y el producto existe en el catÃ¡logo
+          // Solo si no están ya cargados y el producto existe en el catálogo
           if (!productSalePrices[productId]) {
             const productDetails = products[productId];
             const isPreliminary =
               productDetails && (productDetails as any).status === 'preliminary';
 
             if (productDetails && !isPreliminary) {
-              logger.debug('âš¡ [PERF] Cargando precios para producto expandido:', productId);
+              logger.debug('⚡ [PERF] Cargando precios para producto expandido:', productId);
 
               // Cargar precios en background
               priceProfilesApi
@@ -1738,15 +1777,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     [productId]: salePricesArray,
                   }));
 
-                  logger.debug('âœ… [PERF] Precios cargados para producto:', productId);
+                  logger.debug('✅ [PERF] Precios cargados para producto:', productId);
                 })
                 .catch((error) => {
                   logger.debug(
-                    'âš ï¸ [PERF] No se pudieron cargar precios para producto (puede ser preliminar o no existir)'
+                    '⚠️ [PERF] No se pudieron cargar precios para producto (puede ser preliminar o no existir)'
                   );
                 });
             } else {
-              logger.debug('âš ï¸ [PERF] Producto preliminar o no existe, no se cargan precios');
+              logger.debug('⚠️ [PERF] Producto preliminar o no existe, no se cargan precios');
             }
           }
         }
@@ -1786,13 +1825,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
         await productsApi.updateProduct(productId, { costCents });
 
-        // âœ… Invalidar cachÃ© V2 para reflejar cambios inmediatamente en bÃºsquedas
+        // ✅ Invalidar caché V2 para reflejar cambios inmediatamente en búsquedas
         try {
           await productsApi.invalidateProductsCacheV2();
-          logger.info('âœ… CachÃ© V2 invalidado despuÃ©s de actualizar costo');
+          logger.info('✅ Caché V2 invalidado después de actualizar costo');
         } catch (cacheError) {
-          logger.warn('âš ï¸ No se pudo invalidar cachÃ© V2:', cacheError);
-          // No bloqueamos la operaciÃ³n si falla la invalidaciÃ³n
+          logger.warn('⚠️ No se pudo invalidar caché V2:', cacheError);
+          // No bloqueamos la operación si falla la invalidación
         }
 
         // Update local state instead of reloading everything
@@ -1810,7 +1849,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         });
 
         setEditingCost(null);
-        Alert.alert('Ã‰xito', 'Costo actualizado correctamente');
+        Alert.alert('Éxito', 'Costo actualizado correctamente');
       } catch (error: any) {
         logger.error('Error saving cost:', error);
         Alert.alert('Error', error.message || 'No se pudo actualizar el costo');
@@ -1877,7 +1916,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         });
 
         setEditingPrice(null);
-        Alert.alert('Ã‰xito', 'Precio actualizado correctamente');
+        Alert.alert('Éxito', 'Precio actualizado correctamente');
       } catch (error: any) {
         logger.error('Error saving price:', error);
         Alert.alert('Error', error.message || 'No se pudo actualizar el precio');
@@ -2002,13 +2041,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     // Apply product status filter (preliminar / activo del producto subyacente).
     // Prioridad: `detail.productStatus` (endpoint fresco products-detail) >
     // `product.productStatus` (CampaignProduct). NO usar `productDetails.status`
-    // porque Ã©se es el status del Product maestro (tÃ­picamente 'active')
+    // porque ése es el status del Product maestro (típicamente 'active')
     // y enmascaraba campaign products realmente preliminares.
     if (productStatusFilter !== 'all') {
       filtered = filtered.filter((product) => {
         const detail = productsDetailMap[product.id];
         const raw = (detail?.productStatus || product.productStatus || '').toString().toLowerCase();
-        const isPreliminary = raw === 'preliminary';
+        const masterRaw =
+          ((products[product.productId] || product.product) as any)?.status
+            ?.toString()
+            .toLowerCase() || '';
+        // Un producto se considera preliminar si lo es en la campaña O si el
+        // producto maestro aún está preliminar (compra no validada).
+        const isPreliminary = raw === 'preliminary' || masterRaw === 'preliminary';
         return productStatusFilter === 'preliminary' ? isPreliminary : !isPreliminary;
       });
     }
@@ -2062,9 +2107,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     productStatusFilter,
   ]);
 
-  // Lista Ãºnica de proveedores presentes entre los productos de la campaÃ±a.
+  // Lista única de proveedores presentes entre los productos de la campaña.
   // Usa el endpoint compacto (preferido) con fallback al `purchase.code` del
-  // producto cuando todavÃ­a no se hidratÃ³.
+  // producto cuando todavía no se hidrató.
   const availableSuppliers = useMemo(() => {
     if (!campaign?.products) return [] as Array<{ key: string; label: string }>;
     const map = new Map<string, string>();
@@ -2082,7 +2127,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }
       const label = detail?.supplier?.name
         ? detail.supplier.purchaseCode
-          ? `${detail.supplier.name} Â· ${detail.supplier.purchaseCode}`
+          ? `${detail.supplier.name} · ${detail.supplier.purchaseCode}`
           : detail.supplier.name
         : key;
       if (!map.has(key)) {
@@ -2099,15 +2144,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return filteredProducts.slice(0, displayedItemsCount);
   }, [filteredProducts, displayedItemsCount]);
 
-  // Activar un producto preliminar dentro de la campaÃ±a: simplemente
+  // Activar un producto preliminar dentro de la campaña: simplemente
   // cambia el `productStatus` del CampaignProduct de PRELIMINARY a ACTIVE.
-  // No toca la compra ni dispara validaciones â€” sÃ³lo es un toggle de
-  // estado en la campaÃ±a.
+  // No toca la compra ni dispara validaciones — sólo es un toggle de
+  // estado en la campaña.
   const handleActivatePreliminary = useCallback(
     async (product: CampaignProduct) => {
       Alert.alert(
         'Activar producto',
-        'Â¿Pasar este producto de preliminar a activo en la campaÃ±a?',
+        '¿Pasar este producto de preliminar a activo en la campaña?',
         [
           { text: 'Cancelar', style: 'cancel' },
           {
@@ -2123,9 +2168,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 // pase a 'ACTIVE') y el endpoint compacto (para que
                 // `detail.productStatus` no quede stale en 'PRELIMINARY').
                 await Promise.all([loadCampaign(), refetchProductsDetail()]);
-                Alert.alert('Producto activado', 'El producto ahora estÃ¡ activo en la campaÃ±a.');
+                Alert.alert('Producto activado', 'El producto ahora está activo en la campaña.');
               } catch (e: any) {
-                logger.error('Error activando producto en campaÃ±a', e);
+                logger.error('Error activando producto en campaña', e);
                 Alert.alert(
                   'Error',
                   e?.response?.data?.message ||
@@ -2162,31 +2207,34 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   // Memoized render function for product items
   const renderProductItem = useCallback(
     ({ item: product }: { item: CampaignProduct }) => {
-      // âœ… Priorizar datos del nuevo endpoint compacto `products-detail`.
-      // Hace fallback a los datos embebidos / batch endpoint si todavÃ­a
-      // no se cargÃ³ el detalle (primer render).
+      // ✅ Priorizar datos del nuevo endpoint compacto `products-detail`.
+      // Hace fallback a los datos embebidos / batch endpoint si todavía
+      // no se cargó el detalle (primer render).
       const detail = productsDetailMap[product.id];
       const productDetails = products[product.productId] || product.product;
       const costCents = detail?.costCents ?? productDetails?.costCents ?? 0;
       const isExpanded = expandedProducts.has(product.id);
-      // Fuentes vÃ¡lidas para saber si el campaign product es preliminar:
-      //   1) `detail.productStatus` â€” endpoint products-detail (fresco)
-      //   2) `product.productStatus` â€” campo del CampaignProduct
-      // NO usar `productDetails.status`: Ã©se es el status del Product
-      // maestro (siempre 'active'), no del campaign product, y enmascaraba
-      // productos realmente preliminares.
+      // Fuentes válidas para saber si el campaign product es preliminar:
+      //   1) `detail.productStatus` — endpoint products-detail (fresco)
+      //   2) `product.productStatus` — campo del CampaignProduct
+      //   3) `productDetails.status` — status del Product maestro: marca
+      //      como preliminar también a los productos cuyo origen en compras
+      //      aún no fue validado (aunque en la campaña ya estén "ACTIVE").
       const productStatusRaw = (detail?.productStatus || product.productStatus || '').toString();
-      const isPreliminary = productStatusRaw.toLowerCase() === 'preliminary';
+      const masterStatusRaw = (productDetails as any)?.status?.toString() || '';
+      const isPreliminary =
+        productStatusRaw.toLowerCase() === 'preliminary' ||
+        masterStatusRaw.toLowerCase() === 'preliminary';
       const title = detail?.title || productDetails?.title || `Producto ID: ${product.productId}`;
       const sku = detail?.sku || productDetails?.sku || 'N/A';
       const barcode = detail?.barcode || (productDetails as any)?.barcode || null;
       const totalQty = detail
         ? parseFloat(detail.campaignQuantityBase || '0')
         : product.totalQuantityBase;
-      // Sum from customDistributions (sÃ³lo disponible para distribuciones
+      // Sum from customDistributions (sólo disponible para distribuciones
       // CUSTOM). Para distribuciones generadas (ALL / INTERNAL_* /
       // EXTERNAL_*) el desglose vive en `repartos` y no se trae en este
-      // request, asÃ­ que asumimos que se repartiÃ³ el total cuando el
+      // request, así que asumimos que se repartió el total cuando el
       // backend marca `distributionGenerated=true`.
       const customDistributedQty =
         product.customDistributions?.[0]?.items?.reduce(
@@ -2207,7 +2255,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const availableStock = stock ? parseFloat(stock.availableQuantityBase || '0') : null;
       const reservedStock = stock ? parseFloat(stock.reservedQuantityBase || '0') : 0;
       const totalStock = stock ? parseFloat(stock.quantityBase || '0') : 0;
-      // âš ï¸ Las fotos del endpoint compacto pueden venir como string o como
+      // ⚠️ Las fotos del endpoint compacto pueden venir como string o como
       // { type, url }. Las del producto embebido pueden ser string o el
       // mismo objeto. Normalizamos a string para no romper <Image>.
       // Preferencia: design > reference > primera disponible.
@@ -2252,8 +2300,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const currencyPrefix = currencyCode === 'PEN' ? 'S/' : currencyCode;
       const fmt = (cents: number) => `${currencyPrefix} ${(cents / 100).toFixed(2)}`;
 
-      // Precios: priorizar los del endpoint compacto. Mostramos sÃ³lo
-      // precios base (sin presentaciÃ³n) â€” los precios por presentaciÃ³n
+      // Precios: priorizar los del endpoint compacto. Mostramos sólo
+      // precios base (sin presentación) — los precios por presentación
       // se ven al entrar al detalle del producto.
       type DisplayPrice = { profileId: string; profileName: string; priceCents: number };
       const detailPrices: DisplayPrice[] =
@@ -2269,7 +2317,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         profileName: profile.name,
         priceCents: getSalePriceForProfile(product.productId, profile.id),
       }));
-      // El usuario pidiÃ³ invertir el orden de los perfiles en la lista
+      // El usuario pidió invertir el orden de los perfiles en la lista
       // (lo que el backend devuelve primero, mostrarlo al final).
       const orderedDetailPrices = [...detailPrices].reverse();
       const orderedFallbackPrices = [...fallbackPrices].reverse();
@@ -2300,17 +2348,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               </TouchableOpacity>
             ) : (
               <View style={styles.productImageCompactPlaceholder}>
-                <Text style={styles.productImagePlaceholderText}>ðŸ“¦</Text>
+                <Text style={styles.productImagePlaceholderText}>📦</Text>
               </View>
             )}
 
             <View style={styles.productCompactContent}>
-              {/* LÃ­nea 1: SKU + tÃ­tulo + badges */}
+              {/* Línea 1: SKU + título + badges */}
               <View style={styles.productCompactHeader}>
                 <Text style={styles.productCompactSku}>{sku}</Text>
                 {barcode ? (
                   <Text style={styles.productCompactBarcode} numberOfLines={1}>
-                    ðŸ”– {barcode}
+                    🔖 {barcode}
                   </Text>
                 ) : null}
                 <Text
@@ -2323,8 +2371,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   {/* Badge Activo/Preliminar: usamos `isPreliminary` (que
                       prioriza `detail.productStatus` del endpoint compacto
                       products-detail) en vez de `product.productStatus`,
-                      porque Ã©ste Ãºltimo puede quedar stale cuando la compra
-                      asociada se valida fuera del flujo de la campaÃ±a. */}
+                      porque éste último puede quedar stale cuando la compra
+                      asociada se valida fuera del flujo de la campaña. */}
                   <View
                     style={[
                       styles.badgeSmall,
@@ -2337,7 +2385,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   </View>
                   {product.distributionGenerated && (
                     <View style={[styles.badgeSmall, styles.badgeGenerated]}>
-                      <Text style={styles.badgeSmallText}>âœ“ Gen</Text>
+                      <Text style={styles.badgeSmallText}>✓ Gen</Text>
                     </View>
                   )}
                   {isPreliminary && (
@@ -2352,14 +2400,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       {activatingProductIds.has(product.id) ? (
                         <ActivityIndicator size="small" color={theme.color.surface.base} />
                       ) : (
-                        <Text style={styles.badgeSmallText}>âœ… Activar</Text>
+                        <Text style={styles.badgeSmallText}>✅ Activar</Text>
                       )}
                     </TouchableOpacity>
                   )}
                 </View>
               </View>
 
-              {/* LÃ­nea 2: cantidades */}
+              {/* Línea 2: cantidades */}
               <View style={styles.productCompactMetricsRow}>
                 <View style={styles.productCompactMetric}>
                   <Text style={styles.productCompactMetricLabel}>Camp.</Text>
@@ -2373,7 +2421,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       distributedQty > 0 && styles.productCompactMetricValueOk,
                     ]}
                   >
-                    {hasDistributedInfo ? Math.floor(distributedQty) : 'â€”'}
+                    {hasDistributedInfo ? Math.floor(distributedQty) : '—'}
                   </Text>
                 </View>
                 <View style={styles.productCompactMetric}>
@@ -2384,7 +2432,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       pendingQty > 0 && styles.productCompactMetricValueWarn,
                     ]}
                   >
-                    {hasDistributedInfo ? Math.floor(pendingQty) : 'â€”'}
+                    {hasDistributedInfo ? Math.floor(pendingQty) : '—'}
                   </Text>
                 </View>
                 <View style={styles.productCompactDivider} />
@@ -2398,7 +2446,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         : styles.productCompactMetricValueWarn,
                     ]}
                   >
-                    {availableStock !== null ? Math.floor(availableStock) : 'â€”'}
+                    {availableStock !== null ? Math.floor(availableStock) : '—'}
                   </Text>
                 </View>
                 {reservedStock > 0 && (
@@ -2419,7 +2467,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 )}
               </View>
 
-              {/* LÃ­nea 3: precios */}
+              {/* Línea 3: precios */}
               <View style={styles.productCompactPricesRow}>
                 <View style={styles.productCompactPriceChip}>
                   <Text style={styles.productCompactPriceLabel}>Costo</Text>
@@ -2451,7 +2499,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         ]}
                       >
                         {fmt(p.priceCents)}
-                        {lower ? ' âš ï¸' : ''}
+                        {lower ? ' ⚠️' : ''}
                       </Text>
                     </View>
                   );
@@ -2465,9 +2513,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 )}
               </View>
 
-              {/* LÃ­nea 4: proveedor / compra (siempre visible) */}
+              {/* Línea 4: proveedor / compra (siempre visible) */}
               <View style={styles.productCompactSupplierRow}>
-                <Text style={styles.productCompactSupplierIcon}>ðŸ¢</Text>
+                <Text style={styles.productCompactSupplierIcon}>🏢</Text>
                 <Text
                   style={[
                     styles.productCompactSupplierText,
@@ -2479,7 +2527,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 >
                   {detail?.supplier
                     ? `${detail.supplier.name}${
-                        detail.supplier.purchaseCode ? ` Â· ${detail.supplier.purchaseCode}` : ''
+                        detail.supplier.purchaseCode ? ` · ${detail.supplier.purchaseCode}` : ''
                       }`
                     : product.purchase?.code
                       ? `Compra: ${product.purchase.code}`
@@ -2489,7 +2537,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
 
             <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>
-              {isExpanded ? 'â–¾' : 'â–¸'}
+              {isExpanded ? '▾' : '▸'}
             </Text>
           </TouchableOpacity>
 
@@ -2499,7 +2547,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               style={[styles.productActionButton, styles.productBannerButton]}
               onPress={() => handleShowBanner(product)}
             >
-              <Text style={styles.productActionButtonText}>ðŸ“¸ Banner</Text>
+              <Text style={styles.productActionButtonText}>📸 Banner</Text>
             </TouchableOpacity>
 
             {(campaign!.status === CampaignStatus.DRAFT ||
@@ -2508,7 +2556,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 style={[styles.productActionButton, styles.productDeleteButton]}
                 onPress={() => handleDeleteProduct(product)}
               >
-                <Text style={styles.productDeleteButtonText}>ðŸ—‘ï¸ Eliminar</Text>
+                <Text style={styles.productDeleteButtonText}>🗑️ Eliminar</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -2538,14 +2586,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       {savingPrice ? (
                         <ActivityIndicator size="small" color={theme.color.surface.base} />
                       ) : (
-                        <Text style={styles.saveButtonText}>âœ”</Text>
+                        <Text style={styles.saveButtonText}>✔</Text>
                       )}
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.cancelEditButton}
                       onPress={() => setEditingCost(null)}
                     >
-                      <Text style={styles.cancelEditButtonText}>âœ•</Text>
+                      <Text style={styles.cancelEditButtonText}>✕</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -2555,7 +2603,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       style={styles.editButton}
                       onPress={() => handleStartEditCost(product.productId, costCents)}
                     >
-                      <Text style={styles.editButtonText}>âœï¸</Text>
+                      <Text style={styles.editButtonText}>✏️</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -2586,13 +2634,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           onPress={() => handleSavePrice(product.productId, profile.id)}
                           disabled={savingPrice}
                         >
-                          <Text style={styles.savePriceIcon}>{savingPrice ? 'â³' : 'âœ”'}</Text>
+                          <Text style={styles.savePriceIcon}>{savingPrice ? '⏳' : '✔'}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.cancelPriceIconButton}
                           onPress={() => setEditingPrice(null)}
                         >
-                          <Text style={styles.cancelPriceIcon}>âœ•</Text>
+                          <Text style={styles.cancelPriceIcon}>✕</Text>
                         </TouchableOpacity>
                       </View>
                     ) : (
@@ -2604,7 +2652,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                             handleStartEditPrice(product.productId, profile.id, salePriceCents)
                           }
                         >
-                          <Text style={styles.editPriceIcon}>âœï¸</Text>
+                          <Text style={styles.editPriceIcon}>✏️</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -2623,12 +2671,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     disabled={savingPrice}
                   >
                     <Text style={styles.calculateFranquiciaButtonText}>
-                      ðŸ§® Calcular Precio Franquicia (/1.15)
+                      🧮 Calcular Precio Franquicia (/1.15)
                     </Text>
                   </TouchableOpacity>
                   {calculatedFranquicia.has(product.productId) && (
                     <View style={styles.calculatedBadge}>
-                      <Text style={styles.calculatedBadgeText}>âœ” Calculado</Text>
+                      <Text style={styles.calculatedBadgeText}>✔ Calculado</Text>
                     </View>
                   )}
                 </View>
@@ -2701,7 +2749,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               {/* Estimated Total Purchase in Header */}
               {campaign.products && campaign.products.length > 0 && (
                 <View style={styles.estimatedTotalHeaderCard}>
-                  <Text style={styles.estimatedTotalHeaderLabel}>â‰¡Æ’Ã†â–‘ Compra Total:</Text>
+                  <Text style={styles.estimatedTotalHeaderLabel}>≡ƒÆ░ Compra Total:</Text>
                   <Text style={styles.estimatedTotalHeaderValue}>
                     {formatCurrency(estimatedTotalPurchase)}
                   </Text>
@@ -2716,7 +2764,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   onPress={() => setIsBulkDistributionModalVisible(true)}
                 >
                   <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
-                    ðŸ“¦ Masivo
+                    📦 Masivo
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -2736,7 +2784,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <View style={styles.searchInputWrap}>
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-                placeholder="Buscar por nombre, SKU, cantidad o escanear cÃ³digo..."
+                placeholder="Buscar por nombre, SKU, cantidad o escanear código..."
                 value={searchQuery}
                 onChangeText={handleSearchQueryChange}
                 onSubmitEditing={handleSearchSubmit}
@@ -2753,7 +2801,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     setShowGlobalSearchSuggestions(false);
                   }}
                 >
-                  <Text style={styles.clearSearchText}>âœ•</Text>
+                  <Text style={styles.clearSearchText}>✕</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -2814,7 +2862,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       distributionFilter === 'generated' && styles.filterButtonTextActive,
                     ]}
                   >
-                    âœ” Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
+                    ✔ Generado ({campaign.products.filter((p) => p.distributionGenerated).length})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -2830,7 +2878,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       distributionFilter === 'not-generated' && styles.filterButtonTextActive,
                     ]}
                   >
-                    âœ• Sin generar (
+                    ✕ Sin generar (
                     {campaign.products.filter((p) => !p.distributionGenerated).length})
                   </Text>
                 </TouchableOpacity>
@@ -2846,8 +2894,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 {(
                   [
                     { key: 'all', label: 'Todos' },
-                    { key: 'active', label: 'âœ… Activos' },
-                    { key: 'preliminary', label: 'âš ï¸ Preliminares' },
+                    { key: 'active', label: '✅ Activos' },
+                    { key: 'preliminary', label: '⚠️ Preliminares' },
                   ] as const
                 ).map((opt) => {
                   const count =
@@ -2891,21 +2939,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
           )}
 
-          {/* Mensaje vacÃ­o: solo cuando NO hay productos en campaÃ±a Y el usuario no estÃ¡ buscando.
-              Si estÃ¡ buscando, dejamos que el buscador global muestre sugerencias debajo. */}
+          {/* Mensaje vacío: solo cuando NO hay productos en campaña Y el usuario no está buscando.
+              Si está buscando, dejamos que el buscador global muestre sugerencias debajo. */}
           {(!campaign.products || campaign.products.length === 0) && !searchQuery.trim() && (
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
               No hay productos agregados
             </Text>
           )}
 
-          {/* Productos filtrados de la campaÃ±a (vacÃ­o si la campaÃ±a aÃºn no tiene productos) */}
+          {/* Productos filtrados de la campaña (vacío si la campaña aún no tiene productos) */}
           {filteredProducts.length === 0 &&
           searchQuery.trim() &&
           campaign.products &&
           campaign.products.length > 0 ? (
             <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              No se encontraron productos en la campaÃ±a que coincidan con "{searchQuery}"
+              No se encontraron productos en la campaña que coincidan con "{searchQuery}"
             </Text>
           ) : (
             <>
@@ -2915,7 +2963,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               {displayedItemsCount < filteredProducts.length && (
                 <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
                   <Text style={styles.loadMoreButtonText}>
-                    Cargar mÃ¡s productos ({displayedItemsCount} de {filteredProducts.length})
+                    Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
                   </Text>
                 </TouchableOpacity>
               )}
@@ -2923,7 +2971,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 filteredProducts.length > ITEMS_PER_PAGE && (
                   <View style={styles.endOfListContainer}>
                     <Text style={styles.endOfListText}>
-                      âœ“ Mostrando todos los productos ({filteredProducts.length})
+                      ✓ Mostrando todos los productos ({filteredProducts.length})
                     </Text>
                   </View>
                 )}
@@ -2945,7 +2993,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             globalSearchResults.length > 0 && (
               <View style={styles.globalSearchContainer}>
                 <Text style={styles.globalSearchTitle}>
-                  â‰¡Æ’Ã†Ã­ Productos disponibles para agregar ({globalSearchResults.length})
+                  ≡ƒÆí Productos disponibles para agregar ({globalSearchResults.length})
                 </Text>
                 <Text style={styles.globalSearchHint}>
                   Usa "Agregar Todo" para agregar con todo el stock o "Personalizado" para elegir la
@@ -2974,7 +3022,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           onPress={() => handleOpenBannerFromSearch(product)}
                           activeOpacity={0.7}
                         >
-                          <Text style={styles.globalSearchBannerButtonLeftText}>ðŸ“‹</Text>
+                          <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
                         </TouchableOpacity>
 
                         {(() => {
@@ -3004,7 +3052,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           </Text>
                           {isPreliminary && (
                             <Text style={styles.globalSearchWarning}>
-                              âš ï¸ Producto por validar Ingreso
+                              ⚠️ Producto por validar Ingreso
                             </Text>
                           )}
                           <View style={styles.globalSearchMeta}>
@@ -3017,22 +3065,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                                     : styles.stockUnavailable,
                                 ]}
                               >
-                                {isPreliminary ? 'ðŸ“¦ Stock preliminar: ' : 'âœ… Disponible: '}
+                                {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}
                                 {stockInfo.available}
                               </Text>
                               {!isPreliminary && stockInfo.reserved > 0 && (
                                 <Text style={styles.stockReserved}>
-                                  â‰¡Æ’Ã¶Ã† Reservado: {stockInfo.reserved}
+                                  ≡ƒöÆ Reservado: {stockInfo.reserved}
                                 </Text>
                               )}
                               {!isPreliminary && stockInfo.total !== stockInfo.available && (
-                                <Text style={styles.stockTotal}>
-                                  â‰¡Æ’Ã´Ã¨ Total: {stockInfo.total}
-                                </Text>
+                                <Text style={styles.stockTotal}>≡ƒôè Total: {stockInfo.total}</Text>
                               )}
                             </View>
                             <Text style={styles.globalSearchStatus}>
-                              {product.status === 'active' ? 'âœ” Activo' : 'Î“ÃœÃ¡ Preliminar'}
+                              {product.status === 'active' ? '✔ Activo' : 'ΓÜá Preliminar'}
                             </Text>
                           </View>
                         </View>
@@ -3051,7 +3097,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               disabled={addingQuickProduct}
                             >
                               <Text style={styles.globalSearchActionButtonSecondaryText}>
-                                âš™ï¸ Personalizado
+                                ⚙️ Personalizado
                               </Text>
                             </TouchableOpacity>
                           </View>
@@ -3072,7 +3118,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.primary} />
-          <Text style={styles.loadingText}>Cargando campaÃ±a...</Text>
+          <Text style={styles.loadingText}>Cargando campaña...</Text>
         </View>
       </SafeAreaView>
     );
@@ -3089,7 +3135,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              Î“Ã¥Ã‰ Volver
+              ΓåÉ Volver
             </Text>
           </TouchableOpacity>
           <Text style={[styles.title, isTablet && styles.titleTablet]}>{campaign.code}</Text>
@@ -3123,7 +3169,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   isTablet && styles.cancelCampaignButtonTextTablet,
                 ]}
               >
-                Cancelar CampaÃ±a
+                Cancelar Campaña
               </Text>
             </TouchableOpacity>
 
@@ -3138,7 +3184,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 <Text
                   style={[styles.activateButtonText, isTablet && styles.activateButtonTextTablet]}
                 >
-                  Activar CampaÃ±a
+                  Activar Campaña
                 </Text>
               )}
             </TouchableOpacity>
@@ -3156,7 +3202,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 <ActivityIndicator color={theme.color.surface.base} />
               ) : (
                 <Text style={[styles.closeButtonText, isTablet && styles.closeButtonTextTablet]}>
-                  Cerrar CampaÃ±a
+                  Cerrar Campaña
                 </Text>
               )}
             </TouchableOpacity>
@@ -3311,7 +3357,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   style={styles.imageModalCloseButton}
                   onPress={handleCloseImageModal}
                 >
-                  <Text style={styles.imageModalCloseText}>âœ•</Text>
+                  <Text style={styles.imageModalCloseText}>✕</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -3349,7 +3395,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     setCustomQuantity('');
                   }}
                 >
-                  <Text style={styles.customAddModalCloseButton}>âœ•</Text>
+                  <Text style={styles.customAddModalCloseButton}>✕</Text>
                 </TouchableOpacity>
               </View>
 
@@ -3363,13 +3409,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     </Text>
                     {selectedProductForCustomAdd.status === 'preliminary' && (
                       <Text style={styles.customAddModalWarning}>
-                        âš ï¸ Producto por validar Ingreso
+                        ⚠️ Producto por validar Ingreso
                       </Text>
                     )}
                   </View>
 
                   <View style={styles.customAddModalStockInfo}>
-                    <Text style={styles.customAddModalStockTitle}>InformaciÃ³n de Stock:</Text>
+                    <Text style={styles.customAddModalStockTitle}>Información de Stock:</Text>
                     {(() => {
                       const stockInfo = getProductStock(selectedProductForCustomAdd);
                       const isPreliminary = selectedProductForCustomAdd.status === 'preliminary';
@@ -3377,7 +3423,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         <>
                           <View style={styles.customAddModalStockRow}>
                             <Text style={styles.customAddModalStockLabel}>
-                              {isPreliminary ? 'ðŸ“¦ Stock preliminar:' : 'âœ… Disponible:'}
+                              {isPreliminary ? '📦 Stock preliminar:' : '✅ Disponible:'}
                             </Text>
                             <Text style={styles.customAddModalStockValue}>
                               {stockInfo.available}
@@ -3385,9 +3431,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           </View>
                           {!isPreliminary && stockInfo.reserved > 0 && (
                             <View style={styles.customAddModalStockRow}>
-                              <Text style={styles.customAddModalStockLabel}>
-                                â‰¡Æ’Ã¶Ã† Reservado:
-                              </Text>
+                              <Text style={styles.customAddModalStockLabel}>≡ƒöÆ Reservado:</Text>
                               <Text style={styles.customAddModalStockValue}>
                                 {stockInfo.reserved}
                               </Text>
@@ -3395,7 +3439,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           )}
                           {!isPreliminary && (
                             <View style={styles.customAddModalStockRow}>
-                              <Text style={styles.customAddModalStockLabel}>â‰¡Æ’Ã´Ã¨ Total:</Text>
+                              <Text style={styles.customAddModalStockLabel}>≡ƒôè Total:</Text>
                               <Text style={styles.customAddModalStockValue}>{stockInfo.total}</Text>
                             </View>
                           )}
@@ -3459,7 +3503,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             <View style={styles.floatingButtonContainer} pointerEvents="box-none">
               <AddButton
                 onPress={() => setIsBulkUpdateModalVisible(true)}
-                icon="ðŸ’µ"
+                icon="💵"
                 label="Precios"
               />
             </View>
