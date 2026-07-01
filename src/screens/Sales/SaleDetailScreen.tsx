@@ -72,7 +72,6 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
   // Credit Note - partial return state
   const [creditNoteMode, setCreditNoteMode] = useState<'total' | 'partial'>('partial');
-  const [creditNoteMotivo, setCreditNoteMotivo] = useState<string>('07');
   const [creditNoteSustento, setCreditNoteSustento] = useState<string>('');
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [itemQuantities, setItemQuantities] = useState<Record<string, string>>({});
@@ -357,7 +356,6 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     });
 
     setCreditNoteMode('partial');
-    setCreditNoteMotivo('07');
     setCreditNoteSustento('');
     setSelectedItemIds([]);
     setItemQuantities(quantities);
@@ -415,7 +413,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       }
 
       createCreditNote({
-        motivoNota: creditNoteMotivo,
+        motivoNota: '07',
         sustentoNota: creditNoteSustento.trim(),
         items,
         observaciones: 'Devolución parcial generada desde Admin',
@@ -438,7 +436,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       }
 
       createCreditNote({
-        motivoNota: creditNoteMotivo === '07' ? '06' : creditNoteMotivo,
+        motivoNota: '06',
         sustentoNota: creditNoteSustento.trim(),
         items,
         observaciones: 'Devolución total generada desde Admin',
@@ -1107,36 +1105,6 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                     Total (saldo restante)
                   </Text>
                 </TouchableOpacity>
-              </View>
-
-              {/* Motivo */}
-              <Text style={styles.cnFieldLabel}>Motivo (código SUNAT)</Text>
-              <View style={styles.cnMotivoRow}>
-                {[
-                  { code: '07', label: '07 · Devolución por ítem' },
-                  { code: '06', label: '06 · Devolución total' },
-                  { code: '01', label: '01 · Anulación' },
-                  { code: '10', label: '10 · Otros' },
-                ].map((m) => (
-                  <TouchableOpacity
-                    key={m.code}
-                    style={[
-                      styles.cnMotivoChip,
-                      creditNoteMotivo === m.code && styles.cnMotivoChipActive,
-                    ]}
-                    onPress={() => setCreditNoteMotivo(m.code)}
-                    disabled={creatingCreditNote}
-                  >
-                    <Text
-                      style={[
-                        styles.cnMotivoChipText,
-                        creditNoteMotivo === m.code && styles.cnMotivoChipTextActive,
-                      ]}
-                    >
-                      {m.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
               </View>
 
               {/* Sustento */}
