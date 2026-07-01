@@ -3,7 +3,7 @@
     "name": "ERP-aio",
     "slug": "panel-admin-grit",
     "scheme": "erp-aio",
-    "version": "1.0.55",
+    "version": "1.0.57",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/logo.png",
@@ -77,7 +77,15 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "Esta app necesita Bluetooth para comunicarse con las etiquetas electrónicas Leeka."
+        }
+      ]
     ]
   }
 }
