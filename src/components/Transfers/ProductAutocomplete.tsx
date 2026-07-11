@@ -67,7 +67,6 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
           q: searchQuery,
           limit: 10,
           includeZeroStock: true,
-          productStatus: 'active,preliminary',
         });
 
         // Aplanar warehouses[].areas[] al shape StockItemResponse[] que
