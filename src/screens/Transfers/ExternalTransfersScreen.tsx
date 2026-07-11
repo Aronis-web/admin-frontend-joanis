@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   ActivityIndicator,
   useWindowDimensions,
@@ -19,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+import Alert from '@/utils/alert';
 
 import { TransferCard } from '@/components/Transfers/TransferCard';
 import { TransferItemsList } from '@/components/Transfers/TransferItemsList';
@@ -98,7 +98,13 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   const [destinationAreaId, setDestinationAreaId] = useState('');
   const [transferNotes, setTransferNotes] = useState('');
   const [transferItems, setTransferItems] = useState<TransferItemInput[]>([
-    { productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined },
+    {
+      productId: '',
+      quantity: '',
+      notes: '',
+      product: undefined,
+      selectedStockLocation: undefined,
+    },
   ]);
 
   // Detail modal states
@@ -132,7 +138,11 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     { key: 'ALL', label: 'Todos', color: theme.color.text.muted },
     { key: TransferStatus.DRAFT, label: 'Borrador', color: theme.color.state.draft.border },
     { key: TransferStatus.APPROVED, label: 'Aprobado', color: theme.color.brand.accent },
-    { key: TransferStatus.IN_TRANSIT, label: 'En Tránsito', color: theme.color.state.warning.border },
+    {
+      key: TransferStatus.IN_TRANSIT,
+      label: 'En Tránsito',
+      color: theme.color.state.warning.border,
+    },
     { key: TransferStatus.RECEIVED, label: 'Recibido', color: theme.color.state.completed.border },
     { key: TransferStatus.COMPLETED, label: 'Completado', color: theme.color.state.success.text },
   ];
@@ -187,10 +197,11 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       const response = await transfersApi.getTransfers(params);
 
       const data = response.data || [];
-      const total = response.meta?.total ?? data.length;
+      const total = response.total ?? data.length;
+      const limit = response.limit ?? PAGE_SIZE;
       setTransfers(data);
       setTotalItems(total);
-      setTotalPages(response.meta?.totalPages ?? Math.max(1, Math.ceil(total / PAGE_SIZE)));
+      setTotalPages(Math.max(1, Math.ceil(total / limit)));
     } catch (error: any) {
       logger.error('Error loading external transfers:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar los traslados externos');
@@ -247,12 +258,15 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     pendingBultosModalRef.current = false;
   }, []);
 
-  const handleTransportConfirm = useCallback((vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
-    setPendingTransportData({ vehicle, driver, transporter });
-    setNumeroBultos('1');
-    pendingBultosModalRef.current = true;
-    setShowTransportModal(false);
-  }, []);
+  const handleTransportConfirm = useCallback(
+    (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
+      setPendingTransportData({ vehicle, driver, transporter });
+      setNumeroBultos('1');
+      pendingBultosModalRef.current = true;
+      setShowTransportModal(false);
+    },
+    []
+  );
 
   const handleGenerateGuideConfirm = async () => {
     if (!selectedTransfer || !pendingTransportData) {
@@ -310,13 +324,16 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
 
             Alert.alert(
               'Éxito',
-              response.message || `Guía ${response.remissionGuide.serieNumero || response.remissionGuide.number || ''} generada exitosamente`
+              response.message ||
+                `Guía ${response.remissionGuide.serieNumero || response.remissionGuide.number || ''} generada exitosamente`
             );
           } catch (error: any) {
             logger.error('Error generating remission guide:', error);
             Alert.alert(
               'Error',
-              error.response?.data?.message || error.message || 'No se pudo generar la guía de remisión'
+              error.response?.data?.message ||
+                error.message ||
+                'No se pudo generar la guía de remisión'
             );
           } finally {
             setGeneratingRemissionGuide(false);
@@ -366,13 +383,27 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     setDestinationWarehouseId('');
     setDestinationAreaId('');
     setTransferNotes('');
-    setTransferItems([{ productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined }]);
+    setTransferItems([
+      {
+        productId: '',
+        quantity: '',
+        notes: '',
+        product: undefined,
+        selectedStockLocation: undefined,
+      },
+    ]);
   };
 
   const addTransferItem = () => {
     setTransferItems([
       ...transferItems,
-      { productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined },
+      {
+        productId: '',
+        quantity: '',
+        notes: '',
+        product: undefined,
+        selectedStockLocation: undefined,
+      },
     ]);
   };
 
@@ -413,13 +444,10 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       });
     }
 
-    // Filtrar solo ubicaciones de la sede actual
-    const currentSiteStockItems = product.stockItems?.filter(
-      (stockItem) => (stockItem.warehouse as any)?.siteId === effectiveSite?.id
-    ) || [];
+    // El buscador inteligente ya devuelve solo ubicaciones de la sede activa
+    // (backend filtra por X-Site-Id), no hace falta filtrar en cliente.
     logger.debug('🏢 Sede actual ID:', effectiveSite?.id);
-    logger.debug('🏢 Ubicaciones en sede actual (filtradas):', currentSiteStockItems.length);
-    logger.debug('📋 Detalle ubicaciones filtradas:', JSON.stringify(currentSiteStockItems, null, 2));
+    logger.debug('🏢 Ubicaciones recibidas:', product.stockItems?.length || 0);
 
     const newItems = [...transferItems];
     newItems[index].productId = product.id;
@@ -432,7 +460,8 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     const newItems = [...transferItems];
     // Usar availableQuantityBase (stock disponible = total - reservado)
     const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
-    const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+    const parsedStock =
+      typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
 
     newItems[index].selectedStockLocation = {
       warehouseId: stockItem.warehouseId,
@@ -545,13 +574,17 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         );
         return false;
       }
-      if (item.productId && item.selectedStockLocation && parseFloat(item.quantity) > item.selectedStockLocation.availableStock) {
+      if (
+        item.productId &&
+        item.selectedStockLocation &&
+        parseFloat(item.quantity) > item.selectedStockLocation.availableStock
+      ) {
         Alert.alert(
           'Error de Validación',
           `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\n\n` +
-          `Cantidad ingresada: ${parseFloat(item.quantity).toFixed(2)}\n` +
-          `Stock disponible: ${item.selectedStockLocation.availableStock.toFixed(2)}\n\n` +
-          `La cantidad excede el stock disponible`
+            `Cantidad ingresada: ${parseFloat(item.quantity).toFixed(2)}\n` +
+            `Stock disponible: ${item.selectedStockLocation.availableStock.toFixed(2)}\n\n` +
+            `La cantidad excede el stock disponible`
         );
         return false;
       }
@@ -575,7 +608,9 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       const itemsByOrigin = new Map<string, typeof transferItems>();
 
       transferItems
-        .filter((item) => item.productId && item.selectedStockLocation && parseFloat(item.quantity) > 0)
+        .filter(
+          (item) => item.productId && item.selectedStockLocation && parseFloat(item.quantity) > 0
+        )
         .forEach((item) => {
           const key = `${item.selectedStockLocation!.warehouseId}-${item.selectedStockLocation!.areaId || 'null'}`;
           if (!itemsByOrigin.has(key)) {
@@ -970,21 +1005,31 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                   {item.product && (
                     <View style={styles.formGroup}>
                       <Text style={styles.label}>Ubicación de Origen *</Text>
-                      <Text style={styles.formHint}>Selecciona de dónde deseas trasladar este producto (solo de tu sede actual)</Text>
+                      <Text style={styles.formHint}>
+                        Selecciona de dónde deseas trasladar este producto (solo de tu sede actual)
+                      </Text>
 
                       {item.product.stockItems && item.product.stockItems.length > 0 ? (
-                        item.product.stockItems
-                          .filter((stockItem) => (stockItem.warehouse as any)?.siteId === effectiveSite?.id)
-                          .map((stockItem, stockIndex) => {
+                        item.product.stockItems.map((stockItem, stockIndex) => {
                           const isSelected =
                             item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
                             item.selectedStockLocation?.areaId === stockItem.areaId;
 
                           // Usar availableQuantityBase (stock disponible = total - reservado)
-                          const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
-                          const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
-                          const totalStock = typeof stockItem.quantityBase === 'number' ? stockItem.quantityBase : parseFloat(stockItem.quantityBase || '0') || 0;
-                          const reservedStock = typeof stockItem.reservedQuantityBase === 'number' ? stockItem.reservedQuantityBase : parseFloat(stockItem.reservedQuantityBase || '0') || 0;
+                          const availableStock =
+                            stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
+                          const parsedStock =
+                            typeof availableStock === 'number'
+                              ? availableStock
+                              : parseFloat(availableStock) || 0;
+                          const totalStock =
+                            typeof stockItem.quantityBase === 'number'
+                              ? stockItem.quantityBase
+                              : parseFloat(stockItem.quantityBase || '0') || 0;
+                          const reservedStock =
+                            typeof stockItem.reservedQuantityBase === 'number'
+                              ? stockItem.reservedQuantityBase
+                              : parseFloat(stockItem.reservedQuantityBase || '0') || 0;
 
                           return (
                             <TouchableOpacity
@@ -1008,21 +1053,22 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                                 <Text style={styles.locationArea}>
                                   📍 Área: {stockItem.area?.name || 'Sin área asignada'}
                                 </Text>
-                                <Text style={[
-                                  styles.locationStock,
-                                  parsedStock === 0 && styles.locationStockZero,
-                                ]}>
+                                <Text
+                                  style={[
+                                    styles.locationStock,
+                                    parsedStock === 0 && styles.locationStockZero,
+                                  ]}
+                                >
                                   ✅ Disponible: {parsedStock.toFixed(2)}
                                 </Text>
                                 {reservedStock > 0 && (
                                   <Text style={styles.locationReserved}>
-                                    🔒 Reservado: {reservedStock.toFixed(2)} | Total: {totalStock.toFixed(2)}
+                                    🔒 Reservado: {reservedStock.toFixed(2)} | Total:{' '}
+                                    {totalStock.toFixed(2)}
                                   </Text>
                                 )}
                               </View>
-                              {isSelected && (
-                                <Text style={styles.locationSelectedIcon}>✓</Text>
-                              )}
+                              {isSelected && <Text style={styles.locationSelectedIcon}>✓</Text>}
                             </TouchableOpacity>
                           );
                         })
@@ -1047,11 +1093,15 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                         styles.input,
                         !item.selectedStockLocation && styles.inputDisabled,
                         item.selectedStockLocation &&
-                        item.quantity &&
-                        parseFloat(item.quantity) > item.selectedStockLocation.availableStock &&
-                        styles.inputError
+                          item.quantity &&
+                          parseFloat(item.quantity) > item.selectedStockLocation.availableStock &&
+                          styles.inputError,
                       ]}
-                      placeholder={item.selectedStockLocation ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})` : 'Selecciona ubicación primero'}
+                      placeholder={
+                        item.selectedStockLocation
+                          ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})`
+                          : 'Selecciona ubicación primero'
+                      }
                       keyboardType="numeric"
                       value={item.quantity}
                       onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
@@ -1059,12 +1109,13 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                       editable={!!item.selectedStockLocation}
                     />
                     {item.selectedStockLocation &&
-                     item.quantity &&
-                     parseFloat(item.quantity) > item.selectedStockLocation.availableStock && (
-                      <Text style={styles.errorText}>
-                        ⚠️ La cantidad excede el stock disponible ({item.selectedStockLocation.availableStock})
-                      </Text>
-                    )}
+                      item.quantity &&
+                      parseFloat(item.quantity) > item.selectedStockLocation.availableStock && (
+                        <Text style={styles.errorText}>
+                          ⚠️ La cantidad excede el stock disponible (
+                          {item.selectedStockLocation.availableStock})
+                        </Text>
+                      )}
                   </View>
 
                   <Text style={styles.label}>Notas (Opcional)</Text>
@@ -1208,21 +1259,28 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                   <Text style={styles.detailLabel}>Guía de remisión</Text>
                   {selectedTransfer.remissionGuide ? (
                     <>
-                      <Text style={styles.detailValue}>{selectedTransfer.remissionGuide.number}</Text>
+                      <Text style={styles.detailValue}>
+                        {selectedTransfer.remissionGuide.number}
+                      </Text>
                       <Text style={styles.detailSubvalue}>
                         Estado: {selectedTransfer.remissionGuide.status}
                         {selectedTransfer.remissionGuide.isDevelopment ? ' • Desarrollo' : ''}
                       </Text>
                     </>
                   ) : (
-                    <Text style={styles.detailSubvalue}>Este traslado aún no tiene guía de remisión.</Text>
+                    <Text style={styles.detailSubvalue}>
+                      Este traslado aún no tiene guía de remisión.
+                    </Text>
                   )}
                   <TouchableOpacity
                     disabled={downloadingGuideId === selectedTransfer.id}
                     style={[
                       styles.guideActionButton,
-                      selectedTransfer.remissionGuide ? styles.downloadGuideButton : styles.createGuideButton,
-                      downloadingGuideId === selectedTransfer.id && styles.guideActionButtonDisabled,
+                      selectedTransfer.remissionGuide
+                        ? styles.downloadGuideButton
+                        : styles.createGuideButton,
+                      downloadingGuideId === selectedTransfer.id &&
+                        styles.guideActionButtonDisabled,
                     ]}
                     onPress={() => void handleRemissionGuidePress(selectedTransfer)}
                   >
@@ -1404,535 +1462,536 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: theme.color.text.body,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  searchContainer: {
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  searchInput: {
-    height: 44,
-    backgroundColor: theme.color.background.subtle,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: theme.color.text.heading,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  filtersContainer: {
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  filtersContent: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    backgroundColor: theme.color.surface.base,
-  },
-  filterText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.color.text.body,
-  },
-  filterTextActive: {
-    color: theme.color.text.inverse,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: theme.color.text.muted,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.color.text.body,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    textAlign: 'center',
-  },
-  // Modal Styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: theme.color.text.muted,
-    fontWeight: 'bold',
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalScrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.body,
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  pickerContainer: {
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    color: theme.color.text.heading,
-  },
-  input: {
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: theme.color.text.heading,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  addItemButton: {
-    backgroundColor: theme.color.brand.accentSoft,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  addItemButtonText: {
-    color: theme.color.brand.accent,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  itemContainer: {
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  itemNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  removeItemText: {
-    color: theme.color.state.danger.text,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  modalCreateButton: {
-    backgroundColor: theme.color.brand.accent,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  modalCreateButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  // Detail Modal Styles
-  detailSection: {
-    marginBottom: 16,
-  },
-  detailLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.color.text.heading,
-  },
-  detailSubvalue: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  actionButtons: {
-    marginTop: 24,
-    gap: 12,
-  },
-  actionButton: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  approveButton: {
-    backgroundColor: theme.color.brand.accent,
-  },
-  shipButton: {
-    backgroundColor: theme.color.state.warning.border,
-  },
-  cancelButton: {
-    backgroundColor: theme.color.state.danger.border,
-  },
-  actionButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  guideActionButton: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  downloadGuideButton: {
-    backgroundColor: theme.color.brand.accent,
-  },
-  createGuideButton: {
-    backgroundColor: theme.color.state.warning.border,
-  },
-  guideActionButtonDisabled: {
-    opacity: 0.7,
-  },
-  guideActionButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  infoBox: {
-    backgroundColor: theme.color.state.info.background,
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.color.state.info.border,
-  },
-  infoText: {
-    color: theme.color.state.info.text,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  successBox: {
-    backgroundColor: theme.color.state.success.background,
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.color.state.success.border,
-  },
-  successText: {
-    color: theme.color.state.success.text,
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  infoBoxText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.state.info.text,
-  },
-  // Ship Modal Styles
-  shipModalOverlay: {
-    flex: 1,
-    backgroundColor: theme.color.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  shipModalContainer: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 12,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-  },
-  shipModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: 8,
-  },
-  shipModalSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginBottom: 20,
-  },
-  shipModalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-  },
-  shipModalButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  shipModalCancelButton: {
-    backgroundColor: theme.color.surface.subtle,
-  },
-  shipModalCancelButtonText: {
-    color: theme.color.text.body,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  shipModalConfirmButton: {
-    backgroundColor: theme.color.state.warning.border,
-  },
-  shipModalConfirmButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  // Nuevos estilos para ubicaciones y validación
-  formGroup: {
-    marginBottom: 16,
-  },
-  formHint: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  productImageContainer: {
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  productImageLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-    marginBottom: 6,
-  },
-  productImageWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.background.subtle,
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  productImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  productImageTitle: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.color.text.body,
-  },
-  locationCard: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: theme.color.border.subtle,
-    padding: 12,
-    marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  locationCardSelected: {
-    borderColor: theme.color.brand.accent,
-    backgroundColor: theme.color.brand.accentSoft,
-  },
-  locationCardDisabled: {
-    opacity: 0.5,
-    backgroundColor: theme.color.background.subtle,
-  },
-  locationInfo: {
-    flex: 1,
-  },
-  locationWarehouse: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.heading,
-    marginBottom: 4,
-  },
-  locationArea: {
-    fontSize: 13,
-    color: theme.color.text.muted,
-    marginBottom: 4,
-  },
-  locationStock: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.color.state.success.text,
-  },
-  locationStockZero: {
-    color: theme.color.state.danger.text,
-  },
-  locationReserved: {
-    fontSize: 11,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  locationSelectedIcon: {
-    fontSize: 24,
-    color: theme.color.brand.accent,
-    fontWeight: 'bold',
-  },
-  noStockContainer: {
-    backgroundColor: theme.color.state.danger.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.color.state.danger.border,
-    padding: 16,
-    alignItems: 'center',
-  },
-  noStockIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  noStockText: {
-    fontSize: 13,
-    color: theme.color.state.danger.text,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  inputDisabled: {
-    backgroundColor: theme.color.surface.subtle,
-    color: theme.color.text.placeholder,
-  },
-  inputError: {
-    borderColor: theme.color.state.danger.border,
-    borderWidth: 2,
-    backgroundColor: theme.color.state.danger.background,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.color.state.danger.text,
-    marginTop: 4,
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  sectionDivider: {
-    marginTop: 24,
-    marginBottom: 16,
-    paddingTop: 16,
-    borderTopWidth: 2,
-    borderTopColor: theme.color.border.subtle,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    backButtonText: {
+      fontSize: 20,
+      color: theme.color.text.body,
+    },
+    headerTitleContainer: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    searchContainer: {
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    searchInput: {
+      height: 44,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    filtersContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    filtersContent: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    filterChip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    filterText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.body,
+    },
+    filterTextActive: {
+      color: theme.color.text.inverse,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 100,
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    // Modal Styles
+    modalContainer: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: 'bold',
+    },
+    modalContent: {
+      flex: 1,
+    },
+    modalScrollContent: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+      marginTop: 12,
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    input: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    addItemButton: {
+      backgroundColor: theme.color.brand.accentSoft,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    addItemButtonText: {
+      color: theme.color.brand.accent,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    itemContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+    },
+    itemHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    itemNumber: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    removeItemText: {
+      color: theme.color.state.danger.text,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    modalCreateButton: {
+      backgroundColor: theme.color.brand.accent,
+      padding: 16,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    modalCreateButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    // Detail Modal Styles
+    detailSection: {
+      marginBottom: 16,
+    },
+    detailLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 4,
+      textTransform: 'uppercase',
+    },
+    detailValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    detailSubvalue: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    actionButtons: {
+      marginTop: 24,
+      gap: 12,
+    },
+    actionButton: {
+      padding: 16,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    approveButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    shipButton: {
+      backgroundColor: theme.color.state.warning.border,
+    },
+    cancelButton: {
+      backgroundColor: theme.color.state.danger.border,
+    },
+    actionButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    guideActionButton: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    downloadGuideButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    createGuideButton: {
+      backgroundColor: theme.color.state.warning.border,
+    },
+    guideActionButtonDisabled: {
+      opacity: 0.7,
+    },
+    guideActionButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    infoBox: {
+      backgroundColor: theme.color.state.info.background,
+      padding: 16,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    infoText: {
+      color: theme.color.state.info.text,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    successBox: {
+      backgroundColor: theme.color.state.success.background,
+      padding: 16,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+    },
+    successText: {
+      color: theme.color.state.success.text,
+      fontSize: 14,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    infoBoxText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.state.info.text,
+    },
+    // Ship Modal Styles
+    shipModalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    shipModalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 24,
+      width: '100%',
+      maxWidth: 400,
+    },
+    shipModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    shipModalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 20,
+    },
+    shipModalButtons: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 20,
+    },
+    shipModalButton: {
+      flex: 1,
+      padding: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    shipModalCancelButton: {
+      backgroundColor: theme.color.surface.subtle,
+    },
+    shipModalCancelButtonText: {
+      color: theme.color.text.body,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    shipModalConfirmButton: {
+      backgroundColor: theme.color.state.warning.border,
+    },
+    shipModalConfirmButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    // Nuevos estilos para ubicaciones y validación
+    formGroup: {
+      marginBottom: 16,
+    },
+    formHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: 8,
+      fontStyle: 'italic',
+    },
+    productImageContainer: {
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    productImageLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 6,
+    },
+    productImageWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      padding: 8,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    productImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 8,
+    },
+    productImageTitle: {
+      flex: 1,
+      marginLeft: 12,
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.body,
+    },
+    locationCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      padding: 12,
+      marginBottom: 8,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    locationCardSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    locationCardDisabled: {
+      opacity: 0.5,
+      backgroundColor: theme.color.background.subtle,
+    },
+    locationInfo: {
+      flex: 1,
+    },
+    locationWarehouse: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    locationArea: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: 4,
+    },
+    locationStock: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.success.text,
+    },
+    locationStockZero: {
+      color: theme.color.state.danger.text,
+    },
+    locationReserved: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    locationSelectedIcon: {
+      fontSize: 24,
+      color: theme.color.brand.accent,
+      fontWeight: 'bold',
+    },
+    noStockContainer: {
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+      padding: 16,
+      alignItems: 'center',
+    },
+    noStockIcon: {
+      fontSize: 32,
+      marginBottom: 8,
+    },
+    noStockText: {
+      fontSize: 13,
+      color: theme.color.state.danger.text,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    inputDisabled: {
+      backgroundColor: theme.color.surface.subtle,
+      color: theme.color.text.placeholder,
+    },
+    inputError: {
+      borderColor: theme.color.state.danger.border,
+      borderWidth: 2,
+      backgroundColor: theme.color.state.danger.background,
+    },
+    errorText: {
+      fontSize: 12,
+      color: theme.color.state.danger.text,
+      marginTop: 4,
+      marginLeft: 4,
+      fontWeight: '500',
+    },
+    sectionDivider: {
+      marginTop: 24,
+      marginBottom: 16,
+      paddingTop: 16,
+      borderTopWidth: 2,
+      borderTopColor: theme.color.border.subtle,
+    },
+  });
 
 export default ExternalTransfersScreen;

@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { Product, productsApi } from '@/services/api/products';
+import { Product } from '@/services/api/products';
 import { inventoryApi } from '@/services/api/inventory';
+import { logger } from '@/utils/logger';
 
 interface ProductAutocompleteProps {
   products: Product[]; // ⚠️ DEPRECATED - Ya no se usa, búsqueda en tiempo real con V2
@@ -49,7 +50,9 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
     }
   }, [selectedProductId, products]);
 
-  // Búsqueda de productos con stock incluido
+  // Búsqueda de productos con stock incluido usando el buscador inteligente de Campañas.
+  // GET /admin/inventory/products/stock respeta X-Site-Id: solo devuelve
+  // almacenes/áreas de la sede seleccionada en el login.
   useEffect(() => {
     const searchProducts = async () => {
       if (searchQuery.trim() === '') {
@@ -58,51 +61,51 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
         return;
       }
 
-      console.log('🔍 Buscando productos con query:', searchQuery);
       setIsSearching(true);
       try {
-        // Usar endpoint v2 para búsqueda (más rápido y con full-text search)
-        const response = await productsApi.searchProductsV2({
+        const response = await inventoryApi.getProductsStock({
           q: searchQuery,
           limit: 10,
-          status: 'active,preliminary',
-          includePhotos: true,
+          includeZeroStock: true,
+          productStatus: 'active,preliminary',
         });
 
-        console.log('✅ Productos encontrados:', response.results?.length || 0);
+        // Aplanar warehouses[].areas[] al shape StockItemResponse[] que
+        // consume el UI de traslados (warehouse/area anidados,
+        // availableQuantityBase/reservedQuantityBase/quantityBase).
+        const productsWithStock = (response.data || []).map((item) => ({
+          id: item.productId,
+          correlativeNumber: item.correlativeNumber,
+          sku: item.sku,
+          title: item.name,
+          status: item.status,
+          barcode: item.barcode,
+          stockItems: (item.warehouses || []).flatMap((w) =>
+            (w.areas || []).map((a) => ({
+              productId: item.productId,
+              warehouseId: w.warehouseId,
+              areaId: a.areaId,
+              quantityBase: a.totalStock,
+              reservedQuantityBase: a.reservedStock,
+              availableQuantityBase: a.availableStock,
+              warehouse: {
+                id: w.warehouseId,
+                name: w.warehouseName,
+                code: w.warehouseCode,
+              },
+              area: {
+                id: a.areaId,
+                name: a.areaName,
+                code: a.areaCode,
+              },
+            }))
+          ),
+        })) as unknown as Product[];
 
-        // Cargar el stock de cada producto encontrado usando inventoryApi
-        if (response.results && response.results.length > 0) {
-          const productsWithStock = await Promise.all(
-            response.results.map(async (product) => {
-              try {
-                // Obtener el stock del producto usando el endpoint de inventario
-                const stockResponse = await inventoryApi.getStockByProduct(product.id);
-                const stockItems = stockResponse?.stockByWarehouse || [];
-                console.log('📦 Producto:', product.title, 'Stock items:', stockItems.length);
-
-                // Agregar stockItems al producto
-                return {
-                  ...product,
-                  stockItems,
-                };
-              } catch (error) {
-                console.error('Error loading stock for product:', product.id, error);
-                return {
-                  ...product,
-                  stockItems: [],
-                }; // Devolver el producto sin stock si falla
-              }
-            })
-          );
-          setFilteredProducts(productsWithStock as unknown as Product[]);
-        } else {
-          setFilteredProducts([]);
-        }
-
-        setShowDropdown(true); // Asegurar que el dropdown se muestre
+        setFilteredProducts(productsWithStock);
+        setShowDropdown(true);
       } catch (error) {
-        console.error('❌ Error searching products:', error);
+        logger.error('❌ Error searching products:', error);
         setFilteredProducts([]);
       } finally {
         setIsSearching(false);
@@ -238,20 +241,26 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
             </View>
           )}
 
-          {showDropdown && searchQuery.trim() !== '' && filteredProducts.length === 0 && !isSearching && (
-            <View style={styles.dropdown}>
-              <Text style={styles.noResultsText}>No se encontraron productos</Text>
-            </View>
-          )}
-
-          {showDropdown && searchQuery.trim() !== '' && isSearching && filteredProducts.length === 0 && (
-            <View style={styles.dropdown}>
-              <View style={styles.searchingContainer}>
-                <ActivityIndicator size="small" color={theme.color.brand.accent} />
-                <Text style={styles.searchingText}>Buscando productos...</Text>
+          {showDropdown &&
+            searchQuery.trim() !== '' &&
+            filteredProducts.length === 0 &&
+            !isSearching && (
+              <View style={styles.dropdown}>
+                <Text style={styles.noResultsText}>No se encontraron productos</Text>
               </View>
-            </View>
-          )}
+            )}
+
+          {showDropdown &&
+            searchQuery.trim() !== '' &&
+            isSearching &&
+            filteredProducts.length === 0 && (
+              <View style={styles.dropdown}>
+                <View style={styles.searchingContainer}>
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                  <Text style={styles.searchingText}>Buscando productos...</Text>
+                </View>
+              </View>
+            )}
         </>
       )}
     </View>
