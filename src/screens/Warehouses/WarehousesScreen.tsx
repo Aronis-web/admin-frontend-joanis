@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   Modal,
   ActivityIndicator,
@@ -16,10 +15,10 @@ import type { Theme } from '@/design-system/themes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { warehousesApi } from '@/services/api';
 import { Warehouse, CreateWarehouseRequest, UpdateWarehouseRequest } from '@/types/warehouses';
-import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
+import Alert from '@/utils/alert';
 
 interface WarehousesScreenProps {
   navigation: any;
@@ -275,15 +274,9 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
           <Text style={styles.headerTitle}>Almacenes</Text>
           <Text style={styles.headerSubtitle}>🏪 {siteName}</Text>
         </View>
-        <ProtectedTouchableOpacity
-          onPress={() => setShowCreateModal(true)}
-          style={styles.addButton}
-          requiredPermissions={[PERMISSIONS.WAREHOUSES.CREATE]}
-          hideIfNoPermission={false}
-          fallback={<View style={styles.placeholder} />}
-        >
+        <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
           <Text style={styles.addButtonText}>+</Text>
-        </ProtectedTouchableOpacity>
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
@@ -332,7 +325,6 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
             icon: 'business-outline',
             label: 'Crear Almac\u00e9n',
             onPress: () => setShowCreateModal(true),
-            requiredPermissions: [PERMISSIONS.WAREHOUSES.CREATE],
           },
         ]}
       />
@@ -439,311 +431,312 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii['2xl'],
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: theme.color.text.muted,
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  placeholder: {
-    width: 40,
-    height: 40,
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii['2xl'],
-    backgroundColor: theme.color.brand.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 24,
-    color: theme.color.text.onAction,
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: theme.color.text.muted,
-  },
-  searchContainer: {
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  searchInput: {
-    backgroundColor: theme.color.background.subtle,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    borderRadius: theme.radii.xl,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    fontSize: 16,
-    color: theme.color.text.heading,
-  },
-  warehousesList: {
-    flex: 1,
-    paddingHorizontal: theme.space[5],
-  },
-  warehouseCard: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: theme.radii.xl,
-    padding: theme.space[4],
-    marginTop: theme.space[3],
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    shadowColor: theme.color.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  warehouseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.space[3],
-  },
-  warehouseIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.brand.accentSoft,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.space[3],
-  },
-  iconText: {
-    fontSize: 24,
-  },
-  warehouseInfo: {
-    flex: 1,
-  },
-  warehouseName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.color.text.heading,
-    marginBottom: theme.space[1],
-  },
-  warehouseCode: {
-    fontSize: 13,
-    color: theme.color.text.muted,
-    marginBottom: 2,
-  },
-  warehouseAreas: {
-    fontSize: 13,
-    color: theme.color.brand.accent,
-    fontWeight: '500',
-  },
-  warehouseActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.space[2],
-  },
-  areasButton: {
-    flex: 1,
-    backgroundColor: theme.color.brand.accent,
-    paddingVertical: theme.space[2],
-    paddingHorizontal: theme.space[3],
-    borderRadius: theme.radii.lg,
-    alignItems: 'center',
-  },
-  areasButtonText: {
-    color: theme.color.text.onAction,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  editButton: {
-    backgroundColor: theme.color.state.warning.border,
-    paddingVertical: theme.space[2],
-    paddingHorizontal: theme.space[3],
-    borderRadius: theme.radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editButtonText: {
-    fontSize: 16,
-  },
-  deleteButton: {
-    backgroundColor: theme.color.action.danger.background,
-    paddingVertical: theme.space[2],
-    paddingHorizontal: theme.space[3],
-    borderRadius: theme.radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteButtonText: {
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: theme.space[4],
-  },
-  emptyText: {
-    fontSize: 16,
-    color: theme.color.text.muted,
-    textAlign: 'center',
-    marginBottom: theme.space[2],
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: theme.color.text.placeholder,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  statsFooter: {
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderTopWidth: 1,
-    borderTopColor: theme.color.border.subtle,
-  },
-  statsText: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: theme.color.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: theme.color.surface.elevated,
-    borderRadius: theme.radii['2xl'],
-    padding: theme.space[6],
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: theme.space[5],
-    textAlign: 'center',
-  },
-  formGroup: {
-    marginBottom: theme.space[4],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-    marginBottom: theme.space[2],
-  },
-  input: {
-    backgroundColor: theme.color.background.subtle,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    borderRadius: theme.radii.lg,
-    paddingHorizontal: theme.space[3],
-    paddingVertical: 10,
-    fontSize: 16,
-    color: theme.color.text.heading,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: theme.space[6],
-    gap: theme.space[3],
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: theme.color.surface.muted,
-    paddingVertical: theme.space[3],
-    borderRadius: theme.radii.lg,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: theme.color.text.muted,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: theme.color.brand.accent,
-    paddingVertical: theme.space[3],
-    borderRadius: theme.radii.lg,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    color: theme.color.text.onAction,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  floatingButton: {
-    position: 'absolute',
-    right: theme.space[5],
-    bottom: 90,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.color.brand.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: theme.color.brand.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  floatingButtonIcon: {
-    fontSize: 32,
-    fontWeight: '600',
-    color: theme.color.text.onAction,
-    lineHeight: 32,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii['2xl'],
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    headerTitleContainer: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    placeholder: {
+      width: 40,
+      height: 40,
+    },
+    addButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii['2xl'],
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    addButtonText: {
+      fontSize: 24,
+      color: theme.color.text.onAction,
+      fontWeight: '600',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 10,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    searchContainer: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    searchInput: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    warehousesList: {
+      flex: 1,
+      paddingHorizontal: theme.space[5],
+    },
+    warehouseCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginTop: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    warehouseHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    warehouseIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.accentSoft,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    iconText: {
+      fontSize: 24,
+    },
+    warehouseInfo: {
+      flex: 1,
+    },
+    warehouseName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    warehouseCode: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: 2,
+    },
+    warehouseAreas: {
+      fontSize: 13,
+      color: theme.color.brand.accent,
+      fontWeight: '500',
+    },
+    warehouseActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: theme.space[2],
+    },
+    areasButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    areasButtonText: {
+      color: theme.color.text.onAction,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    editButton: {
+      backgroundColor: theme.color.state.warning.border,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    editButtonText: {
+      fontSize: 16,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.action.danger.background,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deleteButtonText: {
+      fontSize: 16,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: theme.space[4],
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginBottom: theme.space[2],
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.placeholder,
+      textAlign: 'center',
+      paddingHorizontal: 40,
+    },
+    statsFooter: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    statsText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.elevated,
+      borderRadius: theme.radii['2xl'],
+      padding: theme.space[6],
+      width: '90%',
+      maxWidth: 400,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[5],
+      textAlign: 'center',
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+    },
+    input: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 10,
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: theme.space[6],
+      gap: theme.space[3],
+    },
+    cancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      color: theme.color.text.muted,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    saveButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    saveButtonText: {
+      color: theme.color.text.onAction,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    floatingButton: {
+      position: 'absolute',
+      right: theme.space[5],
+      bottom: 90,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.brand.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    floatingButtonIcon: {
+      fontSize: 32,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+      lineHeight: 32,
+    },
+  });
 
 export default WarehousesScreen;
