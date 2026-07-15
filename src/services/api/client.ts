@@ -155,17 +155,13 @@ class ApiClient {
         }
 
         // Debug logging to verify headers
-        logger.api(
-          requestConfig.method?.toUpperCase() || 'GET',
-          requestConfig.url || '',
-          {
-            params: requestConfig.params,
-            isFormData,
-            hasAuth: !!requestConfig.headers.Authorization,
-            companyId: requestConfig.headers['X-Company-Id'] || 'None',
-            siteId: requestConfig.headers['X-Site-Id'] || 'None',
-          }
-        );
+        logger.api(requestConfig.method?.toUpperCase() || 'GET', requestConfig.url || '', {
+          params: requestConfig.params,
+          isFormData,
+          hasAuth: !!requestConfig.headers.Authorization,
+          companyId: requestConfig.headers['X-Company-Id'] || 'None',
+          siteId: requestConfig.headers['X-Site-Id'] || 'None',
+        });
 
         return requestConfig;
       },
@@ -193,15 +189,11 @@ class ApiClient {
         return response;
       },
       async (error) => {
-        logger.apiError(
-          error.config?.method?.toUpperCase() || 'UNKNOWN',
-          error.config?.url || '',
-          {
-            status: error.response?.status,
-            message: error.response?.data?.message || error.message,
-            hasAuth: !!error.config?.headers?.Authorization,
-          }
-        );
+        logger.apiError(error.config?.method?.toUpperCase() || 'UNKNOWN', error.config?.url || '', {
+          status: error.response?.status,
+          message: error.response?.data?.message || error.message,
+          hasAuth: !!error.config?.headers?.Authorization,
+        });
 
         // Enhanced debugging for 403 errors on /transfers endpoint
         if (error.response?.status === 403 && error.config?.url?.includes('/transfers')) {
@@ -350,17 +342,11 @@ class ApiClient {
    * This bypasses axios's Content-Type handling issues in React Native
    * Supports POST and PUT methods
    */
-  private async formDataWithFetch<T = any>(
-    url: string,
-    formData: FormData,
-    method: 'POST' | 'PUT' = 'POST',
-    requestConfig?: AxiosRequestConfig,
-    isOcrRequest: boolean = false
-  ): Promise<T> {
-    logger.debug(`🔍 [FETCH] formDataWithFetch called with method: ${method}`);
-    logger.debug('🔍 [FETCH] URL:', url);
-    logger.debug('🔍 [FETCH] isOcrRequest:', isOcrRequest);
-
+  /**
+   * Construye los headers para uploads de FormData (auth + tenant context).
+   * NO incluye Content-Type: lo setea automáticamente fetch/XHR con el boundary.
+   */
+  private buildFormDataHeaders(requestConfig?: AxiosRequestConfig): Record<string, string> {
     const authStore = useAuthStore.getState();
     const tenantStore = useTenantStore.getState();
     const { user, currentCompany, currentSite } = authStore;
@@ -368,7 +354,6 @@ class ApiClient {
 
     // Get the current token
     const currentToken = authService.getAccessToken() || authStore.token;
-    logger.debug('🔍 [FETCH] Token available:', !!currentToken);
 
     // Build headers
     const headers: Record<string, string> = {
@@ -381,9 +366,8 @@ class ApiClient {
     // Merge custom headers if provided (but filter out Content-Type for FormData)
     if (requestConfig?.headers) {
       Object.entries(requestConfig.headers).forEach(([key, value]) => {
-        // Skip Content-Type - fetch will set it automatically with proper boundary for FormData
+        // Skip Content-Type - will be set automatically with proper boundary for FormData
         if (key.toLowerCase() === 'content-type') {
-          logger.debug('⚠️ [FETCH] Skipping Content-Type header - will be set automatically for FormData');
           return;
         }
         if (value !== null && value !== undefined) {
@@ -403,8 +387,7 @@ class ApiClient {
     headers['x-app-id'] = appId;
 
     // Add version header
-    const appVersion = config.APP_VERSION;
-    headers['X-App-Version'] = appVersion;
+    headers['X-App-Version'] = config.APP_VERSION;
 
     const effectiveCompanyId =
       selectedCompany?.id || currentCompany?.id || this.tenantContext.companyId;
@@ -427,12 +410,30 @@ class ApiClient {
       headers['X-Warehouse-Id'] = effectiveWarehouseId;
     }
 
+    return headers;
+  }
+
+  private async formDataWithFetch<T = any>(
+    url: string,
+    formData: FormData,
+    method: 'POST' | 'PUT' = 'POST',
+    requestConfig?: AxiosRequestConfig,
+    isOcrRequest: boolean = false
+  ): Promise<T> {
+    logger.debug(`🔍 [FETCH] formDataWithFetch called with method: ${method}`);
+    logger.debug('🔍 [FETCH] URL:', url);
+    logger.debug('🔍 [FETCH] isOcrRequest:', isOcrRequest);
+
+    const headers = this.buildFormDataHeaders(requestConfig);
+
     // DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
     const fullUrl = `${this.client.defaults.baseURL}${url}`;
     logger.debug('🌐 [FETCH] Full URL:', fullUrl);
 
     if (isOcrRequest) {
-      logger.info('⏱️ [FETCH] OCR Request detected - Using unlimited timeout for document scanning');
+      logger.info(
+        '⏱️ [FETCH] OCR Request detected - Using unlimited timeout for document scanning'
+      );
     }
 
     try {
@@ -489,6 +490,120 @@ class ApiClient {
 
       throw error;
     }
+  }
+
+  /**
+   * Sube un FormData usando XMLHttpRequest para obtener progreso real de subida.
+   * `fetch` no expone progreso de upload, por eso para archivos grandes
+   * (APK/EXE de cientos de MB) usamos XHR y su evento `upload.onprogress`.
+   *
+   * El callback `onProgress` recibe un entero 0-100.
+   */
+  async uploadFormData<T = any>(
+    url: string,
+    formData: FormData,
+    onProgress?: (progress: number) => void,
+    method: 'POST' | 'PUT' = 'POST',
+    requestConfig?: AxiosRequestConfig
+  ): Promise<T> {
+    const headers = this.buildFormDataHeaders(requestConfig);
+    const fullUrl = `${this.client.defaults.baseURL}${url}`;
+
+    logger.debug('🚀 [XHR] uploadFormData:', { url: fullUrl, method });
+
+    return new Promise<T>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, fullUrl);
+
+      // No seteamos Content-Type: XHR lo arma con el boundary correcto para FormData
+      Object.entries(headers).forEach(([key, value]) => {
+        if (key.toLowerCase() === 'content-type') return;
+        try {
+          xhr.setRequestHeader(key, value);
+        } catch {
+          // Algunos headers son de solo lectura en ciertos entornos; ignorar
+        }
+      });
+
+      // Progreso real de subida (con logging throttled para diagnosticar estancamientos)
+      let lastLoggedPercent = -1;
+      const startedAt = Date.now();
+      if (xhr.upload) {
+        xhr.upload.onprogress = (event: ProgressEvent) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            if (onProgress) {
+              // Reservamos el 100% para cuando el servidor confirme la respuesta
+              onProgress(Math.min(99, percent));
+            }
+            // Log cada 5% para poder ver en consola si los bytes avanzan o se estancan
+            if (percent >= lastLoggedPercent + 5 || percent === 100) {
+              lastLoggedPercent = percent;
+              const loadedMb = (event.loaded / (1024 * 1024)).toFixed(2);
+              const totalMb = (event.total / (1024 * 1024)).toFixed(2);
+              const elapsedS = ((Date.now() - startedAt) / 1000).toFixed(1);
+              logger.debug(
+                `📤 [XHR] Upload ${percent}% — ${loadedMb}/${totalMb} MB (${elapsedS}s)`
+              );
+            }
+          }
+        };
+      }
+
+      const buildError = (message: string): any => {
+        const error: any = new Error(message);
+        let parsedData: any;
+        try {
+          parsedData = xhr.responseText ? JSON.parse(xhr.responseText) : undefined;
+        } catch {
+          parsedData = xhr.responseText;
+        }
+        error.response = { status: xhr.status, data: parsedData };
+        return error;
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          if (onProgress) onProgress(100);
+          let result: any;
+          try {
+            result = xhr.responseText ? JSON.parse(xhr.responseText) : undefined;
+          } catch {
+            result = xhr.responseText;
+          }
+          resolve(result as T);
+        } else {
+          let serverMsg =
+            (() => {
+              try {
+                return JSON.parse(xhr.responseText)?.message;
+              } catch {
+                return undefined;
+              }
+            })() || `HTTP ${xhr.status}`;
+          // 413: el archivo excede el límite de tamaño del servidor/proxy
+          if (xhr.status === 413) {
+            serverMsg =
+              'El archivo supera el límite de tamaño permitido por el servidor. ' +
+              'Aumenta el límite de subida en el backend/proxy (nginx client_max_body_size o el proxy/CDN).';
+          }
+          logger.error('❌ [XHR] Upload failed:', { status: xhr.status, message: serverMsg });
+          reject(buildError(serverMsg));
+        }
+      };
+
+      xhr.onerror = () => {
+        logger.error('❌ [XHR] Network error during upload');
+        reject(buildError('Error de red durante la subida del archivo'));
+      };
+
+      xhr.ontimeout = () => {
+        logger.error('❌ [XHR] Upload timed out');
+        reject(buildError('La subida del archivo superó el tiempo límite'));
+      };
+
+      xhr.send(formData);
+    });
   }
 
   async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {

@@ -108,8 +108,7 @@ export interface ReadOptions {
 const ADMIN_PREFIX = '/app-updates';
 const POS_PREFIX = '/pos/app-updates';
 
-const readPrefix = (opts?: ReadOptions): string =>
-  opts?.usePosMirror ? POS_PREFIX : ADMIN_PREFIX;
+const readPrefix = (opts?: ReadOptions): string => (opts?.usePosMirror ? POS_PREFIX : ADMIN_PREFIX);
 
 // ============================================
 // API SERVICE
@@ -217,14 +216,15 @@ export const appUpdatesApi = {
       } as any);
     }
 
-    if (onProgress) onProgress(10);
+    if (onProgress) onProgress(0);
 
     try {
-      if (onProgress) onProgress(30);
-
-      const response = await apiClient.post<AppRelease>(
+      // Usamos XHR (vía uploadFormData) para reportar progreso real de subida.
+      // `fetch` no expone progreso, por eso la barra antes se quedaba fija.
+      const response = await apiClient.uploadFormData<AppRelease>(
         `${ADMIN_PREFIX}/releases/${appId}/${platform}/${version}/upload`,
-        formData
+        formData,
+        onProgress
       );
 
       if (onProgress) onProgress(100);

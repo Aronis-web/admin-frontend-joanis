@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { Loader } from '@/components/common/Loader';
 import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
+import { AlertHost } from '@/components/common/AlertHost';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { ThemeProvider, FloatingFooterProvider, useThemeValue } from '@/design-system';
 // Sentry has been removed - import commented out
@@ -107,6 +108,7 @@ export const App = () => {
               ) : (
                 <Navigation />
               )}
+              <AlertHost />
             </FloatingFooterProvider>
           </SafeAreaProvider>
         </QueryProvider>

@@ -264,6 +264,12 @@ export interface Sale {
   paymentMethods?: SalePaymentMethodSummary[];
   paymentsCount?: number;
 
+  // Document info (from generated document, if any)
+  documentNumber?: string;
+  documentTypeCode?: string;
+  documentStatus?: string;
+  documentSunatStatus?: string;
+
   // Processing flags
   isStockValidated: boolean;
   isStockUpdated: boolean;

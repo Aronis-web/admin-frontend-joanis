@@ -543,14 +543,13 @@ export interface StockMovementFilters {
 }
 
 // Response interfaces
+// Wrapper de paginación devuelto por GET /transfers: { data, total, page, limit }
+// totalPages se calcula en el cliente como Math.ceil(total / limit)
 export interface TransferListResponse {
   data: Transfer[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface ReceptionListResponse {

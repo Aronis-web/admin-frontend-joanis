@@ -79,6 +79,8 @@ export const PERMISSIONS = {
     PRODUCTS_DELETE: 'purchases.products.delete',
     DEBT_ASSIGN: 'purchases.debt.assign',
     OCR_SCAN: 'purchases.ocr.scan',
+    REPORTS_DOWNLOAD: 'purchases.reports.download',
+    REPORTS_MULTI_DOWNLOAD: 'purchases.reports.multi.download',
   },
 
   // ========== PROVEEDORES ==========
@@ -387,6 +389,12 @@ export const PERMISSIONS = {
     HOLDINGS: {
       READ: 'admin.holdings.read',
       DEPOSIT: 'admin.holdings.deposit',
+    },
+
+    EXTERNAL_SALES: {
+      SYNC: 'admin.external_sales.sync',
+      SOURCES_WRITE: 'admin.external_sales.sources.write',
+      RUNS_READ: 'admin.external_sales.runs.read',
     },
   },
 

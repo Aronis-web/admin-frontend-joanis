@@ -26,6 +26,19 @@ export * from './repartos';
 export * from './transport';
 export * from './users';
 export { salesApi } from './sales';
+export { externalSalesApi } from './external-sales';
+export type {
+  ExternalSalesInvoiceType,
+  ExternalSalesRunStatus,
+  ExternalSalesPerSiteResult,
+  ExternalSalesRun,
+  ExternalSalesSource,
+  ExternalSalesSyncBody,
+  ExternalSalesSyncResponse,
+  ExternalSalesActiveResponse,
+  ExternalSalesRunsList,
+  UpsertExternalSalesSourceDto,
+} from './external-sales';
 export { posSessionsApi } from './pos-sessions';
 export { photoCampaignsApi } from './photo-campaigns';
 export type {
@@ -60,7 +73,7 @@ export type {
   AssignUserRoleDto,
   UpdateUserRoleDto,
   ScopesResponse,
-  PermissionsResponse as AppsPermissionsResponse
+  PermissionsResponse as AppsPermissionsResponse,
 } from './apps';
 
 // Export scopes API (avoid conflicts with apps)
@@ -71,7 +84,12 @@ export * from './price-profiles';
 
 // Export presentations API (avoid Presentation conflict with products)
 export { presentationsApi } from './presentations';
-export type { PresentationsResponse, CreatePresentationDto, UpdatePresentationDto, GetPresentationsParams } from './presentations';
+export type {
+  PresentationsResponse,
+  CreatePresentationDto,
+  UpdatePresentationDto,
+  GetPresentationsParams,
+} from './presentations';
 
 export * from './billing';
 export * from './bizlinks';
@@ -97,10 +115,7 @@ export type {
 } from './locations';
 
 export { geminiImageEditorApi } from './gemini-image-editor';
-export type {
-  GeminiEditImageRequest,
-  GeminiEditImageResponse,
-} from './gemini-image-editor';
+export type { GeminiEditImageRequest, GeminiEditImageResponse } from './gemini-image-editor';
 
 export { accountsPayableService } from './accounts-payable';
 export type {

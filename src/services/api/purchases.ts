@@ -535,7 +535,48 @@ class PurchasesService {
     const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
     return downloadWithAuth(url, { method: 'GET' });
   }
+
+  /**
+   * Download multi-purchase report XLSX
+   * Permission required: purchases.reports.multi.download
+   */
+  async downloadMultiPurchaseReportXlsx(filters: PurchasesMultiReportDto): Promise<Blob> {
+    const timestamp = new Date().getTime();
+    const url = `${config.API_URL}${this.basePath}/report/multi/xlsx?t=${timestamp}`;
+
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+    return downloadWithAuth(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(filters),
+    });
+  }
 }
+
+/**
+ * Body params para el reporte multi-compra (xlsx)
+ */
+export type PurchasesMultiReportDto = {
+  // Modo A: lista de compras (>=1 ignora rango de fechas)
+  purchaseIds?: string[];
+
+  // Modo B: rango de fechas
+  startDate?: string;
+  endDate?: string;
+  dateField?: 'guideDate' | 'createdAt';
+
+  // Filtros opcionales
+  supplierId?: string;
+  productId?: string;
+  sku?: string;
+  siteId?: string;
+  companyId?: string;
+
+  // Estados de productos a incluir
+  includeStatuses?: Array<'PRELIMINARY' | 'IN_VALIDATION' | 'VALIDATED' | 'REJECTED' | 'CLOSED'>;
+};
 
 // Export service instance
 export const purchasesService = new PurchasesService();
