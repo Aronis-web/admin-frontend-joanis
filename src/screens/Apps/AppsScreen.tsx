@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   ActivityIndicator,
   useWindowDimensions,
@@ -27,6 +26,7 @@ import { PermissionsManagementModal } from '@/components/apps/PermissionsManagem
 import { UsersManagementModal } from '@/components/apps/UsersManagementModal';
 import { BottomNavigation } from '@/components/Navigation/BottomNavigation';
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
+import Alert from '@/utils/alert';
 
 interface AppsScreenProps {
   navigation: any;

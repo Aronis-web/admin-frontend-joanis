@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   TextInput,
@@ -36,6 +35,7 @@ import { TransmisionProductsList } from '@/components/Transmisiones/TransmisionP
 import { AddProductModal } from '@/components/Transmisiones/AddProductModal';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface TransmisionDetailScreenProps {
   navigation: any;

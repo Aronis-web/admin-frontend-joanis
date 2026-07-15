@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -25,6 +24,7 @@ import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface TransmisionesScreenProps {
   navigation: any;

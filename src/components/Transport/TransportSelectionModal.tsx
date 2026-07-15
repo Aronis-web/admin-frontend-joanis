@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   TextInput,
@@ -30,6 +29,7 @@ import {
   TransporterDocumentType,
 } from '@/types/transport';
 import { transportService } from '@/services/api';
+import Alert from '@/utils/alert';
 
 interface TransportSelectionModalProps {
   visible: boolean;
@@ -994,10 +994,6 @@ const createStyles = (theme: Theme) =>
       marginBottom: theme.space[4],
     },
   });
-
-
-
-
 
 
 

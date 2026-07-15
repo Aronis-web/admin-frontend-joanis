@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   TextInput,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { appPermissionsApi, AppPermission } from '@/services/api/apps';
 import { permissionsApi, Permission } from '@/services/api/roles';
+import Alert from '@/utils/alert';
 
 interface PermissionsManagementModalProps {
   visible: boolean;

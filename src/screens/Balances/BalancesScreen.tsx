@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -31,6 +30,7 @@ import { MAIN_ROUTES } from '@/constants/routes';
 import { BalanceOperationsModal } from '@/components/Balances/BalanceOperationsModal';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface BalancesScreenProps {
   navigation: any;

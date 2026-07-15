@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
@@ -23,6 +22,7 @@ import { PositionDetailModal } from '@/components/Organization';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 export const OrganizationChartScreen: React.FC = () => {
   const insets = useSafeAreaInsets();

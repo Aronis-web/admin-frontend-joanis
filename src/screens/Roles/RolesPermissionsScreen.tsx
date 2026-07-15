@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Modal,
   ActivityIndicator,
   Switch,
@@ -25,6 +24,7 @@ import {
 } from '@/services/api/roles';
 import { ProtectedRoute, ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { usePermissions } from '@/hooks/usePermissions';
+import Alert from '@/utils/alert';
 
 import { useAuthStore } from '@/store/auth';
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';

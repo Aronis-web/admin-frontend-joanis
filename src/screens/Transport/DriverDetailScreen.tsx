@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   TextInput,
   ActivityIndicator,
   Switch,
@@ -24,6 +23,7 @@ import {
   DocumentType,
   DriverStatus,
 } from '@/types/transport';
+import Alert from '@/utils/alert';
 
 export const DriverDetailScreen = ({ navigation, route }: any) => {
   const theme = useTheme();

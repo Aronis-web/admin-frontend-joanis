@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { emissionPointsApi, DocumentSeries } from '@/services/api/emission-point
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
+import Alert from '@/utils/alert';
 
 interface EmissionPointSeriesScreenProps {
   navigation: any;

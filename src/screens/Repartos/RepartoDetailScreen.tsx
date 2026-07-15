@@ -2,6 +2,8 @@
  * RepartoDetailScreen - Detalle de un reparto
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -9,7 +11,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
@@ -95,18 +96,18 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   const loadReparto = useCallback(async () => {
     try {
       const data = await repartosService.getReparto(repartoId);
-      console.log('ðŸ“¦ Reparto cargado:', JSON.stringify(data, null, 2));
-      console.log('ðŸ‘¥ Participantes:', data.participantes?.length);
+      console.log('📦 Reparto cargado:', JSON.stringify(data, null, 2));
+      console.log('👥 Participantes:', data.participantes?.length);
       if (data.participantes && data.participantes.length > 0) {
-        console.log('ðŸ” Primer participante:', JSON.stringify(data.participantes[0], null, 2));
+        console.log('🔍 Primer participante:', JSON.stringify(data.participantes[0], null, 2));
         if (data.participantes[0].productos) {
           console.log(
-            'ðŸ“¦ Productos del primer participante:',
+            '📦 Productos del primer participante:',
             data.participantes[0].productos.length
           );
           if (data.participantes[0].productos.length > 0) {
             console.log(
-              'ðŸ” Primer producto:',
+              '🔍 Primer producto:',
               JSON.stringify(data.participantes[0].productos[0], null, 2)
             );
           }
@@ -114,9 +115,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       }
       setReparto(data);
 
-      console.log('ðŸš€ INICIANDO CARGA DE FOTOS DE PRODUCTOS (RepartoDetailScreen)...');
+      console.log('🚀 INICIANDO CARGA DE FOTOS DE PRODUCTOS (RepartoDetailScreen)...');
 
-      // âœ… Cargar fotos de productos usando batch endpoint
+      // ✅ Cargar fotos de productos usando batch endpoint
       try {
         const productIds = new Set<string>();
         data.participantes?.forEach((participante) => {
@@ -127,49 +128,49 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           });
         });
 
-        console.log(`ðŸ“¸ Total productos Ãºnicos: ${productIds.size}`);
-        console.log(`ðŸ“¸ Product IDs:`, Array.from(productIds));
+        console.log(`📸 Total productos únicos: ${productIds.size}`);
+        console.log(`📸 Product IDs:`, Array.from(productIds));
         if (productIds.size > 0) {
-          console.log(`ðŸ“¸ Llamando a batch endpoint con includePhotos=true...`);
+          console.log(`📸 Llamando a batch endpoint con includePhotos=true...`);
           const batchResponse = await productsApi.getProductsByIds(Array.from(productIds), true);
-          console.log(`ðŸ“¸ Batch response recibido:`, batchResponse);
-          console.log(`ðŸ“¸ Total productos en respuesta: ${batchResponse.products?.length || 0}`);
+          console.log(`📸 Batch response recibido:`, batchResponse);
+          console.log(`📸 Total productos en respuesta: ${batchResponse.products?.length || 0}`);
           const photosMap: Record<string, string[]> = {};
           batchResponse.products.forEach((product: Product) => {
-            // âœ… El backend puede devolver 'photos' o 'photoUrls'
+            // ✅ El backend puede devolver 'photos' o 'photoUrls'
             const productPhotos = (product as any).photos || (product as any).photoUrls || [];
-            console.log(`ðŸ“¸ Procesando producto ${product.id}: ${productPhotos.length} fotos`);
-            console.log(`ðŸ“¸   - product.photos:`, (product as any).photos);
-            console.log(`ðŸ“¸   - product.photoUrls:`, (product as any).photoUrls);
+            console.log(`📸 Procesando producto ${product.id}: ${productPhotos.length} fotos`);
+            console.log(`📸   - product.photos:`, (product as any).photos);
+            console.log(`📸   - product.photoUrls:`, (product as any).photoUrls);
             if (productPhotos.length > 0) {
               photosMap[product.id] = productPhotos;
-              console.log(`ðŸ“¸ Fotos guardadas para ${product.id}:`, productPhotos);
+              console.log(`📸 Fotos guardadas para ${product.id}:`, productPhotos);
             }
           });
-          console.log(`âœ… PhotosMap final:`, photosMap);
-          console.log(`âœ… Total productos con fotos: ${Object.keys(photosMap).length}`);
-          console.log(`âœ… Llamando a setProductPhotos con:`, photosMap);
+          console.log(`✅ PhotosMap final:`, photosMap);
+          console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
+          console.log(`✅ Llamando a setProductPhotos con:`, photosMap);
           setProductPhotos(photosMap);
           console.log(
-            `âœ… setProductPhotos llamado (el estado se actualizarÃ¡ en el prÃ³ximo render)`
+            `✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`
           );
         } else {
-          console.log('âš ï¸ No hay productos para cargar fotos');
+          console.log('⚠️ No hay productos para cargar fotos');
         }
       } catch (error: any) {
-        console.error('âŒ Error cargando fotos de productos:', error);
-        console.error('âŒ Error stack:', error.stack);
-        // No bloquear la carga si falla la obtenciÃ³n de fotos
+        console.error('❌ Error cargando fotos de productos:', error);
+        console.error('❌ Error stack:', error.stack);
+        // No bloquear la carga si falla la obtención de fotos
       }
 
-      console.log('âœ… LOADREPARTO COMPLETADO EXITOSAMENTE');
+      console.log('✅ LOADREPARTO COMPLETADO EXITOSAMENTE');
     } catch (error: any) {
-      console.error('âŒ ERROR EN LOADREPARTO:', error);
+      console.error('❌ ERROR EN LOADREPARTO:', error);
       console.error('Error loading reparto:', error);
       Alert.alert('Error', 'No se pudo cargar el reparto');
       navigation.goBack();
     } finally {
-      console.log('ðŸ FINALLY BLOCK - Finalizando loadReparto');
+      console.log('🏁 FINALLY BLOCK - Finalizando loadReparto');
       setLoading(false);
       setRefreshing(false);
     }
@@ -181,9 +182,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     }, [loadReparto])
   );
 
-  // ðŸ” Monitor productPhotos state changes
+  // 🔍 Monitor productPhotos state changes
   React.useEffect(() => {
-    console.log('ðŸ”„ productPhotos state cambiÃ³ (RepartoDetailScreen):', {
+    console.log('🔄 productPhotos state cambió (RepartoDetailScreen):', {
       totalProductos: Object.keys(productPhotos).length,
       productIds: Object.keys(productPhotos),
       photosMap: productPhotos,
@@ -202,17 +203,17 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
     Alert.alert(
       'Cancelar Reparto',
-      'Â¿EstÃ¡s seguro de cancelar este reparto? Se liberarÃ¡n todas las reservas de stock.',
+      '¿Estás seguro de cancelar este reparto? Se liberarán todas las reservas de stock.',
       [
         { text: 'No', style: 'cancel' },
         {
-          text: 'SÃ­, Cancelar',
+          text: 'Sí, Cancelar',
           style: 'destructive',
           onPress: async () => {
             setActionLoading(true);
             try {
               await repartosService.cancelReparto(repartoId);
-              Alert.alert('Ã‰xito', 'Reparto cancelado exitosamente');
+              Alert.alert('Éxito', 'Reparto cancelado exitosamente');
               loadReparto();
             } catch (error: any) {
               Alert.alert(
@@ -229,7 +230,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   };
 
   const handleValidateProduct = (producto: any) => {
-    // âœ… Agregar fotos del producto al objeto
+    // ✅ Agregar fotos del producto al objeto
     const productoWithPhotos = {
       ...producto,
       product: {
@@ -242,7 +243,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   };
 
   const handleViewValidation = (producto: any) => {
-    // âœ… Agregar fotos del producto al objeto
+    // ✅ Agregar fotos del producto al objeto
     const productoWithPhotos = {
       ...producto,
       product: {
@@ -266,18 +267,18 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
     setActionLoading(true);
     try {
-      // âœ… El modal ya subiÃ³ las fotos al servidor, aquÃ­ solo enviamos la validaciÃ³n
-      logger.info('ðŸ“¤ Enviando validaciÃ³n al servidor con URLs ya subidas...');
+      // ✅ El modal ya subió las fotos al servidor, aquí solo enviamos la validación
+      logger.info('📤 Enviando validación al servidor con URLs ya subidas...');
 
       await repartosService.validarSalida(selectedProducto.id, {
         validatedQuantityBase: data.validatedQuantityBase,
-        photoUrl: data.photoUrl, // âœ… Ya es URL del servidor
-        signatureUrl: data.signatureUrl, // âœ… Ya es URL del servidor
+        photoUrl: data.photoUrl, // ✅ Ya es URL del servidor
+        signatureUrl: data.signatureUrl, // ✅ Ya es URL del servidor
         validatedByName: user?.name || user?.email || 'Usuario',
         notes: data.notes,
       });
 
-      Alert.alert('Ã‰xito', 'Salida validada exitosamente');
+      Alert.alert('Éxito', 'Salida validada exitosamente');
       setValidationModalVisible(false);
       setSelectedProducto(null);
       loadReparto();
@@ -297,7 +298,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
   const handleDownloadValidationReport = async (format: 'pdf' | 'excel') => {
     if (!selectedParticipant || !reparto?.campaign?.id) {
-      Alert.alert('Error', 'No se encontrÃ³ la informaciÃ³n necesaria');
+      Alert.alert('Error', 'No se encontró la información necesaria');
       return;
     }
 
@@ -305,7 +306,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     setFormatModalVisible(false);
 
     try {
-      logger.info(`ðŸ“¥ Descargando reporte de validaciÃ³n en formato ${format.toUpperCase()}...`);
+      logger.info(`📥 Descargando reporte de validación en formato ${format.toUpperCase()}...`);
       const blob = await repartosService.exportValidationReport(
         selectedParticipant.id,
         reparto.campaign.id,
@@ -323,10 +324,10 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      Alert.alert('Ã‰xito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
+      Alert.alert('Éxito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
     } catch (error: any) {
       logger.error('Error descargando reporte:', error);
-      Alert.alert('Error', error.message || 'No se pudo descargar el reporte de validaciÃ³n');
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte de validación');
     } finally {
       setActionLoading(false);
       setSelectedParticipant(null);
@@ -431,11 +432,11 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         {/* Reparto Info */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            InformaciÃ³n General
+            Información General
           </Text>
 
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>CÃ³digo:</Text>
+            <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Código:</Text>
             <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
               {reparto.code}
             </Text>
@@ -450,7 +451,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
 
           {reparto.campaign && (
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>CampaÃ±a:</Text>
+              <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Campaña:</Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {reparto.campaign.code} - {reparto.campaign.name}
               </Text>
@@ -460,7 +461,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           {reparto.description && (
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                DescripciÃ³n:
+                Descripción:
               </Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {reparto.description}
@@ -522,7 +523,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         {/* Statistics */}
         <View style={[styles.section, isTablet && styles.sectionTablet]}>
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-            EstadÃ­sticas
+            Estadísticas
           </Text>
 
           <View style={styles.statsGrid}>
@@ -627,7 +628,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                   return 1;
                 }
 
-                // Ordenar alfabÃ©ticamente dentro de cada grupo
+                // Ordenar alfabéticamente dentro de cada grupo
                 const nameA =
                   typeA === 'EXTERNAL_COMPANY'
                     ? a.campaignParticipant?.company?.name || ''
@@ -659,12 +660,12 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                       )
                     : 0;
 
-                // Debug: Log para verificar condiciones del botÃ³n
-                console.log('ðŸ” Participante:', participantName);
-                console.log('ðŸ“Š Progreso:', progressPercentageParticipante);
-                console.log('ðŸ†” Campaign Participant ID:', participante.campaignParticipant?.id);
+                // Debug: Log para verificar condiciones del botón
+                console.log('🔍 Participante:', participantName);
+                console.log('📊 Progreso:', progressPercentageParticipante);
+                console.log('🆔 Campaign Participant ID:', participante.campaignParticipant?.id);
                 console.log(
-                  'âœ… Mostrar botÃ³n:',
+                  '✅ Mostrar botón:',
                   progressPercentageParticipante === 100 && !!participante.campaignParticipant?.id
                 );
 
@@ -726,7 +727,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                           }
                           disabled={actionLoading}
                         >
-                          <Text style={styles.downloadReportButtonText}>ðŸ“Š Totales venta</Text>
+                          <Text style={styles.downloadReportButtonText}>📊 Totales venta</Text>
                         </TouchableOpacity>
                       )}
 
@@ -738,7 +739,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                           Productos ({participante.productos.length})
                         </Text>
 
-                        {/* Filtro de validaciÃ³n */}
+                        {/* Filtro de validación */}
                         <View
                           style={[styles.filterContainer, isTablet && styles.filterContainerTablet]}
                         >
@@ -775,7 +776,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                 validationFilter === 'validated' && styles.filterButtonTextActive,
                               ]}
                             >
-                              âœ… Validados (
+                              ✅ Validados (
                               {
                                 participante.productos.filter(
                                   (p) =>
@@ -800,7 +801,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                 validationFilter === 'pending' && styles.filterButtonTextActive,
                               ]}
                             >
-                              â³ Pendientes (
+                              ⏳ Pendientes (
                               {
                                 participante.productos.filter(
                                   (p) =>
@@ -815,7 +816,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                         {participante.productos
                           .slice()
                           .filter((producto) => {
-                            // Filtrar por estado de validaciÃ³n
+                            // Filtrar por estado de validación
                             if (validationFilter === 'validated') {
                               return (
                                 producto.validationStatus ===
@@ -836,14 +837,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                             return correlativeA - correlativeB;
                           })
                           .map((producto) => {
-                            // âœ… SOLO mostrar por presentaciÃ³n si la VALIDACIÃ“N fue por presentaciÃ³n
+                            // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
                             const validacionAny = producto.validacion as any;
                             const wasValidatedByPresentation =
                               producto.validationStatus ===
                                 RepartoProductoValidationStatus.VALIDATED &&
                               validacionAny?.presentationInfo?.roundingApplied === true;
 
-                            // Calcular cantidades en presentaciÃ³n SOLO si fue validado por presentaciÃ³n
+                            // Calcular cantidades en presentación SOLO si fue validado por presentación
                             let quantityInPresentation = 0;
                             let validatedInPresentation = 0;
                             let presentationName = '';
@@ -971,7 +972,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                       onPress={() => handleViewValidation(producto)}
                                     >
                                       <Text style={styles.viewValidationButtonText}>
-                                        Ver ValidaciÃ³n
+                                        Ver Validación
                                       </Text>
                                     </TouchableOpacity>
                                   )}
@@ -1007,7 +1008,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         {/* Header */}
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>â† Volver</Text>
+            <Text style={styles.backButtonText}>← Volver</Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={[styles.title, isTablet && styles.titleTablet]}>{reparto?.code}</Text>
@@ -1079,7 +1080,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                   onPress={() => handleDownloadValidationReport('pdf')}
                   disabled={actionLoading}
                 >
-                  <Text style={styles.formatButtonIcon}>ðŸ“„</Text>
+                  <Text style={styles.formatButtonIcon}>📄</Text>
                   <Text style={styles.formatButtonTitle}>PDF</Text>
                   <Text style={styles.formatButtonDescription}>Incluye fotos y firmas</Text>
                 </TouchableOpacity>
@@ -1089,7 +1090,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                   onPress={() => handleDownloadValidationReport('excel')}
                   disabled={actionLoading}
                 >
-                  <Text style={styles.formatButtonIcon}>ðŸ“Š</Text>
+                  <Text style={styles.formatButtonIcon}>📊</Text>
                   <Text style={styles.formatButtonTitle}>Excel</Text>
                   <Text style={styles.formatButtonDescription}>Datos tabulados</Text>
                 </TouchableOpacity>

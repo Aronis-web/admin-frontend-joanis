@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Switch,
 } from 'react-native';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -23,6 +22,7 @@ import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { Warehouse } from '@/types/warehouses';
 import { WarehouseArea } from '@/types/warehouses';
+import Alert from '@/utils/alert';
 
 interface UserScopesModalProps {
   visible: boolean;

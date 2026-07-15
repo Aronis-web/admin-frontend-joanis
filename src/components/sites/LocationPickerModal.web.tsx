@@ -6,10 +6,10 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from 'react-native';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface LocationData {
   latitude: number;

@@ -4,7 +4,6 @@ import {
   StyleSheet,
   Modal,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Platform,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { inventoryApi } from '@/services/api/inventory';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { getDocumentAsync } from '@/utils/filePicker';
+import Alert from '@/utils/alert';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';

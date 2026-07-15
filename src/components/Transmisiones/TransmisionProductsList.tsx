@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   Image,
@@ -26,6 +25,7 @@ import {
 } from '@/types/transmisiones';
 import { QuickEditModal } from '@/components/Transmisiones/QuickEditModal';
 import { ProductBannerModal } from '@/components/Transmisiones/ProductBannerModal';
+import Alert from '@/utils/alert';
 
 interface TransmisionProductsListProps {
   transmisionId: string;

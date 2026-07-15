@@ -5,6 +5,8 @@
  * Rediseñada con el sistema de diseño global.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -13,7 +15,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   Modal,
   TextInput,

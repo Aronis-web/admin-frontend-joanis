@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Switch,
   useWindowDimensions,
@@ -23,6 +22,7 @@ import logger from '@/utils/logger';
 import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
+import Alert from '@/utils/alert';
 
 interface CreateCashRegisterScreenProps {
   navigation: any;

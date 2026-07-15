@@ -2,13 +2,14 @@
  * CreatePurchaseScreen - Crear Nueva Compra
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';

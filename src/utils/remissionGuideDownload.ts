@@ -1,7 +1,7 @@
-import { Alert } from 'react-native';
 import { RemissionGuide } from '@/types/transfers';
 import { transfersApi } from '@/services/api/transfers';
 import { saveAndSharePdf } from '@/utils/fileDownload';
+import Alert from '@/utils/alert';
 
 const sanitizeFileName = (value: string) => value.replace(/[\\/:*?"<>|]/g, '-').trim();
 

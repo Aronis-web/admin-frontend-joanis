@@ -6,8 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
-
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getDocumentAsync, DocumentPickerAsset } from '@/utils/filePicker';
@@ -16,6 +14,7 @@ import { useAuthStore } from '@/store/auth';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { saveAndShareExcel } from '@/utils/fileDownload';
+import Alert from '@/utils/alert';
 
 interface ExpenseBulkUploadModalProps {
   visible: boolean;

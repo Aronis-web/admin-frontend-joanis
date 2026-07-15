@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useTheme, useThemedStyles } from '@/design-system/themes';
+import {
+  useTheme,
+  useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import {
   View,
@@ -8,7 +10,6 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Platform,
   Keyboard,
   TextInput,
@@ -18,6 +19,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import Alert from '@/utils/alert';
 
 interface LocationData {
   latitude: number;

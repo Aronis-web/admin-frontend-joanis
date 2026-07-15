@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   TextInput,
   useWindowDimensions,
@@ -26,6 +25,7 @@ import {
   getDocumentAsync,
   MediaTypeOptions
 } from '@/utils/filePicker';
+import Alert from '@/utils/alert';
 
 interface OcrScannedItem {
   sku: string;

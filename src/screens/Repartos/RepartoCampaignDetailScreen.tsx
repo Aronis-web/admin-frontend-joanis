@@ -1,7 +1,9 @@
 ﻿/**
- * RepartoCampaignDetailScreen - Detalle de campaÃ±a de repartos
+ * RepartoCampaignDetailScreen - Detalle de campaña de repartos
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
@@ -10,7 +12,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   Linking,
@@ -89,7 +90,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     try {
       setLoading(true);
 
-      // Cargar campaÃ±a, participantes y progreso en paralelo
+      // Cargar campaña, participantes y progreso en paralelo
       const [campaignData, participantsData, campaignProgressData] = await Promise.all([
         campaignsService.getCampaign(campaignId),
         campaignsService.getParticipants(campaignId),
@@ -122,7 +123,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       );
     } catch (error: any) {
       logger.error('Error loading campaign data:', error);
-      Alert.alert('Error', 'No se pudo cargar la informaciÃ³n de la campaÃ±a');
+      Alert.alert('Error', 'No se pudo cargar la información de la campaña');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -171,18 +172,18 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       // Convert map to array
       const uniqueProducts = Array.from(productMap.values());
 
-      // Cargar informaciÃ³n de descargas desde el almacenamiento local
+      // Cargar información de descargas desde el almacenamiento local
       const downloadInfo = await downloadTracker.getCampaignDownloads(campaignId);
       logger.info(
-        `ðŸ“Š InformaciÃ³n de descargas cargada: ${downloadInfo.size} productos con historial`
+        `📊 Información de descargas cargada: ${downloadInfo.size} productos con historial`
       );
 
-      // Combinar productos con informaciÃ³n de descargas
+      // Combinar productos con información de descargas
       const productsWithDownloadInfo = uniqueProducts.map((producto) => {
         const downloadRecord = downloadInfo.get(producto.productId);
         if (downloadRecord) {
           logger.info(
-            `âœ… Producto ${producto.product?.title || producto.productId}: ${downloadRecord.downloadCount} descargas`
+            `✅ Producto ${producto.product?.title || producto.productId}: ${downloadRecord.downloadCount} descargas`
           );
         }
         return {
@@ -192,7 +193,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         };
       });
 
-      logger.info(`ðŸ“¦ Total productos con info de descarga: ${productsWithDownloadInfo.length}`);
+      logger.info(`📦 Total productos con info de descarga: ${productsWithDownloadInfo.length}`);
 
       // Sort products by area name (ascending)
       const sortedProducts = productsWithDownloadInfo.sort((a, b) => {
@@ -249,19 +250,19 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       // Register download for tracking purposes (local storage)
       try {
         logger.info(
-          `ðŸ“ Registrando descarga de ${selectedProductsForExport.length} productos para campaÃ±a ${campaignId}`
+          `📝 Registrando descarga de ${selectedProductsForExport.length} productos para campaña ${campaignId}`
         );
-        logger.info(`ðŸ“‹ Productos: ${selectedProductsForExport.join(', ')}`);
+        logger.info(`📋 Productos: ${selectedProductsForExport.join(', ')}`);
         await downloadTracker.registerDownloads(campaignId, selectedProductsForExport);
-        logger.info('âœ… Descarga registrada localmente para seguimiento');
+        logger.info('✅ Descarga registrada localmente para seguimiento');
 
-        // Verificar que se guardÃ³ correctamente
+        // Verificar que se guardó correctamente
         const downloadInfo = await downloadTracker.getCampaignDownloads(campaignId);
         logger.info(
-          `ðŸ” VerificaciÃ³n: ${downloadInfo.size} productos con historial despuÃ©s del registro`
+          `🔍 Verificación: ${downloadInfo.size} productos con historial después del registro`
         );
       } catch (error) {
-        logger.warn('âš ï¸ No se pudo registrar la descarga:', error);
+        logger.warn('⚠️ No se pudo registrar la descarga:', error);
         // Don't fail the download if tracking fails
       }
 
@@ -278,8 +279,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
 
       if (Platform.OS === 'web') {
         Alert.alert(
-          'Ã‰xito',
-          `Las hojas de reparto en ${format.toUpperCase()} se estÃ¡n descargando`
+          'Éxito',
+          `Las hojas de reparto en ${format.toUpperCase()} se están descargando`
         );
       }
     } catch (error: any) {
@@ -298,7 +299,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
 
   const handleDownloadValidationReport = async (format: 'pdf' | 'excel') => {
     if (!selectedParticipant) {
-      Alert.alert('Error', 'No se encontrÃ³ la informaciÃ³n del participante');
+      Alert.alert('Error', 'No se encontró la información del participante');
       return;
     }
 
@@ -306,7 +307,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     setDownloadingParticipantId(selectedParticipant.id);
 
     try {
-      logger.info(`ðŸ“¥ Descargando reporte de validaciÃ³n en formato ${format.toUpperCase()}...`);
+      logger.info(`📥 Descargando reporte de validación en formato ${format.toUpperCase()}...`);
       const blob = await repartosService.exportValidationReport(
         selectedParticipant.id,
         campaignId,
@@ -331,11 +332,11 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       });
 
       if (Platform.OS === 'web') {
-        Alert.alert('Ã‰xito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
+        Alert.alert('Éxito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
       }
     } catch (error: any) {
-      logger.error('Error descargando reporte de validaciÃ³n:', error);
-      Alert.alert('Error', error.message || 'No se pudo descargar el reporte de validaciÃ³n');
+      logger.error('Error descargando reporte de validación:', error);
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte de validación');
     } finally {
       setDownloadingParticipantId(null);
       setSelectedParticipant(null);
@@ -351,7 +352,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     try {
       setDownloadingGeneralReport(true);
 
-      logger.info('ðŸ”„ Descargando reporte general de totales de la campaÃ±a');
+      logger.info('🔄 Descargando reporte general de totales de la campaña');
       const startTime = new Date().getTime();
 
       // Call the API to get the PDF blob for all participants
@@ -359,9 +360,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       const pdfBlob = await repartosService.exportAllParticipantsConsolidatedTotals(campaignId);
 
       const endTime = new Date().getTime();
-      logger.info('âœ… PDF descargado del servidor');
-      logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
-      logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       const timestamp = new Date().getTime();
       const fileName = `reporte-totales-general-${campaign?.code || campaignId}-${timestamp}.pdf`;
@@ -369,7 +370,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       await saveAndSharePdf(pdfBlob, fileName, 'Reporte General de Totales');
 
       if (Platform.OS === 'web') {
-        Alert.alert('Ã‰xito', 'El reporte general de totales se estÃ¡ descargando');
+        Alert.alert('Éxito', 'El reporte general de totales se está descargando');
       }
     } catch (error: any) {
       logger.error('Error downloading general report:', error);
@@ -391,7 +392,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     try {
       setDownloadingParticipantId(participant.id);
 
-      logger.info('ðŸ”„ Descargando reporte del participante:', participantName);
+      logger.info('🔄 Descargando reporte del participante:', participantName);
       const startTime = new Date().getTime();
 
       // Get the participant's repartos to extract the first reparto ID
@@ -408,9 +409,9 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
       const pdfBlob = await repartosService.exportRepartoTotalsReport(participant.id, campaignId);
 
       const endTime = new Date().getTime();
-      logger.info('âœ… PDF descargado del servidor');
-      logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
-      logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       if (Platform.OS === 'web') {
         // For web, create a download link using blob URL
@@ -425,7 +426,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         // Clean up the blob URL after a short delay
         setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
 
-        Alert.alert('Ã‰xito', `El reporte de ${participantName} se estÃ¡ descargando`);
+        Alert.alert('Éxito', `El reporte de ${participantName} se está descargando`);
       } else {
         // For mobile (iOS/Android), save to file system and share
         const timestamp = new Date().getTime();
@@ -455,7 +456,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
             UTI: 'com.adobe.pdf',
           });
         } else {
-          Alert.alert('Ã‰xito', `PDF guardado en: ${file.uri}`);
+          Alert.alert('Éxito', `PDF guardado en: ${file.uri}`);
         }
       }
     } catch (error: any) {
@@ -512,8 +513,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
               >
                 <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
                   {participant.participantType === ParticipantType.EXTERNAL_COMPANY
-                    ? 'ðŸ¢ Empresa'
-                    : 'ðŸ›ï¸ Sede'}
+                    ? '🏢 Empresa'
+                    : '🏛️ Sede'}
                 </Text>
               </View>
             </View>
@@ -550,7 +551,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
             <Text style={[styles.footerText, isTablet && styles.footerTextTablet]}>
               Ver productos de reparto
             </Text>
-            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>â€º</Text>
+            <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>›</Text>
           </View>
 
           {/* Download Report Button */}
@@ -572,8 +573,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                 ]}
               >
                 {downloadingParticipantId === participant.id
-                  ? 'ðŸ“„ Generando...'
-                  : 'ðŸ“„ Descargar Reporte de Reparto'}
+                  ? '📄 Generando...'
+                  : '📄 Descargar Reporte de Reparto'}
               </Text>
             </TouchableOpacity>
           )}
@@ -599,7 +600,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   isTablet && styles.validationReportButtonTextTablet,
                 ]}
               >
-                ðŸ“Š Totales venta
+                📊 Totales venta
               </Text>
             </TouchableOpacity>
           )}
@@ -638,7 +639,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              â† Volver
+              ← Volver
             </Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
@@ -678,8 +679,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
             >
               <Text style={[styles.exportButtonText, isTablet && styles.exportButtonTextTablet]}>
                 {exportingPdf
-                  ? 'ðŸ“„ Generando PDF...'
-                  : 'ðŸ“„ Descargar Todas las Hojas de Reparto'}
+                  ? '📄 Generando PDF...'
+                  : '📄 Descargar Todas las Hojas de Reparto'}
               </Text>
             </TouchableOpacity>
           )}
@@ -703,8 +704,8 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                 ]}
               >
                 {downloadingGeneralReport
-                  ? 'ðŸ“Š Generando Reporte...'
-                  : 'ðŸ“Š Descargar Reporte General de Totales'}
+                  ? '📊 Generando Reporte...'
+                  : '📊 Descargar Reporte General de Totales'}
               </Text>
             </TouchableOpacity>
           )}
@@ -723,7 +724,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
           {participants.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-                No hay participantes en esta campaÃ±a
+                No hay participantes en esta campaña
               </Text>
             </View>
           ) : (
@@ -744,7 +745,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   return 1;
                 }
 
-                // Ordenar alfabÃ©ticamente dentro de cada grupo
+                // Ordenar alfabéticamente dentro de cada grupo
                 const nameA =
                   a.participantType === ParticipantType.EXTERNAL_COMPANY
                     ? a.company?.alias || a.company?.name || ''
@@ -799,7 +800,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   onPress={() => handleDownloadValidationReport('pdf')}
                   disabled={downloadingParticipantId !== null}
                 >
-                  <Text style={styles.formatButtonIcon}>ðŸ“„</Text>
+                  <Text style={styles.formatButtonIcon}>📄</Text>
                   <Text style={styles.formatButtonTitle}>PDF</Text>
                   <Text style={styles.formatButtonDescription}>Incluye fotos y firmas</Text>
                 </TouchableOpacity>
@@ -809,7 +810,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   onPress={() => handleDownloadValidationReport('excel')}
                   disabled={downloadingParticipantId !== null}
                 >
-                  <Text style={styles.formatButtonIcon}>ðŸ“Š</Text>
+                  <Text style={styles.formatButtonIcon}>📊</Text>
                   <Text style={styles.formatButtonTitle}>Excel</Text>
                   <Text style={styles.formatButtonDescription}>Datos tabulados</Text>
                 </TouchableOpacity>
@@ -858,7 +859,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   onPress={() => handleDownloadDistributionSheets('pdf')}
                   disabled={exportingPdf}
                 >
-                  <Text style={styles.formatButtonIcon}>ðŸ“„</Text>
+                  <Text style={styles.formatButtonIcon}>📄</Text>
                   <Text style={styles.formatButtonTitle}>PDF</Text>
                   <Text style={styles.formatButtonDescription}>Hojas de reparto detalladas</Text>
                 </TouchableOpacity>
@@ -868,7 +869,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
                   onPress={() => handleDownloadDistributionSheets('excel')}
                   disabled={exportingPdf}
                 >
-                  <Text style={styles.formatButtonIcon}>ðŸ“Š</Text>
+                  <Text style={styles.formatButtonIcon}>📊</Text>
                   <Text style={styles.formatButtonTitle}>Excel</Text>
                   <Text style={styles.formatButtonDescription}>Resumen en tabla</Text>
                 </TouchableOpacity>

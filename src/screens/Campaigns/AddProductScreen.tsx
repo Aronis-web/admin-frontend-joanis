@@ -132,16 +132,16 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     setLoadingData(true);
     try {
       if (sourceType === ProductSourceType.INVENTORY) {
-        console.log('ðŸ“¦ Loading products and stock...');
+        console.log('📦 Loading products and stock...');
 
         // Load products using admin endpoint to include preliminary products
-        console.log('ðŸ“¦ Loading products with params:', {
+        console.log('📦 Loading products with params:', {
           limit: 100,
           status: 'active,preliminary',
         });
 
         // Don't load all products on mount - we'll search on demand
-        console.log('ðŸ“¦ Products will be loaded on search');
+        console.log('📦 Products will be loaded on search');
 
         // Load stock items separately
         try {
@@ -150,7 +150,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           const stockArray = Array.isArray(stockResponse)
             ? stockResponse
             : stockResponse?.data || [];
-          console.log('ðŸ“¦ Stock items loaded:', {
+          console.log('📦 Stock items loaded:', {
             count: stockArray.length,
             sample: stockArray.slice(0, 3).map((item: any) => ({
               productId: item.productId,
@@ -201,7 +201,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
         const loadedReceptions = responses.flatMap((result) => {
           if (result.status !== 'fulfilled') {
-            console.warn('âš ï¸ Could not load receptions source:', result.reason);
+            console.warn('⚠️ Could not load receptions source:', result.reason);
             return [];
           }
           const response: any = result.value;
@@ -229,13 +229,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const loadPurchaseProducts = async () => {
     try {
-      console.log('ðŸ›’ Loading purchase products:', { purchaseId: selectedPurchaseId });
+      console.log('🛒 Loading purchase products:', { purchaseId: selectedPurchaseId });
 
       // No mandamos includeProductStatus para evitar que el backend filtre
-      // productos de compras ya cerradas/agregadas a campaÃ±as.
+      // productos de compras ya cerradas/agregadas a campañas.
       const products = await purchasesService.getPurchaseProducts(selectedPurchaseId);
 
-      console.log('ðŸ›’ Purchase products received from backend:', {
+      console.log('🛒 Purchase products received from backend:', {
         total: products.length,
         products: products.map((p) => ({
           id: p.id,
@@ -249,12 +249,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       });
 
       // Excluimos solo los rechazados. El resto (PRELIMINARY, IN_VALIDATION,
-      // VALIDATED, CLOSED, etc.) son productos que la compra aportÃ³ y que
-      // queremos mostrar para agregar a la campaÃ±a.
+      // VALIDATED, CLOSED, etc.) son productos que la compra aportó y que
+      // queremos mostrar para agregar a la campaña.
       // Nota: IN_VALIDATION se mantiene porque productos ya validados con
       // resolutionAction pueden seguir teniendo ese estado intermedio.
       const availableProducts = products.filter((p) => p.status !== 'REJECTED');
-      console.log('ðŸ›’ Available products after filter:', availableProducts.length);
+      console.log('🛒 Available products after filter:', availableProducts.length);
 
       setPurchaseProducts(availableProducts);
     } catch (error: any) {
@@ -341,7 +341,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             return { productId, stock: getStockFromStockResponse(response) };
           } catch (productsStockError) {
             console.warn(
-              'âš ï¸ products/stock failed, trying stock by product:',
+              '⚠️ products/stock failed, trying stock by product:',
               productId,
               productsStockError
             );
@@ -363,12 +363,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const loadReceptionProducts = async () => {
     try {
-      console.log('ðŸ“¥ Loading reception products:', selectedReceptionId);
+      console.log('📥 Loading reception products:', selectedReceptionId);
       let receptionDetail: any;
       try {
         receptionDetail = await transfersApi.getReceptionDetail(selectedReceptionId);
       } catch (detailError) {
-        console.warn('âš ï¸ Reception detail failed, trying transfer detail:', detailError);
+        console.warn('⚠️ Reception detail failed, trying transfer detail:', detailError);
         receptionDetail = await transfersApi.getTransferById(selectedReceptionId);
       }
 
@@ -413,7 +413,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             : stockByProductId[product.productId] || 0,
       }));
 
-      console.log('ðŸ“¥ Available reception products:', {
+      console.log('📥 Available reception products:', {
         total: availableProducts.length,
         resolvedWithBatch: Object.keys(stockByProductId).length,
         sample: availableProducts.slice(0, 5).map((product: any) => ({
@@ -425,7 +425,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       setPurchaseProducts(availableProducts);
     } catch (error: any) {
       console.error('Error loading reception products:', error);
-      Alert.alert('Error', 'No se pudieron cargar los productos de la recepciÃ³n');
+      Alert.alert('Error', 'No se pudieron cargar los productos de la recepción');
     }
   };
 
@@ -475,7 +475,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
       await campaignsService.addProduct(campaignId, data);
 
-      Alert.alert('Ã‰xito', 'Producto agregado exitosamente', [
+      Alert.alert('Éxito', 'Producto agregado exitosamente', [
         {
           text: 'OK',
           onPress: () => navigation.goBack(),
@@ -511,7 +511,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
       await campaignsService.addProductsFromPurchase(campaignId, data);
 
-      Alert.alert('Ã‰xito', 'Productos agregados exitosamente', [
+      Alert.alert('Éxito', 'Productos agregados exitosamente', [
         {
           text: 'OK',
           onPress: () => navigation.goBack(),
@@ -527,7 +527,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const handleAddFromReception = async () => {
     if (!selectedReceptionId) {
-      Alert.alert('Error', 'Debes seleccionar una recepciÃ³n');
+      Alert.alert('Error', 'Debes seleccionar una recepción');
       return;
     }
 
@@ -554,7 +554,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         })
       );
 
-      Alert.alert('Ã‰xito', 'Productos agregados desde recepciÃ³n exitosamente', [
+      Alert.alert('Éxito', 'Productos agregados desde recepción exitosamente', [
         {
           text: 'OK',
           onPress: () => navigation.goBack(),
@@ -664,7 +664,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       for (const field of stockFields) {
         const parsedStock = parseStockNumber(field.value);
         if (parsedStock !== undefined) {
-          console.log(`âœ… Using ${field.label} from selected source product:`, parsedStock);
+          console.log(`✅ Using ${field.label} from selected source product:`, parsedStock);
           return parsedStock;
         }
       }
@@ -675,14 +675,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     if (product) {
       // If product has stock structure from backend (v2 search), use it
       if (product.stock && typeof product.stock === 'object') {
-        console.log('âœ… Using stock from product.stock:', product.stock);
+        console.log('✅ Using stock from product.stock:', product.stock);
         return product.stock.available || 0;
       }
 
       // If product is preliminary, use preliminaryStock
       if (product.status === 'preliminary' && typeof product.preliminaryStock === 'number') {
         console.log(
-          'âœ… Using preliminaryStock for preliminary product:',
+          '✅ Using preliminaryStock for preliminary product:',
           product.preliminaryStock
         );
         return product.preliminaryStock;
@@ -692,7 +692,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     // Fallback: Filter stock items for this product
     const productStockItems = stockItems.filter((item) => item.productId === productId);
 
-    console.log('ðŸ” Getting stock for product:', {
+    console.log('🔍 Getting stock for product:', {
       productId,
       stockItemsCount: productStockItems.length,
       stockItems: productStockItems.map((item) => ({
@@ -703,7 +703,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     });
 
     if (productStockItems.length === 0) {
-      console.log('âŒ No stock items found for product');
+      console.log('❌ No stock items found for product');
       return 0;
     }
 
@@ -715,7 +715,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       return total + quantity;
     }, 0);
 
-    console.log('âœ… Total stock calculated:', totalStock);
+    console.log('✅ Total stock calculated:', totalStock);
     return totalStock;
   };
 
@@ -728,29 +728,29 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
     try {
       setIsSearching(true);
-      console.log('ðŸ” Searching products with v2 endpoint:', query);
+      console.log('🔍 Searching products with v2 endpoint:', query);
 
       try {
-        // âœ… Intentar usar endpoint v2 optimizado con cachÃ© y Full-Text Search
+        // ✅ Intentar usar endpoint v2 optimizado con caché y Full-Text Search
         const response = await productsApi.searchProductsV2({
           q: query.trim(),
           limit: 20,
           status: 'active,preliminary',
-          includePhotos: true, // âœ… Incluir fotos para mostrar miniaturas
+          includePhotos: true, // ✅ Incluir fotos para mostrar miniaturas
         });
 
-        console.log('ðŸ” Search results:', response.results.length, 'products found');
-        console.log('âš¡ Search time:', response.searchTime, 'ms');
-        console.log('ðŸ’¾ Cached:', response.cached);
+        console.log('🔍 Search results:', response.results.length, 'products found');
+        console.log('⚡ Search time:', response.searchTime, 'ms');
+        console.log('💾 Cached:', response.cached);
 
         // Log product statuses for debugging
         const statusCounts = response.results.reduce((acc: any, p: any) => {
           acc[p.status] = (acc[p.status] || 0) + 1;
           return acc;
         }, {});
-        console.log('ðŸ“Š Products by status:', statusCounts);
+        console.log('📊 Products by status:', statusCounts);
         console.log(
-          'ðŸ“¦ Sample products:',
+          '📦 Sample products:',
           response.results.slice(0, 3).map((p: any) => ({
             sku: p.sku,
             title: p.title,
@@ -761,7 +761,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         setProducts(response.results);
         setShowProductSuggestions(response.results.length > 0);
       } catch (v2Error) {
-        console.warn('âš ï¸ V2 endpoint failed, falling back to v1:', v2Error);
+        console.warn('⚠️ V2 endpoint failed, falling back to v1:', v2Error);
 
         // Fallback: usar endpoint v1 (getProducts)
         const response = await productsApi.getProducts({
@@ -769,7 +769,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           limit: 20,
         });
 
-        console.log('ðŸ” Search results (v1):', response.products.length, 'products found');
+        console.log('🔍 Search results (v1):', response.products.length, 'products found');
 
         setProducts(response.products);
         setShowProductSuggestions(response.products.length > 0);
@@ -787,12 +787,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   };
 
   const handleSelectProduct = (product: any) => {
-    console.log('ðŸ” Selecting product:', product.sku, product.title);
+    console.log('🔍 Selecting product:', product.sku, product.title);
     setSelectedProductId(product.id);
     const correlativePrefix = product.correlativeNumber ? `#${product.correlativeNumber} | ` : '';
     setProductSearchQuery(`${correlativePrefix}${product.sku} - ${product.title}`);
     setShowProductSuggestions(false);
-    console.log('âœ… Product selected, suggestions hidden');
+    console.log('✅ Product selected, suggestions hidden');
   };
 
   const handleProductSearchChange = (text: string) => {
@@ -823,11 +823,11 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const handleOpenBanner = async (product: any) => {
     try {
-      console.log('ðŸŽ¯ Opening banner for product:', product.sku);
+      console.log('🎯 Opening banner for product:', product.sku);
 
       // Fetch full product details to get costCents and other info
       const fullProductDetails = await productsApi.getProduct(product.id);
-      console.log('ðŸ“¦ Full product details:', fullProductDetails);
+      console.log('📦 Full product details:', fullProductDetails);
 
       // Create a mock campaign product structure for the banner modal
       const mockCampaignProduct = {
@@ -877,7 +877,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                 setShowProductSuggestions(true);
               }
             }}
-            placeholder="Buscar por #correlativo, SKU, nombre o descripciÃ³n..."
+            placeholder="Buscar por #correlativo, SKU, nombre o descripción..."
             placeholderTextColor={theme.color.text.placeholder}
           />
 
@@ -919,7 +919,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         ]}
                         onPress={() => {
                           console.log(
-                            'ðŸ–±ï¸ Suggestion clicked:',
+                            '🖱️ Suggestion clicked:',
                             product.sku,
                             'Already added:',
                             isAlreadyAdded
@@ -927,12 +927,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                           if (!isAlreadyAdded) {
                             handleSelectProduct(product);
                           } else {
-                            console.log('âš ï¸ Product already added, ignoring click');
+                            console.log('⚠️ Product already added, ignoring click');
                           }
                         }}
                         activeOpacity={isAlreadyAdded ? 1 : 0.7}
                       >
-                        {/* âœ… Product Image - Priorizar photos sobre imageUrl */}
+                        {/* ✅ Product Image - Priorizar photos sobre imageUrl */}
                         {product.photos && product.photos.length > 0 ? (
                           <Image
                             source={{ uri: product.photos[0] }}
@@ -962,7 +962,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                             <Text
                               style={[styles.warningText, isTablet && styles.warningTextTablet]}
                             >
-                              âš ï¸ Producto por validar Ingreso
+                              ⚠️ Producto por validar Ingreso
                             </Text>
                           )}
                           <View style={styles.suggestionMeta}>
@@ -982,7 +982,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                                 isTablet && styles.suggestionStatusTablet,
                               ]}
                             >
-                              {product.status === 'active' ? 'âœ“ Activo' : 'âš  Preliminar'}
+                              {product.status === 'active' ? '✓ Activo' : '⚠ Preliminar'}
                             </Text>
                           </View>
                         </View>
@@ -993,7 +993,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         onPress={() => handleOpenBanner(product)}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.bannerButtonText}>ðŸ“‹ Banner</Text>
+                        <Text style={styles.bannerButtonText}>📋 Banner</Text>
                       </TouchableOpacity>
                     </View>
                   );
@@ -1012,7 +1012,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               >
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>
-                    No se encontraron productos con ese criterio de bÃºsqueda
+                    No se encontraron productos con ese criterio de búsqueda
                   </Text>
                 </View>
               </View>
@@ -1064,14 +1064,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             >
               <Text style={[styles.statusText, isTablet && styles.statusTextTablet]}>
                 {selectedProduct.status === 'preliminary'
-                  ? 'âš ï¸ Preliminar (Por validar)'
-                  : 'âœ“ Activo'}
+                  ? '⚠️ Preliminar (Por validar)'
+                  : '✓ Activo'}
               </Text>
             </View>
             <Text style={[styles.hint, isTablet && styles.hintTablet]}>
               {selectedProduct.status === 'preliminary'
-                ? 'Este producto estÃ¡ en estado preliminar. Se agregarÃ¡ a la campaÃ±a como PRELIMINAR hasta que se valide el ingreso.'
-                : 'El producto se agregarÃ¡ con estado PENDIENTE. DeberÃ¡s generar la distribuciÃ³n para asignar cantidades a los participantes.'}
+                ? 'Este producto está en estado preliminar. Se agregará a la campaña como PRELIMINAR hasta que se valide el ingreso.'
+                : 'El producto se agregará con estado PENDIENTE. Deberás generar la distribución para asignar cantidades a los participantes.'}
             </Text>
           </View>
         )}
@@ -1079,7 +1079,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         {/* Distribution Type */}
         <View style={styles.formGroup}>
           <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            Tipo de DistribuciÃ³n *
+            Tipo de Distribución *
           </Text>
           <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
             <Picker
@@ -1114,7 +1114,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               Compras Ya Agregadas ({addedPurchases.length})
             </Text>
             <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-              Estas compras ya tienen productos en la campaÃ±a. Puedes expandirlas para agregar mÃ¡s
+              Estas compras ya tienen productos en la campaña. Puedes expandirlas para agregar más
               productos.
             </Text>
             {addedPurchases.map((purchase) => {
@@ -1138,13 +1138,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                     }}
                   >
                     <View style={styles.purchaseHeaderContent}>
-                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? 'â–¼' : 'â–¶'}</Text>
+                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? '▼' : '▶'}</Text>
                       <View style={styles.purchaseHeaderInfo}>
                         <Text style={styles.purchaseHeaderTitle}>
                           {purchase.code} - {purchase.guideNumber} -{' '}
                           {purchase.supplier?.commercialName}
                         </Text>
-                        <Text style={styles.purchaseHeaderBadge}>âœ“ Ya agregada</Text>
+                        <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -1211,7 +1211,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
   const getReceptionLabel = (reception: any) => {
     const transfer = reception.transfer || {};
-    const receptionNumber = reception.receptionNumber || 'Sin nÃºmero';
+    const receptionNumber = reception.receptionNumber || 'Sin número';
     const transferNumber = transfer.transferNumber || reception.transferId || reception.id;
     const originSite =
       transfer.originSite?.name || transfer.originWarehouse?.name || 'Origen no definido';
@@ -1235,8 +1235,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               Recepciones Ya Agregadas ({addedReceptions.length})
             </Text>
             <Text style={[styles.hint, isTablet && styles.hintTablet]}>
-              Estas recepciones ya tienen productos en la campaÃ±a. Puedes expandirlas para agregar
-              mÃ¡s productos.
+              Estas recepciones ya tienen productos en la campaña. Puedes expandirlas para agregar
+              más productos.
             </Text>
             {addedReceptions.map((reception) => {
               const transferId = reception.transferId || reception.transfer?.id || reception.id;
@@ -1264,12 +1264,12 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                     }}
                   >
                     <View style={styles.purchaseHeaderContent}>
-                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? 'â–¼' : 'â–¶'}</Text>
+                      <Text style={styles.purchaseHeaderIcon}>{isExpanded ? '▼' : '▶'}</Text>
                       <View style={styles.purchaseHeaderInfo}>
                         <Text style={styles.purchaseHeaderTitle}>
                           {getReceptionLabel(reception)}
                         </Text>
-                        <Text style={styles.purchaseHeaderBadge}>âœ“ Ya agregada</Text>
+                        <Text style={styles.purchaseHeaderBadge}>✓ Ya agregada</Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -1281,7 +1281,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         <View style={styles.emptyContainer}>
                           <ActivityIndicator size="small" color={theme.color.brand.primary} />
                           <Text style={styles.emptyText}>
-                            Cargando productos de la recepciÃ³n...
+                            Cargando productos de la recepción...
                           </Text>
                         </View>
                       )}
@@ -1295,7 +1295,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
         <View style={styles.formGroup}>
           <Text style={[styles.label, isTablet && styles.labelTablet]}>
-            {addedReceptions.length > 0 ? 'Otras Recepciones Disponibles' : 'RecepciÃ³n *'}
+            {addedReceptions.length > 0 ? 'Otras Recepciones Disponibles' : 'Recepción *'}
           </Text>
           <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
             <Picker
@@ -1307,7 +1307,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               }}
               style={styles.picker}
             >
-              <Picker.Item label="Seleccionar recepciÃ³n..." value="" />
+              <Picker.Item label="Seleccionar recepción..." value="" />
               {notAddedReceptions.map((reception) => (
                 <Picker.Item
                   key={reception.id}
@@ -1330,7 +1330,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
           purchaseProducts.length > 0 && (
             <View style={styles.formGroup}>
               <Text style={[styles.label, isTablet && styles.labelTablet]}>
-                Productos de la RecepciÃ³n
+                Productos de la Recepción
               </Text>
               {renderPurchaseProducts()}
             </View>
@@ -1352,13 +1352,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             activeOpacity={0.7}
           >
             <View style={[styles.checkbox, allProductsSelected && styles.checkboxChecked]}>
-              {allProductsSelected && <Text style={styles.checkmark}>âœ“</Text>}
+              {allProductsSelected && <Text style={styles.checkmark}>✓</Text>}
             </View>
             <View style={styles.productInfo}>
               <Text style={styles.selectAllProductsText}>Agregar todos los productos</Text>
               <Text style={styles.selectAllProductsHint}>
                 {allProductsSelected
-                  ? 'Todos los productos disponibles estÃ¡n seleccionados'
+                  ? 'Todos los productos disponibles están seleccionados'
                   : `Selecciona ${selectableProductsCount} producto${selectableProductsCount !== 1 ? 's' : ''} disponible${selectableProductsCount !== 1 ? 's' : ''}`}
               </Text>
             </View>
@@ -1401,7 +1401,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                     (isAlreadyAdded || isOutOfStock) && styles.checkboxDisabled,
                   ]}
                 >
-                  {isSelected && <Text style={styles.checkmark}>âœ“</Text>}
+                  {isSelected && <Text style={styles.checkmark}>✓</Text>}
                 </View>
                 <View style={styles.productInfo}>
                   <Text
@@ -1416,14 +1416,14 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                   </Text>
                   {isPreliminary && (
                     <Text style={[styles.warningText, isTablet && styles.warningTextTablet]}>
-                      âš ï¸ Producto por validar Ingreso
+                      ⚠️ Producto por validar Ingreso
                     </Text>
                   )}
                   <Text style={styles.productDetails}>
                     {product.correlativeNumber && `#${product.correlativeNumber} | `}SKU:{' '}
                     {product.sku} | {isPreliminary ? 'Stock Preliminar' : 'Stock Disponible'}:{' '}
                     {displayStock}
-                    {isPreliminary && ' âš  Preliminar'}
+                    {isPreliminary && ' ⚠ Preliminar'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -1459,7 +1459,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              â† Volver
+              ← Volver
             </Text>
           </TouchableOpacity>
           <Text style={[styles.title, isTablet && styles.titleTablet]}>Agregar Producto</Text>
@@ -1491,7 +1491,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                 >
                   <Picker.Item label="Desde Inventario" value={ProductSourceType.INVENTORY} />
                   <Picker.Item label="Desde Compra" value={ProductSourceType.PURCHASE} />
-                  <Picker.Item label="Desde RecepciÃ³n" value={ProductSourceType.RECEPTION} />
+                  <Picker.Item label="Desde Recepción" value={ProductSourceType.RECEPTION} />
                 </Picker>
               </View>
             </View>
@@ -1778,7 +1778,7 @@ const createStyles = (theme: Theme) =>
     },
     suggestionItem: {
       flex: 1,
-      flexDirection: 'row', // âœ… Para alinear imagen y contenido
+      flexDirection: 'row', // ✅ Para alinear imagen y contenido
       padding: 12,
       alignItems: 'center',
     },

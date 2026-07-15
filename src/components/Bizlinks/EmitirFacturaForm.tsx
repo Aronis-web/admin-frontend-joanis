@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -30,6 +29,7 @@ import { CustomerAutocomplete } from './CustomerAutocomplete';
 import { ProductAutocomplete } from './ProductAutocomplete';
 import { Customer } from '../../types/customers';
 import { Product } from '../../services/api/products';
+import Alert from '@/utils/alert';
 
 interface EmitirFacturaFormProps {
   companyId: string;

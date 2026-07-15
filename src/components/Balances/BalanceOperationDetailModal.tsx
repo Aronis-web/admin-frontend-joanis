@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Alert,
   Linking,
   Platform,
   ActivityIndicator,
@@ -26,6 +25,7 @@ import { ImageViewerModal } from '@/components/Expenses/ImageViewerModal';
 import { config } from '@/utils/config';
 import { filesApi, BalanceOperationFile } from '@/services/api/files';
 import { balancesApi } from '@/services/api';
+import Alert from '@/utils/alert';
 
 interface BalanceOperationDetailModalProps {
   visible: boolean;

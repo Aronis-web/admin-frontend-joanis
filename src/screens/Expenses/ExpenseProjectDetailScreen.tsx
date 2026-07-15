@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   Modal,
 } from 'react-native';
@@ -28,6 +27,7 @@ import { ReconcileAmountModal } from '@/components/Expenses/ReconcileAmountModal
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ExpenseProjectDetailScreenProps {
   route: {

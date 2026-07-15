@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +15,7 @@ import { spacing, borderRadius } from '@/design-system/tokens';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { biometricApi, BiometricProfile } from '@/services/api/biometric';
+import Alert from '@/utils/alert';
 
 export const BiometricProfilesScreen: React.FC = () => {
   const navigation = useNavigation();

@@ -6,10 +6,7 @@ import { config } from './config';
  * Helper to download files (PDFs, Excel, etc.) with automatic token refresh on 401
  * This ensures downloads don't fail due to expired tokens
  */
-export const downloadWithAuth = async (
-  url: string,
-  options: RequestInit = {}
-): Promise<Blob> => {
+export const downloadWithAuth = async (url: string, options: RequestInit = {}): Promise<Blob> => {
   const authStore = useAuthStore.getState();
   const tenantStore = useTenantStore.getState();
 
@@ -26,9 +23,13 @@ export const downloadWithAuth = async (
 
   // Build headers
   const buildHeaders = (currentToken: string): Record<string, string> => {
+    // IMPORTANTE: no duplicar X-App-Id (ni siquiera en distinto casing).
+    // `fetch` construye un Headers case-insensitive y las duplicadas se
+    // concatenan con ", ", produciendo "uuid, uuid". El backend interpreta
+    // ese CSV como lista y falla al castear a UUID (bug detectado en
+    // reporte multi-compra: purchaseIds recibia "uuid, uuid").
     const headers: Record<string, string> = {
       'X-App-Id': config.APP_ID,
-      'x-app-id': config.APP_ID,
       'X-App-Version': config.APP_VERSION,
       Authorization: `Bearer ${currentToken}`,
       'Cache-Control': 'no-cache, no-store, must-revalidate',

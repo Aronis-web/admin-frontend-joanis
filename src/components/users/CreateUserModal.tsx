@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 import { RoleSelector } from '@/components/users/RoleSelector';
 import { WorkerProfileFields } from '@/components/users/WorkerProfileFields';
 import { usersApi, CreateUserRequest } from '@/services/api/users';
+import Alert from '@/utils/alert';
 
 interface CreateUserModalProps {
   visible: boolean;
@@ -110,7 +110,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
       if (formData.last_name?.trim()) {
         userData.last_name = formData.last_name.trim();
       }
-
 
       // Add worker profile fields if provided
       if (formData.document_type) {

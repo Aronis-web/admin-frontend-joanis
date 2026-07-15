@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   KeyboardAvoidingView,
@@ -19,6 +18,7 @@ import type { Theme } from '@/design-system/themes';
 import { transmisionesApi } from '@/services/api';
 import { productsApi } from '@/services/api';
 import { PriceProfile } from '@/types/price-profiles';
+import Alert from '@/utils/alert';
 
 interface AddProductModalProps {
   visible: boolean;

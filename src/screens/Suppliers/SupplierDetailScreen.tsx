@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   TextInput,
   ActivityIndicator,
   useWindowDimensions,
@@ -40,6 +39,7 @@ import {
 } from '@/constants/supplierTypes';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 type SupplierDetailScreenProps = ScreenProps<'SupplierDetail'>;
 

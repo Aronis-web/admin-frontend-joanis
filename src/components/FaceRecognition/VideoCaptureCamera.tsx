@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Dimensions,
   Animated,
 } from 'react-native';
@@ -13,6 +12,7 @@ import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;

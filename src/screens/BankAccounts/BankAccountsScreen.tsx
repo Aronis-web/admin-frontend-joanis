@@ -4,6 +4,8 @@
  * Screen to list and manage bank accounts for a company
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -12,7 +14,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';

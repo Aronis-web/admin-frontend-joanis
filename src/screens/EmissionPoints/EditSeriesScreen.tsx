@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { emissionPointsApi, DocumentSeries, UpdateSeriesDto } from '@/services/a
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
+import Alert from '@/utils/alert';
 
 interface EditSeriesScreenProps {
   navigation: any;

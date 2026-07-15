@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
@@ -27,6 +26,7 @@ import { DebtSummaryCard } from '@/components/Suppliers';
 import { AssignCompanyModal } from '@/components/Suppliers';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 type TabType = 'all' | 'unassigned' | 'summary';
 

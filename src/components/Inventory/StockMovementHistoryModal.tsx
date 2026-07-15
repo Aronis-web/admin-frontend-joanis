@@ -5,10 +5,10 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { transfersApi } from '@/services/api/transfers';
 import { StockMovement } from '@/types/transfers';
+import Alert from '@/utils/alert';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +13,7 @@ import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { inventoryApi, ExportFormat } from '@/services/api/inventory';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import Alert from '@/utils/alert';
 
 import { iconSizes } from '@/design-system/tokens';
 import { useTheme, useThemedStyles } from '@/design-system/themes';

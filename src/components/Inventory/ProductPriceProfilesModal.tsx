@@ -6,12 +6,12 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
 import { Product } from '@/services/api/products';
+import Alert from '@/utils/alert';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';

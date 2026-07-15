@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +15,7 @@ import { BizlinksDocumentType } from '@/types/bizlinks';
 import { billingApi, DocumentSeries } from '@/services/api';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 type Props = NativeStackScreenProps<any, 'BizlinksSelectSeries'>;
 

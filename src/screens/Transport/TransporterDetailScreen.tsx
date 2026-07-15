@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -15,6 +14,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import type { Transporter } from '@/types/transport';
+import Alert from '@/utils/alert';
 
 export const TransporterDetailScreen: React.FC = () => {
   const insets = useSafeAreaInsets();

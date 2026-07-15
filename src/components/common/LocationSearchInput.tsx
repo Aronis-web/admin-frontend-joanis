@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Alert,
   Keyboard,
   Platform,
 } from 'react-native';
 import { locationsApi, LocationDetails, LocationSuggestion } from '@/services/api';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 // Conditional import for react-native-maps (only on native platforms)
 let MapView: any = null;

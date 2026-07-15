@@ -74,7 +74,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     try {
       // Optimized: Load only the specific product instead of all campaign products
       const foundProduct = await campaignsService.getProduct(campaignId, productId);
-      logger.debug('ðŸ“¦ Producto cargado:', {
+      logger.debug('📦 Producto cargado:', {
         id: foundProduct.id,
         productId: foundProduct.productId,
         hasProduct: !!foundProduct.product,
@@ -145,40 +145,40 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     if (product.productStatus !== 'ACTIVE') {
       Alert.alert(
         'Error',
-        'Solo se pueden generar repartos de productos en estado ACTIVO en la campaÃ±a'
+        'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña'
       );
       return;
     }
 
     // Cargar stock directamente desde el API de inventario
-    logger.debug('ðŸ“¦ [STOCK] Consultando stock directamente del API de inventario...');
+    logger.debug('📦 [STOCK] Consultando stock directamente del API de inventario...');
     try {
       const stockResponse: any = await inventoryApi.getAllStock({ productId: product.productId });
-      logger.debug('âœ… [STOCK] Stock obtenido del API:', {
+      logger.debug('✅ [STOCK] Stock obtenido del API:', {
         stockResponse: stockResponse,
       });
 
       // El API puede devolver un array o un objeto paginado { data: [...], total, page, limit }
       const stockData = Array.isArray(stockResponse) ? stockResponse : stockResponse?.data || [];
 
-      // Guardar en estado local sin actualizar el producto (evita recargar la campaÃ±a)
+      // Guardar en estado local sin actualizar el producto (evita recargar la campaña)
       if (stockData && stockData.length > 0) {
         const stockDetails: StockDetailByWarehouse[] = stockData.map((item: any) => ({
-          warehouse: item.warehouse?.name || 'AlmacÃ©n desconocido',
+          warehouse: item.warehouse?.name || 'Almacén desconocido',
           total: item.quantityBase || 0,
           reserved: item.reservedQuantityBase || 0,
           available: item.availableQuantityBase || item.quantityBase || 0,
         }));
 
         setLocalStockData(stockDetails);
-        logger.debug('âœ… [STOCK] Stock guardado en estado local:', stockDetails);
+        logger.debug('✅ [STOCK] Stock guardado en estado local:', stockDetails);
       }
     } catch (error: any) {
-      logger.error('âŒ [STOCK] Error obteniendo stock del API:', error);
+      logger.error('❌ [STOCK] Error obteniendo stock del API:', error);
       // Continuar sin stock si hay error
     }
 
-    // Abrir el modal de distribuciÃ³n
+    // Abrir el modal de distribución
     setShowAdjustModal(true);
   }, [product]);
 
@@ -196,7 +196,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   // Handler for successful distribution generation
   const handleDistributionSuccess = useCallback(() => {
     // Si venimos de CampaignDetail, navegar de vuelta con updatedProductId
-    // Esto actualiza SOLO este producto sin recargar toda la campaÃ±a
+    // Esto actualiza SOLO este producto sin recargar toda la campaña
     if (fromCampaignDetail) {
       navigation.navigate('CampaignDetail', {
         campaignId,
@@ -221,7 +221,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
     Alert.alert(
       'Cambiar a Activo',
-      'Â¿EstÃ¡s seguro de cambiar este producto a estado ACTIVO? Esto permitirÃ¡ generar el reparto.',
+      '¿Estás seguro de cambiar este producto a estado ACTIVO? Esto permitirá generar el reparto.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -234,7 +234,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                 productStatus: ProductStatus.ACTIVE,
               });
 
-              Alert.alert('Ã‰xito', 'El producto ahora estÃ¡ en estado ACTIVO', [
+              Alert.alert('Éxito', 'El producto ahora está en estado ACTIVO', [
                 {
                   text: 'OK',
                   onPress: () => loadProduct(),
@@ -289,7 +289,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             style={styles.backButton}
           >
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              â† Volver
+              ← Volver
             </Text>
           </TouchableOpacity>
           <Text style={[styles.title, isTablet && styles.titleTablet]}>Detalle del Producto</Text>
@@ -304,7 +304,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
           {/* Product Info */}
           <View style={[styles.section, isTablet && styles.sectionTablet]}>
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-              InformaciÃ³n del Producto
+              Información del Producto
             </Text>
 
             <View style={styles.infoRow}>
@@ -375,7 +375,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                Tipo de DistribuciÃ³n:
+                Tipo de Distribución:
               </Text>
               <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                 {DistributionTypeLabels[product.distributionType]}
@@ -393,7 +393,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                   product.distributionGenerated ? styles.generatedYes : styles.generatedNo,
                 ]}
               >
-                {product.distributionGenerated ? 'SÃ­' : 'No'}
+                {product.distributionGenerated ? 'Sí' : 'No'}
               </Text>
             </View>
 
@@ -447,12 +447,12 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
           {/* Actions Info */}
           <View style={[styles.infoBox, isTablet && styles.infoBoxTablet]}>
             <Text style={[styles.infoTitle, isTablet && styles.infoTitleTablet]}>
-              â„¹ï¸ Acciones Disponibles
+              ℹ️ Acciones Disponibles
             </Text>
             <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
-              â€¢ Vista Previa: Ver cÃ³mo se distribuirÃ¡ el producto{'\n'}â€¢ Generar Reparto:
-              Crear los registros de distribuciÃ³n{'\n'}â€¢ Solo productos ACTIVOS pueden generar
-              reparto{'\n'}â€¢ El reparto se genera una sola vez por producto
+              • Vista Previa: Ver cómo se distribuirá el producto{'\n'}• Generar Reparto:
+              Crear los registros de distribución{'\n'}• Solo productos ACTIVOS pueden generar
+              reparto{'\n'}• El reparto se genera una sola vez por producto
             </Text>
           </View>
         </ScrollView>
@@ -511,25 +511,25 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             <View style={[styles.modalContent, isTablet && styles.modalContentTablet]}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, isTablet && styles.modalTitleTablet]}>
-                  Vista Previa de DistribuciÃ³n
+                  Vista Previa de Distribución
                 </Text>
                 <TouchableOpacity onPress={() => setShowPreviewModal(false)}>
-                  <Text style={styles.modalClose}>âœ•</Text>
+                  <Text style={styles.modalClose}>✕</Text>
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalBody}>
                 {preview && (
                   <>
-                    {/* InformaciÃ³n del Producto */}
+                    {/* Información del Producto */}
                     <View style={styles.previewHeader}>
                       <Text style={styles.previewProductName}>{preview.productName}</Text>
                       <Text style={styles.previewProductStatus}>
-                        Estado: {preview.isPreliminary ? 'âš ï¸ Preliminar' : 'âœ“ Activo'}
+                        Estado: {preview.isPreliminary ? '⚠️ Preliminar' : '✓ Activo'}
                       </Text>
                     </View>
 
-                    {/* Tipo de DistribuciÃ³n */}
+                    {/* Tipo de Distribución */}
                     <View style={styles.previewSection}>
                       <Text style={styles.previewSectionTitle}>Tipo de Reparto</Text>
                       <Text style={styles.previewType}>
@@ -542,7 +542,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                       )}
                     </View>
 
-                    {/* Resumen de DistribuciÃ³n */}
+                    {/* Resumen de Distribución */}
                     <View style={styles.previewSection}>
                       <Text style={styles.previewSectionTitle}>Resumen</Text>
                       <View style={styles.previewSummaryRow}>
@@ -579,7 +579,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
                     {/* Detalle por Participante */}
                     <View style={styles.previewSection}>
-                      <Text style={styles.previewSectionTitle}>DistribuciÃ³n por Participante</Text>
+                      <Text style={styles.previewSectionTitle}>Distribución por Participante</Text>
                       {preview.preview.map((item, index) => (
                         <View key={index} style={styles.previewItem}>
                           <View style={styles.previewItemHeader}>
@@ -588,8 +588,8 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
                             </Text>
                             <Text style={styles.previewParticipantType}>
                               {item.participantType === 'EXTERNAL_COMPANY'
-                                ? 'ðŸ¢ Empresa'
-                                : 'ðŸ›ï¸ Sede'}
+                                ? '🏢 Empresa'
+                                : '🏛️ Sede'}
                             </Text>
                           </View>
                           <View style={styles.previewItemDetails}>

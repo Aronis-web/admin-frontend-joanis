@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   TextInput,
   Modal,
   ScrollView,
@@ -21,6 +20,7 @@ import {
   CreateCompanyRequest,
   UpdateCompanyRequest,
 } from '@/types/companies';
+import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { AddButton } from '@/components/Navigation/AddButton';

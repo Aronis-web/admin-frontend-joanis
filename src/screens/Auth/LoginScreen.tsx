@@ -4,13 +4,14 @@
  * Pantalla de inicio de sesión con diseño profesional y moderno.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   useWindowDimensions,
   StatusBar,
   Animated,

@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   KeyboardAvoidingView,
@@ -21,6 +20,7 @@ import {
   currencyToCents,
   calculateProfitMargin,
 } from '@/types/transmisiones';
+import Alert from '@/utils/alert';
 
 interface QuickEditModalProps {
   visible: boolean;

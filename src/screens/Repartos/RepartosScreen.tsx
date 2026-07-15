@@ -4,13 +4,14 @@
  * Pantalla de listado de repartos profesional y moderna.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   FlatList,
   StyleSheet,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   Platform,

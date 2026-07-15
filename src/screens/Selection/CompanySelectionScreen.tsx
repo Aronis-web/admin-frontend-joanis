@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { useAuthStore } from '@/store/auth';
 import { companiesApi, Company } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
+import Alert from '@/utils/alert';
 
 interface CompanySelectionScreenProps {
   navigation: any;

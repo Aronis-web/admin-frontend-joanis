@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   TextInput,
   Modal,
   FlatList,
@@ -28,6 +27,7 @@ import { Site, CreateSiteRequest } from '@/types/sites';
 import { SiteDetailModal } from '@/components/sites/SiteDetailModal';
 import { EditSiteModal } from '@/components/sites/EditSiteModal';
 import { SiteContactsModal } from '@/components/sites/SiteContactsModal';
+import Alert from '@/utils/alert';
 
 interface CompanyDetailScreenProps {
   navigation: any;

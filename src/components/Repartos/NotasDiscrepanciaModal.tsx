@@ -2,6 +2,8 @@
  * NotasDiscrepanciaModal - Modal de notas de discrepancia
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,7 +12,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

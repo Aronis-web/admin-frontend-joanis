@@ -2,6 +2,8 @@
  * DiscrepanciasModal - Modal de reporte de discrepancias
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,7 +11,6 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

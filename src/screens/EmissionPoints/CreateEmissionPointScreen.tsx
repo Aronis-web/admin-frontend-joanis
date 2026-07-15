@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { emissionPointsApi, EmissionType } from '@/services/api/emission-points'
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
+import Alert from '@/utils/alert';
 
 interface CreateEmissionPointScreenProps {
   navigation: any;

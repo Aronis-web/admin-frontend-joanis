@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   useWindowDimensions,
   ActivityIndicator,
@@ -49,6 +48,7 @@ import {
   AVAILABLE_QUICK_FILTERS,
   validateDateRange,
 } from '@/utils/dateFilters';
+import Alert from '@/utils/alert';
 
 interface AccountsReceivableScreenProps {
   navigation: any;

@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -14,6 +13,7 @@ import type { Theme } from '@/design-system/themes';
 import { Site, SiteAdmin } from '@/types/sites';
 import { sitesApi, usersApi, User } from '@/services/api';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import Alert from '@/utils/alert';
 
 interface ManageAdminsModalProps {
   visible: boolean;

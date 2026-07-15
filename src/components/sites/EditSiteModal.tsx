@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { FormTextInput } from '@/components/ui/FormTextInput';
 import { sitesApi } from '@/services/api';
 import { Site, UpdateSiteRequest } from '@/types/sites';
 import { SiteType, SiteTypeLabels, SiteTypeDescriptions } from '@/types/enums';
+import Alert from '@/utils/alert';
 
 import { LocationSearchInput, LocationData } from '@/components/common/LocationSearchInput';
 
@@ -55,7 +55,6 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
 
   const [errors, setErrors] = useState<Partial<Record<keyof UpdateSiteRequest, string>>>({});
   const [loading, setLoading] = useState(false);
-
 
   // Initialize form data when site changes
   useEffect(() => {

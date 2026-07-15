@@ -2,6 +2,8 @@
  * ValidacionSalidaModal - Modal de validación de salida
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState } from 'react';
 import {
   View,
@@ -9,7 +11,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Image,
   useWindowDimensions,
 } from 'react-native';

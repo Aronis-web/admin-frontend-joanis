@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   useWindowDimensions,
   ActivityIndicator,
@@ -22,6 +21,7 @@ import { UserDetailModal } from '@/components/users/UserDetailModal';
 import { EditUserModal } from '@/components/users/EditUserModal';
 import { Pagination } from '@/design-system';
 import { MAIN_ROUTES } from '@/constants/routes';
+import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ExpensePaymentsScreenProps {
   navigation: any;

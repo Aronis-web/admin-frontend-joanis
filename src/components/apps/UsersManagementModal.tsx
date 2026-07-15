@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   TextInput,
   Switch,
@@ -24,6 +23,7 @@ import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { Warehouse } from '@/types/warehouses';
 import { useTenantStore } from '@/store/tenant';
+import Alert from '@/utils/alert';
 
 interface UsersManagementModalProps {
   visible: boolean;

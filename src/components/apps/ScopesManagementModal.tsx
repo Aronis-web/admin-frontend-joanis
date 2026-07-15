@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -23,6 +22,7 @@ import { Company } from '@/types/companies';
 import { useTenantStore } from '@/store/tenant';
 import { warehouseAreasApi } from '@/services/api/warehouses';
 import { WarehouseArea } from '@/types/warehouses';
+import Alert from '@/utils/alert';
 
 interface ScopesManagementModalProps {
   visible: boolean;

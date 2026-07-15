@@ -2,6 +2,8 @@
  * RepartoParticipantDetailScreen - Detalle de participante en reparto
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
@@ -10,7 +12,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   TextInput,
@@ -142,7 +143,7 @@ interface ClosureBatchV2 {
 interface ProductoReparto {
   id: string;
   productId: string;
-  repartoId: string; // âœ… Necesario para subir archivos al servidor
+  repartoId: string; // ✅ Necesario para subir archivos al servidor
   presentationId?: string;
   factorToBase?: number;
   presentationInfo?: PresentationInfo;
@@ -351,17 +352,17 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         participantId
       );
 
-      console.log('ðŸ“¦ Total productos recibidos:', participantProducts.length);
+      console.log('📦 Total productos recibidos:', participantProducts.length);
 
       // Log COMPLETO del primer producto usando JSON.stringify para ver TODO
       if (participantProducts[0]) {
-        console.log('ðŸ” PRIMER PRODUCTO COMPLETO (JSON):');
+        console.log('🔍 PRIMER PRODUCTO COMPLETO (JSON):');
         console.log(JSON.stringify(participantProducts[0], null, 2));
       }
 
-      // Log especÃ­fico del primer reparto
+      // Log específico del primer reparto
       if (participantProducts[0]?.repartos?.[0]) {
-        console.log('ðŸ” PRIMER REPARTO COMPLETO (JSON):');
+        console.log('🔍 PRIMER REPARTO COMPLETO (JSON):');
         console.log(JSON.stringify(participantProducts[0].repartos[0], null, 2));
       }
 
@@ -376,15 +377,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           if (!firstRepartoId && reparto.repartoId) {
             firstRepartoId = reparto.repartoId;
           }
-          // WORKAROUND: Si el backend no envÃ­a presentationInfo, intentar construirlo
-          // basÃ¡ndonos en los datos del reparto individual
+          // WORKAROUND: Si el backend no envía presentationInfo, intentar construirlo
+          // basándonos en los datos del reparto individual
           let presentationInfo = productGroup.presentationInfo;
 
           // Si no hay presentationInfo pero el reparto tiene presentationId/factorToBase,
           // construir un presentationInfo temporal
           if (!presentationInfo && reparto.presentationId && reparto.factorToBase) {
             console.log(
-              'âš ï¸ WORKAROUND: Construyendo presentationInfo temporal para reparto:',
+              '⚠️ WORKAROUND: Construyendo presentationInfo temporal para reparto:',
               reparto.repartoCode
             );
             presentationInfo = {
@@ -392,7 +393,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               largestFactor: reparto.factorToBase,
               largestPresentation: {
                 id: reparto.presentationId,
-                name: reparto.presentationName || 'PresentaciÃ³n',
+                name: reparto.presentationName || 'Presentación',
                 factorToBase: reparto.factorToBase,
               },
               totalPresentations: 1,
@@ -418,13 +419,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               },
             ];
             console.log(
-              'âœ… Presentations construido para producto:',
+              '✅ Presentations construido para producto:',
               productGroup.productName,
               presentations
             );
           } else {
             console.log(
-              'âš ï¸ No se pudo construir presentations para:',
+              '⚠️ No se pudo construir presentations para:',
               productGroup.productName,
               'presentationInfo:',
               presentationInfo
@@ -434,17 +435,17 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
           productosAsignados.push({
             id: reparto.repartoProductoId,
             productId: productGroup.productId,
-            repartoId: reparto.repartoId, // âœ… Necesario para subir archivos al servidor
-            presentationId: reparto.presentationId, // InformaciÃ³n de presentaciÃ³n
-            factorToBase: reparto.factorToBase, // Factor de conversiÃ³n
-            presentationInfo: presentationInfo, // âœ… Info completa de presentaciÃ³n (del backend o construida)
+            repartoId: reparto.repartoId, // ✅ Necesario para subir archivos al servidor
+            presentationId: reparto.presentationId, // Información de presentación
+            factorToBase: reparto.factorToBase, // Factor de conversión
+            presentationInfo: presentationInfo, // ✅ Info completa de presentación (del backend o construida)
             product: {
               id: productGroup.productId,
               name: productGroup.productName,
               title: productGroup.productName,
               sku: productGroup.productSku,
-              correlativeNumber: productGroup.productCorrelativeNumber, // âœ… Agregar correlativo
-              presentations: presentations, // âœ… Construido desde presentationInfo
+              correlativeNumber: productGroup.productCorrelativeNumber, // ✅ Agregar correlativo
+              presentations: presentations, // ✅ Construido desde presentationInfo
             },
             quantityAssigned: reparto.quantityAssigned,
             quantityValidated: reparto.quantityValidated,
@@ -458,9 +459,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         });
       });
 
-      console.log('ðŸ“Š Total productos asignados:', productosAsignados.length);
+      console.log('📊 Total productos asignados:', productosAsignados.length);
 
-      // âœ… Ordenar productos por correlativo antes de setear
+      // ✅ Ordenar productos por correlativo antes de setear
       const sortedProductos = productosAsignados.sort((a, b) => {
         const correlativeA = a.product?.correlativeNumber || 0;
         const correlativeB = b.product?.correlativeNumber || 0;
@@ -474,95 +475,95 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         setRepartoId(firstRepartoId);
       }
 
-      console.log('ðŸš€ INICIANDO CARGA DE FOTOS DE PRODUCTOS...');
-      console.log('ðŸš€ productosAsignados.length:', productosAsignados.length);
+      console.log('🚀 INICIANDO CARGA DE FOTOS DE PRODUCTOS...');
+      console.log('🚀 productosAsignados.length:', productosAsignados.length);
 
-      // âœ… Cargar fotos de productos usando batch endpoint
+      // ✅ Cargar fotos de productos usando batch endpoint
       try {
         const productIds = [...new Set(productosAsignados.map((p) => p.productId))];
-        console.log(`ðŸ“¸ Total productos Ãºnicos: ${productIds.length}`);
-        console.log(`ðŸ“¸ Product IDs:`, productIds);
+        console.log(`📸 Total productos únicos: ${productIds.length}`);
+        console.log(`📸 Product IDs:`, productIds);
         if (productIds.length > 0) {
-          console.log(`ðŸ“¸ Llamando a batch endpoint con includePhotos=true...`);
+          console.log(`📸 Llamando a batch endpoint con includePhotos=true...`);
           const batchResponse = await productsApi.getProductsByIds(productIds, true);
-          console.log(`ðŸ“¸ Batch response recibido:`, batchResponse);
-          console.log(`ðŸ“¸ Total productos en respuesta: ${batchResponse.products?.length || 0}`);
+          console.log(`📸 Batch response recibido:`, batchResponse);
+          console.log(`📸 Total productos en respuesta: ${batchResponse.products?.length || 0}`);
           const photosMap: Record<string, string[]> = {};
           batchResponse.products.forEach((product: Product) => {
-            // âœ… El backend puede devolver 'photos' o 'photoUrls'
+            // ✅ El backend puede devolver 'photos' o 'photoUrls'
             const productPhotos = (product as any).photos || (product as any).photoUrls || [];
-            console.log(`ðŸ“¸ Procesando producto ${product.id}: ${productPhotos.length} fotos`);
-            console.log(`ðŸ“¸   - product.photos:`, (product as any).photos);
-            console.log(`ðŸ“¸   - product.photoUrls:`, (product as any).photoUrls);
+            console.log(`📸 Procesando producto ${product.id}: ${productPhotos.length} fotos`);
+            console.log(`📸   - product.photos:`, (product as any).photos);
+            console.log(`📸   - product.photoUrls:`, (product as any).photoUrls);
             if (productPhotos.length > 0) {
               photosMap[product.id] = productPhotos;
-              console.log(`ðŸ“¸ Fotos guardadas para ${product.id}:`, productPhotos);
+              console.log(`📸 Fotos guardadas para ${product.id}:`, productPhotos);
             }
           });
-          console.log(`âœ… PhotosMap final:`, photosMap);
-          console.log(`âœ… Total productos con fotos: ${Object.keys(photosMap).length}`);
-          console.log(`âœ… Llamando a setProductPhotos con:`, photosMap);
+          console.log(`✅ PhotosMap final:`, photosMap);
+          console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
+          console.log(`✅ Llamando a setProductPhotos con:`, photosMap);
           setProductPhotos(photosMap);
           console.log(
-            `âœ… setProductPhotos llamado (el estado se actualizarÃ¡ en el prÃ³ximo render)`
+            `✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`
           );
         } else {
-          console.log('âš ï¸ No hay productos para cargar fotos');
+          console.log('⚠️ No hay productos para cargar fotos');
         }
       } catch (error: any) {
-        console.error('âŒ Error cargando fotos de productos:', error);
-        console.error('âŒ Error stack:', error.stack);
-        // No bloquear la carga si falla la obtenciÃ³n de fotos
+        console.error('❌ Error cargando fotos de productos:', error);
+        console.error('❌ Error stack:', error.stack);
+        // No bloquear la carga si falla la obtención de fotos
       }
 
       // Verificar si ya existe un traslado consolidado
       try {
-        logger.info('ðŸ” Verificando estado del traslado consolidado...');
+        logger.info('🔍 Verificando estado del traslado consolidado...');
         const transferStatus = await repartosService.checkConsolidatedTransferStatus(
           participantId,
           campaignId
         );
         logger.info(
-          'ðŸ“Š Respuesta del servidor (traslado):',
+          '📊 Respuesta del servidor (traslado):',
           JSON.stringify(transferStatus, null, 2)
         );
         setConsolidatedTransferInfo(transferStatus);
         if (transferStatus.exists) {
-          logger.info('âœ… Traslado consolidado ya existe:', transferStatus);
+          logger.info('✅ Traslado consolidado ya existe:', transferStatus);
         } else {
-          logger.info('â„¹ï¸ Traslado consolidado NO existe aÃºn');
+          logger.info('ℹ️ Traslado consolidado NO existe aún');
         }
       } catch (error: any) {
-        logger.error('âŒ Error verificando estado del traslado consolidado:', error);
+        logger.error('❌ Error verificando estado del traslado consolidado:', error);
         // En caso de error, asumir que no existe
         setConsolidatedTransferInfo(null);
       }
 
-      // Verificar si ya existe una guÃ­a de remisiÃ³n
+      // Verificar si ya existe una guía de remisión
       try {
-        logger.info('ðŸ” Verificando estado de la guÃ­a de remisiÃ³n...');
+        logger.info('🔍 Verificando estado de la guía de remisión...');
         const guideInfo = await repartosService.getRemissionGuideInfo(participantId, campaignId);
-        logger.info('ðŸ“Š Respuesta del servidor (guÃ­a):', JSON.stringify(guideInfo, null, 2));
+        logger.info('📊 Respuesta del servidor (guía):', JSON.stringify(guideInfo, null, 2));
         setRemissionGuideInfo(guideInfo);
         if (guideInfo.exists) {
-          logger.info('âœ… GuÃ­a de remisiÃ³n ya existe:', guideInfo);
+          logger.info('✅ Guía de remisión ya existe:', guideInfo);
         } else {
-          logger.info('â„¹ï¸ GuÃ­a de remisiÃ³n NO existe aÃºn');
+          logger.info('ℹ️ Guía de remisión NO existe aún');
         }
       } catch (error: any) {
-        logger.error('âŒ Error verificando estado de la guÃ­a de remisiÃ³n:', error);
+        logger.error('❌ Error verificando estado de la guía de remisión:', error);
         // En caso de error, asumir que no existe
         setRemissionGuideInfo(null);
       }
 
-      console.log('âœ… LOADDATA COMPLETADO EXITOSAMENTE');
+      console.log('✅ LOADDATA COMPLETADO EXITOSAMENTE');
     } catch (error: any) {
-      console.error('âŒ ERROR EN LOADDATA:', error);
+      console.error('❌ ERROR EN LOADDATA:', error);
       console.error('Error loading participant data:', error);
-      Alert.alert('Error', 'No se pudo cargar la informaciÃ³n del participante');
+      Alert.alert('Error', 'No se pudo cargar la información del participante');
       navigation.goBack();
     } finally {
-      console.log('ðŸ FINALLY BLOCK - Finalizando loadData');
+      console.log('🏁 FINALLY BLOCK - Finalizando loadData');
       setLoading(false);
       setRefreshing(false);
     }
@@ -574,16 +575,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     }, [loadData])
   );
 
-  // ðŸ” Monitor productPhotos state changes
+  // 🔍 Monitor productPhotos state changes
   React.useEffect(() => {
-    console.log('ðŸ”„ productPhotos state cambiÃ³:', {
+    console.log('🔄 productPhotos state cambió:', {
       totalProductos: Object.keys(productPhotos).length,
       productIds: Object.keys(productPhotos),
       photosMap: productPhotos,
     });
   }, [productPhotos]);
 
-  // ðŸ“¦ Abrir modal de bultos despuÃ©s de cerrar modal de transporte
+  // 📦 Abrir modal de bultos después de cerrar modal de transporte
   React.useEffect(() => {
     // Solo actuar cuando el modal de transporte se cierra Y hay datos pendientes
     if (!transportModalVisible && pendingBultosModalRef.current) {
@@ -601,18 +602,18 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     loadData();
   };
 
-  // Filtrar productos basado en la bÃºsqueda y estado de validaciÃ³n
+  // Filtrar productos basado en la búsqueda y estado de validación
   const filteredProductos = useMemo(() => {
     let filtered = productos;
 
-    // Filtrar por estado de validaciÃ³n
+    // Filtrar por estado de validación
     if (validationFilter === 'validated') {
       filtered = filtered.filter((p) => isValidatedFlowStatus(p.validationStatus));
     } else if (validationFilter === 'pending') {
       filtered = filtered.filter((p) => isPendingFlowStatus(p.validationStatus));
     }
 
-    // Filtrar por bÃºsqueda
+    // Filtrar por búsqueda
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter((producto) => {
@@ -655,18 +656,18 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
     setActionLoading(true);
     try {
-      // âœ… El modal ya subiÃ³ las fotos al servidor, aquÃ­ solo enviamos la validaciÃ³n
-      logger.info('ðŸ“¤ Enviando validaciÃ³n al servidor con URLs ya subidas...');
+      // ✅ El modal ya subió las fotos al servidor, aquí solo enviamos la validación
+      logger.info('📤 Enviando validación al servidor con URLs ya subidas...');
 
       await repartosService.validarSalida(selectedProducto.id, {
         validatedQuantityBase: data.validatedQuantityBase,
-        photoUrl: data.photoUrl, // âœ… Ya es URL del servidor
-        signatureUrl: data.signatureUrl, // âœ… Ya es URL del servidor
+        photoUrl: data.photoUrl, // ✅ Ya es URL del servidor
+        signatureUrl: data.signatureUrl, // ✅ Ya es URL del servidor
         validatedByName: user?.name || user?.email || 'Usuario',
         notes: data.notes,
       });
 
-      Alert.alert('Ã‰xito', 'Salida validada exitosamente');
+      Alert.alert('Éxito', 'Salida validada exitosamente');
       setValidationModalVisible(false);
       setSelectedProducto(null);
       loadData();
@@ -780,7 +781,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       remissionGuide: remissionGuideInfo?.exists
         ? {
             id: remissionGuideInfo.remissionGuideId || `legacy-guide-${legacyTransferId}`,
-            serieNumero: remissionGuideInfo.remissionGuideNumber || 'GuÃ­a consolidada',
+            serieNumero: remissionGuideInfo.remissionGuideNumber || 'Guía consolidada',
             generatedAt: remissionGuideInfo.generatedAt || remissionGuideInfo.createdAt || '',
             status: remissionGuideInfo.status,
             statusSunat: remissionGuideInfo.statusSunat,
@@ -897,7 +898,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     if (!url) {
       Alert.alert(
         'No disponible',
-        `La guÃ­a no tiene archivo ${fileType.toUpperCase()} disponible.`
+        `La guía no tiene archivo ${fileType.toUpperCase()} disponible.`
       );
       return;
     }
@@ -913,12 +914,12 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         blob,
         fileName,
         mimeType,
-        dialogTitle: `GuÃ­a ${guide?.serieNumero || closureBatch.transfer.transferNumber}`,
+        dialogTitle: `Guía ${guide?.serieNumero || closureBatch.transfer.transferNumber}`,
         UTI: fileType === 'pdf' ? 'com.adobe.pdf' : 'public.xml',
       });
     } catch (error: any) {
-      logger.error('Error descargando guÃ­a de cierre v2:', error);
-      Alert.alert('Error', error.message || 'No se pudo descargar el archivo de la guÃ­a');
+      logger.error('Error descargando guía de cierre v2:', error);
+      Alert.alert('Error', error.message || 'No se pudo descargar el archivo de la guía');
     } finally {
       setDownloadingClosureGuide(null);
     }
@@ -926,7 +927,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   const handleDownloadParticipantReport = async () => {
     if (!repartoId || !participant) {
-      Alert.alert('Error', 'No se pudo obtener la informaciÃ³n del reparto');
+      Alert.alert('Error', 'No se pudo obtener la información del reparto');
       return;
     }
 
@@ -938,16 +939,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     try {
       setDownloadingReport(true);
 
-      logger.info('ðŸ”„ Descargando reporte del participante:', participantName);
+      logger.info('🔄 Descargando reporte del participante:', participantName);
       const startTime = new Date().getTime();
 
       // Call the API to get the PDF blob for this participant
       const pdfBlob = await repartosService.exportRepartoTotalsReport(participantId, campaignId);
 
       const endTime = new Date().getTime();
-      logger.info('âœ… PDF descargado del servidor');
-      logger.info('ðŸ“¦ TamaÃ±o del PDF:', pdfBlob.size, 'bytes');
-      logger.info('â±ï¸ Tiempo de descarga:', endTime - startTime, 'ms');
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
       const timestamp = new Date().getTime();
       const fileName = `reporte-totales-${participantName.replace(/\s+/g, '-')}-${timestamp}.pdf`;
@@ -955,7 +956,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       await saveAndSharePdf(pdfBlob, fileName, `Reporte de Totales - ${participantName}`);
 
       if (Platform.OS === 'web') {
-        Alert.alert('Ã‰xito', `El reporte de ${participantName} se estÃ¡ descargando`);
+        Alert.alert('Éxito', `El reporte de ${participantName} se está descargando`);
       }
     } catch (error: any) {
       logger.error('Error downloading participant report:', error);
@@ -967,11 +968,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   const handleGenerateRemissionGuide = async () => {
     if (!participant) {
-      Alert.alert('Error', 'No se pudo obtener la informaciÃ³n del participante');
+      Alert.alert('Error', 'No se pudo obtener la información del participante');
       return;
     }
 
-    // Abrir modal de selecciÃ³n de transporte
+    // Abrir modal de selección de transporte
     setTransportModalVisible(true);
   };
 
@@ -991,7 +992,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       // Marcar que debe abrirse el modal de bultos (usando ref para evitar re-renders)
       pendingBultosModalRef.current = true;
 
-      // Cerrar el modal de transporte - el useEffect se encargarÃ¡ de abrir el modal de bultos
+      // Cerrar el modal de transporte - el useEffect se encargará de abrir el modal de bultos
       setTransportModalVisible(false);
     },
     []
@@ -1007,7 +1008,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     const bultosNum = parseInt(numeroBultos, 10);
 
     if (isNaN(bultosNum) || bultosNum < 1) {
-      Alert.alert('Error', 'La cantidad de bultos debe ser un nÃºmero mayor a 0');
+      Alert.alert('Error', 'La cantidad de bultos debe ser un número mayor a 0');
       return;
     }
 
@@ -1018,9 +1019,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       const isPublicTransport = transporter !== null && !vehicle && !driver;
 
       Alert.alert(
-        'Generar GuÃ­a de Cierre',
-        `Â¿Deseas generar la guÃ­a de remisiÃ³n para el cierre ${closureBatch.transfer.transferNumber}?\n\n` +
-          `ðŸ“¦ Bultos: ${bultosNum}`,
+        'Generar Guía de Cierre',
+        `¿Deseas generar la guía de remisión para el cierre ${closureBatch.transfer.transferNumber}?\n\n` +
+          `📦 Bultos: ${bultosNum}`,
         [
           {
             text: 'Cancelar',
@@ -1051,15 +1052,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 );
 
                 Alert.alert(
-                  'GuÃ­a generada',
-                  `GuÃ­a ${response.remissionGuide.serieNumero} generada para el traslado ${response.transfer.transferNumber}.`
+                  'Guía generada',
+                  `Guía ${response.remissionGuide.serieNumero} generada para el traslado ${response.transfer.transferNumber}.`
                 );
                 await loadClosureBatchData();
               } catch (error: any) {
-                logger.error('Error generando guÃ­a de cierre v2:', error);
+                logger.error('Error generando guía de cierre v2:', error);
                 Alert.alert(
                   'Error',
-                  error.response?.data?.message || 'No se pudo generar la guÃ­a del cierre'
+                  error.response?.data?.message || 'No se pudo generar la guía del cierre'
                 );
               } finally {
                 setGeneratingClosureGuide(null);
@@ -1078,34 +1079,34 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         ? participant.company?.alias || participant.company?.name || 'Empresa'
         : participant?.site?.name || 'Sede';
 
-    // Determinar si es transporte pÃºblico (tiene transportista pero no vehÃ­culo ni conductor)
+    // Determinar si es transporte público (tiene transportista pero no vehículo ni conductor)
     const isPublicTransport = transporter !== null && !vehicle && !driver;
 
-    // Construir mensaje de confirmaciÃ³n
-    let confirmMessage = `Â¿EstÃ¡s seguro de que deseas generar la guÃ­a de remisiÃ³n electrÃ³nica para ${participantName}?\n\n`;
+    // Construir mensaje de confirmación
+    let confirmMessage = `¿Estás seguro de que deseas generar la guía de remisión electrónica para ${participantName}?\n\n`;
 
     if (isPublicTransport) {
       confirmMessage +=
-        `ðŸšŒ Transporte: PÃºblico\n` +
-        `ðŸ¢ Transportista: ${transporter!.razonSocial}\n` +
-        `ðŸ“‹ RUC: ${transporter!.numeroRuc}\n`;
+        `🚌 Transporte: Público\n` +
+        `🏢 Transportista: ${transporter!.razonSocial}\n` +
+        `📋 RUC: ${transporter!.numeroRuc}\n`;
     } else {
       confirmMessage +=
-        `ðŸš— Transporte: Privado\n` +
-        `ðŸš— VehÃ­culo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\n` +
-        `ðŸ‘¤ Conductor: ${driver!.nombre} ${driver!.apellido}\n` +
-        `ðŸ“‹ Licencia: ${driver!.numeroLicencia}\n`;
+        `🚗 Transporte: Privado\n` +
+        `🚗 Vehículo: ${vehicle!.numeroPlaca} (${vehicle!.marca} ${vehicle!.modelo})\n` +
+        `👤 Conductor: ${driver!.nombre} ${driver!.apellido}\n` +
+        `📋 Licencia: ${driver!.numeroLicencia}\n`;
     }
 
     confirmMessage +=
-      `ðŸ“¦ Bultos: ${bultosNum}\n\n` +
-      'Esta acciÃ³n:\n' +
-      'â€¢ GenerarÃ¡ una guÃ­a de remisiÃ³n tipo 09 (Traslado)\n' +
-      'â€¢ Se enviarÃ¡ automÃ¡ticamente a SUNAT\n' +
-      'â€¢ QuedarÃ¡ anexada al participante de la campaÃ±a';
+      `📦 Bultos: ${bultosNum}\n\n` +
+      'Esta acción:\n' +
+      '• Generará una guía de remisión tipo 09 (Traslado)\n' +
+      '• Se enviará automáticamente a SUNAT\n' +
+      '• Quedará anexada al participante de la campaña';
 
-    // Confirmar acciÃ³n con los datos seleccionados
-    Alert.alert('Generar GuÃ­a de RemisiÃ³n', confirmMessage, [
+    // Confirmar acción con los datos seleccionados
+    Alert.alert('Generar Guía de Remisión', confirmMessage, [
       {
         text: 'Cancelar',
         style: 'cancel',
@@ -1119,16 +1120,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         onPress: async () => {
           try {
             setGeneratingRemissionGuide(true);
-            logger.info('ðŸ”„ Generando guÃ­a de remisiÃ³n para:', participantName);
-            logger.info('ðŸ“¦ NÃºmero de bultos:', bultosNum);
+            logger.info('🔄 Generando guía de remisión para:', participantName);
+            logger.info('📦 Número de bultos:', bultosNum);
 
             if (isPublicTransport) {
-              logger.info('ðŸšŒ Tipo de transporte: PÃºblico');
-              logger.info('ðŸ¢ Transportista:', transporter!.razonSocial);
+              logger.info('🚌 Tipo de transporte: Público');
+              logger.info('🏢 Transportista:', transporter!.razonSocial);
             } else {
-              logger.info('ðŸš— Tipo de transporte: Privado');
-              logger.info('ðŸš— VehÃ­culo:', vehicle!.numeroPlaca);
-              logger.info('ðŸ‘¤ Conductor:', `${driver!.nombre} ${driver!.apellido}`);
+              logger.info('🚗 Tipo de transporte: Privado');
+              logger.info('🚗 Vehículo:', vehicle!.numeroPlaca);
+              logger.info('👤 Conductor:', `${driver!.nombre} ${driver!.apellido}`);
             }
 
             const response = await repartosService.generateRemissionGuide(
@@ -1146,26 +1147,26 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   }
             );
 
-            logger.info('âœ… GuÃ­a de remisiÃ³n generada:', response);
+            logger.info('✅ Guía de remisión generada:', response);
 
             let successMessage =
-              `GuÃ­a de remisiÃ³n generada exitosamente:\n\n` +
-              `ðŸ“„ NÃºmero: ${response.remissionGuide.serieNumero}\n` +
-              `âœ… Estado: ${response.remissionGuide.status}\n` +
-              `ðŸ“¦ Traslado: ${response.transfer.transferNumber}\n` +
-              `ðŸ“¦ Bultos: ${bultosNum}\n`;
+              `Guía de remisión generada exitosamente:\n\n` +
+              `📄 Número: ${response.remissionGuide.serieNumero}\n` +
+              `✅ Estado: ${response.remissionGuide.status}\n` +
+              `📦 Traslado: ${response.transfer.transferNumber}\n` +
+              `📦 Bultos: ${bultosNum}\n`;
 
             if (isPublicTransport) {
               successMessage +=
-                `ðŸšŒ Transporte: PÃºblico\n` + `ðŸ¢ Transportista: ${transporter!.razonSocial}`;
+                `🚌 Transporte: Público\n` + `🏢 Transportista: ${transporter!.razonSocial}`;
             } else {
               successMessage +=
-                `ðŸš— Transporte: Privado\n` +
-                `ðŸš— VehÃ­culo: ${vehicle!.numeroPlaca}\n` +
-                `ðŸ‘¤ Conductor: ${driver!.nombre} ${driver!.apellido}`;
+                `🚗 Transporte: Privado\n` +
+                `🚗 Vehículo: ${vehicle!.numeroPlaca}\n` +
+                `👤 Conductor: ${driver!.nombre} ${driver!.apellido}`;
             }
 
-            Alert.alert('Ã‰xito', successMessage, [
+            Alert.alert('Éxito', successMessage, [
               {
                 text: 'Aceptar',
                 onPress: () => {
@@ -1174,10 +1175,10 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               },
             ]);
           } catch (error: any) {
-            logger.error('Error generando guÃ­a de remisiÃ³n:', error);
+            logger.error('Error generando guía de remisión:', error);
             Alert.alert(
               'Error',
-              error.response?.data?.message || 'No se pudo generar la guÃ­a de remisiÃ³n'
+              error.response?.data?.message || 'No se pudo generar la guía de remisión'
             );
           } finally {
             setGeneratingRemissionGuide(false);
@@ -1190,12 +1191,12 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
   const handleDownloadRemissionGuide = async () => {
     if (!remissionGuideInfo?.exists) {
-      Alert.alert('Error', 'No se encontrÃ³ la guÃ­a de remisiÃ³n');
+      Alert.alert('Error', 'No se encontró la guía de remisión');
       return;
     }
 
     if (!participant?.id) {
-      Alert.alert('Error', 'No se encontrÃ³ el ID del participante');
+      Alert.alert('Error', 'No se encontró el ID del participante');
       return;
     }
 
@@ -1206,7 +1207,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
     try {
       setDownloadingRemissionGuide(true);
-      logger.info('ðŸ”„ Descargando guÃ­a de remisiÃ³n:', remissionGuideInfo.remissionGuideNumber);
+      logger.info('🔄 Descargando guía de remisión:', remissionGuideInfo.remissionGuideNumber);
 
       // Usar el nuevo endpoint para descargar el PDF
       const blob = await repartosService.downloadRemissionGuidePdf(participant.id, campaignId);
@@ -1217,15 +1218,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       await saveAndSharePdf(
         blob,
         fileName,
-        `GuÃ­a de RemisiÃ³n - ${remissionGuideInfo.remissionGuideNumber}`
+        `Guía de Remisión - ${remissionGuideInfo.remissionGuideNumber}`
       );
 
       if (Platform.OS === 'web') {
-        Alert.alert('Ã‰xito', 'La guÃ­a de remisiÃ³n se ha descargado');
+        Alert.alert('Éxito', 'La guía de remisión se ha descargado');
       }
     } catch (error: any) {
-      logger.error('Error descargando guÃ­a de remisiÃ³n:', error);
-      const errorMessage = error.message || 'No se pudo descargar la guÃ­a de remisiÃ³n';
+      logger.error('Error descargando guía de remisión:', error);
+      const errorMessage = error.message || 'No se pudo descargar la guía de remisión';
       Alert.alert('Error', errorMessage);
     } finally {
       setDownloadingRemissionGuide(false);
@@ -1238,9 +1239,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   };
 
   const handleNotesUpdated = () => {
-    // Recargar el modal de discrepancias si estÃ¡ abierto
+    // Recargar el modal de discrepancias si está abierto
     if (discrepanciasModalVisible) {
-      // El modal de discrepancias se recargarÃ¡ automÃ¡ticamente
+      // El modal de discrepancias se recargará automáticamente
     }
   };
 
@@ -1302,13 +1303,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
       );
       const validatedQuantity = getValidatedQuantity(producto);
 
-      // âœ… SOLO mostrar por presentaciÃ³n si la VALIDACIÃ“N fue por presentaciÃ³n
+      // ✅ SOLO mostrar por presentación si la VALIDACIÓN fue por presentación
       // Esto se determina verificando si existe validacion.presentationInfo con roundingApplied
       const wasValidatedByPresentation =
         isValidatedFlowStatus(productStatus) &&
         producto.validacion?.presentationInfo?.roundingApplied === true;
 
-      // Calcular cantidades en presentaciÃ³n SOLO si fue validado por presentaciÃ³n
+      // Calcular cantidades en presentación SOLO si fue validado por presentación
       let quantityInPresentation = 0;
       let validatedInPresentation = 0;
       let presentationName = '';
@@ -1416,7 +1417,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             {producto.warehouse && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
-                  AlmacÃ©n:
+                  Almacén:
                 </Text>
                 <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                   {producto.warehouse.name}
@@ -1426,7 +1427,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
             {producto.area && (
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Ãrea:</Text>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Área:</Text>
                 <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                   {producto.area.name}
                 </Text>
@@ -1452,7 +1453,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
             </View>
           </View>
 
-          {/* Botones de acciÃ³n */}
+          {/* Botones de acción */}
           <View style={styles.cardFooter}>
             {isPendingFlowStatus(productStatus) ? (
               <TouchableOpacity
@@ -1460,7 +1461,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 onPress={() => handleValidateProduct(producto)}
                 disabled={actionLoading}
               >
-                <Text style={styles.validateButtonText}>ðŸ“¸ Validar Salida</Text>
+                <Text style={styles.validateButtonText}>📸 Validar Salida</Text>
               </TouchableOpacity>
             ) : isValidatedFlowStatus(productStatus) ? (
               <TouchableOpacity
@@ -1468,7 +1469,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 onPress={() => handleViewValidation(producto)}
                 disabled={actionLoading}
               >
-                <Text style={styles.detailButtonText}>ðŸ‘ï¸ Ver Detalles de ValidaciÃ³n</Text>
+                <Text style={styles.detailButtonText}>👁️ Ver Detalles de Validación</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -1503,7 +1504,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     return sum + quantity;
   }, 0);
 
-  // Calcular progreso de validaciÃ³n del participante (productos validados)
+  // Calcular progreso de validación del participante (productos validados)
   const totalProductos = productos.length;
   const productosValidados = productos.filter((p) =>
     isValidatedFlowStatus(p.validationStatus)
@@ -1511,7 +1512,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const progressPercentage =
     totalProductos > 0 ? Math.round((productosValidados / totalProductos) * 100) : 0;
 
-  // Calcular estadÃ­sticas de productos filtrados
+  // Calcular estadísticas de productos filtrados
   const filteredCount = filteredProductos.length;
 
   return (
@@ -1521,7 +1522,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              â† Volver
+              ← Volver
             </Text>
           </TouchableOpacity>
           <View style={styles.headerInfo}>
@@ -1538,8 +1539,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               >
                 <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
                   {participant.participantType === ParticipantType.EXTERNAL_COMPANY
-                    ? 'ðŸ¢ Empresa'
-                    : 'ðŸ›ï¸ Sede'}
+                    ? '🏢 Empresa'
+                    : '🏛️ Sede'}
                 </Text>
               </View>
             </View>
@@ -1602,8 +1603,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 ]}
               >
                 {downloadingReport
-                  ? 'ðŸ“„ Generando Reporte...'
-                  : 'ðŸ“„ Descargar Reporte de Totales'}
+                  ? '📄 Generando Reporte...'
+                  : '📄 Descargar Reporte de Totales'}
               </Text>
             </TouchableOpacity>
           )}
@@ -1626,7 +1627,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   isTablet && styles.consolidatedButtonTextTablet,
                 ]}
               >
-                {loadingClosures ? 'ðŸ”„ Cargando cierres...' : 'ðŸ§¾ Gestionar cierres'}
+                {loadingClosures ? '🔄 Cargando cierres...' : '🧾 Gestionar cierres'}
               </Text>
             </TouchableOpacity>
           )}
@@ -1644,7 +1645,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 No hay productos asignados
               </Text>
               <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                Este participante aÃºn no tiene productos en repartos
+                Este participante aún no tiene productos en repartos
               </Text>
             </View>
           </ScrollView>
@@ -1668,7 +1669,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   Productos de Reparto
                 </Text>
 
-                {/* Filtro de validaciÃ³n */}
+                {/* Filtro de validación */}
                 {productos.length > 0 && (
                   <View
                     style={[
@@ -1710,7 +1711,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                             (styles as any).filterButtonTextActive,
                         ]}
                       >
-                        âœ… Validados (
+                        ✅ Validados (
                         {productos.filter((p) => isValidatedFlowStatus(p.validationStatus)).length})
                       </Text>
                     </TouchableOpacity>
@@ -1729,7 +1730,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                           validationFilter === 'pending' && (styles as any).filterButtonTextActive,
                         ]}
                       >
-                        â³ Pendientes (
+                        ⏳ Pendientes (
                         {productos.filter((p) => isPendingFlowStatus(p.validationStatus)).length})
                       </Text>
                     </TouchableOpacity>
@@ -1740,7 +1741,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 {productos.length > 0 && (
                   <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
                     <Text style={[styles.searchIcon, isTablet && styles.searchIconTablet]}>
-                      ðŸ”
+                      🔍
                     </Text>
                     <TextInput
                       style={[styles.searchInput, isTablet && styles.searchInputTablet]}
@@ -1759,7 +1760,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                         <Text
                           style={[styles.clearButtonText, isTablet && styles.clearButtonTextTablet]}
                         >
-                          âœ•
+                          ✕
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -1782,7 +1783,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   No se encontraron productos
                 </Text>
                 <Text style={[styles.emptySubtext, isTablet && styles.emptySubtextTablet]}>
-                  Intenta con otros tÃ©rminos de bÃºsqueda
+                  Intenta con otros términos de búsqueda
                 </Text>
               </View>
             }
@@ -1839,7 +1840,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                       Pendientes de cierre ({pendingClosureProducts.length})
                     </Text>
                     <Text style={styles.closureSectionHint}>
-                      Selecciona productos validados que aÃºn no fueron transferidos.
+                      Selecciona productos validados que aún no fueron transferidos.
                     </Text>
 
                     {pendingClosureProducts.length === 0 ? (
@@ -1948,7 +1949,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                   <View style={styles.siteInfoTextBox}>
                                     <Text style={styles.siteInfoLabel}>Sede / reparto</Text>
                                     <Text style={styles.siteInfoName} numberOfLines={1}>
-                                      {product.repartoCode} Â· {product.repartoName}
+                                      {product.repartoCode} · {product.repartoName}
                                     </Text>
                                   </View>
                                 </View>
@@ -2024,7 +2025,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
                     {closureBatchesToDisplay.length === 0 ? (
                       <View style={styles.closureEmptyBox}>
-                        <Text style={styles.closureEmptyText}>AÃºn no hay cierres generados.</Text>
+                        <Text style={styles.closureEmptyText}>Aún no hay cierres generados.</Text>
                       </View>
                     ) : (
                       closureBatchesToDisplay.map((batch) => {
@@ -2052,7 +2053,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                   {batch.isLegacy
                                     ? 'Flujo anterior'
                                     : `Estado: ${batch.transfer.status}`}{' '}
-                                  â€¢ {new Date(batch.createdAt).toLocaleDateString('es-PE')}
+                                  • {new Date(batch.createdAt).toLocaleDateString('es-PE')}
                                 </Text>
                               </View>
                               <View style={styles.closureBatchBadge}>
@@ -2114,7 +2115,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                 <View style={styles.guideCompactRow}>
                                   <View style={styles.guideCompactInfo}>
                                     <Text style={styles.guideSuccessText}>
-                                      GuÃ­a generada exitosamente
+                                      Guía generada exitosamente
                                     </Text>
                                     <Text style={styles.guideNumberText} numberOfLines={1}>
                                       {batch.remissionGuide.serieNumero}
@@ -2183,8 +2184,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                 >
                                   <Text style={styles.generateGuideButtonText}>
                                     {generatingRemissionGuide
-                                      ? 'Generando guÃ­a...'
-                                      : 'Generar guÃ­a'}
+                                      ? 'Generando guía...'
+                                      : 'Generar guía'}
                                   </Text>
                                 </TouchableOpacity>
                               </View>
@@ -2200,8 +2201,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                               >
                                 <Text style={styles.generateGuideButtonText}>
                                   {generatingClosureGuide === batch.id
-                                    ? 'Generando guÃ­a...'
-                                    : 'Generar guÃ­a'}
+                                    ? 'Generando guía...'
+                                    : 'Generar guía'}
                                 </Text>
                               </TouchableOpacity>
                             )}
@@ -2220,16 +2221,16 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         {selectedProducto &&
           (() => {
             console.log(
-              'ðŸ” selectedProducto.product?.presentations:',
+              '🔍 selectedProducto.product?.presentations:',
               selectedProducto.product?.presentations
             );
             console.log(
-              'ðŸ” selectedProducto completo:',
+              '🔍 selectedProducto completo:',
               JSON.stringify(selectedProducto, null, 2)
             );
-            console.log('ðŸ” productPhotos state:', JSON.stringify(productPhotos));
-            console.log('ðŸ” selectedProducto.productId:', selectedProducto.productId);
-            console.log('ðŸ” Fotos para este producto:', productPhotos[selectedProducto.productId]);
+            console.log('🔍 productPhotos state:', JSON.stringify(productPhotos));
+            console.log('🔍 selectedProducto.productId:', selectedProducto.productId);
+            console.log('🔍 Fotos para este producto:', productPhotos[selectedProducto.productId]);
             return (
               <ValidacionSalidaModal
                 visible={validationModalVisible}
@@ -2330,7 +2331,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 <Text
                   style={[styles.bultosModalSubtitle, isTablet && styles.bultosModalSubtitleTablet]}
                 >
-                  Ingrese el nÃºmero de bultos para la guÃ­a de remisiÃ³n
+                  Ingrese el número de bultos para la guía de remisión
                 </Text>
               </View>
 
@@ -2351,7 +2352,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   style={[styles.bultosInput, isTablet && styles.bultosInputTablet]}
                   value={numeroBultos}
                   onChangeText={(text) => {
-                    // Solo permitir nÃºmeros
+                    // Solo permitir números
                     const numericValue = text.replace(/[^0-9]/g, '');
                     setNumeroBultos(numericValue);
                   }}

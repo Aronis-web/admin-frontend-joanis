@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { usePermissionError } from '@/hooks/usePermissionError';
 import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface CreateExpenseCategoryScreenProps {
   navigation: any;

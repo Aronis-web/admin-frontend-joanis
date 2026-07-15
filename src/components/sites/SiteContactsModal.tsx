@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Alert as RNAlert,
   ActivityIndicator,
 } from 'react-native';
 import Alert from '@/utils/alert';

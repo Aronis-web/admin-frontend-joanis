@@ -6,12 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Modal,
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
+import Alert from '@/utils/alert';
 
 import { TransferStatusBadge } from '@/components/Transfers/TransferStatusBadge';
 import { TransferItemsList } from '@/components/Transfers/TransferItemsList';

@@ -6,11 +6,11 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   Switch,
   ActivityIndicator,
 } from 'react-native';
 import { productsApi, CreateProductDto, UpdateProductDto, Product } from '@/services/api/products';
+import Alert from '@/utils/alert';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';

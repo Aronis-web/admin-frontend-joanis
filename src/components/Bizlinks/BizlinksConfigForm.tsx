@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  Alert,
   ActivityIndicator,
   Image,
   Platform,
@@ -23,6 +22,7 @@ import {
   CreateBizlinksConfigDto,
   UpdateBizlinksConfigDto,
 } from '../../types/bizlinks';
+import Alert from '@/utils/alert';
 
 interface BizlinksConfigFormProps {
   config?: BizlinksConfig;

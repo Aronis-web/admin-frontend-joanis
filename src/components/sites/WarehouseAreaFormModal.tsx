@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   TextInput,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -15,6 +14,7 @@ import type { Theme } from '@/design-system/themes';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { WarehouseAreaType, WarehouseAreaTypeLabels, WarehouseAreaTypeDescriptions } from '@/types/enums';
 import { warehouseAreasApi } from '@/services/api';
+import Alert from '@/utils/alert';
 
 interface WarehouseAreaFormModalProps {
   visible: boolean;

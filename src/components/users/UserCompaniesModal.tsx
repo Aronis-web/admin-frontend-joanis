@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
@@ -16,6 +15,7 @@ import { sitesApi } from '@/services/api/sites';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { UserCompanyStatus } from '@/types/companies';
+import Alert from '@/utils/alert';
 
 interface UserCompaniesModalProps {
   visible: boolean;

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   Image,
@@ -21,6 +20,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 import config from '@/utils/config';
+import Alert from '@/utils/alert';
 
 interface EditEmissionPointScreenProps {
   navigation: any;

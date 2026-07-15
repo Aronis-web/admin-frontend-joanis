@@ -6,7 +6,6 @@ import {
   Modal,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Image,
   TextInput,
@@ -29,6 +28,7 @@ import {
   requestCameraPermissionsAsync,
   MediaTypeOptions
 } from '@/utils/filePicker';
+import Alert from '@/utils/alert';
 
 interface ProductPhotosModalProps {
   visible: boolean;

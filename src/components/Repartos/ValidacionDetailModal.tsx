@@ -2,6 +2,8 @@
  * ValidacionDetailModal - Modal de detalles de validación
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -11,7 +13,6 @@ import {
   Image,
   useWindowDimensions,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
 } from 'react-native';
 import { ValidacionSalida } from '@/types/repartos';

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
 import { ScreenProps } from '@/types/navigation';
 import { AUTH_ROUTES } from '@/constants/routes';
+import Alert from '@/utils/alert';
 
 // Ensure AUTH_ROUTES is available
 const COMPANY_SELECTION_ROUTE = AUTH_ROUTES?.COMPANY_SELECTION || 'CompanySelection';

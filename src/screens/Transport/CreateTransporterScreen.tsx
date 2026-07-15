@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -24,6 +23,7 @@ import {
   TransporterStatus,
   AuthorizedCode,
 } from '@/types/transport';
+import Alert from '@/utils/alert';
 
 export const CreateTransporterScreen: React.FC = () => {
   const insets = useSafeAreaInsets();

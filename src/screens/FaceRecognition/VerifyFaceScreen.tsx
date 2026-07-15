@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
@@ -22,6 +21,7 @@ import type { Theme } from '@/design-system/themes';
 import { VideoCaptureCamera } from '@/components/FaceRecognition/VideoCaptureCamera';
 import { biometricApi, VerifyFromVideoResponse } from '@/services/api/biometric';
 import { usersApi, User } from '@/services/api/users';
+import Alert from '@/utils/alert';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   TextInput,
   Modal,
@@ -26,6 +25,7 @@ import { salesApi } from '@/services/api/sales';
 import { Sale, DocumentType as SaleDocumentType } from '@/types/sales';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 type Props = NativeStackScreenProps<any, 'CreateRetencion'>;
 

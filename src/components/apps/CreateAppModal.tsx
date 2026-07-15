@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { appsApi, CreateAppDto, AppType } from '@/services/api/apps';
+import Alert from '@/utils/alert';
 
 // Helper function to get app type labels
 const getAppTypeLabel = (type: AppType): string => {

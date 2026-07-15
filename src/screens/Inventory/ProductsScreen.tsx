@@ -4,6 +4,8 @@
  * Pantalla de listado de productos profesional y moderna.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
@@ -12,7 +14,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   useWindowDimensions,
   Modal,
   Image,

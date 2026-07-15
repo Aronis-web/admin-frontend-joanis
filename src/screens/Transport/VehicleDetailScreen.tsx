@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   TextInput,
   ActivityIndicator,
   Switch,
@@ -25,6 +24,7 @@ import {
   VehicleStatus,
   AuthorizedCode,
 } from '@/types/transport';
+import Alert from '@/utils/alert';
 
 export const VehicleDetailScreen = ({ navigation, route }: any) => {
   const theme = useTheme();

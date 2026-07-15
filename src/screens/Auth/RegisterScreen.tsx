@@ -8,13 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { validators } from '@/utils/validators';
+import Alert from '@/utils/alert';
 
 interface RegisterScreenProps {
   navigation: any;

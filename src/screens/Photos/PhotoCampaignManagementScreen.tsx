@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
@@ -37,6 +36,7 @@ import {
 } from '@/utils/filePicker';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
+import Alert from '@/utils/alert';
 
 interface PhotoCampaignManagementScreenProps {
   navigation: any;
@@ -263,7 +263,6 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
       setSelectedCampaignProducts([]);
     }
   }, [selectedCampaign?.id, loadCampaignProducts]);
-
 
   const filteredCampaignProducts = useMemo(() => {
     const query = productSearchQuery.trim().toLowerCase();
@@ -907,7 +906,6 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
       }
     });
   }, [selectedCampaignProducts, visibleProductIds, loadProductPhotos]);
-
 
 
   const openEditCampaignModal = () => {

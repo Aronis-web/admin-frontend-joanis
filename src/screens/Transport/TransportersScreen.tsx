@@ -8,7 +8,6 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +16,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import type { Transporter, TransportersResponse } from '@/types/transport';
+import Alert from '@/utils/alert';
 
 export const TransportersScreen: React.FC = () => {
   const insets = useSafeAreaInsets();

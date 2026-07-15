@@ -8,13 +8,13 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { Vehicle, VehicleStatus } from '@/types/transport';
 import { transportService } from '@/services/api';
+import Alert from '@/utils/alert';
 
 interface VehicleSelectionModalProps {
   visible: boolean;

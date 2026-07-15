@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   TextInput,
   ActivityIndicator,
   Switch,
@@ -25,6 +24,7 @@ import {
 import { getDepartamentos, getProvincias, getDistritos } from '@/constants/ubigeo';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 export const CustomerDetailScreen = ({ navigation, route }: any) => {
   const customerId = route?.params?.customerId;

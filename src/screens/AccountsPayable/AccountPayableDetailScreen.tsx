@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
@@ -25,6 +24,7 @@ import {
 } from '@/constants/accountsPayable';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface AccountPayableDetailScreenProps {
   navigation: any;

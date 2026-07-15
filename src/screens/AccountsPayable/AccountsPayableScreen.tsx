@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   useWindowDimensions,
   ActivityIndicator,
@@ -40,6 +39,7 @@ import {
   SUPPLIER_TYPE_ICONS,
   CURRENCY_SYMBOLS,
 } from '@/constants/accountsPayable';
+import Alert from '@/utils/alert';
 
 interface AccountsPayableScreenProps {
   navigation: any;

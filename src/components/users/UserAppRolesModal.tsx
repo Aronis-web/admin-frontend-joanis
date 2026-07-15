@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -25,6 +24,7 @@ import { Warehouse } from '@/types/warehouses';
 import { useTenantStore } from '@/store/tenant';
 import { warehouseAreasApi } from '@/services/api/warehouses';
 import { WarehouseArea } from '@/types/warehouses';
+import Alert from '@/utils/alert';
 
 interface UserAppRolesModalProps {
   visible: boolean;

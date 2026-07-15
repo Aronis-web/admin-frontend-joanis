@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   useWindowDimensions,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { sitesApi, Site, GetSitesParams } from '@/services/api';
 import { CreateSiteModal } from '@/components/sites/CreateSiteModal';
 import { SiteDetailModal } from '@/components/sites/SiteDetailModal';
 import { EditSiteModal } from '@/components/sites/EditSiteModal';
+import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 

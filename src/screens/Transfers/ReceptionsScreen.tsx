@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   ActivityIndicator,
   Modal,
@@ -37,6 +36,7 @@ import {
 import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ReceptionsScreenProps {
   navigation: any;
@@ -710,7 +710,6 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
     setErrorModalForm(null);
     setShowValidateModal(false);
   };
-
 
   const handleCompleteReception = async () => {
     if (!selectedTransfer || !currentReception) {

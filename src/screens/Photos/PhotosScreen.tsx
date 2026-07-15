@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   RefreshControl,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Alert from '@/utils/alert';
 
 import { activeOpacity } from '@/design-system/tokens';
 import { useTheme, useThemedStyles } from '@/design-system/themes';

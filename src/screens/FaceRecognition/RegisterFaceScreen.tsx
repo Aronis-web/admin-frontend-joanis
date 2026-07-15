@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
@@ -22,6 +21,7 @@ import type { Theme } from '@/design-system/themes';
 import { VideoCaptureCamera } from '@/components/FaceRecognition/VideoCaptureCamera';
 import { biometricApi, RegisterFromVideoResponse, UpdateFromVideoResponse } from '@/services/api/biometric';
 import { usersApi, User } from '@/services/api/users';
+import Alert from '@/utils/alert';
 
 type Step = 'search' | 'camera' | 'processing' | 'result';
 type Mode = 'register' | 'update';

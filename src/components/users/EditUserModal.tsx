@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { FormTextInput } from '@/components/ui/FormTextInput';
 import { RoleSelector } from '@/components/users/RoleSelector';
 import { WorkerProfileFields } from '@/components/users/WorkerProfileFields';
 import { usersApi, User, UpdateUserRequest } from '@/services/api/users';
+import Alert from '@/utils/alert';
 
 interface EditUserModalProps {
   visible: boolean;

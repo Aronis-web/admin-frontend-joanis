@@ -3,6 +3,8 @@
  * Pantalla para revisar transacciones de Izipay con filtros avanzados
  * Rediseñado con sistema de diseño global
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -12,7 +14,6 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
-  Alert,
   RefreshControl,
   Modal,
   Animated,

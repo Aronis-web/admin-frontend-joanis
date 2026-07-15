@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { companiesApi } from '@/services/api/companies';
 import { SupplierDebtTransaction } from '@/types/suppliers';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface AssignCompanyModalProps {
   visible: boolean;

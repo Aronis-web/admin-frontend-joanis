@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   useWindowDimensions,
   Image,
 } from 'react-native';
@@ -21,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
 import QRCodeStyled from 'react-native-qrcode-styled';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
+import Alert from '@/utils/alert';
 
 interface HomeScreenProps {
   navigation: any;

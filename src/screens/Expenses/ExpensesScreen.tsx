@@ -4,13 +4,14 @@
  * Pantalla de listado de gastos profesional y moderna.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   FlatList,
   StyleSheet,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';

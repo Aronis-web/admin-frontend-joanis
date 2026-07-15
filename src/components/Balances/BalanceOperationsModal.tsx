@@ -8,7 +8,6 @@ import {
   ScrollView,
   FlatList,
   ActivityIndicator,
-  Alert,
   TextInput,
 } from 'react-native';
 import { balancesApi } from '@/services/api';
@@ -22,6 +21,7 @@ import {
   getOperationTypeColor,
   formatCentsToCurrency,
 } from '@/types/balances';
+import Alert from '@/utils/alert';
 
 interface BalanceOperationsModalProps {
   visible: boolean;

@@ -4,6 +4,8 @@
  * Screen to create, edit or view a bank account
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,7 +15,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';

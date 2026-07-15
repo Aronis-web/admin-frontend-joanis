@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Dimensions,
   Animated,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAMERA_SIZE = SCREEN_WIDTH * 0.9;
@@ -130,7 +130,6 @@ export const FaceCaptureCamera: React.FC<FaceCaptureCameraProps> = ({
       friction: 5,
     }).start();
   }, [currentPositionIndex, rotateAnim]);
-
 
 
   // Cambiar entre cámara frontal y trasera

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Alert,
   ActivityIndicator,
   Platform,
 } from 'react-native';
@@ -25,6 +24,7 @@ import {
 } from '@/types/balances';
 import { balancesApi } from '@/services/api';
 import { getTodayString } from '@/utils/dateHelpers';
+import Alert from '@/utils/alert';
 
 interface EditBalanceOperationModalProps {
   visible: boolean;

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -23,6 +22,7 @@ import { PriceProfile } from '@/types/price-profiles';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface CreateTransmisionScreenProps {
   navigation: any;

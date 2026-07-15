@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
@@ -26,6 +25,7 @@ import { BalanceOperationsModal } from '@/components/Balances/BalanceOperationsM
 import { MAIN_ROUTES } from '@/constants/routes';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface BalanceDetailScreenProps {
   navigation: any;

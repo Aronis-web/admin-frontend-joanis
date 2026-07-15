@@ -5,7 +5,6 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   ScrollView,
   TextInput,
   Platform,
@@ -14,6 +13,7 @@ import { productsApi } from '@/services/api/products';
 import { saveAndShareExcel } from '@/utils/fileDownload';
 import logger from '@/utils/logger';
 import { getDocumentAsync } from '@/utils/filePicker';
+import Alert from '@/utils/alert';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';

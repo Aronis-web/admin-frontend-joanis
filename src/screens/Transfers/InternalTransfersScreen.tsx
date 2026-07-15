@@ -7,7 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   ActivityIndicator,
   Modal,
@@ -19,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+import Alert from '@/utils/alert';
 
 import { TransferCard } from '@/components/Transfers/TransferCard';
 import { TransferItemsList } from '@/components/Transfers/TransferItemsList';
@@ -156,10 +156,11 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       });
 
       const data = response.data || [];
-      const total = response.meta?.total ?? data.length;
+      const total = response.total ?? data.length;
+      const limit = response.limit ?? PAGE_SIZE;
       setTransfers(data);
       setTotalItems(total);
-      setTotalPages(response.meta?.totalPages ?? Math.max(1, Math.ceil(total / PAGE_SIZE)));
+      setTotalPages(Math.max(1, Math.ceil(total / limit)));
     } catch (error: any) {
       logger.error('Error loading internal transfers:', error);
       Alert.alert('Error', error.message || 'No se pudieron cargar los traslados internos');

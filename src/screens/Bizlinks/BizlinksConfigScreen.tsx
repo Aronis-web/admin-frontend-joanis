@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
@@ -14,6 +13,7 @@ import { BizlinksConfig } from '../../types/bizlinks';
 import { useAuthStore } from '../../store/auth';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfig'>;
 

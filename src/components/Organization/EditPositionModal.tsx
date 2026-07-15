@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { organizationApi } from '@/services/api/organization';
 import { PositionTreeNode } from '@/types/organization';
+import Alert from '@/utils/alert';
 
 interface EditPositionModalProps {
   visible: boolean;
