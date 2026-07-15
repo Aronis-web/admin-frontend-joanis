@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  ExportInventoryEntriesParams,
   inventoryApi,
+  ProductInventoryEntriesParams,
   ProductStockDetailParams,
   ProductsStockParams,
 } from '@/services/api/inventory';
@@ -14,10 +16,13 @@ export const stockKeys = {
   list: (filters?: { warehouseId?: string; areaId?: string }) =>
     [...stockKeys.lists(), filters] as const,
   products: () => [...stockKeys.all, 'products'] as const,
-  productsList: (params?: ProductsStockParams) => [...stockKeys.products(), 'list', params] as const,
+  productsList: (params?: ProductsStockParams) =>
+    [...stockKeys.products(), 'list', params] as const,
   productDetail: (productId: string, params?: ProductStockDetailParams) =>
     [...stockKeys.products(), 'detail', productId, params] as const,
   byProduct: (productId: string) => [...stockKeys.all, 'byProduct', productId] as const,
+  productEntries: (productId: string, params?: ProductInventoryEntriesParams) =>
+    [...stockKeys.all, 'entries', productId, params] as const,
   movements: (productId: string, warehouseId?: string) =>
     [...stockKeys.all, 'movements', productId, warehouseId] as const,
 };
@@ -72,6 +77,40 @@ export const useProductStockDetail = (
 };
 
 /**
+ * Hook para entries FIFO (remaining_quantity > 0) de un producto.
+ */
+export const useProductInventoryEntries = (
+  productId: string,
+  params?: ProductInventoryEntriesParams,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: stockKeys.productEntries(productId, params),
+    queryFn: () => inventoryApi.getProductInventoryEntries(productId, params),
+    enabled: enabled && !!productId,
+    staleTime: 60 * 1000,
+    retry: (failureCount, error: any) => {
+      const status = error?.response?.status;
+      if (status && status >= 400 && status < 500) return false;
+      return failureCount < 2;
+    },
+  });
+};
+
+/**
+ * Hook mutation para exportar reporte Excel de entries (4 hojas).
+ */
+export const useExportInventoryEntries = () => {
+  return useMutation({
+    mutationFn: (params?: ExportInventoryEntriesParams) =>
+      inventoryApi.exportInventoryEntries(params),
+    onError: (error) => {
+      logger.error('Error al exportar entries', error);
+    },
+  });
+};
+
+/**
  * Hook para búsqueda optimizada de stock (V2)
  * ✅ Usa caché Redis y búsqueda multi-campo
  */
@@ -95,7 +134,7 @@ export const useSearchStockV2 = (
         areaId: options?.areaId,
         lowStockOnly: options?.lowStockOnly,
       }),
-    enabled: (options?.enabled !== false) && query.length >= 2,
+    enabled: options?.enabled !== false && query.length >= 2,
     staleTime: 5 * 60 * 1000, // 5 minutos (cacheado en Redis)
   });
 };

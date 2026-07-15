@@ -346,6 +346,51 @@ export interface ExportStockDto {
   includePrices?: boolean;
 }
 
+// ========== INVENTORY ENTRIES ==========
+
+export type InventoryEntrySourceType =
+  | 'PURCHASE'
+  | 'MANUAL_ADJUSTMENT'
+  | 'BULK_STOCK_UPDATE'
+  | 'TRANSFER'
+  | 'RETURN'
+  | string;
+
+export interface ProductInventoryEntryLocation {
+  warehouseId: string;
+  areaId: string;
+  quantity: number;
+}
+
+export interface ProductInventoryEntry {
+  entryId: string;
+  entryNumber: string;
+  sourceType: InventoryEntrySourceType;
+  /** BigInt en el server, viene serializado como string (centavos). Ej: "1690" = S/ 16.90 */
+  unitCostCents: string;
+  initialQuantity: number;
+  remainingQuantity: number;
+  receivedAt: string;
+  purchaseId: string | null;
+  locations: ProductInventoryEntryLocation[];
+}
+
+export interface ProductInventoryEntriesParams {
+  warehouseId?: string;
+}
+
+export interface ExportInventoryEntriesParams {
+  /** ISO date (YYYY-MM-DD o full ISO). Default server: primer día del mes en curso. */
+  from?: string;
+  /** ISO date (YYYY-MM-DD o full ISO). Default server: hoy. */
+  to?: string;
+  /** Uno o varios warehouseIds (se serializan como `warehouseId=a&warehouseId=b`). */
+  warehouseId?: string | string[];
+  productId?: string;
+  sourceType?: InventoryEntrySourceType;
+  supplierId?: string;
+}
+
 // ========== INVENTORY API ==========
 
 export const inventoryApi = {
@@ -433,6 +478,50 @@ export const inventoryApi = {
       `/admin/inventory/products/${productId}/stock-detail`,
       { params }
     );
+  },
+
+  /**
+   * Entries FIFO con remaining_quantity > 0 de un producto.
+   * GET /admin/inventory/entries/by-product/:productId
+   */
+  getProductInventoryEntries: async (
+    productId: string,
+    params?: ProductInventoryEntriesParams
+  ): Promise<ProductInventoryEntry[]> => {
+    return apiClient.get<ProductInventoryEntry[]>(
+      `/admin/inventory/entries/by-product/${productId}`,
+      { params }
+    );
+  },
+
+  /**
+   * Reporte Excel de entries (4 hojas) en streaming.
+   * GET /admin/inventory/entries/export
+   * Filtros opcionales: from, to (ISO date), warehouseId, productId, sourceType, supplierId.
+   * Default server: mes en curso.
+   */
+  exportInventoryEntries: async (params?: ExportInventoryEntriesParams): Promise<Blob> => {
+    const { config } = await import('@/utils/config');
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+
+    const query = new URLSearchParams();
+    if (params?.from) query.append('from', params.from);
+    if (params?.to) query.append('to', params.to);
+    if (params?.warehouseId) {
+      if (Array.isArray(params.warehouseId)) {
+        params.warehouseId.forEach((id) => query.append('warehouseId', id));
+      } else {
+        query.append('warehouseId', params.warehouseId);
+      }
+    }
+    if (params?.productId) query.append('productId', params.productId);
+    if (params?.sourceType) query.append('sourceType', params.sourceType);
+    if (params?.supplierId) query.append('supplierId', params.supplierId);
+
+    const qs = query.toString();
+    const url = `${config.API_URL}/admin/inventory/entries/export${qs ? `?${qs}` : ''}`;
+
+    return downloadWithAuth(url, { method: 'GET' });
   },
 
   // ========== V2 OPTIMIZED ENDPOINTS ==========
@@ -570,10 +659,7 @@ export const inventoryApi = {
    * POST /admin/inventory/stock/download-format
    * Returns an Excel file with current stock data ready for editing
    */
-  downloadStockFormat: async (params: {
-    siteId: string;
-    warehouseId?: string;
-  }): Promise<Blob> => {
+  downloadStockFormat: async (params: { siteId: string; warehouseId?: string }): Promise<Blob> => {
     const { config } = await import('@/utils/config');
     const { authService } = await import('@/services/AuthService');
     const { useAuthStore } = await import('@/store/auth');

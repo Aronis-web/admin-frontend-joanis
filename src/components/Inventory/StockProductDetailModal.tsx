@@ -8,15 +8,12 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  ProductStockBatch,
-  ProductStockDetailWarehouse,
-  ProductStockSummaryItem,
-} from '@/services/api/inventory';
+import { ProductStockDetailWarehouse, ProductStockSummaryItem } from '@/services/api/inventory';
 import { useProductStockDetail } from '@/hooks/api/useStock';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { Caption, Card, Divider, EmptyState, Text } from '@/design-system/components';
+import { Button, Caption, Card, Divider, EmptyState, Text } from '@/design-system/components';
+import ProductInventoryEntriesModal from './ProductInventoryEntriesModal';
 
 interface StockProductDetailModalProps {
   visible: boolean;
@@ -53,19 +50,6 @@ const formatDate = (value?: string) => {
   });
 };
 
-const getBatchStatusColor = (status: string | undefined, theme: Theme) => {
-  switch (status) {
-    case 'ACTIVE':
-      return theme.color.action.success.background;
-    case 'DEPLETED':
-      return theme.color.icon.subtle;
-    case 'BLOCKED':
-      return theme.color.action.danger.background;
-    default:
-      return theme.color.brand.accent;
-  }
-};
-
 const getMovementColor = (type: string | undefined, theme: Theme) => {
   if (!type) return theme.color.icon.subtle;
   if (type.includes('IN') || type.includes('PURCHASE') || type.includes('RETURN')) {
@@ -88,15 +72,15 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
   const styles = useThemedStyles(createStyles);
   const [includeMovements, setIncludeMovements] = useState(true);
   const [isMovementsExpanded, setIsMovementsExpanded] = useState(false);
+  const [entriesModalVisible, setEntriesModalVisible] = useState(false);
 
   const detailParams = useMemo(
     () => ({
       warehouseId,
       areaId,
-      includeBatches: true,
+      includeBatches: false,
       includeMovements,
       movementsLimit: 20,
-      sortBatchesBy: 'receivedAt' as const,
       sortOrder: 'DESC' as const,
     }),
     [warehouseId, areaId, includeMovements]
@@ -107,7 +91,11 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
     isLoading,
     isRefetching,
     refetch,
-  } = useProductStockDetail(product?.productId || '', detailParams, visible && !!product?.productId);
+  } = useProductStockDetail(
+    product?.productId || '',
+    detailParams,
+    visible && !!product?.productId
+  );
 
   useEffect(() => {
     if (!visible || !product?.productId) return;
@@ -120,122 +108,26 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
     console.groupEnd();
   }, [visible, product?.productId, detailParams, isLoading, detail, product]);
 
-  useEffect(() => {
-    if (!visible || !detail) return;
-
-    console.group('[StockDetail] Respuesta stock-detail recibida');
-    console.log('Respuesta completa:', detail);
-    console.log('Producto:', detail.product);
-    console.log('Resumen:', detail.stockSummary);
-    console.log('Warehouses count:', detail.warehouses?.length || 0);
-
-    detail.warehouses?.forEach((warehouse, warehouseIndex) => {
-      console.group(`[StockDetail] Warehouse ${warehouseIndex + 1}`);
-      console.log('Warehouse raw:', warehouse);
-      console.log('Areas count:', warehouse.areas?.length || 0);
-
-      warehouse.areas?.forEach((area, areaIndex) => {
-        const rawArea = area as any;
-        const batches = rawArea.batches;
-        console.group(`[StockDetail] Area ${areaIndex + 1}`);
-        console.log('Area raw:', rawArea);
-        console.log('Area keys:', Object.keys(rawArea || {}));
-        console.log('Batches raw:', batches);
-        console.log('Batches isArray:', Array.isArray(batches));
-        console.log('Batches count:', Array.isArray(batches) ? batches.length : 'no-array');
-
-        if (Array.isArray(batches)) {
-          batches.forEach((batch, batchIndex) => {
-            console.log(`[StockDetail] Batch ${batchIndex + 1} keys:`, Object.keys(batch || {}));
-            console.log(`[StockDetail] Batch ${batchIndex + 1} raw:`, batch);
-          });
-        }
-
-        console.groupEnd();
-      });
-
-      console.groupEnd();
-    });
-
-    console.log('Movements:', detail.lastMovements);
-    console.groupEnd();
-  }, [visible, detail]);
-
   const currency = detail?.product.currency || 'PEN';
   const summary = detail?.stockSummary;
   const warehouses = detail?.warehouses || [];
   const movements = detail?.lastMovements || [];
 
-  const renderBatch = (batch: ProductStockBatch) => (
-    <View key={batch.batchId} style={styles.batchCard}>
-      <View style={styles.batchHeader}>
-        <View style={styles.flexOne}>
-          <Text variant="labelMedium" color="primary" numberOfLines={1}>
-            {batch.batchNumber || 'Lote sin número'}
-          </Text>
-          <Caption color="tertiary">Ingreso: {formatDate(batch.receivedAt)}</Caption>
-        </View>
-        <View style={[styles.statusPill, { backgroundColor: getBatchStatusColor(batch.status, theme) }]}>
-          <Text variant="labelSmall" color={theme.color.text.inverse}>
-            {batch.status}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.metricGridCompact}>
-        <View style={styles.metricCompact}>
-          <Caption color="tertiary">Ingreso</Caption>
-          <Text variant="numericSmall" color="primary">{formatQuantity(batch.initialStock)}</Text>
-        </View>
-        <View style={styles.metricCompact}>
-          <Caption color="tertiary">Actual</Caption>
-          <Text variant="numericSmall" color="primary">{formatQuantity(batch.currentStock)}</Text>
-        </View>
-        <View style={styles.metricCompact}>
-          <Caption color="tertiary">Reservado</Caption>
-          <Text variant="numericSmall" color={theme.color.state.warning.text}>{formatQuantity(batch.reservedStock)}</Text>
-        </View>
-        <View style={styles.metricCompact}>
-          <Caption color="tertiary">Disponible</Caption>
-          <Text variant="numericSmall" color={theme.color.state.success.text}>{formatQuantity(batch.availableStock)}</Text>
-        </View>
-        <View style={styles.metricCompact}>
-          <Caption color="tertiary">Valor</Caption>
-          <Text variant="numericSmall" color="primary">
-            {formatMoney(batch.currentValueCents, batch.currency || currency)}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.batchMeta}>
-        <Caption color="tertiary">Vence: {formatDate(batch.expirationDate)}</Caption>
-        {batch.unitCostCents !== undefined && (
-          <Caption color="tertiary">Costo: {formatMoney(batch.unitCostCents, batch.currency || currency)}</Caption>
-        )}
-      </View>
-
-      {(batch.supplier || batch.purchase) && <Divider spacing="small" />}
-
-      {batch.supplier && (
-        <Caption color="secondary" numberOfLines={2}>
-          Proveedor: {batch.supplier.commercialName || batch.supplier.code || batch.supplier.supplierId}
-        </Caption>
-      )}
-      {batch.purchase && (
-        <Caption color="secondary" numberOfLines={2}>
-          Compra: {batch.purchase.code || batch.purchase.guideNumber || batch.purchase.purchaseId}
-        </Caption>
-      )}
-    </View>
-  );
-
   const renderWarehouse = (warehouse: ProductStockDetailWarehouse) => (
-    <Card key={warehouse.warehouseId} variant="outlined" padding="medium" style={styles.sectionCard}>
+    <Card
+      key={warehouse.warehouseId}
+      variant="outlined"
+      padding="medium"
+      style={styles.sectionCard}
+    >
       <View style={styles.sectionHeaderRow}>
         <View style={styles.flexOne}>
-          <Text variant="titleSmall" color="primary">{warehouse.warehouseName}</Text>
+          <Text variant="titleSmall" color="primary">
+            {warehouse.warehouseName}
+          </Text>
           <Caption color="tertiary">
-            {[warehouse.warehouseCode, warehouse.siteCode].filter(Boolean).join(' • ') || 'Sin código'}
+            {[warehouse.warehouseCode, warehouse.siteCode].filter(Boolean).join(' • ') ||
+              'Sin código'}
           </Caption>
         </View>
         <Text variant="numericMedium" color={theme.color.state.success.text}>
@@ -246,7 +138,9 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
       <View style={styles.inlineMetrics}>
         <Caption color="tertiary">Total {formatQuantity(warehouse.totalStock)}</Caption>
         <Caption color="tertiary">Reservado {formatQuantity(warehouse.reservedStock)}</Caption>
-        <Caption color="tertiary">Valor {formatMoney(warehouse.availableValueCents, currency)}</Caption>
+        <Caption color="tertiary">
+          Valor {formatMoney(warehouse.availableValueCents, currency)}
+        </Caption>
       </View>
 
       {warehouse.areas.map((area) => (
@@ -266,16 +160,10 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
           <View style={styles.inlineMetrics}>
             <Caption color="tertiary">Total {formatQuantity(area.totalStock)}</Caption>
             <Caption color="tertiary">Reservado {formatQuantity(area.reservedStock)}</Caption>
-            <Caption color="tertiary">Valor {formatMoney(area.availableValueCents, currency)}</Caption>
-          </View>
-
-          {area.batches && area.batches.length > 0 ? (
-            <View style={styles.batchesList}>{area.batches.map(renderBatch)}</View>
-          ) : (
-            <Caption color="tertiary" style={styles.noBatchesText}>
-              No hay lotes registrados en esta área.
+            <Caption color="tertiary">
+              Valor {formatMoney(area.availableValueCents, currency)}
             </Caption>
-          )}
+          </View>
         </View>
       ))}
     </Card>
@@ -301,11 +189,6 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
           </View>
 
           <View style={styles.toggleRow}>
-            <View style={[styles.toggleButton, styles.toggleButtonActive]}>
-              <Text variant="labelSmall" color={theme.color.text.inverse}>
-                Lotes visibles
-              </Text>
-            </View>
             <TouchableOpacity
               style={[styles.toggleButton, includeMovements && styles.toggleButtonActive]}
               onPress={() => {
@@ -313,11 +196,18 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                 setIsMovementsExpanded(false);
               }}
             >
-              <Text variant="labelSmall" color={includeMovements ? theme.color.text.inverse : 'primary'}>
+              <Text
+                variant="labelSmall"
+                color={includeMovements ? theme.color.text.inverse : 'primary'}
+              >
                 Movimientos
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.refreshButton} onPress={() => refetch()} disabled={isRefetching}>
+            <TouchableOpacity
+              style={styles.refreshButton}
+              onPress={() => refetch()}
+              disabled={isRefetching}
+            >
               <Ionicons name="refresh" size={16} color={theme.color.state.info.text} />
               <Text variant="labelSmall" color={theme.color.state.info.text}>
                 Actualizar
@@ -345,12 +235,23 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
               <Card variant="filled" padding="medium" style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
                   <View style={styles.flexOne}>
-                    <Text variant="titleSmall" color="primary">Resumen</Text>
+                    <Text variant="titleSmall" color="primary">
+                      Resumen
+                    </Text>
                     <Caption color="tertiary">
                       {detail.product.categoryName || 'Sin categoría'} • {detail.product.status}
                     </Caption>
                   </View>
-                  <View style={[styles.statusPill, { backgroundColor: summary?.lowStock ? theme.color.text.warning : theme.color.action.success.background }]}>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      {
+                        backgroundColor: summary?.lowStock
+                          ? theme.color.text.warning
+                          : theme.color.action.success.background,
+                      },
+                    ]}
+                  >
                     <Text variant="labelSmall" color={theme.color.text.inverse}>
                       {summary?.lowStock ? 'Stock bajo' : 'Stock OK'}
                     </Text>
@@ -360,26 +261,33 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                 <View style={styles.metricGrid}>
                   <View style={styles.metricBox}>
                     <Caption color="tertiary">Total</Caption>
-                    <Text variant="numericMedium" color="primary">{formatQuantity(summary?.totalStock)}</Text>
+                    <Text variant="numericMedium" color="primary">
+                      {formatQuantity(summary?.totalStock)}
+                    </Text>
                   </View>
                   <View style={styles.metricBox}>
                     <Caption color="tertiary">Reservado</Caption>
-                    <Text variant="numericMedium" color={theme.color.state.warning.text}>{formatQuantity(summary?.reservedStock)}</Text>
+                    <Text variant="numericMedium" color={theme.color.state.warning.text}>
+                      {formatQuantity(summary?.reservedStock)}
+                    </Text>
                   </View>
                   <View style={styles.metricBox}>
                     <Caption color="tertiary">Disponible</Caption>
-                    <Text variant="numericMedium" color={theme.color.state.success.text}>{formatQuantity(summary?.availableStock)}</Text>
+                    <Text variant="numericMedium" color={theme.color.state.success.text}>
+                      {formatQuantity(summary?.availableStock)}
+                    </Text>
                   </View>
                   <View style={styles.metricBox}>
                     <Caption color="tertiary">Valor</Caption>
-                    <Text variant="numericMedium" color="primary">{formatMoney(summary?.availableValueCents, currency)}</Text>
+                    <Text variant="numericMedium" color="primary">
+                      {formatMoney(summary?.availableValueCents, currency)}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.inlineMetrics}>
                   <Caption color="tertiary">Almacenes: {summary?.warehousesCount || 0}</Caption>
                   <Caption color="tertiary">Áreas: {summary?.areasCount || 0}</Caption>
-                  <Caption color="tertiary">Lotes: {summary?.batchesCount || 0}</Caption>
                 </View>
               </Card>
 
@@ -401,7 +309,9 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                     activeOpacity={0.8}
                   >
                     <View style={styles.flexOne}>
-                      <Text variant="titleSmall" color="primary">Últimos movimientos</Text>
+                      <Text variant="titleSmall" color="primary">
+                        Últimos movimientos
+                      </Text>
                       <Caption color="tertiary">
                         {movements.length} movimiento(s) reciente(s)
                       </Caption>
@@ -417,21 +327,34 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                     <>
                       <Divider spacing="small" />
                       {movements.length === 0 ? (
-                        <Caption color="tertiary">No hay movimientos recientes para este producto.</Caption>
+                        <Caption color="tertiary">
+                          No hay movimientos recientes para este producto.
+                        </Caption>
                       ) : (
                         movements.map((movement) => (
                           <View key={movement.movementId} style={styles.movementRow}>
-                            <View style={[styles.movementDot, { backgroundColor: getMovementColor(movement.movementType, theme) }]} />
+                            <View
+                              style={[
+                                styles.movementDot,
+                                { backgroundColor: getMovementColor(movement.movementType, theme) },
+                              ]}
+                            />
                             <View style={styles.flexOne}>
-                              <Text variant="labelMedium" color="primary">{movement.movementType}</Text>
+                              <Text variant="labelMedium" color="primary">
+                                {movement.movementType}
+                              </Text>
                               <Caption color="tertiary">
                                 {movement.warehouseName || 'Sin almacén'}
                                 {movement.areaName ? ` / ${movement.areaName}` : ''}
                               </Caption>
-                              {!!movement.notes && <Caption color="secondary">{movement.notes}</Caption>}
+                              {!!movement.notes && (
+                                <Caption color="secondary">{movement.notes}</Caption>
+                              )}
                             </View>
                             <View style={styles.movementRight}>
-                              <Text variant="numericSmall" color="primary">{formatQuantity(movement.quantity)}</Text>
+                              <Text variant="numericSmall" color="primary">
+                                {formatQuantity(movement.quantity)}
+                              </Text>
                               <Caption color="tertiary">{formatDate(movement.createdAt)}</Caption>
                             </View>
                           </View>
@@ -441,10 +364,30 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
                   )}
                 </Card>
               )}
+
+              <View style={styles.entriesButtonWrapper}>
+                <Button
+                  title="Exportar ingresos (Excel)"
+                  variant="primary"
+                  size="medium"
+                  fullWidth
+                  onPress={() => setEntriesModalVisible(true)}
+                  leftIcon="download-outline"
+                />
+              </View>
             </ScrollView>
           )}
         </View>
       </View>
+
+      <ProductInventoryEntriesModal
+        visible={entriesModalVisible}
+        onClose={() => setEntriesModalVisible(false)}
+        productId={product?.productId || detail?.product.productId || null}
+        productName={detail?.product.name || product?.name}
+        productSku={detail?.product.sku || product?.sku}
+        initialWarehouseId={warehouseId}
+      />
     </Modal>
   );
 };
@@ -583,39 +526,8 @@ const createStyles = (theme: Theme) =>
       alignItems: 'flex-start',
       marginBottom: theme.space[1],
     },
-    batchesList: {
+    entriesButtonWrapper: {
       marginTop: theme.space[3],
-      gap: theme.space[2],
-    },
-    batchCard: {
-      backgroundColor: theme.color.surface.subtle,
-      borderRadius: theme.radii.md,
-      padding: theme.space[3],
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-    },
-    batchHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: theme.space[2],
-    },
-    metricGridCompact: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.space[2],
-    },
-    metricCompact: {
-      flexBasis: '23%',
-      flexGrow: 1,
-    },
-    batchMeta: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.space[3],
-      marginTop: theme.space[2],
-    },
-    noBatchesText: {
-      marginTop: theme.space[2],
     },
     collapsibleHeader: {
       flexDirection: 'row',
