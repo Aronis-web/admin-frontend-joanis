@@ -170,6 +170,46 @@ function createWindow(port) {
     mainWindow.webContents.openDevTools();
   }
 
+  // ---- Web Bluetooth: handler de selección de dispositivos ----
+  // Sin esto, navigator.bluetooth.requestDevice() se cuelga en Electron
+  // porque Chromium delega la elección al embedder. Como nuestros filtros
+  // ya restringen a una única etiqueta (LK<código>), seleccionamos el
+  // primer dispositivo encontrado automáticamente.
+  // Estado por-request para evitar bloqueos: si tras N segundos no aparece
+  // ningún candidato, cancelamos el picker para que requestDevice() falle
+  // con NotFoundError y el frontend pueda reintentar.
+  let bleTimer = null;
+  let bleCallback = null;
+  const BLE_TIMEOUT_MS = 12000;
+  const cancelBlePicker = (reason) => {
+    if (bleTimer) { clearTimeout(bleTimer); bleTimer = null; }
+    if (bleCallback) {
+      console.log(`[BLE] cancelando picker: ${reason}`);
+      try { bleCallback(''); } catch (e) { /* ya consumido */ }
+      bleCallback = null;
+    }
+  };
+  mainWindow.webContents.on('select-bluetooth-device', (event, devices, callback) => {
+    event.preventDefault();
+    console.log('[BLE] select-bluetooth-device candidatos:', devices.map((d) => `${d.deviceName} (${d.deviceId})`));
+    if (devices && devices.length > 0) {
+      if (bleTimer) { clearTimeout(bleTimer); bleTimer = null; }
+      bleCallback = null;
+      callback(devices[0].deviceId);
+      return;
+    }
+    // Si no hay candidatos todavía, guardamos el callback más reciente y
+    // armamos un timeout. Chromium re-emite el evento con nuevos candidatos
+    // y refrescamos el callback en cada emit.
+    bleCallback = callback;
+    if (!bleTimer) {
+      bleTimer = setTimeout(() => {
+        bleTimer = null;
+        cancelBlePicker('timeout sin candidatos');
+      }, BLE_TIMEOUT_MS);
+    }
+  });
+
   // Log any errors
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     console.error('Failed to load:', errorCode, errorDescription);

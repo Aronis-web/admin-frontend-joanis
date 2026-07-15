@@ -6,7 +6,7 @@ $OUTPUT_DIR = 'C:\Users\Aaron\OneDrive\Desktop\apps Erp aio'
 
 $env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-17.0.19.10-hotspot'
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:GRADLE_USER_HOME = 'C:\gradle_cache'
+$env:GRADLE_USER_HOME = 'C:\gradle_cache5'
 $env:GRADLE_OPTS = '-Xmx4g -XX:MaxMetaspaceSize=1g'
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 
@@ -15,8 +15,8 @@ Write-Host "==> Version: $VERSION"
 
 Write-Host '==> Limpiando build dir y gradle cache...'
 Remove-Item -Recurse -Force $BUILD_DIR -ErrorAction SilentlyContinue
-Remove-Item -Recurse -Force 'C:\gradle_cache' -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Path 'C:\gradle_cache' -Force | Out-Null
+Remove-Item -Recurse -Force 'C:\gradle_cache5' -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path 'C:\gradle_cache5' -Force | Out-Null
 
 Write-Host '==> Copiando proyecto con robocopy...'
 robocopy $PROJECT $BUILD_DIR /E /XD node_modules android .git /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
@@ -25,11 +25,11 @@ $global:LASTEXITCODE = 0
 
 Set-Location $BUILD_DIR
 Write-Host '==> npm install...'
-npm install
+cmd /c "npm install 2>&1"
 if ($LASTEXITCODE -ne 0) { throw 'npm install failed' }
 
 Write-Host '==> expo prebuild --platform android --clean...'
-npx expo prebuild --platform android --clean
+cmd /c "npx expo prebuild --platform android --clean 2>&1"
 if ($LASTEXITCODE -ne 0) { throw 'expo prebuild failed' }
 
 $sdkPath = $env:ANDROID_HOME -replace '\\','/'
@@ -37,7 +37,7 @@ $sdkPath = $env:ANDROID_HOME -replace '\\','/'
 
 Set-Location "$BUILD_DIR\android"
 Write-Host '==> gradlew assembleRelease...'
-./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --console=plain
+cmd /c "gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --console=plain --max-workers=1 --no-parallel --no-build-cache --no-configuration-cache 2>&1"
 if ($LASTEXITCODE -ne 0) { throw 'gradlew assembleRelease failed' }
 
 $APK_SOURCE = "$BUILD_DIR\android\app\build\outputs\apk\release\app-release.apk"
