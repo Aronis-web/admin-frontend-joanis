@@ -14,6 +14,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { Button, Caption, Card, Divider, EmptyState, Text } from '@/design-system/components';
 import ProductInventoryEntriesModal from './ProductInventoryEntriesModal';
+import ProductStockMovementsExportModal from './ProductStockMovementsExportModal';
 
 interface StockProductDetailModalProps {
   visible: boolean;
@@ -73,6 +74,7 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
   const [includeMovements, setIncludeMovements] = useState(true);
   const [isMovementsExpanded, setIsMovementsExpanded] = useState(false);
   const [entriesModalVisible, setEntriesModalVisible] = useState(false);
+  const [movementsModalVisible, setMovementsModalVisible] = useState(false);
 
   const detailParams = useMemo(
     () => ({
@@ -367,11 +369,19 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
 
               <View style={styles.entriesButtonWrapper}>
                 <Button
-                  title="Exportar ingresos (Excel)"
+                  title="Reporte Lotes Ingreso"
                   variant="primary"
                   size="medium"
                   fullWidth
                   onPress={() => setEntriesModalVisible(true)}
+                  leftIcon="download-outline"
+                />
+                <Button
+                  title="Reporte de Movimientos"
+                  variant="secondary"
+                  size="medium"
+                  fullWidth
+                  onPress={() => setMovementsModalVisible(true)}
                   leftIcon="download-outline"
                 />
               </View>
@@ -383,6 +393,15 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
       <ProductInventoryEntriesModal
         visible={entriesModalVisible}
         onClose={() => setEntriesModalVisible(false)}
+        productId={product?.productId || detail?.product.productId || null}
+        productName={detail?.product.name || product?.name}
+        productSku={detail?.product.sku || product?.sku}
+        initialWarehouseId={warehouseId}
+      />
+
+      <ProductStockMovementsExportModal
+        visible={movementsModalVisible}
+        onClose={() => setMovementsModalVisible(false)}
         productId={product?.productId || detail?.product.productId || null}
         productName={detail?.product.name || product?.name}
         productSku={detail?.product.sku || product?.sku}
@@ -528,6 +547,7 @@ const createStyles = (theme: Theme) =>
     },
     entriesButtonWrapper: {
       marginTop: theme.space[3],
+      gap: theme.space[2],
     },
     collapsibleHeader: {
       flexDirection: 'row',

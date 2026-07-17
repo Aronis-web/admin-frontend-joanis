@@ -7,6 +7,7 @@ import {
   ProductsStockParams,
 } from '@/services/api/inventory';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
+import { transfersApi, ExportProductStockMovementsParams } from '@/services/api/transfers';
 import { logger } from '@/utils/logger';
 
 // Query keys para stock
@@ -106,6 +107,25 @@ export const useExportInventoryEntries = () => {
       inventoryApi.exportInventoryEntries(params),
     onError: (error) => {
       logger.error('Error al exportar entries', error);
+    },
+  });
+};
+
+/**
+ * Hook mutation para exportar reporte Excel de movimientos de stock por producto.
+ * GET /transfers/stock-movements/product/:productId/export
+ */
+export const useExportProductStockMovements = () => {
+  return useMutation({
+    mutationFn: ({
+      productId,
+      params,
+    }: {
+      productId: string;
+      params?: ExportProductStockMovementsParams;
+    }) => transfersApi.exportProductStockMovements(productId, params),
+    onError: (error) => {
+      logger.error('Error al exportar movimientos de stock', error);
     },
   });
 };

@@ -4,6 +4,7 @@ import {
   Transfer,
   TransferDiscrepancy,
   StockMovement,
+  MovementType,
   TransferStatusHistory,
   CreateInternalTransferDto,
   CreateExternalTransferDto,
@@ -49,6 +50,17 @@ import {
  *    - X-User-Id (ID de usuario)
  *    - X-App-Id (ID de aplicación)
  */
+
+export interface ExportProductStockMovementsParams {
+  /** Uno o varios warehouseIds (se serializan como `warehouseId=a&warehouseId=b`). */
+  warehouseId?: string | string[];
+  warehouseAreaId?: string;
+  movementType?: MovementType;
+  /** ISO date (YYYY-MM-DD). */
+  dateFrom?: string;
+  /** ISO date (YYYY-MM-DD). */
+  dateTo?: string;
+}
 
 export const transfersApi = {
   // ============================================
@@ -382,6 +394,37 @@ export const transfersApi = {
     return apiClient.get<StockMovement[]>(`/transfers/stock-movements/product/${productId}`, {
       params,
     });
+  },
+
+  /**
+   * 📦 Export stock movements history for a product (Excel)
+   * GET /api/transfers/stock-movements/product/:productId/export
+   * Filtros opcionales: warehouseId (single o array), warehouseAreaId, movementType, dateFrom, dateTo.
+   * Sin filtros = descarga todo el historial del producto.
+   */
+  exportProductStockMovements: async (
+    productId: string,
+    params?: ExportProductStockMovementsParams
+  ): Promise<Blob> => {
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+
+    const query = new URLSearchParams();
+    if (params?.warehouseId) {
+      if (Array.isArray(params.warehouseId)) {
+        params.warehouseId.forEach((id) => query.append('warehouseId', id));
+      } else {
+        query.append('warehouseId', params.warehouseId);
+      }
+    }
+    if (params?.warehouseAreaId) query.append('warehouseAreaId', params.warehouseAreaId);
+    if (params?.movementType) query.append('movementType', params.movementType);
+    if (params?.dateFrom) query.append('dateFrom', params.dateFrom);
+    if (params?.dateTo) query.append('dateTo', params.dateTo);
+
+    const qs = query.toString();
+    const url = `${config.API_URL}/transfers/stock-movements/product/${productId}/export${qs ? `?${qs}` : ''}`;
+
+    return downloadWithAuth(url, { method: 'GET' });
   },
 
   // ============================================
