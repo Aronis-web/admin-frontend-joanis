@@ -125,8 +125,9 @@ class ApiClient {
           logger.error('❌ CRITICAL: X-App-Id is undefined! This will cause 400 errors.');
         }
         logger.debug('🔑 Setting X-App-Id header:', appId);
+        // Setear una sola vez: los headers HTTP son case-insensitive y duplicar
+        // la clave (X-App-Id + x-app-id) puede terminar en un valor doblado.
         requestConfig.headers['X-App-Id'] = appId;
-        requestConfig.headers['x-app-id'] = appId; // Also set lowercase for compatibility
 
         // Add X-App-Version header to all requests (for version control)
         const appVersion = config.APP_VERSION;
@@ -382,9 +383,10 @@ class ApiClient {
     }
 
     // Add tenant context headers (use imported config from @/utils/config)
-    const appId = config.APP_ID;
-    headers['X-App-Id'] = appId;
-    headers['x-app-id'] = appId;
+    // IMPORTANTE: setear X-App-Id una sola vez. `fetch`/XHR combinan claves que
+    // difieren solo en mayúsculas (X-App-Id + x-app-id) en un único header con
+    // valor duplicado ("appId, appId"), lo que rompe validaciones UUID en backend.
+    headers['X-App-Id'] = config.APP_ID;
 
     // Add version header
     headers['X-App-Version'] = config.APP_VERSION;
