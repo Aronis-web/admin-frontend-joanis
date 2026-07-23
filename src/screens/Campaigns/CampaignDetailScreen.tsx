@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,7 +22,7 @@ import { saveAndSharePdf } from '@/utils/fileDownload';
 import { campaignsService, repartosService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
-import { productsApi, priceProfilesApi } from '@/services/api';
+import { productsApi, priceProfilesApi, photoCampaignsApi } from '@/services/api';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
 import logger from '@/utils/logger';
 import {
@@ -45,7 +45,10 @@ import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
 import { ParticipantTotalsResponse } from '@/types/participant-totals';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
+import { ProductPhotoManagerModal } from '@/components/Photos/ProductPhotoManagerModal';
+import { LinkPhotoCampaignModal } from '@/components/Photos/LinkPhotoCampaignModal';
 import { ProductDistributionsBySiteModal } from '@/components/Campaigns/ProductDistributionsBySiteModal';
+import { usePhotoGenerationStore } from '@/store/photoGeneration';
 import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 import { BulkDistributionModal } from '@/components/Campaigns/BulkDistributionModal';
 import { CopyParticipantsModal } from '@/components/Campaigns/CopyParticipantsModal';
@@ -90,6 +93,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [products, setProducts] = useState<Record<string, Product>>({});
   const [selectedProduct, setSelectedProduct] = useState<CampaignProduct | null>(null);
   const [showBannerModal, setShowBannerModal] = useState(false);
+  const [photoManagerProduct, setPhotoManagerProduct] = useState<{
+    productId: string;
+    title: string;
+    sku: string;
+    catalogPhotoUrl?: string;
+  } | null>(null);
+  // Visibilidad separada del producto activo: al cerrar solo ocultamos el modal,
+  // pero lo mantenemos montado si aún hay una generación en curso para no
+  // interrumpir la subida en segundo plano (Gemini / diseño con precio).
+  const [photoManagerVisible, setPhotoManagerVisible] = useState(false);
+  const [showLinkPhotoCampaignModal, setShowLinkPhotoCampaignModal] = useState(false);
+  // Campaña de fotos anexada a esta campaña. Se envía en las subidas de fotos
+  // para que el backend no caiga en su ruta de auto-resolución (que arma un
+  // uuid duplicado cuando hay vínculos y devuelve 500).
+  const [linkedPhotoCampaignId, setLinkedPhotoCampaignId] = useState<string | undefined>(undefined);
   const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
   const [productSalePrices, setProductSalePrices] = useState<Record<string, ProductSalePrice[]>>(
     {}
@@ -171,6 +189,50 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     });
     return map;
   }, [productsDetailData]);
+
+  const loadLinkedPhotoCampaign = useCallback(async () => {
+    if (!campaignId) {
+      return;
+    }
+    try {
+      const linked = await photoCampaignsApi.getPhotoCampaignsByCampaign(campaignId);
+      // De-duplicamos y tomamos la primera; basta una para asociar las fotos.
+      setLinkedPhotoCampaignId(linked[0]?.id);
+    } catch (error) {
+      logger.error('Error loading linked photo campaign:', error);
+      setLinkedPhotoCampaignId(undefined);
+    }
+  }, [campaignId]);
+
+  useEffect(() => {
+    void loadLinkedPhotoCampaign();
+  }, [loadLinkedPhotoCampaign]);
+
+  // ¿Hay una generación de fotos (diseño / precio) en curso para el producto
+  // cuyo modal está (o estuvo) abierto? Nos suscribimos al store global para
+  // no desmontar el modal mientras la subida en segundo plano no termine.
+  const photoGeneratingForProduct = usePhotoGenerationStore((s) => {
+    const id = photoManagerProduct?.productId;
+    if (!id) return false;
+    return Boolean(s.generating[id]?.design || s.generating[id]?.price);
+  });
+
+  const prevPhotoGeneratingRef = useRef(false);
+  useEffect(() => {
+    const wasGenerating = prevPhotoGeneratingRef.current;
+    prevPhotoGeneratingRef.current = photoGeneratingForProduct;
+
+    // Al terminar la generación, refrescamos las fotos del detalle para que la
+    // nueva imagen se refleje aunque el modal se haya cerrado durante la espera.
+    if (wasGenerating && !photoGeneratingForProduct) {
+      void refetchProductsDetail?.();
+    }
+
+    // Solo desmontamos el modal cuando está oculto y ya no hay generación activa.
+    if (!photoManagerVisible && !photoGeneratingForProduct && photoManagerProduct) {
+      setPhotoManagerProduct(null);
+    }
+  }, [photoGeneratingForProduct, photoManagerVisible, photoManagerProduct, refetchProductsDetail]);
 
   const loadCampaign = useCallback(async () => {
     try {
@@ -2296,6 +2358,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           ? (productDetails as any).imageUrl
           : undefined) ||
         pickPreferredPhotoUrl((productDetails as any)?.imageUrls);
+      // Foto de catálogo del producto. El backend garantiza que `photos`
+      // incluye un item `type: 'catalog'` cuando el producto no tiene fotos
+      // de design/reference. Pasamos estrictamente esa url (no un diseño).
+      const catalogPhotoUrl = Array.isArray(detail?.photos)
+        ? pickPhotoUrl(
+            detail.photos.find(
+              (p: any) =>
+                p &&
+                typeof p === 'object' &&
+                typeof p.type === 'string' &&
+                p.type.toLowerCase() === 'catalog'
+            )
+          )
+        : undefined;
       const currencyCode = detail?.currency || 'PEN';
       const currencyPrefix = currencyCode === 'PEN' ? 'S/' : currencyCode;
       const fmt = (cents: number) => `${currencyPrefix} ${(cents / 100).toFixed(2)}`;
@@ -2550,6 +2626,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               <Text style={styles.productActionButtonText}>📸 Banner</Text>
             </TouchableOpacity>
 
+            {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.PRODUCTS.READ) && (
+              <TouchableOpacity
+                style={[styles.productActionButton, styles.productPhotosButton]}
+                onPress={() => {
+                  setPhotoManagerProduct({
+                    productId: product.productId,
+                    title,
+                    sku,
+                    catalogPhotoUrl,
+                  });
+                  setPhotoManagerVisible(true);
+                }}
+              >
+                <Text style={styles.productActionButtonText}>🖼️ Fotos</Text>
+              </TouchableOpacity>
+            )}
+
             {(campaign!.status === CampaignStatus.DRAFT ||
               campaign!.status === CampaignStatus.ACTIVE) && (
               <TouchableOpacity
@@ -2710,6 +2803,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       formatCurrency,
       handleCalculateFranquiciaFromSocia,
       calculatedFranquicia,
+      hasPermission,
     ]
   );
 
@@ -2756,27 +2850,39 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 </View>
               )}
             </View>
-            {(campaign.status === CampaignStatus.DRAFT ||
-              campaign.status === CampaignStatus.ACTIVE) && (
-              <View style={styles.headerButtonsContainer}>
+            <View style={styles.headerButtonsContainer}>
+              {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.READ) && (
                 <TouchableOpacity
                   style={[styles.bulkButton, isTablet && styles.bulkButtonTablet]}
-                  onPress={() => setIsBulkDistributionModalVisible(true)}
+                  onPress={() => setShowLinkPhotoCampaignModal(true)}
                 >
                   <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
-                    📦 Masivo
+                    🖼️ Campaña de fotos
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.addButton, isTablet && styles.addButtonTablet]}
-                  onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
-                >
-                  <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
-                    + Agregar
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              )}
+              {(campaign.status === CampaignStatus.DRAFT ||
+                campaign.status === CampaignStatus.ACTIVE) && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.bulkButton, isTablet && styles.bulkButtonTablet]}
+                    onPress={() => setIsBulkDistributionModalVisible(true)}
+                  >
+                    <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
+                      📦 Masivo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.addButton, isTablet && styles.addButtonTablet]}
+                    onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
+                  >
+                    <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
+                      + Agregar
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
 
           {/* Search bar + supplier picker */}
@@ -3242,6 +3348,29 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 }
               : undefined
           }
+        />
+
+        {/* Gestión de fotos del producto (referencia / diseño / precio) */}
+        {photoManagerProduct && (
+          <ProductPhotoManagerModal
+            visible={photoManagerVisible}
+            productId={photoManagerProduct.productId}
+            productTitle={photoManagerProduct.title}
+            productSku={photoManagerProduct.sku}
+            catalogPhotoUrl={photoManagerProduct.catalogPhotoUrl}
+            photoCampaignId={linkedPhotoCampaignId}
+            onPhotosChanged={() => void refetchProductsDetail?.()}
+            onClose={() => setPhotoManagerVisible(false)}
+          />
+        )}
+
+        {/* Anexar campaña a una campaña de fotos */}
+        <LinkPhotoCampaignModal
+          visible={showLinkPhotoCampaignModal}
+          campaignId={campaignId}
+          campaignName={campaign?.name}
+          onChanged={loadLinkedPhotoCampaign}
+          onClose={() => setShowLinkPhotoCampaignModal(false)}
         />
 
         {/* Repartos por sede (modal con scroll) */}
@@ -4340,6 +4469,10 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'center',
     },
     productBannerButton: {
+      borderRightWidth: 1,
+      borderRightColor: theme.color.border.subtle,
+    },
+    productPhotosButton: {
       borderRightWidth: 1,
       borderRightColor: theme.color.border.subtle,
     },
