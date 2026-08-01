@@ -3,10 +3,13 @@ import {
   PhotoCampaign,
   CreatePhotoCampaignRequest,
   UpdatePhotoCampaignRequest,
+  LinkCampaignResult,
+  PhotoCampaignLink,
   PhotoCampaignProductItem,
   AddPhotoCampaignProductRequest,
   UpdatePhotoCampaignProductRequest,
   ProductPhotoAsset,
+  PhotoGroup,
   UploadProductPhotoRequest,
   GenerateAdDesignRequest,
   GenerateAdDesignResponse,
@@ -47,6 +50,34 @@ class PhotoCampaignsApi {
     return apiClient.delete<void>(`${this.basePath}/${id}`);
   }
 
+  // ============================================
+  // Campañas regulares anexadas (vínculos)
+  // ============================================
+
+  /** Anexa (vincula) una campaña regular y sincroniza sus productos. */
+  linkCampaign(photoCampaignId: string, campaignId: string): Promise<LinkCampaignResult> {
+    return apiClient.post<LinkCampaignResult>(`${this.basePath}/${photoCampaignId}/campaigns`, {
+      campaignId,
+    });
+  }
+
+  /** Lista las campañas regulares anexadas a una campaña de fotos. */
+  getLinkedCampaigns(photoCampaignId: string): Promise<PhotoCampaignLink[]> {
+    return apiClient.get<PhotoCampaignLink[]>(`${this.basePath}/${photoCampaignId}/campaigns`);
+  }
+
+  /** Desvincula una campaña regular de la campaña de fotos. */
+  unlinkCampaign(photoCampaignId: string, campaignId: string): Promise<LinkCampaignResult> {
+    return apiClient.delete<LinkCampaignResult>(
+      `${this.basePath}/${photoCampaignId}/campaigns/${campaignId}`
+    );
+  }
+
+  /** Vista inversa: campañas de fotos donde está anexada una campaña regular. */
+  getPhotoCampaignsByCampaign(campaignId: string): Promise<PhotoCampaign[]> {
+    return apiClient.get<PhotoCampaign[]>(`${this.basePath}/by-campaign/${campaignId}`);
+  }
+
   getCampaignProducts(campaignId: string): Promise<PhotoCampaignProductItem[]> {
     return apiClient.get<PhotoCampaignProductItem[]>(`${this.basePath}/${campaignId}/products`);
   }
@@ -55,7 +86,10 @@ class PhotoCampaignsApi {
     campaignId: string,
     payload: AddPhotoCampaignProductRequest
   ): Promise<PhotoCampaignProductItem> {
-    return apiClient.post<PhotoCampaignProductItem>(`${this.basePath}/${campaignId}/products`, payload);
+    return apiClient.post<PhotoCampaignProductItem>(
+      `${this.basePath}/${campaignId}/products`,
+      payload
+    );
   }
 
   updateCampaignProduct(
@@ -77,6 +111,11 @@ class PhotoCampaignsApi {
     return apiClient.get<ProductPhotoAsset[]>(`${this.basePath}/products/${productId}/photos`);
   }
 
+  /** Lista las fotos agrupadas por reference (cada grupo con su design y price). */
+  getProductPhotoGroups(productId: string): Promise<PhotoGroup[]> {
+    return apiClient.get<PhotoGroup[]>(`${this.basePath}/products/${productId}/photo-groups`);
+  }
+
   uploadProductPhoto(
     productId: string,
     payload: UploadProductPhotoRequest
@@ -88,12 +127,35 @@ class PhotoCampaignsApi {
       formData.append('photoCampaignId', payload.photoCampaignId);
     }
 
+    if (payload.parentAssetId) {
+      formData.append('parentAssetId', payload.parentAssetId);
+    }
+
+    if (payload.label) {
+      formData.append('label', payload.label);
+    }
+
+    if (payload.sortOrder !== undefined && payload.sortOrder !== null) {
+      formData.append('sortOrder', String(payload.sortOrder));
+    }
+
     formData.append('file', payload.file as any);
 
-    return apiClient.post<ProductPhotoAsset>(`${this.basePath}/products/${productId}/photos`, formData);
+    return apiClient.post<ProductPhotoAsset>(
+      `${this.basePath}/products/${productId}/photos`,
+      formData
+    );
   }
 
-  generateAdDesign(productId: string, payload: GenerateAdDesignRequest): Promise<GenerateAdDesignResponse> {
+  /** Elimina (desactiva) una foto. Si es un reference, elimina en cascada su design y price. */
+  deleteProductPhoto(productId: string, assetId: string): Promise<void> {
+    return apiClient.delete<void>(`${this.basePath}/products/${productId}/photos/${assetId}`);
+  }
+
+  generateAdDesign(
+    productId: string,
+    payload: GenerateAdDesignRequest
+  ): Promise<GenerateAdDesignResponse> {
     const formData = new FormData();
     formData.append('file', payload.file as any);
     formData.append('name', payload.name);
@@ -106,6 +168,10 @@ class PhotoCampaignsApi {
 
     if (payload.photoCampaignId) {
       formData.append('photoCampaignId', payload.photoCampaignId);
+    }
+
+    if (payload.parentAssetId) {
+      formData.append('parentAssetId', payload.parentAssetId);
     }
 
     return apiClient.post<GenerateAdDesignResponse>(
@@ -195,7 +261,13 @@ class PhotoCampaignsApi {
   async editImageWithGemini(
     file: any,
     prompt: string
-  ): Promise<{ imageUrl?: string; url?: string; editedImageBase64?: string; mimeType?: string; [key: string]: any }> {
+  ): Promise<{
+    imageUrl?: string;
+    url?: string;
+    editedImageBase64?: string;
+    mimeType?: string;
+    [key: string]: any;
+  }> {
     const formData = new FormData();
     formData.append('file', file as any);
     formData.append('prompt', prompt);

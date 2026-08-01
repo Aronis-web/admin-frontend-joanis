@@ -347,6 +347,22 @@ export const PERMISSIONS = {
     DELETE: 'transmisiones.delete',
   },
 
+  // ========== ASISTENCIA ==========
+  ATTENDANCE: {
+    READ_OWN: 'attendance.read.own',
+    READ_ALL: 'attendance.read.all',
+    REPORTS: 'attendance.reports',
+    EVENT_TYPES: {
+      READ: 'attendance.event-types.read',
+      MANAGE: 'attendance.event-types.manage',
+    },
+    TERMINALS: {
+      READ: 'attendance.terminals.read',
+      MANAGE: 'attendance.terminals.manage',
+      TOKEN: 'attendance.terminals.token',
+    },
+  },
+
   // ========== INVENTARIO (Scopes-based) ==========
   INVENTORY: {
     READ: 'inventory.read',

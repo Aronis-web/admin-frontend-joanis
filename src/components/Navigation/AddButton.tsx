@@ -8,17 +8,33 @@ interface AddButtonProps {
   onPress: () => void;
   icon?: string;
   label?: string;
+  /**
+   * Posición en la pila de FABs (0 = el más bajo, junto al FAB del menú).
+   * Cada incremento sube el botón para apilar varios sin superponerse.
+   */
+  stackIndex?: number;
+  /** Deshabilita el botón (p. ej. mientras genera un archivo). */
+  disabled?: boolean;
 }
 
-export const AddButton: React.FC<AddButtonProps> = ({ onPress, icon = '+', label }) => {
+export const AddButton: React.FC<AddButtonProps> = ({
+  onPress,
+  icon = '+',
+  label,
+  stackIndex = 0,
+  disabled = false,
+}) => {
   const styles = useThemedStyles(createStyles);
   const [scaleAnim] = useState(new Animated.Value(1));
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
   const isTablet = width >= 768;
+  // Altura ocupada por un FAB + su etiqueta + separación, para apilar.
+  const stackOffset = stackIndex * (isTablet ? 116 : 104);
 
   const handlePress = () => {
+    if (disabled) return;
     Animated.sequence([
       Animated.timing(scaleAnim, {
         toValue: 0.9,
@@ -40,16 +56,19 @@ export const AddButton: React.FC<AddButtonProps> = ({ onPress, icon = '+', label
       style={[
         styles.fabContainer,
         {
-          bottom: insets.bottom + 90, // 90px above the menu FAB (60px FAB + 20px margin + 10px gap)
+          // 90px above the menu FAB (60px FAB + 20px margin + 10px gap), más el
+          // desplazamiento por posición en la pila.
+          bottom: insets.bottom + 90 + stackOffset,
           right: isTablet ? 30 : 20,
           transform: [{ scale: scaleAnim }],
         },
       ]}
     >
       <TouchableOpacity
-        style={[styles.fab, isTablet && styles.fabTablet]}
+        style={[styles.fab, isTablet && styles.fabTablet, disabled && styles.fabDisabled]}
         onPress={handlePress}
         activeOpacity={0.9}
+        disabled={disabled}
       >
         <Text style={[styles.fabIcon, isTablet && styles.fabIconTablet]}>{icon}</Text>
       </TouchableOpacity>
@@ -86,6 +105,9 @@ const createStyles = (theme: Theme) =>
       borderRadius: 32,
       shadowRadius: 16,
       elevation: 10,
+    },
+    fabDisabled: {
+      opacity: 0.6,
     },
     fabIcon: {
       fontSize: 28,

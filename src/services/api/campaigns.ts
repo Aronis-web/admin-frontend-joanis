@@ -19,6 +19,7 @@ import {
   DistributionResultResponse,
   GenerateDistributionRequest,
   CampaignProductsDetailResponse,
+  CampaignProductFullResponse,
 } from '@/types/campaigns';
 import { ParticipantTotalsResponse } from '@/types/participant-totals';
 
@@ -308,6 +309,26 @@ class CampaignsService {
   async getProductsDetail(campaignId: string): Promise<CampaignProductsDetailResponse> {
     return apiClient.get<CampaignProductsDetailResponse>(
       `${this.basePath}/${campaignId}/products/detail`
+    );
+  }
+
+  /**
+   * Get the full detail of a single campaign product (new rich endpoint).
+   *
+   * `GET /admin/campaigns/:campaignId/products/:productId/full`
+   *
+   * Trae en un solo request todo lo necesario para el banner de detalle:
+   * datos maestros, precios por perfil, proveedor, fotos, stock por sede,
+   * ingresos/lotes y reparto por participante. `productId` es el `product_id`
+   * del catálogo, NO el `campaignProduct.id`. Permiso requerido:
+   * `campaigns.read`.
+   */
+  async getProductFull(
+    campaignId: string,
+    productId: string
+  ): Promise<CampaignProductFullResponse> {
+    return apiClient.get<CampaignProductFullResponse>(
+      `${this.basePath}/${campaignId}/products/${productId}/full`
     );
   }
 

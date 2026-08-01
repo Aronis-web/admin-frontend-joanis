@@ -503,6 +503,13 @@ const menuCategories: MenuCategory[] = [
             requiredPermissions: ['cash_reconciliation.config'],
           },
           {
+            id: 'attendance-terminals',
+            icon: 'hardware-chip-outline',
+            label: 'Terminales de Asistencia',
+            route: MAIN_ROUTES.ATTENDANCE_TERMINALS,
+            requiredPermissions: ['attendance.terminals.read'],
+          },
+          {
             id: 'app-versions',
             icon: 'cloud-upload-outline',
             label: 'Versiones de App',

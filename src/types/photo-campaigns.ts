@@ -52,6 +52,35 @@ export interface UpdatePhotoCampaignRequest {
   notes?: string;
 }
 
+export interface LinkCampaignRequest {
+  campaignId: string;
+}
+
+export interface LinkCampaignResult {
+  /** true si se creó un vínculo nuevo, false si ya existía. */
+  linked?: boolean;
+  /** productos agregados en esta sincronización. */
+  added: number;
+  /** productos source=campaign retirados en esta sincronización. */
+  removed: number;
+  /** total de productos provenientes de campañas vinculadas. */
+  totalSynced: number;
+}
+
+export interface PhotoCampaignLink {
+  id: string;
+  photoCampaignId: string;
+  campaignId: string;
+  addedBy?: string;
+  createdAt: string;
+  campaign?: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+  };
+}
+
 export interface AddPhotoCampaignProductRequest {
   productId: string;
   notes?: string;
@@ -68,6 +97,12 @@ export interface ProductPhotoAsset {
   productId: string;
   photoCampaignId?: string;
   photoType: PhotoType;
+  /** Reference (grupo) al que pertenece el design/price. null en reference y grupo por defecto. */
+  parentAssetId?: string | null;
+  /** Nombre opcional del grupo (solo reference). */
+  label?: string | null;
+  /** Orden del grupo (solo reference). */
+  sortOrder?: number;
   filePath: string;
   fileUrl: string;
   mimeType: string;
@@ -78,10 +113,30 @@ export interface ProductPhotoAsset {
   updatedAt: string;
 }
 
+/**
+ * Grupo de fotos anclado a un reference. Cada grupo trae su reference y, anidados,
+ * su design y price (o null si aún no se subieron). Un grupo con `parentAssetId: null`
+ * corresponde al grupo por defecto histórico.
+ */
+export interface PhotoGroup {
+  parentAssetId: string | null;
+  label?: string | null;
+  sortOrder?: number;
+  reference: ProductPhotoAsset | null;
+  design: ProductPhotoAsset | null;
+  price: ProductPhotoAsset | null;
+}
+
 export interface UploadProductPhotoRequest {
   photoType: PhotoType;
   file: any;
   photoCampaignId?: string;
+  /** Reference (grupo) al que se adjunta el design/price. Omitir para reference. */
+  parentAssetId?: string;
+  /** Nombre del grupo (solo reference). */
+  label?: string;
+  /** Orden del grupo (solo reference). */
+  sortOrder?: number;
 }
 
 export type AdDesignTemplate = 'promo' | 'premium' | 'minimal';
@@ -93,6 +148,8 @@ export interface GenerateAdDesignRequest {
   price: string;
   template?: AdDesignTemplate;
   photoCampaignId?: string;
+  /** Reference (grupo) al que se adjunta el design generado. */
+  parentAssetId?: string;
 }
 
 export interface GenerateAdDesignResponse {

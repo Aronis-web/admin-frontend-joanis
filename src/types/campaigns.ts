@@ -575,6 +575,124 @@ export interface CampaignProductsDetailResponse {
   items: CampaignProductDetailItem[];
 }
 
+// ============================================
+// Full product detail
+// `GET /admin/campaigns/:campaignId/products/:productId/full`
+// ============================================
+
+/**
+ * Precio de venta por perfil/presentación devuelto por el endpoint `full`.
+ * `presentationId` es `null` cuando aplica al producto base.
+ */
+export interface CampaignProductFullSalePrice {
+  profileId: string;
+  profileName: string;
+  presentationId: string | null;
+  priceCents: number;
+}
+
+/**
+ * Proveedor / compra origen del producto en la campaña (endpoint `full`).
+ */
+export interface CampaignProductFullSupplier {
+  id: string;
+  name: string;
+  purchaseId: string | null;
+  purchaseCode: string | null;
+}
+
+/**
+ * Foto del producto devuelta por el endpoint `full`. `type` puede ser
+ * `design`, `reference`, `price`, etc.
+ */
+export interface CampaignProductFullPhoto {
+  type?: string;
+  url: string;
+}
+
+/**
+ * Stock disponible por sede para el producto de la campaña.
+ */
+export interface CampaignProductFullStockBySite {
+  siteId: string;
+  siteName: string;
+  quantityBase: string;
+  reservedQuantityBase: string;
+  availableQuantityBase: string;
+}
+
+/**
+ * Ingreso / lote de inventario que originó el stock del producto.
+ */
+export interface CampaignProductFullEntry {
+  entryNumber: string;
+  initialQuantity: number;
+  remainingQuantity: number;
+  unitCostCents: number;
+  currency: string;
+  sourceType: string;
+  receivedAt: string;
+  purchaseId: string | null;
+  purchaseCode: string | null;
+  performedByName: string | null;
+  notes: string | null;
+}
+
+/**
+ * Reparto concreto asociado a un participante para este producto.
+ */
+export interface CampaignProductFullReparto {
+  repartoId: string;
+  repartoCode: string;
+  repartoName: string;
+  repartoStatus: string;
+  quantityBase: string;
+  status: string;
+}
+
+/**
+ * Distribución del producto agrupada por participante de la campaña.
+ */
+export interface CampaignProductFullParticipantDistribution {
+  campaignParticipantId: string;
+  participantType: string;
+  participantName: string;
+  siteId: string | null;
+  totalQuantityBase: string;
+  repartos: CampaignProductFullReparto[];
+}
+
+/**
+ * Response completo de
+ * `GET /admin/campaigns/:campaignId/products/:productId/full`.
+ *
+ * Trae en un solo request todo lo necesario para el banner de detalle del
+ * producto: datos maestros, precios por perfil, proveedor, fotos, stock por
+ * sede, ingresos/lotes y el reparto por participante. `productId` es el
+ * `product_id` del catálogo, no el `campaignProduct.id`.
+ */
+export interface CampaignProductFullResponse {
+  campaignId: string;
+  campaignStatus: CampaignStatus;
+  campaignProductId: string;
+  productId: string;
+  sku: string;
+  title: string;
+  barcode: string | null;
+  productStatus: string;
+  distributionGenerated: boolean;
+  campaignQuantityBase: string;
+  distributedQuantityBase: string;
+  costCents: number;
+  currency: string;
+  salePrices: CampaignProductFullSalePrice[];
+  supplier: CampaignProductFullSupplier | null;
+  photos: CampaignProductFullPhoto[];
+  stockBySite: CampaignProductFullStockBySite[];
+  entries: CampaignProductFullEntry[];
+  distributionByParticipant: CampaignProductFullParticipantDistribution[];
+}
+
 /**
  * Query Campaigns Parameters
  */

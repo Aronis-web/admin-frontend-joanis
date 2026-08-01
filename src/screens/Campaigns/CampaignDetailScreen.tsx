@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { saveAndSharePdf } from '@/utils/fileDownload';
+import { generateCampaignPhotosPdf } from '@/utils/campaignPhotosPdf';
 import { campaignsService, repartosService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
@@ -52,8 +53,7 @@ import { usePhotoGenerationStore } from '@/store/photoGeneration';
 import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 import { BulkDistributionModal } from '@/components/Campaigns/BulkDistributionModal';
 import { CopyParticipantsModal } from '@/components/Campaigns/CopyParticipantsModal';
-import { AddButton } from '@/components/Navigation/AddButton';
-import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -98,6 +98,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     title: string;
     sku: string;
     catalogPhotoUrl?: string;
+    fallbackImageUrl?: string;
+    /**
+     * Fotos de referencia que ya existen para el producto según el endpoint
+     * compacto (típicamente las fotos de validación de la compra). No son
+     * assets de la campaña de fotos todavía; se ofrecen en el modal para
+     * adoptarlas como referencia con un toque.
+     */
+    existingReferenceUrls?: string[];
   } | null>(null);
   // Visibilidad separada del producto activo: al cerrar solo ocultamos el modal,
   // pero lo mantenemos montado si aún hay una generación en curso para no
@@ -169,6 +177,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [selectedProductForBannerSearch, setSelectedProductForBannerSearch] = useState<any>(null);
   const [productDetailsForBannerSearch, setProductDetailsForBannerSearch] = useState<any>(null);
 
+  // Descarga del PDF de fotos de productos activos
+  const [downloadingPhotosPdf, setDownloadingPhotosPdf] = useState(false);
+
   // Pagination states
   const [displayedItemsCount, setDisplayedItemsCount] = useState(20);
   const ITEMS_PER_PAGE = 20;
@@ -189,6 +200,29 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     });
     return map;
   }, [productsDetailData]);
+
+  // Genera un PDF con las fotos, nombre, SKU, stock disponible/repartido, costo
+  // y precio socia de los productos activos de la campaña.
+  const handleDownloadPhotosPdf = useCallback(async () => {
+    const items = productsDetailData?.items ?? [];
+    if (items.length === 0) {
+      Alert.alert('Sin datos', 'Aún no se cargaron los productos de la campaña.');
+      return;
+    }
+    setDownloadingPhotosPdf(true);
+    try {
+      const count = await generateCampaignPhotosPdf({
+        campaignName: campaign?.name ?? 'Campaña',
+        items,
+      });
+      logger.debug(`📄 PDF de fotos generado con ${count} productos activos`);
+    } catch (error) {
+      logger.error('Error generando PDF de fotos de campaña:', error);
+      Alert.alert('Error', 'No se pudo generar el PDF de fotos.');
+    } finally {
+      setDownloadingPhotosPdf(false);
+    }
+  }, [productsDetailData, campaign?.name]);
 
   const loadLinkedPhotoCampaign = useCallback(async () => {
     if (!campaignId) {
@@ -214,7 +248,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const photoGeneratingForProduct = usePhotoGenerationStore((s) => {
     const id = photoManagerProduct?.productId;
     if (!id) return false;
-    return Boolean(s.generating[id]?.design || s.generating[id]?.price);
+    // Las flags se llavean por grupo (`${productId}::${parentAssetId}`); basta
+    // con que cualquier grupo del producto esté generando.
+    return Object.entries(s.generating).some(
+      ([key, flags]) => key.startsWith(`${id}::`) && (flags.design || flags.price)
+    );
   });
 
   const prevPhotoGeneratingRef = useRef(false);
@@ -1758,6 +1796,54 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     // No need to reload campaign - the modal updates its own state locally
   }, []);
 
+  // Abre el gestor de fotos para el producto mostrado en el banner. Reúne los
+  // mismos datos (título, sku, foto de catálogo, referencias) que el botón de
+  // "Fotos" de la lista, a partir del endpoint compacto `products-detail`.
+  const handleOpenPhotoManagerFromBanner = useCallback(
+    (product: CampaignProduct) => {
+      const detail = productsDetailMap[product.id];
+      const embedded = product.product || products[product.productId];
+
+      const pickUrl = (p: any): string | undefined => {
+        if (!p) return undefined;
+        if (typeof p === 'string') return p;
+        if (typeof p === 'object' && typeof p.url === 'string') return p.url;
+        return undefined;
+      };
+      const photos: any[] = Array.isArray(detail?.photos) ? detail!.photos : [];
+      const byType = (t: string) =>
+        photos.find(
+          (p) =>
+            p && typeof p === 'object' && typeof p.type === 'string' && p.type.toLowerCase() === t
+        );
+      const catalogPhotoUrl = pickUrl(byType('catalog'));
+      const referencePhotos = photos.filter((p) => {
+        const t =
+          p && typeof p === 'object' && typeof p.type === 'string' ? p.type.toLowerCase() : '';
+        return t === 'reference';
+      });
+      const existingReferenceUrls = referencePhotos
+        .map(pickUrl)
+        .filter((u): u is string => typeof u === 'string' && u.length > 0);
+      const fallbackImageUrl =
+        pickUrl(byType('design')) ||
+        pickUrl(byType('reference')) ||
+        pickUrl(photos[0]) ||
+        catalogPhotoUrl;
+
+      setPhotoManagerProduct({
+        productId: product.productId,
+        title: detail?.title || embedded?.title || '',
+        sku: detail?.sku || embedded?.sku || '',
+        catalogPhotoUrl,
+        fallbackImageUrl,
+        existingReferenceUrls,
+      });
+      setPhotoManagerVisible(true);
+    },
+    [productsDetailMap, products]
+  );
+
   const handleRefreshProductFromBanner = useCallback(
     async (updatedProductParam?: CampaignProduct) => {
       if (!selectedProduct) {
@@ -2372,6 +2458,34 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             )
           )
         : undefined;
+      // Estado de fotos del producto por grupo (referencia / diseño / precio) para
+      // el badge del botón "Fotos". Cada referencia define un grupo de 3 fotos
+      // (referencia + diseño + precio), por lo que con N referencias el total es N*3.
+      const relevantPhotos = Array.isArray(detail?.photos)
+        ? detail.photos.filter((p) => {
+            const t =
+              p && typeof p === 'object' && typeof p.type === 'string' ? p.type.toLowerCase() : '';
+            return t === 'reference' || t === 'design' || t === 'price';
+          })
+        : [];
+      const referencePhotos = relevantPhotos.filter((p) => {
+        const t =
+          typeof (p as { type?: unknown }).type === 'string'
+            ? (p as { type: string }).type.toLowerCase()
+            : '';
+        return t === 'reference';
+      });
+      const referenceCount = referencePhotos.length;
+      // URLs de referencia existentes (p. ej. fotos de validación de la compra)
+      // que aún no son assets de la campaña de fotos. Se ofrecen en el modal
+      // para adoptarlas como referencia.
+      const existingReferenceUrls = referencePhotos
+        .map((p) => pickPhotoUrl(p))
+        .filter((u): u is string => typeof u === 'string' && u.length > 0);
+      // Con 0 referencias mantenemos el total en 3 para mostrar "0/3".
+      const photoGroupCount = Math.max(referenceCount, 1);
+      const photoCompletion = relevantPhotos.length;
+      const photoTotal = photoGroupCount * 3;
       const currencyCode = detail?.currency || 'PEN';
       const currencyPrefix = currencyCode === 'PEN' ? 'S/' : currencyCode;
       const fmt = (cents: number) => `${currencyPrefix} ${(cents / 100).toFixed(2)}`;
@@ -2397,9 +2511,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // (lo que el backend devuelve primero, mostrarlo al final).
       const orderedDetailPrices = [...detailPrices].reverse();
       const orderedFallbackPrices = [...fallbackPrices].reverse();
-      const displayPrices =
+      const allPrices =
         orderedDetailPrices.length > 0 ? orderedDetailPrices : orderedFallbackPrices;
-      const extraPricesCount = Math.max(orderedDetailPrices.length - 2, 0);
+      // En las tarjetas sólo mostramos el precio Socia junto al costo.
+      const displayPrices = allPrices.filter((p) => p.profileName.toLowerCase().includes('socia'));
 
       return (
         <View
@@ -2549,7 +2664,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   <Text style={styles.productCompactPriceLabel}>Costo</Text>
                   <Text style={styles.productCompactPriceValue}>{fmt(costCents)}</Text>
                 </View>
-                {displayPrices.slice(0, 2).map((p) => {
+                {displayPrices.map((p) => {
                   const lower = p.priceCents < costCents && costCents > 0;
                   return (
                     <View
@@ -2580,13 +2695,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     </View>
                   );
                 })}
-                {extraPricesCount > 0 && (
-                  <View style={styles.productCompactPriceChipMuted}>
-                    <Text style={styles.productCompactPriceLabel}>
-                      +{extraPricesCount} perfiles
-                    </Text>
-                  </View>
-                )}
               </View>
 
               {/* Línea 4: proveedor / compra (siempre visible) */}
@@ -2635,11 +2743,15 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     title,
                     sku,
                     catalogPhotoUrl,
+                    fallbackImageUrl: imageUri,
+                    existingReferenceUrls,
                   });
                   setPhotoManagerVisible(true);
                 }}
               >
-                <Text style={styles.productActionButtonText}>🖼️ Fotos</Text>
+                <Text style={styles.productActionButtonText}>
+                  🖼️ Fotos {photoCompletion}/{photoTotal}
+                </Text>
               </TouchableOpacity>
             )}
 
@@ -2827,7 +2939,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }, 0);
   }, [filteredProducts, products, productsDetailMap]);
 
-  const renderProducts = () => {
+  // Encabezado de la lista de productos (título, buscador y filtros).
+  // Se usa como `ListHeaderComponent` del FlatList virtualizado para que
+  // el scroll en Android no se trabe montando todas las tarjetas a la vez.
+  const renderProductsHeader = () => {
     if (!campaign) {
       return null;
     }
@@ -3053,36 +3168,45 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </Text>
           )}
 
-          {/* Productos filtrados de la campaña (vacío si la campaña aún no tiene productos) */}
+          {/* Sin coincidencias al filtrar dentro de la campaña */}
           {filteredProducts.length === 0 &&
-          searchQuery.trim() &&
-          campaign.products &&
-          campaign.products.length > 0 ? (
-            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              No se encontraron productos en la campaña que coincidan con "{searchQuery}"
-            </Text>
-          ) : (
-            <>
-              {paginatedProducts.map((product) => (
-                <View key={product.id}>{renderProductItem({ item: product })}</View>
-              ))}
-              {displayedItemsCount < filteredProducts.length && (
-                <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
-                  <Text style={styles.loadMoreButtonText}>
-                    Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {displayedItemsCount >= filteredProducts.length &&
-                filteredProducts.length > ITEMS_PER_PAGE && (
-                  <View style={styles.endOfListContainer}>
-                    <Text style={styles.endOfListText}>
-                      ✓ Mostrando todos los productos ({filteredProducts.length})
-                    </Text>
-                  </View>
-                )}
-            </>
+            searchQuery.trim() &&
+            campaign.products &&
+            campaign.products.length > 0 && (
+              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                No se encontraron productos en la campaña que coincidan con "{searchQuery}"
+              </Text>
+            )}
+        </View>
+      </View>
+    );
+  };
+
+  // Pie de la lista de productos: botón "cargar más", indicador de fin y
+  // el buscador global con sugerencias. Se usa como `ListFooterComponent`.
+  const renderProductsFooter = () => {
+    if (!campaign) {
+      return null;
+    }
+
+    return (
+      <View style={styles.tabContent}>
+        <View style={[styles.section, isTablet && styles.sectionTablet]}>
+          {displayedItemsCount < filteredProducts.length && (
+            <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
+              <Text style={styles.loadMoreButtonText}>
+                Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
+              </Text>
+            </TouchableOpacity>
           )}
+          {displayedItemsCount >= filteredProducts.length &&
+            filteredProducts.length > ITEMS_PER_PAGE && (
+              <View style={styles.endOfListContainer}>
+                <Text style={styles.endOfListText}>
+                  ✓ Mostrando todos los productos ({filteredProducts.length})
+                </Text>
+              </View>
+            )}
 
           {/* Loading indicator for global search */}
           {searchQuery.trim() && isGlobalSearching && (
@@ -3251,15 +3375,42 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {renderTabs}
 
         {/* Content */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        >
-          {activeTab === 'overview' && renderOverview()}
-          {activeTab === 'participants' && renderParticipants()}
-          {activeTab === 'products' && renderProducts()}
-        </ScrollView>
+        {activeTab === 'products' ? (
+          // Lista virtualizada: FlatList recicla las tarjetas fuera de
+          // pantalla, evitando el lag de scroll en Android cuando hay
+          // muchos productos (el ScrollView montaba todas a la vez).
+          <FlatList
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            data={paginatedProducts}
+            keyExtractor={keyExtractor}
+            renderItem={renderProductItem}
+            // Pasamos ELEMENTOS (no referencias de función) para que el
+            // encabezado se reconcilie en lugar de remontarse en cada render.
+            // Si se pasa la función, su identidad cambia por render y FlatList
+            // desmonta el TextInput de búsqueda, rompiendo el lector de barras
+            // (pierde foco/valor y nunca dispara onSubmitEditing).
+            ListHeaderComponent={renderProductsHeader()}
+            ListFooterComponent={renderProductsFooter()}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            removeClippedSubviews={Platform.OS !== 'web'}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={11}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            keyboardShouldPersistTaps="handled"
+          />
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          >
+            {activeTab === 'overview' && renderOverview()}
+            {activeTab === 'participants' && renderParticipants()}
+          </ScrollView>
+        )}
 
         {/* Action Buttons */}
         {campaign.status === CampaignStatus.DRAFT && (
@@ -3348,6 +3499,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 }
               : undefined
           }
+          onManagePhotos={
+            selectedProduct ? () => handleOpenPhotoManagerFromBanner(selectedProduct) : undefined
+          }
         />
 
         {/* Gestión de fotos del producto (referencia / diseño / precio) */}
@@ -3358,6 +3512,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             productTitle={photoManagerProduct.title}
             productSku={photoManagerProduct.sku}
             catalogPhotoUrl={photoManagerProduct.catalogPhotoUrl}
+            fallbackImageUrl={photoManagerProduct.fallbackImageUrl}
+            existingReferenceUrls={photoManagerProduct.existingReferenceUrls}
             photoCampaignId={linkedPhotoCampaignId}
             onPhotosChanged={() => void refetchProductsDetail?.()}
             onClose={() => setPhotoManagerVisible(false)}
@@ -3619,25 +3775,32 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           </View>
         </Modal>
 
-        {/* Floating Action Button for Bulk Update */}
-        <ProtectedElement
-          requiredPermissions={[
-            PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD,
-            PERMISSIONS.PRODUCTS.PRICES_UPDATE,
-          ]}
-          requireAll={false}
-          fallback={null}
-        >
-          {activeTab === 'products' && campaign?.products && campaign.products.length > 0 && (
-            <View style={styles.floatingButtonContainer} pointerEvents="box-none">
-              <AddButton
-                onPress={() => setIsBulkUpdateModalVisible(true)}
-                icon="💵"
-                label="Precios"
-              />
-            </View>
-          )}
-        </ProtectedElement>
+        {/* Floating Action Button (pestaña de productos) */}
+        {activeTab === 'products' && campaign?.products && campaign.products.length > 0 && (
+          <ProtectedFAB
+            actions={[
+              {
+                icon: 'cash-outline',
+                label: 'Precios',
+                onPress: () => setIsBulkUpdateModalVisible(true),
+                requiredPermissions: [
+                  PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD,
+                  PERMISSIONS.PRODUCTS.PRICES_UPDATE,
+                ],
+                requireAll: false,
+              },
+              {
+                icon: downloadingPhotosPdf ? 'hourglass-outline' : 'images-outline',
+                label: 'Fotos PDF',
+                onPress: () => {
+                  if (downloadingPhotosPdf) return;
+                  void handleDownloadPhotosPdf();
+                },
+                requiredPermissions: [PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD],
+              },
+            ]}
+          />
+        )}
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -4920,13 +5083,7 @@ const createStyles = (theme: Theme) =>
     modalButtonTextTablet: {
       fontSize: 16,
     },
-    floatingButtonContainer: {
-      position: 'absolute',
-      right: 20,
-      bottom: 20,
-      zIndex: 9998,
-      pointerEvents: 'box-none',
-    },
+
     imageModalContainer: {
       flex: 1,
       backgroundColor: 'rgba(0, 0, 0, 0.9)',

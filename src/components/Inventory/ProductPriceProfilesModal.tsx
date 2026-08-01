@@ -85,12 +85,11 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
         priceProfilesApi.getProductSalePrices(product.id),
       ]);
 
-      console.log('🔍 Sale prices response:', salePricesResponse);
-
       setProfiles(profilesResponse);
 
-      // La API devuelve { data: ProductSalePrice[], total? }
-      const salePricesArray = salePricesResponse.data || [];
+      // La API devuelve { productId, costCents, presentations, salePrices: [...] }.
+      // Se mantiene el fallback a `data` por compatibilidad histórica.
+      const salePricesArray = salePricesResponse.salePrices || salePricesResponse.data || [];
       setSalePrices(salePricesArray);
 
       // Initialize form data
@@ -269,18 +268,15 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                 Costo: {formatCurrency(product.costCents || 0, product.currency)}
               </Text>
             </View>
-            <IconButton
-              icon="close"
-              onPress={onClose}
-              variant="ghost"
-              size="medium"
-            />
+            <IconButton icon="close" onPress={onClose} variant="ghost" size="medium" />
           </View>
 
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={theme.color.brand.primary} />
-              <Body color="secondary" style={styles.loadingText}>Cargando perfiles...</Body>
+              <Body color="secondary" style={styles.loadingText}>
+                Cargando perfiles...
+              </Body>
             </View>
           ) : (
             <>
@@ -317,7 +313,11 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                             Precio de Venta
                           </Label>
                           <View style={styles.inputRow}>
-                            <Text variant="titleMedium" color="primary" style={styles.currencySymbol}>
+                            <Text
+                              variant="titleMedium"
+                              color="primary"
+                              style={styles.currencySymbol}
+                            >
                               {product.currency === 'PEN' ? 'S/' : '$'}
                             </Text>
                             <TextInput
@@ -363,20 +363,26 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                       {/* Price Info */}
                       <View style={styles.priceInfo}>
                         <View style={styles.infoRow}>
-                          <Body size="small" color="secondary">Precio Calculado:</Body>
+                          <Body size="small" color="secondary">
+                            Precio Calculado:
+                          </Body>
                           <Text variant="labelLarge" color="primary">
                             {formatCurrency(priceData.calculatedPriceCents, product.currency)}
                           </Text>
                         </View>
                         <View style={styles.infoRow}>
-                          <Body size="small" color="secondary">Margen:</Body>
+                          <Body size="small" color="secondary">
+                            Margen:
+                          </Body>
                           <Text variant="labelLarge" color={theme.color.text.success}>
                             {calculateMargin(product.costCents || 0, priceData.priceCents)}
                           </Text>
                         </View>
                         {priceData.isOverridden && (
                           <View style={styles.overriddenBadge}>
-                            <Caption color={theme.color.state.warning.text}>✏️ Modificado manualmente</Caption>
+                            <Caption color={theme.color.state.warning.text}>
+                              ✏️ Modificado manualmente
+                            </Caption>
                           </View>
                         )}
                       </View>

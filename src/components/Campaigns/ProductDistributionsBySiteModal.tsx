@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -11,16 +11,15 @@ import {
 } from 'react-native';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { repartosService } from '@/services/api/repartos';
-import { Reparto } from '@/types/repartos';
-import logger from '@/utils/logger';
+import { useCampaignProductFull } from '@/hooks/api/useCampaigns';
+import type { CampaignProductFullParticipantDistribution } from '@/types/campaigns';
 
 type ParticipantKind = 'INTERNAL_SITE' | 'EXTERNAL_COMPANY' | 'UNKNOWN';
 
 interface ProductDistributionsBySiteModalProps {
   visible: boolean;
   campaignId: string;
-  /** Product UUID (NOT campaign-product id). Used to filter repartos.productos. */
+  /** Product UUID (NOT campaign-product id). Used by the `/full` endpoint. */
   productId: string;
   productTitle?: string;
   productSku?: string;
@@ -30,18 +29,15 @@ interface ProductDistributionsBySiteModalProps {
   onClose: () => void;
 }
 
-interface AggregatedRow {
-  key: string;
-  participantType: ParticipantKind;
-  name: string;
-  subtitle?: string;
-  quantityBase: number;
-  validatedBase: number;
-  repartosCount: number;
-}
-
 const formatNumber = (value: number): string =>
   Number.isFinite(value) ? Math.floor(value).toLocaleString('es-PE') : '—';
+
+const toKind = (type: string): ParticipantKind =>
+  type === 'INTERNAL_SITE'
+    ? 'INTERNAL_SITE'
+    : type === 'EXTERNAL_COMPANY'
+      ? 'EXTERNAL_COMPANY'
+      : 'UNKNOWN';
 
 export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySiteModalProps> = ({
   visible,
@@ -55,143 +51,46 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [repartos, setRepartos] = useState<Reparto[]>([]);
 
-  useEffect(() => {
-    if (!visible || !campaignId || !productId) {
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        // El endpoint list (/repartos/campaign/:id) no incluye productos.
-        // Traemos la lista y luego en paralelo cada reparto con su include
-        // completo (mismo patrón que RepartoParticipantDetailScreen).
-        const list = await repartosService.getRepartosByCampaign(campaignId);
-        const ids = (Array.isArray(list) ? list : []).map((r) => r.id);
-        const full = await Promise.all(
-          ids.map((id) =>
-            repartosService.getReparto(id).catch((err) => {
-              logger.warn(`No se pudo cargar reparto ${id}`, err);
-              return null;
-            })
-          )
-        );
-        if (!cancelled) {
-          setRepartos(full.filter((r): r is Reparto => !!r));
-        }
-      } catch (err: any) {
-        logger.error('Error cargando repartos por sede:', err);
-        if (!cancelled) {
-          setError(
-            err?.response?.data?.message ||
-              err?.message ||
-              'No se pudieron cargar las cantidades por sede'
-          );
-          setRepartos([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, campaignId, productId]);
+  const {
+    data: fullData,
+    isLoading: loading,
+    isError,
+    error,
+  } = useCampaignProductFull(campaignId, productId, visible && !!campaignId && !!productId);
 
-  // Agrupar todas las cantidades del producto seleccionado por participante
-  // (sede / empresa) sumando lo de todos los repartos de la campaña.
-  const rows = useMemo<AggregatedRow[]>(() => {
-    const acc = new Map<string, AggregatedRow>();
-
-    repartos.forEach((reparto) => {
-      reparto.participantes?.forEach((participante) => {
-        const matchingProductos = (participante.productos || []).filter(
-          (p) => p.productId === productId
-        );
-        if (matchingProductos.length === 0) return;
-
-        const cp = participante.campaignParticipant;
-        const type: ParticipantKind =
-          cp?.participantType === 'INTERNAL_SITE'
-            ? 'INTERNAL_SITE'
-            : cp?.participantType === 'EXTERNAL_COMPANY'
-              ? 'EXTERNAL_COMPANY'
-              : 'UNKNOWN';
-
-        const key = cp?.siteId || cp?.companyId || cp?.id || participante.id || `pa-${reparto.id}`;
-
-        const name =
-          cp?.site?.name ||
-          cp?.company?.name ||
-          participante.user?.name ||
-          participante.user?.email ||
-          `Participante ${String(key).slice(0, 8)}`;
-
-        const subtitle =
-          type === 'INTERNAL_SITE'
-            ? cp?.site?.code
-              ? `Sede · ${cp.site.code}`
-              : 'Sede interna'
-            : type === 'EXTERNAL_COMPANY'
-              ? cp?.company?.ruc
-                ? `Empresa · RUC ${cp.company.ruc}`
-                : 'Empresa externa'
-              : 'Sin participante asignado';
-
-        const qty = matchingProductos.reduce(
-          (sum, p) => sum + (Number(p.quantityAssigned) || 0),
-          0
-        );
-        const validated = matchingProductos.reduce(
-          (sum, p) => sum + (Number(p.quantityValidated) || 0),
-          0
-        );
-
-        const existing = acc.get(key);
-        if (existing) {
-          existing.quantityBase += qty;
-          existing.validatedBase += validated;
-          existing.repartosCount += 1;
-        } else {
-          acc.set(key, {
-            key,
-            participantType: type,
-            name,
-            subtitle,
-            quantityBase: qty,
-            validatedBase: validated,
-            repartosCount: 1,
-          });
-        }
-      });
-    });
-
-    // Orden requerido: primero sedes internas, luego empresas externas,
-    // y dentro de cada grupo por cantidad descendente.
+  // Repartos agrupados por participante tal como los entrega el endpoint
+  // `/full`. Orden: primero sedes internas, luego empresas externas, y
+  // dentro de cada grupo por cantidad descendente.
+  const rows = useMemo<CampaignProductFullParticipantDistribution[]>(() => {
+    const items = fullData?.distributionByParticipant ?? [];
     const groupOrder: Record<ParticipantKind, number> = {
       INTERNAL_SITE: 0,
       EXTERNAL_COMPANY: 1,
       UNKNOWN: 2,
     };
-    return Array.from(acc.values()).sort((a, b) => {
-      const diff = groupOrder[a.participantType] - groupOrder[b.participantType];
+    return [...items].sort((a, b) => {
+      const diff = groupOrder[toKind(a.participantType)] - groupOrder[toKind(b.participantType)];
       if (diff !== 0) return diff;
-      return b.quantityBase - a.quantityBase;
+      return parseFloat(b.totalQuantityBase || '0') - parseFloat(a.totalQuantityBase || '0');
     });
-  }, [repartos, productId]);
+  }, [fullData]);
 
-  const totalDistributed = useMemo(() => rows.reduce((sum, r) => sum + r.quantityBase, 0), [rows]);
+  const totalDistributed = useMemo(
+    () => rows.reduce((sum, r) => sum + (parseFloat(r.totalQuantityBase || '0') || 0), 0),
+    [rows]
+  );
 
-  const sitesCount = rows.filter((r) => r.participantType === 'INTERNAL_SITE').length;
-  const companiesCount = rows.filter((r) => r.participantType === 'EXTERNAL_COMPANY').length;
+  const sitesCount = rows.filter((r) => toKind(r.participantType) === 'INTERNAL_SITE').length;
+  const companiesCount = rows.filter(
+    (r) => toKind(r.participantType) === 'EXTERNAL_COMPANY'
+  ).length;
+
+  const errorMessage = isError
+    ? (error as any)?.response?.data?.message ||
+      (error as any)?.message ||
+      'No se pudieron cargar los repartos'
+    : null;
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -257,10 +156,10 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
             <ActivityIndicator size="large" color={theme.color.brand.primary} />
             <Text style={styles.centeredStateText}>Cargando repartos…</Text>
           </View>
-        ) : error ? (
+        ) : errorMessage ? (
           <View style={styles.centeredState}>
             <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         ) : rows.length === 0 ? (
           <View style={styles.centeredState}>
@@ -274,45 +173,72 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
             showsVerticalScrollIndicator
           >
             {rows.map((row) => {
-              const isInternal = row.participantType === 'INTERNAL_SITE';
-              const percent =
-                totalDistributed > 0 ? (row.quantityBase / totalDistributed) * 100 : 0;
-              const hasValidation = row.validatedBase > 0;
+              const kind = toKind(row.participantType);
+              const isInternal = kind === 'INTERNAL_SITE';
+              const qty = parseFloat(row.totalQuantityBase || '0') || 0;
+              const percent = totalDistributed > 0 ? (qty / totalDistributed) * 100 : 0;
               return (
                 <View
-                  key={row.key}
+                  key={row.campaignParticipantId}
                   style={[styles.row, isInternal ? styles.rowInternal : styles.rowExternal]}
                 >
-                  <View style={styles.rowIconWrap}>
-                    <Text style={styles.rowIcon}>{isInternal ? '🏠' : '🏢'}</Text>
-                  </View>
-                  <View style={styles.rowMain}>
-                    <Text style={styles.rowName} numberOfLines={1}>
-                      {row.name}
-                    </Text>
-                    {row.subtitle && (
-                      <Text style={styles.rowSubtitle} numberOfLines={1}>
-                        {row.subtitle}
-                        {row.repartosCount > 1 ? ` · ${row.repartosCount} repartos` : ''}
+                  <View style={styles.rowTop}>
+                    <View style={styles.rowIconWrap}>
+                      <Text style={styles.rowIcon}>{isInternal ? '🏠' : '🏢'}</Text>
+                    </View>
+                    <View style={styles.rowMain}>
+                      <Text style={styles.rowName} numberOfLines={1}>
+                        {row.participantName}
                       </Text>
-                    )}
-                    <View style={styles.progressTrack}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          isInternal ? styles.progressFillInternal : styles.progressFillExternal,
-                          { width: `${Math.min(percent, 100)}%` },
-                        ]}
-                      />
+                      <Text style={styles.rowSubtitle} numberOfLines={1}>
+                        {isInternal ? 'Sede interna' : 'Empresa externa'}
+                        {row.repartos.length > 0
+                          ? ` · ${row.repartos.length} reparto${row.repartos.length !== 1 ? 's' : ''}`
+                          : ''}
+                      </Text>
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            isInternal ? styles.progressFillInternal : styles.progressFillExternal,
+                            { width: `${Math.min(percent, 100)}%` },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                    <View style={styles.rowQtyWrap}>
+                      <Text style={styles.rowQty}>{formatNumber(qty)}</Text>
+                      <Text style={styles.rowPercent}>{percent.toFixed(1)}%</Text>
                     </View>
                   </View>
-                  <View style={styles.rowQtyWrap}>
-                    <Text style={styles.rowQty}>{formatNumber(row.quantityBase)}</Text>
-                    <Text style={styles.rowPercent}>{percent.toFixed(1)}%</Text>
-                    {hasValidation && (
-                      <Text style={styles.rowValidated}>✓ {formatNumber(row.validatedBase)}</Text>
-                    )}
-                  </View>
+
+                  {/* Repartos individuales del participante */}
+                  {row.repartos.length > 0 && (
+                    <View style={styles.repartoList}>
+                      {row.repartos.map((reparto) => (
+                        <View key={reparto.repartoId} style={styles.repartoItem}>
+                          <View style={styles.repartoInfo}>
+                            <Text style={styles.repartoCode} numberOfLines={1}>
+                              {reparto.repartoCode}
+                            </Text>
+                            {!!reparto.repartoName && (
+                              <Text style={styles.repartoName} numberOfLines={1}>
+                                {reparto.repartoName}
+                              </Text>
+                            )}
+                          </View>
+                          <View style={styles.repartoRight}>
+                            <Text style={styles.repartoQty}>
+                              {formatNumber(parseFloat(reparto.quantityBase || '0'))}
+                            </Text>
+                            <Text style={styles.repartoStatus} numberOfLines={1}>
+                              {reparto.status || reparto.repartoStatus}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               );
             })}
@@ -427,8 +353,6 @@ const createStyles = (theme: Theme) =>
       paddingBottom: theme.space[6],
     },
     row: {
-      flexDirection: 'row',
-      alignItems: 'center',
       backgroundColor: theme.color.surface.base,
       borderRadius: theme.radii.lg,
       paddingVertical: theme.space[3],
@@ -436,6 +360,10 @@ const createStyles = (theme: Theme) =>
       marginBottom: theme.space[2],
       borderWidth: 1,
       borderColor: theme.color.border.default,
+    },
+    rowTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: theme.space[3],
     },
     rowInternal: {
@@ -504,11 +432,53 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.subtle,
       marginTop: 1,
     },
-    rowValidated: {
+    repartoList: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+      gap: theme.space[2],
+    },
+    repartoItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.md,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+    },
+    repartoInfo: {
+      flex: 1,
+      minWidth: 0,
+      marginRight: theme.space[2],
+    },
+    repartoCode: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    repartoName: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: theme.color.text.subtle,
+      marginTop: 1,
+    },
+    repartoRight: {
+      alignItems: 'flex-end',
+    },
+    repartoQty: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    repartoStatus: {
       fontSize: 10,
       fontWeight: '700',
-      color: theme.color.text.success,
-      marginTop: 2,
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+      marginTop: 1,
     },
     centeredState: {
       flex: 1,

@@ -118,6 +118,7 @@ export const MAIN_ROUTES = {
   APP_VERSIONS: 'AppVersions',
   PRICE_PROFILES: 'PriceProfiles',
   PRESENTATIONS: 'Presentations',
+  ATTENDANCE_TERMINALS: 'AttendanceTerminals',
 
   // Emission Points & Series Configuration
   EMISSION_POINTS: 'EmissionPoints',
@@ -327,6 +328,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   APP_VERSIONS: 'apps.manage',
   PRICE_PROFILES: 'price_profiles.read',
   PRESENTATIONS: 'presentations.read',
+  ATTENDANCE_TERMINALS: 'attendance.terminals.read',
 
   // Emission Points & Series Configuration
   EMISSION_POINTS: 'billing.emission-points.read',

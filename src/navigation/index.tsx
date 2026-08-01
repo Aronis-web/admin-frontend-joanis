@@ -69,6 +69,10 @@ const AppVersionsScreen = lazyLoad(
   () => import('@/screens/AppVersions').then((m) => ({ default: m.AppVersionsScreen })),
   'Cargando versiones...'
 );
+const AttendanceTerminalsScreen = lazyLoad(
+  () => import('@/screens/Attendance').then((m) => ({ default: m.AttendanceTerminalsScreen })),
+  'Cargando terminales...'
+);
 const SitesScreen = lazyLoad(() =>
   import('@/screens/Sites/SitesScreen').then((m) => ({ default: m.SitesScreen }))
 );
@@ -683,6 +687,18 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['apps.manage', 'apps.read']} requireAll={false}>
             <AppVersionsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ATTENDANCE_TERMINALS}
+        options={{
+          title: 'Terminales de Asistencia',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['attendance.terminals.read']}>
+            <AttendanceTerminalsScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

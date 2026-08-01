@@ -135,6 +135,19 @@ export type {
   UpdateAccountReceivableRequest,
 } from '@/types/accounts-receivable';
 
+export { attendanceTerminalsApi } from './attendance';
+export type {
+  AttendanceTerminal,
+  TerminalStatus,
+  QueryTerminalsParams,
+  CreateTerminalRequest,
+  UpdateTerminalRequest,
+  GenerateTerminalTokenRequest,
+  GenerateTerminalTokenResult,
+  TerminalTokenInfo,
+  TerminalAccessLog,
+} from '@/types/attendance';
+
 export { siteContactsApi } from './site-contacts';
 export type {
   SiteContact,
