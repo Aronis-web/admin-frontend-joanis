@@ -6,6 +6,21 @@ const { spawn } = require('child_process');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const SCRIPT = path.join(PROJECT_ROOT, 'scripts', 'release-tool.ps1');
+const PROJECTS_CONFIG = path.join(__dirname, 'projects.json');
+
+function loadProjects() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(PROJECTS_CONFIG, 'utf8'));
+    return Array.isArray(cfg.projects) ? cfg.projects : [];
+  } catch {
+    return [];
+  }
+}
+
+function getProject(key) {
+  const projects = loadProjects();
+  return projects.find((p) => p.key === key) || projects[0] || null;
+}
 
 // userData propio para evitar errores de caché (Access denied) en el path por defecto.
 try {
@@ -15,6 +30,11 @@ try {
 } catch { /* noop */ }
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 app.disableHardwareAcceleration();
+
+// Necesario en Windows para que la barra de tareas use el icono de la app.
+if (process.platform === 'win32') app.setAppUserModelId('com.erpaio.release-tool');
+
+const APP_ICON = path.join(__dirname, 'icon.ico');
 
 let mainWindow = null;
 let currentProc = null;
@@ -26,6 +46,7 @@ function createWindow() {
     minWidth: 720,
     minHeight: 600,
     title: 'ERP-aio · Release Tool',
+    icon: APP_ICON,
     backgroundColor: '#0f172a',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -37,10 +58,16 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 }
 
-function readVersion() {
+function readVersion(projectKey) {
+  const proj = getProject(projectKey);
+  if (!proj) return '—';
   try {
-    const appJson = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, 'app.json'), 'utf8'));
-    return appJson?.expo?.version || '—';
+    const root = proj.root.replace(/\//g, path.sep);
+    const file = path.join(root, proj.primaryVersionFile);
+    const json = JSON.parse(fs.readFileSync(file, 'utf8'));
+    let cur = json;
+    for (const seg of proj.primaryVersionPath.split('.')) cur = cur ? cur[seg] : undefined;
+    return cur || '—';
   } catch {
     return '—';
   }
@@ -55,17 +82,28 @@ function computeNextVersion(current, bumpType) {
   return `${maj}.${min}.${pat}`;
 }
 
-ipcMain.handle('get-info', () => {
-  const version = readVersion();
+ipcMain.handle('get-projects', () => {
+  return loadProjects().map((p) => ({
+    key: p.key,
+    label: p.label,
+    productName: p.productName,
+    apk: !!(p.apk && p.apk.supported),
+    electron: !!(p.electron && p.electron.supported),
+  }));
+});
+
+ipcMain.handle('get-info', (_e, projectKey) => {
+  const proj = getProject(projectKey);
   return {
-    version,
-    project: PROJECT_ROOT,
+    version: readVersion(projectKey),
+    project: proj ? proj.root : PROJECT_ROOT,
+    productName: proj ? proj.productName : '',
     scriptExists: fs.existsSync(SCRIPT),
   };
 });
 
-ipcMain.handle('preview-version', (_e, bumpType) => {
-  return computeNextVersion(readVersion(), bumpType);
+ipcMain.handle('preview-version', (_e, { projectKey, bumpType }) => {
+  return computeNextVersion(readVersion(projectKey), bumpType);
 });
 
 ipcMain.handle('run-release', (_e, opts) => {
@@ -75,8 +113,8 @@ ipcMain.handle('run-release', (_e, opts) => {
     '-NoProfile',
     '-ExecutionPolicy', 'Bypass',
     '-File', SCRIPT,
+    '-ProjectKey', opts.projectKey || 'admin',
     '-BumpType', opts.bumpType || 'patch',
-    '-Project', PROJECT_ROOT,
   ];
   if (opts.buildApk) args.push('-BuildApk');
   if (opts.buildElectron) args.push('-BuildElectron');
@@ -105,14 +143,14 @@ ipcMain.handle('run-release', (_e, opts) => {
     outBuf = errBuf = '';
     const finishedProc = currentProc;
     currentProc = null;
-    send('release-done', { code, newVersion: readVersion() });
+    send('release-done', { code, newVersion: readVersion(opts.projectKey) });
     if (finishedProc) finishedProc.removeAllListeners();
   });
 
   currentProc.on('error', (e) => {
     send('release-log', { type: 'err', text: `No se pudo iniciar el proceso: ${e.message}` });
     currentProc = null;
-    send('release-done', { code: -1, newVersion: readVersion() });
+    send('release-done', { code: -1, newVersion: readVersion(opts.projectKey) });
   });
 
   return { started: true };

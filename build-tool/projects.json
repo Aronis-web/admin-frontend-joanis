@@ -1,0 +1,43 @@
+{
+  "releasesFolderName": "Releases",
+  "projects": [
+    {
+      "key": "admin",
+      "label": "ERP-aio · Admin",
+      "productName": "ERP-aio",
+      "root": "C:/Users/aaron/IdeaProjects/admin-frontend-joanis",
+      "buildDir": "C:/erp",
+      "primaryVersionFile": "app.json",
+      "primaryVersionPath": "expo.version",
+      "versionFiles": ["app.json", "package.json", "electron/package.json"],
+      "apk": {
+        "supported": true,
+        "arch": "arm64-v8a"
+      },
+      "electron": {
+        "supported": true,
+        "npmScript": "build:electron:win",
+        "exeGlob": "ERP-aio Setup *.exe"
+      }
+    },
+    {
+      "key": "caja",
+      "label": "CajaGrit · POS",
+      "productName": "CajaGrit",
+      "root": "C:/Users/aaron/IdeaProjects/caja-frontend-joanis",
+      "buildDir": "C:/caja_build",
+      "primaryVersionFile": "package.json",
+      "primaryVersionPath": "version",
+      "versionFiles": ["package.json"],
+      "apk": {
+        "supported": true,
+        "arch": "arm64-v8a"
+      },
+      "electron": {
+        "supported": true,
+        "npmScript": "electron:build",
+        "exeGlob": "CajaGrit-*-setup.exe"
+      }
+    }
+  ]
+}

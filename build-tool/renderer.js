@@ -1,6 +1,7 @@
 const el = (id) => document.getElementById(id);
 
-const state = { bumpType: 'patch', running: false, currentVersion: '—' };
+const state = { projectKey: null, bumpType: 'patch', running: false, currentVersion: '—' };
+let projects = [];
 
 const logBox = el('log');
 const statusChip = el('statusChip');
@@ -24,18 +25,58 @@ function setStatus(kind, label) {
 }
 
 async function refreshNextVersion() {
-  const next = await window.release.previewVersion(state.bumpType);
+  const next = await window.release.previewVersion(state.projectKey, state.bumpType);
   el('nextVersion').textContent = next;
 }
 
-async function init() {
-  const info = await window.release.getInfo();
+function currentProject() {
+  return projects.find((p) => p.key === state.projectKey);
+}
+
+function applyArtifactSupport() {
+  const proj = currentProject();
+  if (!proj) return;
+  const apkBox = el('optApk');
+  const exeBox = el('optElectron');
+  apkBox.disabled = !proj.apk;
+  exeBox.disabled = !proj.electron;
+  apkBox.closest('.check').classList.toggle('disabled', !proj.apk);
+  exeBox.closest('.check').classList.toggle('disabled', !proj.electron);
+  if (!proj.apk) apkBox.checked = false;
+  if (!proj.electron) exeBox.checked = false;
+}
+
+async function selectProject(key) {
+  if (state.running) return;
+  state.projectKey = key;
+  document.querySelectorAll('#projectGroup .seg').forEach((b) => {
+    b.classList.toggle('active', b.dataset.project === key);
+  });
+  const info = await window.release.getInfo(key);
   state.currentVersion = info.version;
   el('currentVersion').textContent = info.version;
+  el('projectPath').textContent = `${info.productName || ''} · ${info.project}`;
+  applyArtifactSupport();
   await refreshNextVersion();
-  if (!info.scriptExists) {
-    appendLog('err', 'No se encontró scripts/release-tool.ps1');
-  }
+}
+
+async function init() {
+  projects = await window.release.getProjects();
+  const group = el('projectGroup');
+  group.innerHTML = '';
+  projects.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'seg' + (i === 0 ? ' active' : '');
+    btn.dataset.project = p.key;
+    btn.textContent = p.label;
+    btn.addEventListener('click', () => selectProject(p.key));
+    group.appendChild(btn);
+  });
+
+  const info0 = await window.release.getInfo(projects[0] ? projects[0].key : undefined);
+  if (!info0.scriptExists) appendLog('err', 'No se encontró scripts/release-tool.ps1');
+
+  if (projects.length) await selectProject(projects[0].key);
 }
 
 // Selector de tipo de bump
@@ -54,6 +95,7 @@ el('clearBtn').addEventListener('click', () => { logBox.innerHTML = ''; });
 runBtn.addEventListener('click', async () => {
   if (state.running) return;
   const opts = {
+    projectKey: state.projectKey,
     bumpType: state.bumpType,
     buildApk: el('optApk').checked,
     buildElectron: el('optElectron').checked,
@@ -116,6 +158,7 @@ window.release.onDone(async ({ code, newVersion }) => {
 
 function renderResults() {
   const map = [
+    ['project', 'Proyecto'],
     ['version', 'Versión'],
     ['apk', 'APK'],
     ['apkMb', 'Tamaño APK (MB)'],
