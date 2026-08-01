@@ -1,0 +1,7 @@
+{
+  "name": "erp-aio-release-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App de escritorio para orquestar releases del ERP-aio (bump de versión, build APK/Electron, carpetas ordenadas y commit+push).",
+  "main": "main.js"
+}
