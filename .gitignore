@@ -13,12 +13,20 @@ dist/
 dist-test/
 web-build/
 
-# Electron build resources (keep .gitkeep)
+# Electron build resources (keep .gitkeep + iconos + installer.nsh)
+# packed.nsh se autogenera en el build, NO versionar.
 electron/build/*
 !electron/build/.gitkeep
+!electron/build/icon.ico
+!electron/build/icon.png
+!electron/build/installer.nsh
 
 # Firebender session data (markers de hooks, no versionar)
 .firebender/.session/
+.firebender/plans/
+
+# Artefactos temporales de tests (no versionar)
+.tmp-tests/
 
 # Firebender chat history (per-machine, no versionar)
 .idea/firebender/chat_history.db

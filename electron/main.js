@@ -12,6 +12,12 @@ const { autoUpdater } = require('electron-updater');
 
 console.log('[ELECTRON] ✅ electron-updater cargado');
 
+// Windows: fija el AppUserModelID (== appId de electron-builder) para que la
+// barra de tareas use el MISMO icono que el acceso directo del instalador.
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.erpaio.admin');
+}
+
 // Detectar modo desarrollo: por variable de entorno O si la app no está empaquetada
 // También se puede forzar con el argumento --devtools
 const forceDevTools = process.argv.includes('--devtools');
@@ -147,7 +153,7 @@ function createWindow(port) {
       webSecurity: false, // Disable to allow loading local resources
       allowRunningInsecureContent: true,
     },
-    icon: path.join(__dirname, 'build/icon.png'),
+    icon: path.join(__dirname, 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     title: 'ERP-aio - Panel de Administración',
     backgroundColor: '#ffffff',
     autoHideMenuBar: true,
