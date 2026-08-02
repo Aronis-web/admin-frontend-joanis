@@ -24,6 +24,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Emitir la salida en UTF-8 para que caracteres como "·" o tildes no se
+# muestren como "�" en el log de la app (que lee stdout como UTF-8).
+try {
+  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+  $OutputEncoding = [System.Text.Encoding]::UTF8
+} catch { }
+
 function Step($m) { Write-Host "@@STEP@@ $m" }
 function Ok($m) { Write-Host "@@OK@@ $m" }
 function Err($m) { Write-Host "@@ERR@@ $m" }

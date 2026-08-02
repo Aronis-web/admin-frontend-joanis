@@ -353,6 +353,86 @@ ipcMain.handle('get-app-version', async () => {
   };
 });
 
+// ===== HANDLERS IPC PARA IMPRESIÓN (etiquetas térmicas 80mm) =====
+
+// Lista las impresoras detectadas por el sistema operativo. Sirve para
+// diagnosticar la conexión: si la impresora térmica no aparece aquí, el
+// problema es de driver/conexión a nivel de Windows, no de la app.
+ipcMain.handle('get-printers', async () => {
+  try {
+    if (!mainWindow || !mainWindow.webContents) return [];
+    const printers = await mainWindow.webContents.getPrintersAsync();
+    console.log('[PRINT] Impresoras detectadas:', printers.map((p) => p.name));
+    return printers.map((p) => ({
+      name: p.name,
+      displayName: p.displayName || p.name,
+      description: p.description || '',
+      status: p.status,
+      isDefault: !!p.isDefault,
+    }));
+  } catch (err) {
+    console.error('[PRINT] Error listando impresoras:', err);
+    return [];
+  }
+});
+
+// Imprime un HTML usando una ventana oculta y webContents.print(). Esto llega
+// directamente a la impresora instalada (silencioso cuando se indica deviceName)
+// en lugar del iframe del renderer, que en Electron es poco fiable.
+ipcMain.handle('print-html', async (event, options = {}) => {
+  const { html, deviceName, silent = false } = options;
+  if (!html) return { success: false, error: 'HTML vacío' };
+
+  return await new Promise((resolve) => {
+    let printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: { sandbox: true, contextIsolation: true },
+    });
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      try {
+        if (printWindow && !printWindow.isDestroyed()) printWindow.close();
+      } catch (_) {
+        /* noop */
+      }
+      printWindow = null;
+      resolve(result);
+    };
+
+    printWindow.webContents.once('did-finish-load', () => {
+      // Pequeña espera para asegurar el render del código de barras (SVG).
+      setTimeout(() => {
+        try {
+          printWindow.webContents.print(
+            {
+              silent: !!silent && !!deviceName,
+              printBackground: true,
+              margins: { marginType: 'none' },
+              ...(deviceName ? { deviceName } : {}),
+            },
+            (success, failureReason) => {
+              finish({ success, error: success ? undefined : failureReason });
+            }
+          );
+        } catch (err) {
+          console.error('[PRINT] Error al imprimir:', err);
+          finish({ success: false, error: String(err && err.message ? err.message : err) });
+        }
+      }, 350);
+    });
+
+    printWindow.webContents.once('did-fail-load', (e, code, desc) => {
+      finish({ success: false, error: `did-fail-load ${code}: ${desc}` });
+    });
+
+    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+    printWindow.loadURL(dataUrl);
+  });
+});
+
 // Verificar actualizaciones manualmente
 ipcMain.handle('check-for-updates', async () => {
   if (isDev) {

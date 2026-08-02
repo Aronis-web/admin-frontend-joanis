@@ -21,6 +21,7 @@ import { StockExportModal } from '@/components/Inventory/StockExportModal';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
 import { StockProductDetailModal } from '@/components/Inventory/StockProductDetailModal';
+import { PriceLabelPrintModal } from '@/components/Inventory/PriceLabelPrintModal';
 import {
   ProductStockSortBy,
   ProductStockStatus,
@@ -118,6 +119,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
   const [selectedDetailProduct, setSelectedDetailProduct] =
     useState<ProductStockSummaryItem | null>(null);
+  const [labelProduct, setLabelProduct] = useState<ProductStockSummaryItem | null>(null);
   const [isBulkUploadModalVisible, setIsBulkUploadModalVisible] = useState(false);
   const [isExportModalVisible, setIsExportModalVisible] = useState(false);
   const [isProductBulkUploadV2ModalVisible, setIsProductBulkUploadV2ModalVisible] = useState(false);
@@ -495,6 +497,15 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
         <View style={styles.productActions}>
           <TouchableOpacity
+            style={[styles.actionButton, styles.labelButton]}
+            onPress={() => setLabelProduct(product)}
+          >
+            <Ionicons name="pricetag-outline" size={16} color={theme.color.brand.accent} />
+            <Text variant="labelMedium" color={theme.color.brand.accent}>
+              Etiqueta
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.actionButton, styles.detailButton]}
             onPress={() => setSelectedDetailProduct(product)}
           >
@@ -781,6 +792,21 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
           product={selectedDetailProduct}
           warehouseId={selectedWarehouseId !== 'all' ? selectedWarehouseId : undefined}
           areaId={selectedAreaId !== 'all' ? selectedAreaId : undefined}
+        />
+
+        <PriceLabelPrintModal
+          visible={!!labelProduct}
+          onClose={() => setLabelProduct(null)}
+          product={
+            labelProduct
+              ? {
+                  productId: labelProduct.productId,
+                  name: labelProduct.name,
+                  sku: labelProduct.sku,
+                  barcode: labelProduct.barcode,
+                }
+              : null
+          }
         />
 
         <BulkUploadModal
@@ -1088,11 +1114,18 @@ const createStyles = (theme: Theme) =>
     },
     actionButton: {
       flex: 1,
+      flexDirection: 'row',
+      gap: theme.space[1.5],
       paddingVertical: theme.space[2.5],
       paddingHorizontal: theme.space[3],
       borderRadius: theme.radii.md,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    labelButton: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
     },
     detailButton: {
       backgroundColor: theme.color.brand.accent,
