@@ -380,7 +380,7 @@ ipcMain.handle('get-printers', async () => {
 // directamente a la impresora instalada (silencioso cuando se indica deviceName)
 // en lugar del iframe del renderer, que en Electron es poco fiable.
 ipcMain.handle('print-html', async (event, options = {}) => {
-  const { html, deviceName, silent = false } = options;
+  const { html, deviceName, silent = false, pageSize, landscape } = options;
   if (!html) return { success: false, error: 'HTML vacío' };
 
   return await new Promise((resolve) => {
@@ -411,6 +411,11 @@ ipcMain.handle('print-html', async (event, options = {}) => {
               silent: !!silent && !!deviceName,
               printBackground: true,
               margins: { marginType: 'none' },
+              // pageSize personalizado en micrones ({ width, height }) para
+              // rollos de stickers (ej. 104×20 mm). Si no se indica, respeta el
+              // @page del HTML (etiqueta 80mm).
+              ...(pageSize ? { pageSize } : {}),
+              ...(typeof landscape === 'boolean' ? { landscape } : {}),
               ...(deviceName ? { deviceName } : {}),
             },
             (success, failureReason) => {

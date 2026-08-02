@@ -74,6 +74,20 @@ const formatQuantity = (value?: number) => {
     : numericValue.toLocaleString('es-PE', { maximumFractionDigits: 2 });
 };
 
+/**
+ * Stock actual del producto en la sede indicada (por `siteCode`). Suma el stock
+ * disponible de los almacenes de esa sede; si no hay coincidencia, cae al stock
+ * total consolidado del producto. Se usa como cantidad por defecto de stickers.
+ */
+const getSiteStock = (product: ProductStockSummaryItem, siteCode?: string): number => {
+  const warehouses = product.warehouses ?? [];
+  const matching = siteCode ? warehouses.filter((w) => w.siteCode === siteCode) : warehouses;
+  const source = matching.length > 0 ? matching : warehouses;
+  const sum = source.reduce((acc, w) => acc + (w.availableStock ?? w.totalStock ?? 0), 0);
+  const value = source.length > 0 ? sum : product.totalStock;
+  return Math.max(0, Math.round(value || 0));
+};
+
 const getProductStockState = (product: ProductStockSummaryItem, theme: Theme) => {
   if (product.availableStock < 0) {
     return { label: 'Negativo', color: theme.color.text.danger, icon: 'trending-down' as const };
@@ -804,6 +818,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   name: labelProduct.name,
                   sku: labelProduct.sku,
                   barcode: labelProduct.barcode,
+                  sedeStock: getSiteStock(labelProduct, effectiveSite?.code),
                 }
               : null
           }

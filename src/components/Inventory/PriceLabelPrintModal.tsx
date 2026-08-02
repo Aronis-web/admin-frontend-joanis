@@ -12,6 +12,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -22,6 +23,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { priceProfilesApi } from '@/services/api/price-profiles';
+import { productsApi } from '@/services/api/products';
+import { photoCampaignsApi } from '@/services/api/photo-campaigns';
 import type { PriceProfile } from '@/types/price-profiles';
 import {
   printPriceLabel,
@@ -30,6 +33,7 @@ import {
   isElectronPrinting,
   type PrinterInfo,
 } from '@/utils/priceLabel/priceLabelPrint';
+import { printPriceStickers } from '@/utils/priceLabel/stickerLabelPrint';
 import { logger } from '@/utils/logger';
 import Alert from '@/utils/alert';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -42,7 +46,11 @@ export interface PriceLabelProduct {
   sku?: string;
   barcode?: string;
   currency?: string;
+  /** Stock actual del producto en la sede actual (default de cantidad de stickers). */
+  sedeStock?: number;
 }
+
+type LabelTab = 'etiqueta' | 'sticker';
 
 interface PriceLabelPrintModalProps {
   visible: boolean;
@@ -63,6 +71,43 @@ const toNumber = (value: number | string | undefined | null): number => {
   return Number.isNaN(n) ? 0 : n;
 };
 
+/**
+ * Genera un SKU aleatorio de 8 dígitos. Longitud par → el Code128 usa el modo C
+ * (compacto y bien escaneable en la etiqueta).
+ */
+const generateRandomSku = (): string => {
+  let sku = '';
+  for (let i = 0; i < 8; i++) sku += Math.floor(Math.random() * 10);
+  return sku;
+};
+
+/**
+ * Devuelve `true` si el SKU ya existe en el catálogo. Consulta el endpoint por
+ * SKU: si resuelve un producto → existe; si lanza (404) → está libre.
+ */
+const skuExists = async (sku: string): Promise<boolean> => {
+  try {
+    const product = await productsApi.getProductBySku(sku);
+    return !!product;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Genera un SKU aleatorio garantizando que no colisione con uno existente.
+ * Reintenta hasta `maxAttempts` veces; si todas colisionan devuelve el último
+ * candidato para no bloquear la operación.
+ */
+const generateUniqueSku = async (maxAttempts = 6): Promise<string> => {
+  let candidate = generateRandomSku();
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (!(await skuExists(candidate))) return candidate;
+    candidate = generateRandomSku();
+  }
+  return candidate;
+};
+
 export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
   visible,
   onClose,
@@ -71,21 +116,37 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
+  const [activeTab, setActiveTab] = useState<LabelTab>('etiqueta');
   const [loading, setLoading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [options, setOptions] = useState<PriceOption[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [priceText, setPriceText] = useState('');
   const [copies, setCopies] = useState('3');
+  const [stickerQty, setStickerQty] = useState('1');
   const [printers, setPrinters] = useState<PrinterInfo[]>([]);
   const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
   const [savingPrice, setSavingPrice] = useState(false);
+  const [useRandomSku, setUseRandomSku] = useState(false);
+  const [randomSku, setRandomSku] = useState('');
+  const [generatingSku, setGeneratingSku] = useState(false);
+  const [savingBarcode, setSavingBarcode] = useState(false);
+  const [barcodeSaved, setBarcodeSaved] = useState(false);
+  const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
 
   const supportsPrinterSelection = isElectronPrinting();
 
   const currency = product?.currency || 'PEN';
-  const barcodeValue = (product?.barcode || product?.sku || '').trim();
+
+  // SKU original del producto vs. SKU aleatorio generado (toggle).
+  const originalSku = (product?.sku || '').trim();
+  const originalBarcode = (product?.barcode || product?.sku || '').trim();
+  const effectiveSku = (useRandomSku ? randomSku : originalSku).trim();
+  // Al generar un SKU aleatorio se crea su código de barras; si no, se mantiene
+  // el código de barras original del producto.
+  const barcodeValue = (useRandomSku ? randomSku : originalBarcode).trim();
 
   const loadPrices = useCallback(async () => {
     if (!product) return;
@@ -142,24 +203,121 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
     }
   }, []);
 
+  // Foto del producto para mostrar al final del modal. Igual que el módulo de
+  // campaña: prioriza el "design", luego el "reference" y por último la foto de
+  // validación de compra (o cualquier otra disponible).
+  const loadProductImage = useCallback(async () => {
+    if (!product) return;
+    try {
+      setLoadingImage(true);
+      // Fotos de campaña (design / reference) y datos del producto (catálogo /
+      // foto de validación de compra) en paralelo.
+      const [assets, productDetail] = await Promise.all([
+        photoCampaignsApi.getProductPhotos(product.productId).catch(() => []),
+        productsApi.getProductById(product.productId).catch(() => null),
+      ]);
+
+      const byType = (t: string) =>
+        assets.find((a) => String(a.photoType).toLowerCase() === t && !!a.fileUrl)?.fileUrl;
+
+      // Foto de validación de compra: se persiste como foto de catálogo del
+      // producto (imageUrl / imageUrls / photos).
+      const purchaseValidationUrl =
+        productDetail?.imageUrl ||
+        productDetail?.imageUrls?.find((u) => !!u) ||
+        productDetail?.photos?.find((u) => !!u) ||
+        undefined;
+
+      const url =
+        byType('design') ||
+        byType('reference') ||
+        purchaseValidationUrl ||
+        assets.find((a) => !!a.fileUrl)?.fileUrl ||
+        null;
+      setProductImageUrl(url);
+    } catch (error) {
+      logger.error('Error cargando foto del producto para etiqueta', error);
+      setProductImageUrl(null);
+    } finally {
+      setLoadingImage(false);
+    }
+  }, [product]);
+
   useEffect(() => {
     if (visible && product) {
+      setActiveTab('etiqueta');
       setCopies('3');
+      // Cantidad de stickers por defecto = stock actual del producto en la sede.
+      const defaultQty = Math.max(1, Math.floor(product.sedeStock ?? 1));
+      setStickerQty(String(defaultQty));
+      setUseRandomSku(false);
+      setRandomSku('');
+      setBarcodeSaved(false);
+      setProductImageUrl(null);
       void loadPrices();
       void loadPrinters();
+      void loadProductImage();
     } else if (!visible) {
       setOptions([]);
       setSelectedProfileId(null);
       setPriceText('');
       setPrinters([]);
       setSelectedPrinter(null);
+      setUseRandomSku(false);
+      setRandomSku('');
+      setBarcodeSaved(false);
+      setProductImageUrl(null);
     }
-  }, [visible, product, loadPrices, loadPrinters]);
+  }, [visible, product, loadPrices, loadPrinters, loadProductImage]);
 
   const handleSelectProfile = useCallback((option: PriceOption) => {
     setSelectedProfileId(option.profileId);
     setPriceText((option.priceCents / 100).toFixed(2));
   }, []);
+
+  // Genera un SKU aleatorio (verificando que no colisione con uno existente);
+  // con el mismo botón regresa al SKU original.
+  const handleToggleRandomSku = useCallback(async () => {
+    setBarcodeSaved(false);
+    if (useRandomSku) {
+      setUseRandomSku(false);
+      return;
+    }
+    try {
+      setGeneratingSku(true);
+      const unique = await generateUniqueSku();
+      setRandomSku(unique);
+      setUseRandomSku(true);
+    } catch (error) {
+      logger.error('Error generando SKU único', error);
+      Alert.alert('Error', 'No se pudo generar un SKU. Intenta de nuevo.');
+    } finally {
+      setGeneratingSku(false);
+    }
+  }, [useRandomSku]);
+
+  // Guarda el código de barras creado en el producto y confirma el guardado.
+  const handleSaveBarcode = useCallback(async () => {
+    if (!product || !barcodeValue) return;
+    try {
+      setSavingBarcode(true);
+      await productsApi.updateProduct(product.productId, { barcode: barcodeValue });
+      setBarcodeSaved(true);
+      Alert.alert(
+        'Código de barras guardado',
+        'El código de barras se guardó correctamente en el producto.'
+      );
+    } catch (error) {
+      logger.error('Error guardando código de barras', error);
+      Alert.alert('Error', 'No se pudo guardar el código de barras en el producto.');
+    } finally {
+      setSavingBarcode(false);
+    }
+  }, [product, barcodeValue]);
+
+  // El código de barras difiere del guardado en el producto.
+  const canSaveBarcode =
+    !!product && !!barcodeValue && barcodeValue !== originalBarcode && !barcodeSaved;
 
   const handlePriceChange = useCallback((value: string) => {
     const sanitized = value.replace(/[^0-9.]/g, '');
@@ -218,18 +376,31 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
       );
       return;
     }
-    const copiesNum = Math.max(1, Math.min(50, Math.floor(Number(copies) || 1)));
     try {
       setPrinting(true);
-      await printPriceLabel({
-        productName: product.name,
-        barcodeValue,
-        priceCents,
-        currency,
-        profileName: selectedProfile?.profileName,
-        copies: copiesNum,
-        deviceName: selectedPrinter ?? undefined,
-      });
+      if (activeTab === 'sticker') {
+        const qtyNum = Math.max(1, Math.min(200, Math.floor(Number(stickerQty) || 1)));
+        await printPriceStickers({
+          productName: product.name,
+          barcodeValue,
+          sku: effectiveSku,
+          priceCents,
+          currency,
+          quantity: qtyNum,
+          deviceName: selectedPrinter ?? undefined,
+        });
+      } else {
+        const copiesNum = Math.max(1, Math.min(50, Math.floor(Number(copies) || 1)));
+        await printPriceLabel({
+          productName: product.name,
+          barcodeValue,
+          priceCents,
+          currency,
+          profileName: selectedProfile?.profileName,
+          copies: copiesNum,
+          deviceName: selectedPrinter ?? undefined,
+        });
+      }
     } catch (error) {
       logger.error('Error imprimiendo etiqueta', error);
       Alert.alert(
@@ -243,7 +414,10 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
     product,
     priceCents,
     copies,
+    stickerQty,
+    activeTab,
     barcodeValue,
+    effectiveSku,
     currency,
     selectedProfile,
     supportsPrinterSelection,
@@ -268,6 +442,37 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          {/* Selector de cartilla: Etiqueta precio / Sticker precio */}
+          <View style={styles.tabsRow}>
+            {(
+              [
+                { key: 'etiqueta', label: 'Etiqueta precio', icon: 'pricetag-outline' },
+                { key: 'sticker', label: 'Sticker precio', icon: 'documents-outline' },
+              ] as { key: LabelTab; label: string; icon: keyof typeof Ionicons.glyphMap }[]
+            ).map((tab) => {
+              const active = activeTab === tab.key;
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.tabButton, active && styles.tabButtonActive]}
+                  onPress={() => setActiveTab(tab.key)}
+                >
+                  <Ionicons
+                    name={tab.icon}
+                    size={16}
+                    color={active ? theme.color.brand.accent : theme.color.icon.muted}
+                  />
+                  <Text
+                    variant="labelMedium"
+                    color={active ? theme.color.brand.accent : 'secondary'}
+                  >
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={theme.color.brand.primary} />
@@ -277,30 +482,66 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
             </View>
           ) : (
             <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
-              {/* Vista previa de la etiqueta (marco con bordes redondeados) */}
-              <View style={styles.previewCard}>
-                <Text style={styles.previewBrand}>Joanis</Text>
-                <Text style={styles.previewName} numberOfLines={2}>
-                  {product?.name || '—'}
-                </Text>
-                <Text style={styles.previewPrice}>{formatLabelPrice(priceCents, currency)}</Text>
-                <View style={styles.previewBarcode}>
-                  <View style={styles.barcodeStripes}>
-                    {Array.from({ length: 28 }).map((_, i) => (
-                      <View
-                        key={i}
-                        style={[
-                          styles.barcodeBar,
-                          { width: i % 3 === 0 ? 3 : i % 2 === 0 ? 1 : 2 },
-                        ]}
-                      />
+              {/* Vista previa de la ETIQUETA (marco con bordes redondeados) */}
+              {activeTab === 'etiqueta' && (
+                <View style={styles.previewCard}>
+                  <Text style={styles.previewBrand}>Joanis</Text>
+                  <Text style={styles.previewName} numberOfLines={2}>
+                    {product?.name || '—'}
+                  </Text>
+                  <Text style={styles.previewPrice}>{formatLabelPrice(priceCents, currency)}</Text>
+                  <View style={styles.previewBarcode}>
+                    <View style={styles.barcodeStripes}>
+                      {Array.from({ length: 28 }).map((_, i) => (
+                        <View
+                          key={i}
+                          style={[
+                            styles.barcodeBar,
+                            { width: i % 3 === 0 ? 3 : i % 2 === 0 ? 1 : 2 },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                    <Caption color="tertiary" style={styles.previewCode}>
+                      {barcodeValue || 'Sin código de barras'}
+                    </Caption>
+                  </View>
+                </View>
+              )}
+
+              {/* Vista previa de los STICKERS (3 por fila, 33 × 20 mm) */}
+              {activeTab === 'sticker' && (
+                <View style={styles.stickerPreviewWrap}>
+                  <View style={styles.stickerRow}>
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <View key={idx} style={styles.stickerCard}>
+                        <Text style={styles.stickerBrand}>Joanis</Text>
+                        <Text style={styles.stickerName} numberOfLines={1}>
+                          {product?.name || '—'}
+                        </Text>
+                        <Text style={styles.stickerPrice} numberOfLines={1}>
+                          {formatLabelPrice(priceCents, currency)}
+                        </Text>
+                        <View style={styles.stickerBarcodeStripes}>
+                          {Array.from({ length: 20 }).map((__, i) => (
+                            <View
+                              key={i}
+                              style={[styles.barcodeBar, { width: i % 3 === 0 ? 2 : 1 }]}
+                            />
+                          ))}
+                        </View>
+                        <Text style={styles.stickerSku} numberOfLines={1}>
+                          {effectiveSku || barcodeValue || '—'}
+                        </Text>
+                      </View>
                     ))}
                   </View>
-                  <Caption color="tertiary" style={styles.previewCode}>
-                    {barcodeValue || 'Sin código de barras'}
+                  <Caption color="tertiary" style={styles.stickerHint}>
+                    Se imprimirán {Math.max(1, Math.floor(Number(stickerQty) || 1))} sticker(s), 3
+                    por fila.
                   </Caption>
                 </View>
-              </View>
+              )}
 
               {/* Selección de perfil de precio */}
               <Caption color="secondary" style={styles.sectionLabel}>
@@ -366,6 +607,47 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
                 {selectedProfile?.profileName || 'seleccionado'}.
               </Caption>
 
+              {/* SKU y código de barras (ambas cartillas) */}
+              <Caption color="secondary" style={styles.sectionLabel}>
+                SKU y código de barras
+              </Caption>
+              <View style={styles.skuRow}>
+                <View style={styles.flexOne}>
+                  <Text variant="titleMedium" color="primary" numberOfLines={1}>
+                    {effectiveSku || '—'}
+                  </Text>
+                  <Caption color="tertiary">
+                    {generatingSku
+                      ? 'Verificando disponibilidad...'
+                      : useRandomSku
+                        ? 'SKU aleatorio verificado (sin duplicar)'
+                        : 'SKU original del producto'}
+                  </Caption>
+                </View>
+                <Button
+                  title={useRandomSku ? 'Regresar' : 'Generar SKU'}
+                  variant={useRandomSku ? 'outline' : 'primary'}
+                  size="small"
+                  leftIcon={useRandomSku ? 'arrow-undo-outline' : 'shuffle-outline'}
+                  onPress={() => void handleToggleRandomSku()}
+                  loading={generatingSku}
+                  disabled={generatingSku}
+                />
+              </View>
+              <Caption color="tertiary" numberOfLines={1}>
+                Código de barras: {barcodeValue || 'Sin código'}
+              </Caption>
+              <Button
+                title={barcodeSaved ? 'Código guardado' : 'Guardar código de barras'}
+                variant={barcodeSaved ? 'outline' : 'success'}
+                size="small"
+                leftIcon={barcodeSaved ? 'checkmark-circle-outline' : 'save-outline'}
+                onPress={handleSaveBarcode}
+                loading={savingBarcode}
+                disabled={savingBarcode || !canSaveBarcode}
+                style={styles.confirmPriceButton}
+              />
+
               {/* Selección de impresora (solo Electron) */}
               {supportsPrinterSelection && (
                 <>
@@ -426,34 +708,68 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
                 </>
               )}
 
-              {/* Número de copias */}
+              {/* Número de copias / cantidad de stickers */}
               <Caption color="secondary" style={styles.sectionLabel}>
-                Copias
+                {activeTab === 'sticker' ? 'Cantidad de stickers' : 'Copias'}
               </Caption>
+              {activeTab === 'sticker' && (
+                <Caption color="tertiary">
+                  Por defecto: stock actual en la sede (
+                  {Math.max(0, Math.floor(product?.sedeStock ?? 0))}).
+                </Caption>
+              )}
               <View style={styles.copiesRow}>
                 <TouchableOpacity
                   style={styles.copyStepBtn}
                   onPress={() =>
-                    setCopies((c) => String(Math.max(1, (Math.floor(Number(c)) || 1) - 1)))
+                    activeTab === 'sticker'
+                      ? setStickerQty((c) => String(Math.max(1, (Math.floor(Number(c)) || 1) - 1)))
+                      : setCopies((c) => String(Math.max(1, (Math.floor(Number(c)) || 1) - 1)))
                   }
                 >
                   <Ionicons name="remove" size={18} color={theme.color.icon.muted} />
                 </TouchableOpacity>
                 <TextInput
                   style={styles.copiesInput}
-                  value={copies}
-                  onChangeText={(v) => setCopies(v.replace(/[^0-9]/g, ''))}
+                  value={activeTab === 'sticker' ? stickerQty : copies}
+                  onChangeText={(v) =>
+                    activeTab === 'sticker'
+                      ? setStickerQty(v.replace(/[^0-9]/g, ''))
+                      : setCopies(v.replace(/[^0-9]/g, ''))
+                  }
                   keyboardType="number-pad"
                 />
                 <TouchableOpacity
                   style={styles.copyStepBtn}
                   onPress={() =>
-                    setCopies((c) => String(Math.min(50, (Math.floor(Number(c)) || 1) + 1)))
+                    activeTab === 'sticker'
+                      ? setStickerQty((c) =>
+                          String(Math.min(200, (Math.floor(Number(c)) || 1) + 1))
+                        )
+                      : setCopies((c) => String(Math.min(50, (Math.floor(Number(c)) || 1) + 1)))
                   }
                 >
                   <Ionicons name="add" size={18} color={theme.color.icon.muted} />
                 </TouchableOpacity>
               </View>
+
+              {/* Foto del producto (design → referencia → validación de compra) */}
+              <Caption color="secondary" style={styles.sectionLabel}>
+                Foto del producto
+              </Caption>
+              {loadingImage ? (
+                <View style={styles.productImageLoading}>
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                </View>
+              ) : productImageUrl ? (
+                <Image
+                  source={{ uri: productImageUrl }}
+                  style={styles.productImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Caption color="tertiary">Sin foto disponible para este producto.</Caption>
+              )}
             </ScrollView>
           )}
 
@@ -466,7 +782,7 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
               style={styles.footerButton}
             />
             <Button
-              title="Imprimir"
+              title={activeTab === 'sticker' ? 'Imprimir stickers' : 'Imprimir'}
               variant="primary"
               leftIcon="print-outline"
               onPress={handlePrint}
@@ -519,6 +835,29 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'center',
       backgroundColor: theme.color.surface.subtle,
       marginLeft: theme.space[3],
+    },
+    tabsRow: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[3],
+      paddingBottom: theme.space[1],
+    },
+    tabButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[1.5],
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    tabButtonActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.surface.base,
     },
     loadingContainer: {
       alignItems: 'center',
@@ -581,6 +920,60 @@ const createStyles = (theme: Theme) =>
     previewCode: {
       marginTop: 2,
       letterSpacing: 2,
+    },
+    stickerPreviewWrap: {
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    stickerRow: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      justifyContent: 'center',
+    },
+    stickerCard: {
+      backgroundColor: '#ffffff',
+      borderWidth: 1,
+      borderColor: '#000000',
+      borderRadius: theme.radii.sm,
+      paddingVertical: theme.space[1.5],
+      paddingHorizontal: theme.space[1.5],
+      alignItems: 'center',
+      width: 96,
+    },
+    stickerBrand: {
+      fontSize: 8,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      color: '#333333',
+    },
+    stickerName: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: '#000000',
+      textAlign: 'center',
+    },
+    stickerPrice: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: '#000000',
+      marginVertical: 1,
+    },
+    stickerBarcodeStripes: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      height: 10,
+      gap: 1,
+      marginTop: 1,
+    },
+    stickerSku: {
+      fontSize: 7,
+      letterSpacing: 0.5,
+      color: '#333333',
+      marginTop: 1,
+    },
+    stickerHint: {
+      marginTop: theme.space[2],
+      textAlign: 'center',
     },
     sectionLabel: {
       marginTop: theme.space[2],
@@ -646,6 +1039,31 @@ const createStyles = (theme: Theme) =>
     confirmPriceButton: {
       marginTop: theme.space[2],
       alignSelf: 'flex-start',
+    },
+    productImage: {
+      width: '100%',
+      height: 200,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    productImageLoading: {
+      height: 200,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    skuRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: theme.space[3],
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[3],
     },
     copiesRow: {
       flexDirection: 'row',
