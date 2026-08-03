@@ -142,14 +142,19 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
     }, [loadPrinters, loadSavedTickets, loadLastPrinted])
   );
 
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const hasQuery = trimmedQuery.length > 0;
+
   const filteredTickets = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    const sorted = [...savedTickets].sort((a, b) => b.shift - a.shift);
-    if (!query) return sorted;
-    return sorted.filter(
-      (t) => String(t.shift).includes(query) || t.code.toLowerCase().includes(query)
-    );
-  }, [savedTickets, searchQuery]);
+    // Escalable a miles de tickets: solo filtramos/mostramos cuando hay búsqueda.
+    if (!hasQuery) return [];
+    return savedTickets
+      .filter(
+        (t) => String(t.shift).includes(trimmedQuery) || t.code.toLowerCase().includes(trimmedQuery)
+      )
+      .sort((a, b) => b.shift - a.shift)
+      .slice(0, 100);
+  }, [savedTickets, trimmedQuery, hasQuery]);
 
   const handlePrint = useCallback(async () => {
     if (!validRange) {
@@ -416,7 +421,8 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
               Códigos guardados
             </Text>
             <Caption color="tertiary" style={styles.fieldLabel}>
-              Guardados en este dispositivo. Busca por turno o código.
+              Guardados en este dispositivo ({savedTickets.length.toLocaleString('es-PE')}). Busca
+              por turno o código para ver resultados.
             </Caption>
             <View style={styles.searchInputContainer}>
               <Ionicons name="search" size={18} color={theme.color.icon.subtle} />
@@ -440,18 +446,31 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
               <View style={styles.savedLoading}>
                 <ActivityIndicator size="small" color={theme.color.brand.accent} />
               </View>
+            ) : !hasQuery ? (
+              <EmptyState
+                emoji=""
+                title="Escribe para buscar"
+                description={
+                  savedTickets.length === 0
+                    ? 'Aún no hay tickets guardados en este dispositivo.'
+                    : 'Ingresa un número de turno o código para ver resultados.'
+                }
+              />
             ) : filteredTickets.length === 0 ? (
               <EmptyState
                 emoji=""
-                title="Sin códigos guardados"
-                description={
-                  searchQuery
-                    ? 'No hay coincidencias para esa búsqueda.'
-                    : 'Imprime tickets de turno para guardar sus códigos aquí.'
-                }
+                title="Sin coincidencias"
+                description="No se encontraron tickets para esa búsqueda."
               />
             ) : (
-              <View style={styles.savedList}>{filteredTickets.map(renderSavedTicket)}</View>
+              <View style={styles.savedList}>
+                {filteredTickets.map(renderSavedTicket)}
+                {filteredTickets.length === 100 && (
+                  <Caption color="tertiary" style={styles.savedLimitHint}>
+                    Mostrando los primeros 100 resultados. Afina la búsqueda para ver más.
+                  </Caption>
+                )}
+              </View>
             )}
           </Card>
         </ScrollView>
@@ -678,6 +697,10 @@ const createStyles = (theme: Theme) =>
     },
     savedCode: {
       letterSpacing: 1.5,
+    },
+    savedLimitHint: {
+      textAlign: 'center',
+      marginTop: theme.space[2],
     },
     flexOne: {
       flex: 1,
