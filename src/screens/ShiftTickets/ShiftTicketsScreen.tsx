@@ -36,6 +36,7 @@ import {
   getAllShiftTickets,
   getLastPrintedShift,
   getOrCreateShiftTicket,
+  getTodayLima,
   setLastPrintedShift,
   type ShiftTicketRecord,
 } from '@/utils/shiftTickets/shiftTicketStore';
@@ -55,11 +56,33 @@ const formatDateTime = (iso: string): string => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString('es-PE', {
+    timeZone: 'America/Lima',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+  });
+};
+
+/** `YYYY-MM-DD` → `DD/MM/YYYY` para mostrar en UI. */
+const formatDateOnly = (date: string): string => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return date;
+  return `${match[3]}/${match[2]}/${match[1]}`;
+};
+
+/** Formato largo legible de la fecha de hoy Lima. */
+const formatTodayLong = (date: string): string => {
+  const [y, m, d] = date.split('-').map(Number);
+  if (!y || !m || !d) return date;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.toLocaleDateString('es-PE', {
+    timeZone: 'UTC',
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
   });
 };
 
@@ -79,9 +102,10 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [today, setToday] = useState<string>(() => getTodayLima());
   const [lastPrinted, setLastPrinted] = useState<number | null>(null);
-  // Solo precargamos el rango una vez, para no pisar lo que el usuario escriba.
-  const hasPrefilledRef = useRef(false);
+  // Solo precargamos el rango una vez por día, para no pisar lo que el usuario escriba.
+  const prefilledDateRef = useRef<string | null>(null);
 
   const supportsPrinterSelection = isElectronPrinting();
 
@@ -118,17 +142,18 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
     }
   }, []);
 
-  const loadLastPrinted = useCallback(async () => {
+  const loadLastPrinted = useCallback(async (date: string) => {
     try {
-      const last = await getLastPrintedShift();
+      const last = await getLastPrintedShift(date);
       setLastPrinted(last);
-      // Al abrir por primera vez, continúa la numeración desde el siguiente turno.
-      if (!hasPrefilledRef.current && last !== null) {
-        const next = String(last + 1);
+      // Al entrar por primera vez este día, precarga el rango con el siguiente
+      // turno (o "1" si aún no se ha impreso ninguno hoy).
+      if (prefilledDateRef.current !== date) {
+        const next = String((last ?? 0) + 1);
         setFromShift(next);
         setToShift(next);
+        prefilledDateRef.current = date;
       }
-      hasPrefilledRef.current = true;
     } catch (error) {
       logger.error('Error leyendo el último turno impreso', error);
     }
@@ -136,9 +161,12 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
 
   useFocusEffect(
     useCallback(() => {
+      // Al recibir foco, recalcula el día actual Lima por si cruzó medianoche.
+      const currentDay = getTodayLima();
+      setToday(currentDay);
       void loadPrinters();
       void loadSavedTickets();
-      void loadLastPrinted();
+      void loadLastPrinted(currentDay);
     }, [loadPrinters, loadSavedTickets, loadLastPrinted])
   );
 
@@ -150,9 +178,16 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
     if (!hasQuery) return [];
     return savedTickets
       .filter(
-        (t) => String(t.shift).includes(trimmedQuery) || t.code.toLowerCase().includes(trimmedQuery)
+        (t) =>
+          String(t.shift).includes(trimmedQuery) ||
+          t.code.toLowerCase().includes(trimmedQuery) ||
+          t.date.includes(trimmedQuery) ||
+          formatDateOnly(t.date).includes(trimmedQuery)
       )
-      .sort((a, b) => b.shift - a.shift)
+      .sort((a, b) => {
+        if (a.date === b.date) return b.shift - a.shift;
+        return a.date < b.date ? 1 : -1;
+      })
       .slice(0, 100);
   }, [savedTickets, trimmedQuery, hasQuery]);
 
@@ -178,14 +213,17 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
 
     try {
       setPrinting(true);
-      // Genera/recupera el código único de cada turno y lo persiste localmente.
+      // Refresca el día actual por si cruzó medianoche mientras estaba abierta.
+      const printDate = getTodayLima();
+      if (printDate !== today) setToday(printDate);
+      // Genera/recupera el código único de cada turno (del día) y lo persiste.
       const records: ShiftTicketRecord[] = [];
       for (let shift = from; shift <= to; shift++) {
-        records.push(await getOrCreateShiftTicket(shift));
+        records.push(await getOrCreateShiftTicket(shift, printDate));
       }
       await printShiftTickets(records, selectedPrinter ?? undefined);
-      // Recuerda el último turno impreso para continuar la próxima vez.
-      await setLastPrintedShift(to);
+      // Recuerda el último turno impreso hoy para continuar la próxima vez.
+      await setLastPrintedShift(to, printDate);
       setLastPrinted(to);
       // Deja listo el rango para continuar desde el siguiente turno.
       const next = String(to + 1);
@@ -208,11 +246,17 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
     selectedPrinter,
     from,
     to,
+    today,
     loadSavedTickets,
   ]);
 
   const renderSavedTicket = (record: ShiftTicketRecord) => (
-    <Card key={record.shift} variant="outlined" padding="medium" style={styles.savedCard}>
+    <Card
+      key={`${record.date}-${record.shift}`}
+      variant="outlined"
+      padding="medium"
+      style={styles.savedCard}
+    >
       <View style={styles.savedRow}>
         <View style={styles.savedShiftBadge}>
           <Caption color={theme.color.text.inverse}>Turno</Caption>
@@ -224,6 +268,7 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
           <Text variant="labelLarge" color="primary" style={styles.savedCode}>
             {record.code}
           </Text>
+          <Caption color="secondary">{formatDateOnly(record.date)}</Caption>
           <Caption color="tertiary">{formatDateTime(record.createdAt)}</Caption>
         </View>
         <Ionicons name="barcode-outline" size={24} color={theme.color.icon.subtle} />
@@ -259,11 +304,25 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
             <Text variant="titleSmall" color="primary">
               Rango de turnos a imprimir
             </Text>
-            {lastPrinted !== null && (
+            <View style={styles.todayRow}>
+              <Ionicons name="calendar-outline" size={14} color={theme.color.brand.accent} />
+              <Caption color="secondary">
+                Hoy: <Text variant="labelSmall">{formatTodayLong(today)}</Text> · los turnos se
+                reinician a medianoche.
+              </Caption>
+            </View>
+            {lastPrinted !== null ? (
               <View style={styles.lastPrintedRow}>
                 <Ionicons name="bookmark-outline" size={14} color={theme.color.state.info.text} />
                 <Caption color={theme.color.state.info.text}>
-                  Último turno impreso: {lastPrinted} · continúa desde {lastPrinted + 1}
+                  Último turno impreso hoy: {lastPrinted} · continúa desde {lastPrinted + 1}
+                </Caption>
+              </View>
+            ) : (
+              <View style={styles.lastPrintedRow}>
+                <Ionicons name="sparkles-outline" size={14} color={theme.color.state.info.text} />
+                <Caption color={theme.color.state.info.text}>
+                  Aún no se imprime ningún turno hoy · empieza desde 1.
                 </Caption>
               </View>
             )}
@@ -329,6 +388,7 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
                 <Text style={styles.previewBrand}>Joanis</Text>
                 <Text style={styles.previewTitle}>TICKET DE TURNO</Text>
                 <Text style={styles.previewShift}>Turno {validRange ? from : '—'}</Text>
+                <Text style={styles.previewDate}>{formatDateOnly(today)}</Text>
                 <View style={styles.previewDivider} />
                 <View style={styles.barcodeStripes}>
                   {Array.from({ length: 32 }).map((_, i) => (
@@ -422,7 +482,7 @@ export const ShiftTicketsScreen: React.FC<ShiftTicketsScreenProps> = ({ navigati
             </Text>
             <Caption color="tertiary" style={styles.fieldLabel}>
               Guardados en este dispositivo ({savedTickets.length.toLocaleString('es-PE')}). Busca
-              por turno o código para ver resultados.
+              por turno, código o fecha (ej. 03/08/2026 o 2026-08-03).
             </Caption>
             <View style={styles.searchInputContainer}>
               <Ionicons name="search" size={18} color={theme.color.icon.subtle} />
@@ -527,6 +587,11 @@ const createStyles = (theme: Theme) =>
     sectionCard: {
       gap: theme.space[3],
     },
+    todayRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+    },
     lastPrintedRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -593,6 +658,12 @@ const createStyles = (theme: Theme) =>
       fontWeight: '800',
       color: '#000000',
       marginVertical: 2,
+    },
+    previewDate: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#000000',
+      marginTop: 2,
     },
     previewDivider: {
       borderTopWidth: 1,

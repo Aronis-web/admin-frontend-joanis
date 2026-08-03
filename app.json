@@ -3,7 +3,7 @@
     "name": "ERP-aio",
     "slug": "panel-admin-grit",
     "scheme": "erp-aio",
-    "version": "1.0.78",
+    "version": "1.0.79",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/logo.png",

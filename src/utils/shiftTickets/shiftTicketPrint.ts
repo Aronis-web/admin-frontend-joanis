@@ -30,12 +30,20 @@ const formatDateTime = (iso: string): string => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString('es-PE', {
+    timeZone: 'America/Lima',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
+};
+
+/** Convierte una fecha `YYYY-MM-DD` a `DD/MM/YYYY` para mostrar. */
+const formatDateOnly = (date: string): string => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return date;
+  return `${match[3]}/${match[2]}/${match[1]}`;
 };
 
 /** Construye el bloque HTML de un único ticket de turno. */
@@ -49,6 +57,7 @@ const buildTicketBlock = (record: ShiftTicketRecord): string => {
       <div class="brand">${escapeHtml(BRAND)}</div>
       <div class="title">Ticket de Turno</div>
       <div class="shift">Turno ${escapeHtml(String(record.shift))}</div>
+      <div class="date">${escapeHtml(formatDateOnly(record.date))}</div>
       <div class="datetime">${escapeHtml(formatDateTime(record.createdAt))}</div>
       <div class="divider"></div>
       ${barcodeHtml}
@@ -96,6 +105,12 @@ const buildTicketsHtml = (records: ShiftTicketRecord[]): string => {
     font-weight: 800;
     line-height: 1.1;
     margin: 0.5mm 0;
+  }
+  .date {
+    font-size: 14px;
+    font-weight: 700;
+    color: #000;
+    margin-top: 0.5mm;
   }
   .datetime {
     font-size: 10px;
