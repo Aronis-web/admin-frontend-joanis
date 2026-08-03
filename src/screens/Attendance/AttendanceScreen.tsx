@@ -17,8 +17,8 @@ import { useAuthStore } from '@/store/auth';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes/defaultLight';
 import logger from '@/utils/logger';
-import { sitesApi } from '@/services/api/sites';
-import type { Site } from '@/types/sites';
+import { scopesApi } from '@/services/api/scopes';
+import { config } from '@/utils/config';
 import type { AttendanceWorker, AttendanceWorkerStatus } from '@/types/attendance';
 import {
   useActiveAttendanceWorkers,
@@ -67,31 +67,60 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
-  const { currentCompany, currentSite } = useAuthStore();
+  const { currentCompany, currentSite, user } = useAuthStore();
 
   const [selectedDate, setSelectedDate] = useState<string>(getTodayLimaDate());
   const [selectedSiteId, setSelectedSiteId] = useState<string>(currentSite?.id ?? '');
   const [activeTab, setActiveTab] = useState<TabKey>('active');
   const [datePickerVisible, setDatePickerVisible] = useState(false);
 
-  // Cargar sedes de la empresa
-  const [sites, setSites] = useState<Site[]>([]);
+  // Sedes accesibles por el usuario (mismo criterio que el login)
+  type AccessibleSite = { id: string; name: string };
+  const [sites, setSites] = useState<AccessibleSite[]>([]);
   const [sitesLoading, setSitesLoading] = useState(false);
 
   const loadSites = useCallback(async () => {
-    if (!currentCompany?.id) return;
+    if (!currentCompany?.id || !user?.id) return;
     try {
       setSitesLoading(true);
-      const activeSites = await sitesApi.getActiveSites(currentCompany.id);
-      setSites(activeSites);
-      // Si no había sede seleccionada aún, tomar la primera disponible
-      setSelectedSiteId((prev) => prev || activeSites[0]?.id || '');
+      const resolved = await scopesApi.getUserResolvedScopes(user.id, config.APP_ID, {
+        limit: 1000,
+      });
+
+      const siteMap = new Map<string, AccessibleSite>();
+      for (const scope of resolved) {
+        if (
+          scope.level === 'SITE' &&
+          scope.siteId &&
+          scope.companyId === currentCompany.id &&
+          scope.canRead
+        ) {
+          if (!siteMap.has(scope.siteId)) {
+            const name = scope.site?.name || scope.site_name || 'Sede sin nombre';
+            siteMap.set(scope.siteId, { id: scope.siteId, name });
+          }
+        }
+      }
+
+      const accessibleSites = Array.from(siteMap.values()).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+      setSites(accessibleSites);
+
+      // Default: sede actual si el usuario tiene acceso; si no, la primera accesible.
+      setSelectedSiteId((prev) => {
+        if (prev && accessibleSites.some((s) => s.id === prev)) return prev;
+        if (currentSite?.id && accessibleSites.some((s) => s.id === currentSite.id)) {
+          return currentSite.id;
+        }
+        return accessibleSites[0]?.id ?? '';
+      });
     } catch (err) {
-      logger.error('Error cargando sedes:', err);
+      logger.error('Error cargando sedes accesibles:', err);
     } finally {
       setSitesLoading(false);
     }
-  }, [currentCompany?.id]);
+  }, [currentCompany?.id, currentSite?.id, user?.id]);
 
   useEffect(() => {
     void loadSites();
