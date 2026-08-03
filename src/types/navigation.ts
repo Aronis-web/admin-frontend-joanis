@@ -227,6 +227,7 @@ export type MainStackParamList = {
   PriceProfiles: undefined;
   Presentations: undefined;
   AttendanceTerminals: undefined;
+  Attendance: undefined;
 
   // Emission Points & Series Configuration
   EmissionPoints: undefined;

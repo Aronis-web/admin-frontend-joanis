@@ -360,6 +360,33 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Asistencia
+  {
+    id: 'asistencia',
+    title: 'Asistencia',
+    icon: 'finger-print-outline',
+    requiredPermissions: [
+      'attendance.read.all',
+      'attendance.read.own',
+      'attendance.terminals.read',
+    ],
+    items: [
+      {
+        id: 'attendance-workers',
+        icon: 'people-outline',
+        label: 'Asistencia',
+        route: MAIN_ROUTES.ATTENDANCE,
+        requiredPermissions: ['attendance.read.all', 'attendance.read.own'],
+      },
+      {
+        id: 'attendance-terminals',
+        icon: 'hardware-chip-outline',
+        label: 'Terminales',
+        route: MAIN_ROUTES.ATTENDANCE_TERMINALS,
+        requiredPermissions: ['attendance.terminals.read'],
+      },
+    ],
+  },
   // Configuración
   {
     id: 'config',
@@ -509,13 +536,6 @@ const menuCategories: MenuCategory[] = [
             label: 'Config. Series Cuadre',
             route: MAIN_ROUTES.SERIES_CONFIG,
             requiredPermissions: ['cash_reconciliation.config'],
-          },
-          {
-            id: 'attendance-terminals',
-            icon: 'hardware-chip-outline',
-            label: 'Terminales de Asistencia',
-            route: MAIN_ROUTES.ATTENDANCE_TERMINALS,
-            requiredPermissions: ['attendance.terminals.read'],
           },
           {
             id: 'app-versions',

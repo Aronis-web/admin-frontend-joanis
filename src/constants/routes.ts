@@ -120,6 +120,7 @@ export const MAIN_ROUTES = {
   PRICE_PROFILES: 'PriceProfiles',
   PRESENTATIONS: 'Presentations',
   ATTENDANCE_TERMINALS: 'AttendanceTerminals',
+  ATTENDANCE: 'Attendance',
 
   // Emission Points & Series Configuration
   EMISSION_POINTS: 'EmissionPoints',
@@ -331,6 +332,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   PRICE_PROFILES: 'price_profiles.read',
   PRESENTATIONS: 'presentations.read',
   ATTENDANCE_TERMINALS: 'attendance.terminals.read',
+  ATTENDANCE: 'attendance.read.all',
 
   // Emission Points & Series Configuration
   EMISSION_POINTS: 'billing.emission-points.read',

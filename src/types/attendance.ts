@@ -85,3 +85,48 @@ export interface TerminalAccessLog {
   metadata?: Record<string, unknown> | null;
   createdAt: string;
 }
+
+// ============================================
+// Trabajadores en jornada (active-workers / finished-workers)
+// ============================================
+
+export type ActiveWorkerStatus = 'working' | 'on_break';
+export type FinishedWorkerStatus = 'exit' | 'early_exit';
+export type AttendanceWorkerStatus = ActiveWorkerStatus | FinishedWorkerStatus;
+
+export interface AttendanceLastEvent {
+  code: string;
+  time: string;
+}
+
+export interface AttendanceWorker {
+  userId: string;
+  username: string;
+  fullName: string;
+  documentNumber?: string | null;
+  siteId: string;
+  siteName?: string | null;
+  firstEntry: string;
+  lastEvent: AttendanceLastEvent;
+  status: AttendanceWorkerStatus;
+  workedSeconds: number;
+  workedHours: number;
+  workedHoursLabel: string;
+  breakSeconds: number;
+  breakHours: number;
+  breakHoursLabel: string;
+}
+
+export interface AttendanceWorkersQuery {
+  /** UUID de la sede a consultar. Requerido por el backend. */
+  siteId: string;
+  /** Fecha YYYY-MM-DD. Por defecto hoy (Lima). */
+  date?: string;
+}
+
+export interface AttendanceWorkersResponse {
+  siteId: string;
+  date: string;
+  total: number;
+  workers: AttendanceWorker[];
+}

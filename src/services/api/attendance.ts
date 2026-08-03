@@ -8,6 +8,9 @@ import {
   GenerateTerminalTokenResult,
   TerminalTokenInfo,
   TerminalAccessLog,
+  AttendanceWorker,
+  AttendanceWorkersQuery,
+  AttendanceWorkersResponse,
 } from '@/types/attendance';
 
 /**
@@ -112,3 +115,49 @@ export const attendanceTerminalsApi = {
 };
 
 export default attendanceTerminalsApi;
+
+/**
+ * Servicio de consulta de trabajadores en jornada (lado Admin).
+ * Endpoints:
+ *   GET /attendance/active-workers   → trabajadores dentro / en refrigerio
+ *   GET /attendance/finished-workers → trabajadores que ya salieron
+ */
+export const attendanceWorkersApi = {
+  /** GET /attendance/active-workers — trabajadores activos por sede. */
+  async getActiveWorkers(params: AttendanceWorkersQuery): Promise<AttendanceWorkersResponse> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('siteId', params.siteId);
+    if (params.date) queryParams.append('date', params.date);
+
+    const res = await apiClient.get<{ success: boolean } & AttendanceWorkersResponse>(
+      `/attendance/active-workers?${queryParams.toString()}`
+    );
+
+    return {
+      siteId: res.siteId,
+      date: res.date,
+      total: res.total ?? 0,
+      workers: res.workers ?? [],
+    };
+  },
+
+  /** GET /attendance/finished-workers — trabajadores que ya salieron. */
+  async getFinishedWorkers(params: AttendanceWorkersQuery): Promise<AttendanceWorkersResponse> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('siteId', params.siteId);
+    if (params.date) queryParams.append('date', params.date);
+
+    const res = await apiClient.get<{ success: boolean } & AttendanceWorkersResponse>(
+      `/attendance/finished-workers?${queryParams.toString()}`
+    );
+
+    return {
+      siteId: res.siteId,
+      date: res.date,
+      total: res.total ?? 0,
+      workers: res.workers ?? [],
+    };
+  },
+};
+
+export type { AttendanceWorker };
