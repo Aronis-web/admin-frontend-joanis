@@ -146,10 +146,13 @@ try {
 
     "sdk.dir=$($env:ANDROID_HOME -replace '\\', '/')" | Out-File -FilePath "$BUILD_DIR\android\local.properties" -Encoding UTF8
 
-    $arch = if ($proj.apk.arch) { $proj.apk.arch } else { "arm64-v8a" }
+    $arch = if ($proj.apk.arch) { [string]$proj.apk.arch } else { "arm64-v8a" }
+    if ([string]::IsNullOrWhiteSpace($arch)) { $arch = "arm64-v8a" }
     Write-Host "gradlew assembleRelease ($arch)"
     Set-Location "$BUILD_DIR\android"
-    ./gradlew assembleRelease -PreactNativeArchitectures=$arch --no-daemon
+    $archProp = "-PreactNativeArchitectures=$arch"
+    Write-Host "cmd: gradlew.bat assembleRelease $archProp --no-daemon"
+    & cmd /c "gradlew.bat assembleRelease $archProp --no-daemon"
     if ($LASTEXITCODE -ne 0) { throw "gradle assembleRelease fallo" }
 
     $apkSrc = "$BUILD_DIR\android\app\build\outputs\apk\release\app-release.apk"
