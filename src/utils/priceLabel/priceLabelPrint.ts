@@ -246,21 +246,23 @@ const printHtmlOnWeb = (html: string): void => {
 };
 
 /**
- * Imprime la etiqueta de precio. En web/Electron abre el diálogo de impresión
- * (donde se elige la impresora térmica de 80mm); en nativo usa `expo-print`.
+ * Imprime un documento HTML en impresora térmica de 80mm de forma
+ * cross-platform:
+ *  - Electron: canal nativo directo a la impresora instalada (silencioso si se
+ *    indica `deviceName`).
+ *  - Navegador puro: iframe oculto + diálogo de impresión.
+ *  - Nativo (Android/iOS): `expo-print`.
+ *
+ * Reutilizable por cualquier documento térmico (etiquetas, tickets, etc.).
  */
-export const printPriceLabel = async (data: PriceLabelData): Promise<void> => {
-  const html = buildLabelHtml(data);
-
+export const printHtml = async (html: string, deviceName?: string): Promise<void> => {
   if (Platform.OS === 'web') {
-    // En Electron usamos el canal nativo: llega directo a la impresora instalada
-    // (silencioso si se indicó una impresora) en lugar del iframe poco fiable.
     const api = getElectronPrintApi();
     if (api?.printHTML) {
       const result = await api.printHTML({
         html,
-        deviceName: data.deviceName,
-        silent: !!data.deviceName,
+        deviceName,
+        silent: !!deviceName,
       });
       if (!result?.success) {
         throw new Error(result?.error || 'No se pudo imprimir en la impresora seleccionada.');
@@ -268,11 +270,19 @@ export const printPriceLabel = async (data: PriceLabelData): Promise<void> => {
       return;
     }
 
-    // Navegador puro: iframe oculto + diálogo de impresión.
     printHtmlOnWeb(html);
     return;
   }
 
   const Print = await import('expo-print');
   await Print.printAsync({ html });
+};
+
+/**
+ * Imprime la etiqueta de precio. En web/Electron abre el diálogo de impresión
+ * (donde se elige la impresora térmica de 80mm); en nativo usa `expo-print`.
+ */
+export const printPriceLabel = async (data: PriceLabelData): Promise<void> => {
+  const html = buildLabelHtml(data);
+  await printHtml(html, data.deviceName);
 };

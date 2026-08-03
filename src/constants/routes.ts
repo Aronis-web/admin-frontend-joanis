@@ -29,6 +29,7 @@ export const MAIN_ROUTES = {
   PHOTOS: 'Photos',
   PHOTO_CAMPAIGN_MANAGEMENT: 'PhotoCampaignManagement',
   ETIQUETAS: 'Etiquetas',
+  SHIFT_TICKETS: 'ShiftTickets',
 
   // Purchases
   PURCHASES: 'Purchases',
@@ -211,6 +212,7 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
   stock: 'STOCK',
   fotos: 'PHOTOS',
   etiquetas: 'ETIQUETAS',
+  'tickets-turno': 'SHIFT_TICKETS',
   compras: 'PURCHASES',
   'gastos-templates': 'CREATE_EXPENSE_TEMPLATE',
   'gastos-lista': 'EXPENSES',

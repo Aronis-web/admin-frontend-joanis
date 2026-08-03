@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -31,6 +32,7 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { WarehouseArea } from '@/types/warehouses';
 import { useProductsStock, useWarehouseAreas, useWarehouses } from '@/hooks/api/useStock';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { logger } from '@/utils/logger';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
@@ -160,6 +162,39 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Lectora de códigos de barra (keyboard-wedge) en web/Electron: escanear
+  // dispara la búsqueda sin necesidad de enfocar el input. Aplica el código de
+  // inmediato, saltándose el debounce de escritura manual.
+  const handleBarcodeScan = useCallback((code: string) => {
+    setSearchQuery(code);
+    setDebouncedSearchQuery(code);
+    setPage(1);
+  }, []);
+
+  useBarcodeScanner({ onScan: handleBarcodeScan });
+
+  // En web/Electron, al cerrar un modal el botón que lo abrió (un `Pressable`)
+  // conserva el foco. La lectora termina cada escaneo con `Enter`, que activaría
+  // ese botón enfocado y reabriría el modal anterior. Quitamos el foco al cerrar
+  // para que el siguiente escaneo no dispare ningún botón. `requestAnimationFrame`
+  // cubre la restauración de foco que hace el Modal tras desmontarse.
+  const blurActiveElement = useCallback(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const blur = () => (document.activeElement as HTMLElement | null)?.blur?.();
+    blur();
+    requestAnimationFrame(blur);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedDetailProduct(null);
+    blurActiveElement();
+  }, [blurActiveElement]);
+
+  const handleCloseLabel = useCallback(() => {
+    setLabelProduct(null);
+    blurActiveElement();
+  }, [blurActiveElement]);
 
   useEffect(() => {
     setSelectedAreaId('all');
@@ -802,7 +837,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
         <StockProductDetailModal
           visible={!!selectedDetailProduct}
-          onClose={() => setSelectedDetailProduct(null)}
+          onClose={handleCloseDetail}
           product={selectedDetailProduct}
           warehouseId={selectedWarehouseId !== 'all' ? selectedWarehouseId : undefined}
           areaId={selectedAreaId !== 'all' ? selectedAreaId : undefined}
@@ -810,7 +845,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
 
         <PriceLabelPrintModal
           visible={!!labelProduct}
-          onClose={() => setLabelProduct(null)}
+          onClose={handleCloseLabel}
           product={
             labelProduct
               ? {

@@ -72,38 +72,38 @@ const toNumber = (value: number | string | undefined | null): number => {
 };
 
 /**
- * Genera un SKU aleatorio de 8 dígitos. Longitud par → el Code128 usa el modo C
- * (compacto y bien escaneable en la etiqueta).
+ * Genera un código de barras aleatorio de 12 dígitos. Longitud par → el Code128
+ * usa el modo C (compacto y bien escaneable en la etiqueta).
  */
-const generateRandomSku = (): string => {
-  let sku = '';
-  for (let i = 0; i < 8; i++) sku += Math.floor(Math.random() * 10);
-  return sku;
+const generateRandomBarcode = (): string => {
+  let code = '';
+  for (let i = 0; i < 12; i++) code += Math.floor(Math.random() * 10);
+  return code;
 };
 
 /**
- * Devuelve `true` si el SKU ya existe en el catálogo. Consulta el endpoint por
- * SKU: si resuelve un producto → existe; si lanza (404) → está libre.
+ * Devuelve `true` si el código de barras ya existe en el catálogo. Usa la
+ * búsqueda de productos y verifica coincidencia exacta de `barcode` o `sku`.
  */
-const skuExists = async (sku: string): Promise<boolean> => {
+const barcodeExists = async (code: string): Promise<boolean> => {
   try {
-    const product = await productsApi.getProductBySku(sku);
-    return !!product;
+    const { results } = await productsApi.searchProductsV2({ q: code, limit: 10 });
+    return (results || []).some((p) => p.barcode === code || p.sku === code);
   } catch {
     return false;
   }
 };
 
 /**
- * Genera un SKU aleatorio garantizando que no colisione con uno existente.
- * Reintenta hasta `maxAttempts` veces; si todas colisionan devuelve el último
- * candidato para no bloquear la operación.
+ * Genera un código de barras aleatorio garantizando que no colisione con uno
+ * existente. Reintenta hasta `maxAttempts` veces; si todas colisionan devuelve
+ * el último candidato para no bloquear la operación.
  */
-const generateUniqueSku = async (maxAttempts = 6): Promise<string> => {
-  let candidate = generateRandomSku();
+const generateUniqueBarcode = async (maxAttempts = 6): Promise<string> => {
+  let candidate = generateRandomBarcode();
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    if (!(await skuExists(candidate))) return candidate;
-    candidate = generateRandomSku();
+    if (!(await barcodeExists(candidate))) return candidate;
+    candidate = generateRandomBarcode();
   }
   return candidate;
 };
@@ -128,9 +128,9 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
   const [selectedPrinter, setSelectedPrinter] = useState<string | null>(null);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
   const [savingPrice, setSavingPrice] = useState(false);
-  const [useRandomSku, setUseRandomSku] = useState(false);
-  const [randomSku, setRandomSku] = useState('');
-  const [generatingSku, setGeneratingSku] = useState(false);
+  const [useRandomBarcode, setUseRandomBarcode] = useState(false);
+  const [barcodeText, setBarcodeText] = useState('');
+  const [generatingBarcode, setGeneratingBarcode] = useState(false);
   const [savingBarcode, setSavingBarcode] = useState(false);
   const [barcodeSaved, setBarcodeSaved] = useState(false);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
@@ -140,13 +140,13 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
 
   const currency = product?.currency || 'PEN';
 
-  // SKU original del producto vs. SKU aleatorio generado (toggle).
+  // El SKU impreso siempre es el original del producto (no se genera).
   const originalSku = (product?.sku || '').trim();
   const originalBarcode = (product?.barcode || product?.sku || '').trim();
-  const effectiveSku = (useRandomSku ? randomSku : originalSku).trim();
-  // Al generar un SKU aleatorio se crea su código de barras; si no, se mantiene
-  // el código de barras original del producto.
-  const barcodeValue = (useRandomSku ? randomSku : originalBarcode).trim();
+  const effectiveSku = originalSku;
+  // Código de barras efectivo: editable como texto libre. Se inicializa con el
+  // del producto y se actualiza al generar uno aleatorio o al escribirlo.
+  const barcodeValue = barcodeText.trim();
 
   const loadPrices = useCallback(async () => {
     if (!product) return;
@@ -250,8 +250,8 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
       // Cantidad de stickers por defecto = stock actual del producto en la sede.
       const defaultQty = Math.max(1, Math.floor(product.sedeStock ?? 1));
       setStickerQty(String(defaultQty));
-      setUseRandomSku(false);
-      setRandomSku('');
+      setUseRandomBarcode(false);
+      setBarcodeText((product.barcode || product.sku || '').trim());
       setBarcodeSaved(false);
       setProductImageUrl(null);
       void loadPrices();
@@ -263,8 +263,8 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
       setPriceText('');
       setPrinters([]);
       setSelectedPrinter(null);
-      setUseRandomSku(false);
-      setRandomSku('');
+      setUseRandomBarcode(false);
+      setBarcodeText('');
       setBarcodeSaved(false);
       setProductImageUrl(null);
     }
@@ -275,26 +275,27 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
     setPriceText((option.priceCents / 100).toFixed(2));
   }, []);
 
-  // Genera un SKU aleatorio (verificando que no colisione con uno existente);
-  // con el mismo botón regresa al SKU original.
-  const handleToggleRandomSku = useCallback(async () => {
+  // Genera un código de barras aleatorio (verificando que no colisione con uno
+  // existente); con el mismo botón regresa al código original del producto.
+  const handleToggleRandomBarcode = useCallback(async () => {
     setBarcodeSaved(false);
-    if (useRandomSku) {
-      setUseRandomSku(false);
+    if (useRandomBarcode) {
+      setUseRandomBarcode(false);
+      setBarcodeText(originalBarcode);
       return;
     }
     try {
-      setGeneratingSku(true);
-      const unique = await generateUniqueSku();
-      setRandomSku(unique);
-      setUseRandomSku(true);
+      setGeneratingBarcode(true);
+      const unique = await generateUniqueBarcode();
+      setBarcodeText(unique);
+      setUseRandomBarcode(true);
     } catch (error) {
-      logger.error('Error generando SKU único', error);
-      Alert.alert('Error', 'No se pudo generar un SKU. Intenta de nuevo.');
+      logger.error('Error generando código de barras único', error);
+      Alert.alert('Error', 'No se pudo generar un código de barras. Intenta de nuevo.');
     } finally {
-      setGeneratingSku(false);
+      setGeneratingBarcode(false);
     }
-  }, [useRandomSku]);
+  }, [useRandomBarcode, originalBarcode]);
 
   // Guarda el código de barras creado en el producto y confirma el guardado.
   const handleSaveBarcode = useCallback(async () => {
@@ -607,36 +608,45 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
                 {selectedProfile?.profileName || 'seleccionado'}.
               </Caption>
 
-              {/* SKU y código de barras (ambas cartillas) */}
+              {/* Código de barras (ambas cartillas) */}
               <Caption color="secondary" style={styles.sectionLabel}>
-                SKU y código de barras
+                Código de barras
               </Caption>
+              <TextInput
+                style={styles.barcodeInput}
+                value={barcodeText}
+                onChangeText={(v) => {
+                  setBarcodeText(v);
+                  setUseRandomBarcode(false);
+                  setBarcodeSaved(false);
+                }}
+                placeholder="Ingresa o genera el código de barras"
+                placeholderTextColor={theme.color.text.placeholder}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
               <View style={styles.skuRow}>
                 <View style={styles.flexOne}>
-                  <Text variant="titleMedium" color="primary" numberOfLines={1}>
-                    {effectiveSku || '—'}
-                  </Text>
                   <Caption color="tertiary">
-                    {generatingSku
+                    {generatingBarcode
                       ? 'Verificando disponibilidad...'
-                      : useRandomSku
-                        ? 'SKU aleatorio verificado (sin duplicar)'
-                        : 'SKU original del producto'}
+                      : useRandomBarcode
+                        ? 'Código aleatorio verificado (sin duplicar)'
+                        : barcodeValue === originalBarcode
+                          ? 'Código original del producto'
+                          : 'Código editado manualmente'}
                   </Caption>
                 </View>
                 <Button
-                  title={useRandomSku ? 'Regresar' : 'Generar SKU'}
-                  variant={useRandomSku ? 'outline' : 'primary'}
+                  title={useRandomBarcode ? 'Regresar' : 'Generar aleatorio'}
+                  variant={useRandomBarcode ? 'outline' : 'primary'}
                   size="small"
-                  leftIcon={useRandomSku ? 'arrow-undo-outline' : 'shuffle-outline'}
-                  onPress={() => void handleToggleRandomSku()}
-                  loading={generatingSku}
-                  disabled={generatingSku}
+                  leftIcon={useRandomBarcode ? 'arrow-undo-outline' : 'shuffle-outline'}
+                  onPress={() => void handleToggleRandomBarcode()}
+                  loading={generatingBarcode}
+                  disabled={generatingBarcode}
                 />
               </View>
-              <Caption color="tertiary" numberOfLines={1}>
-                Código de barras: {barcodeValue || 'Sin código'}
-              </Caption>
               <Button
                 title={barcodeSaved ? 'Código guardado' : 'Guardar código de barras'}
                 variant={barcodeSaved ? 'outline' : 'success'}
@@ -1039,6 +1049,18 @@ const createStyles = (theme: Theme) =>
     confirmPriceButton: {
       marginTop: theme.space[2],
       alignSelf: 'flex-start',
+    },
+    barcodeInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      fontWeight: '600',
+      letterSpacing: 1,
+      color: theme.color.text.body,
     },
     productImage: {
       width: '100%',

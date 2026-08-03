@@ -108,6 +108,13 @@ const EtiquetasScreen = lazyLoad(
   () => import('@/screens/Inventory/EtiquetasScreen').then((m) => ({ default: m.EtiquetasScreen })),
   'Cargando etiquetas...'
 );
+const ShiftTicketsScreen = lazyLoad(
+  () =>
+    import('@/screens/ShiftTickets/ShiftTicketsScreen').then((m) => ({
+      default: m.ShiftTicketsScreen,
+    })),
+  'Cargando tickets de turno...'
+);
 const PhotoCampaignManagementScreen = lazyLoad(
   () => import('@/screens/Photos').then((m) => ({ default: m.PhotoCampaignManagementScreen })),
   'Cargando gestión de campaña...'
@@ -752,6 +759,12 @@ const MainStack = React.memo(() => {
         options={{ title: 'Etiquetas Electrónicas' }}
       >
         {(props) => <EtiquetasScreen {...props} />}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.SHIFT_TICKETS}
+        options={{ title: 'Tickets de Turno' }}
+      >
+        {(props) => <ShiftTicketsScreen {...props} />}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PHOTOS}

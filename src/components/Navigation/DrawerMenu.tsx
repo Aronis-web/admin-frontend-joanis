@@ -225,6 +225,14 @@ const menuCategories: MenuCategory[] = [
         // Sin permisos por ahora (etapa de desarrollo).
         requiredPermissions: [],
       },
+      {
+        id: 'tickets-turno',
+        icon: 'receipt-outline',
+        label: 'Tickets de Turno',
+        route: MAIN_ROUTES.SHIFT_TICKETS,
+        // Módulo libre: sin permisos.
+        requiredPermissions: [],
+      },
     ],
   },
   // Compras

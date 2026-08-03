@@ -35,6 +35,7 @@ export type MainStackParamList = {
   Stock: undefined;
   Photos: undefined;
   Etiquetas: undefined;
+  ShiftTickets: undefined;
   PhotoCampaignManagement: {
     campaignId?: string;
   };
