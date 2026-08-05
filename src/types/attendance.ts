@@ -95,8 +95,15 @@ export type FinishedWorkerStatus = 'exit' | 'early_exit';
 export type AttendanceWorkerStatus = ActiveWorkerStatus | FinishedWorkerStatus;
 
 export interface AttendanceLastEvent {
+  /**
+   * ID del registro de asistencia (evento). Requerido para consultar el
+   * video de evidencia en `GET /attendance/records/:id/evidence`.
+   */
+  id?: string;
   code: string;
   time: string;
+  /** Indica si el evento cuenta con video de evidencia asociado. */
+  hasEvidence?: boolean;
 }
 
 export interface AttendanceWorker {

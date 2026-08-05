@@ -25,6 +25,7 @@ import {
   useFinishedAttendanceWorkers,
   getTodayLimaDate,
 } from '@/hooks/api/useAttendanceWorkers';
+import { AttendanceEvidenceModal } from '@/components/Attendance/AttendanceEvidenceModal';
 
 interface AttendanceScreenProps {
   navigation: any;
@@ -73,6 +74,11 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
   const [selectedSiteId, setSelectedSiteId] = useState<string>(currentSite?.id ?? '');
   const [activeTab, setActiveTab] = useState<TabKey>('active');
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [evidenceRecord, setEvidenceRecord] = useState<{
+    recordId: string;
+    title: string;
+    subtitle: string;
+  } | null>(null);
 
   // Sedes accesibles por el usuario (mismo criterio que el login)
   type AccessibleSite = { id: string; name: string };
@@ -219,6 +225,22 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
             Último evento: <Text style={styles.infoStrong}>{worker.lastEvent?.code ?? '—'}</Text>{' '}
             <Text style={styles.infoDim}>({formatLimaTime(worker.lastEvent?.time)})</Text>
           </Text>
+          {!!worker.lastEvent?.id && (
+            <TouchableOpacity
+              style={styles.evidenceButton}
+              onPress={() =>
+                setEvidenceRecord({
+                  recordId: worker.lastEvent!.id!,
+                  title: `Evidencia · ${worker.lastEvent?.code ?? 'evento'}`,
+                  subtitle: `${worker.fullName} · ${formatLimaTime(worker.lastEvent?.time)}`,
+                })
+              }
+              accessibilityLabel="Ver video de evidencia"
+            >
+              <Ionicons name="videocam-outline" size={14} color={theme.color.text.onAction} />
+              <Text style={styles.evidenceButtonText}>Video</Text>
+            </TouchableOpacity>
+          )}
         </View>
         {!!worker.siteName && (
           <View style={styles.infoRow}>
@@ -395,6 +417,14 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
           </ScrollView>
         )}
       </SafeAreaView>
+
+      <AttendanceEvidenceModal
+        visible={!!evidenceRecord}
+        recordId={evidenceRecord?.recordId ?? null}
+        title={evidenceRecord?.title}
+        subtitle={evidenceRecord?.subtitle}
+        onClose={() => setEvidenceRecord(null)}
+      />
 
       <DatePicker
         visible={datePickerVisible}
@@ -716,6 +746,20 @@ const createStyles = (theme: Theme) =>
     emptyButtonText: {
       color: theme.color.text.onAction,
       fontWeight: '600',
+    },
+    evidenceButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      backgroundColor: theme.color.brand.accent,
+    },
+    evidenceButtonText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.text.onAction,
     },
   });
 

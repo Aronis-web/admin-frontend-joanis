@@ -161,3 +161,20 @@ export const attendanceWorkersApi = {
 };
 
 export type { AttendanceWorker };
+
+/**
+ * Servicio para consultar evidencia (video) de registros de asistencia.
+ * Endpoint: GET /attendance/records/:id/evidence
+ * Permiso requerido: attendance.read.all
+ */
+export const attendanceRecordsApi = {
+  /**
+   * Descarga el video de evidencia de un registro de asistencia como Blob.
+   * Utilizar `URL.createObjectURL(blob)` en web para reproducirlo en <video>.
+   */
+  async getRecordEvidence(recordId: string): Promise<Blob> {
+    return apiClient.get<Blob>(`/attendance/records/${recordId}/evidence`, {
+      responseType: 'blob',
+    });
+  },
+};
