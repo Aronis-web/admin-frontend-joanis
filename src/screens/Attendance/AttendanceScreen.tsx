@@ -225,22 +225,21 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
             Último evento: <Text style={styles.infoStrong}>{worker.lastEvent?.code ?? '—'}</Text>{' '}
             <Text style={styles.infoDim}>({formatLimaTime(worker.lastEvent?.time)})</Text>
           </Text>
-          {!!worker.lastEvent?.id && (
-            <TouchableOpacity
-              style={styles.evidenceButton}
-              onPress={() =>
-                setEvidenceRecord({
-                  recordId: worker.lastEvent!.id!,
-                  title: `Evidencia · ${worker.lastEvent?.code ?? 'evento'}`,
-                  subtitle: `${worker.fullName} · ${formatLimaTime(worker.lastEvent?.time)}`,
-                })
-              }
-              accessibilityLabel="Ver video de evidencia"
-            >
-              <Ionicons name="videocam-outline" size={14} color={theme.color.text.onAction} />
-              <Text style={styles.evidenceButtonText}>Video</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.evidenceButton}
+            onPress={() => {
+              logger.debug('🎥 lastEvent payload:', worker.lastEvent);
+              setEvidenceRecord({
+                recordId: worker.lastEvent?.id ?? '',
+                title: `Evidencia · ${worker.lastEvent?.code ?? 'evento'}`,
+                subtitle: `${worker.fullName} · ${formatLimaTime(worker.lastEvent?.time)}`,
+              });
+            }}
+            accessibilityLabel="Ver video de evidencia"
+          >
+            <Ionicons name="videocam-outline" size={14} color={theme.color.text.onAction} />
+            <Text style={styles.evidenceButtonText}>Video</Text>
+          </TouchableOpacity>
         </View>
         {!!worker.siteName && (
           <View style={styles.infoRow}>

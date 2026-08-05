@@ -44,8 +44,15 @@ export const AttendanceEvidenceModal: React.FC<AttendanceEvidenceModalProps> = (
   const [mimeType, setMimeType] = useState<string>('video/webm');
 
   useEffect(() => {
-    if (!visible || !recordId) return;
+    if (!visible) return;
     if (Platform.OS !== 'web') return;
+    if (!recordId) {
+      setError(
+        'Este evento no tiene un ID de registro disponible. El backend debe incluir "lastEvent.id" en la respuesta de active-workers/finished-workers.'
+      );
+      setLoading(false);
+      return;
+    }
 
     let objectUrl: string | null = null;
     let cancelled = false;
