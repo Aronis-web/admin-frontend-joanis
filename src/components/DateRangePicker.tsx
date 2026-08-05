@@ -67,8 +67,12 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const [selectingDate, setSelectingDate] = useState<'start' | 'end'>('start');
 
   // Current displayed month/year for navigation
-  const [displayedMonth, setDisplayedMonth] = useState<number>(() => safeDate(startDate).getMonth());
-  const [displayedYear, setDisplayedYear] = useState<number>(() => safeDate(startDate).getFullYear());
+  const [displayedMonth, setDisplayedMonth] = useState<number>(() =>
+    safeDate(startDate).getMonth()
+  );
+  const [displayedYear, setDisplayedYear] = useState<number>(() =>
+    safeDate(startDate).getFullYear()
+  );
 
   // View mode: 'day', 'month', 'year'
   const [viewMode, setViewMode] = useState<'day' | 'month' | 'year'>('day');
@@ -141,11 +145,37 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       });
     }
 
+    // Normalizar límites a día (ignora hora) para evitar que "hoy" se
+    // considere futuro cuando maximumDate = new Date() con hora actual.
+    const minDayStart = minimumDate
+      ? new Date(
+          minimumDate.getFullYear(),
+          minimumDate.getMonth(),
+          minimumDate.getDate(),
+          0,
+          0,
+          0,
+          0
+        )
+      : null;
+    const maxDayEnd = maximumDate
+      ? new Date(
+          maximumDate.getFullYear(),
+          maximumDate.getMonth(),
+          maximumDate.getDate(),
+          23,
+          59,
+          59,
+          999
+        )
+      : null;
+
     // Agregar los días del mes
     for (let i = 1; i <= daysInMonth; i++) {
       const currentDate = new Date(displayedYear, displayedMonth, i, 12, 0, 0, 0);
       const isDisabled =
-        (minimumDate && currentDate < minimumDate) || (maximumDate && currentDate > maximumDate);
+        (minDayStart !== null && currentDate < minDayStart) ||
+        (maxDayEnd !== null && currentDate > maxDayEnd);
 
       days.push({
         day: i,
@@ -239,13 +269,19 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       selectedStartDate.getFullYear(),
       selectedStartDate.getMonth(),
       selectedStartDate.getDate(),
-      12, 0, 0, 0
+      12,
+      0,
+      0,
+      0
     );
     const confirmedEndDate = new Date(
       selectedEndDate.getFullYear(),
       selectedEndDate.getMonth(),
       selectedEndDate.getDate(),
-      12, 0, 0, 0
+      12,
+      0,
+      0,
+      0
     );
     onConfirm(confirmedStartDate, confirmedEndDate);
   };
@@ -269,8 +305,18 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   };
 
   const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
   ];
 
   const dayNames = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
@@ -294,10 +340,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             {/* Date Range Display */}
             <View style={styles.dateRangeDisplay}>
               <TouchableOpacity
-                style={[
-                  styles.dateBox,
-                  selectingDate === 'start' && styles.dateBoxActive,
-                ]}
+                style={[styles.dateBox, selectingDate === 'start' && styles.dateBoxActive]}
                 onPress={() => setSelectingDate('start')}
               >
                 <Text style={styles.dateBoxLabel}>Desde</Text>
@@ -305,12 +348,16 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   <Ionicons
                     name="calendar"
                     size={18}
-                    color={selectingDate === 'start' ? theme.color.brand.primary : theme.color.text.muted}
+                    color={
+                      selectingDate === 'start' ? theme.color.brand.primary : theme.color.text.muted
+                    }
                   />
-                  <Text style={[
-                    styles.dateBoxValue,
-                    selectingDate === 'start' && styles.dateBoxValueActive,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.dateBoxValue,
+                      selectingDate === 'start' && styles.dateBoxValueActive,
+                    ]}
+                  >
                     {formatShortDate(selectedStartDate)}
                   </Text>
                 </View>
@@ -321,10 +368,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
               </View>
 
               <TouchableOpacity
-                style={[
-                  styles.dateBox,
-                  selectingDate === 'end' && styles.dateBoxActive,
-                ]}
+                style={[styles.dateBox, selectingDate === 'end' && styles.dateBoxActive]}
                 onPress={() => setSelectingDate('end')}
               >
                 <Text style={styles.dateBoxLabel}>Hasta</Text>
@@ -332,12 +376,16 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   <Ionicons
                     name="calendar"
                     size={18}
-                    color={selectingDate === 'end' ? theme.color.brand.primary : theme.color.text.muted}
+                    color={
+                      selectingDate === 'end' ? theme.color.brand.primary : theme.color.text.muted
+                    }
                   />
-                  <Text style={[
-                    styles.dateBoxValue,
-                    selectingDate === 'end' && styles.dateBoxValueActive,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.dateBoxValue,
+                      selectingDate === 'end' && styles.dateBoxValueActive,
+                    ]}
+                  >
                     {formatShortDate(selectedEndDate)}
                   </Text>
                 </View>
@@ -387,41 +435,46 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                     contentContainerStyle={styles.daysScrollContent}
                   >
                     <View style={styles.daysGrid}>
-                      {generateDays().map(({ day, date, isDisabled, isStartDate, isEndDate, isInRange, isEmpty }, index) => (
-                        <TouchableOpacity
-                          key={`day-${index}`}
-                          style={[
-                            styles.dayButton,
-                            { width: cellWidth },
-                            isInRange && styles.dayButtonInRange,
-                            isStartDate && styles.dayButtonStart,
-                            isEndDate && styles.dayButtonEnd,
-                            (isStartDate && isEndDate) && styles.dayButtonSingle,
-                            isDisabled && styles.dayButtonDisabled,
-                            isEmpty && styles.dayButtonEmpty,
-                          ]}
-                          onPress={() => {
-                            if (!isDisabled && !isEmpty && day !== null) {
-                              handleDaySelect(day);
-                            }
-                          }}
-                          disabled={isDisabled || isEmpty}
-                          hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                          activeOpacity={0.7}
-                        >
-                          <Text
+                      {generateDays().map(
+                        (
+                          { day, date, isDisabled, isStartDate, isEndDate, isInRange, isEmpty },
+                          index
+                        ) => (
+                          <TouchableOpacity
+                            key={`day-${index}`}
                             style={[
-                              styles.dayButtonText,
-                              isInRange && styles.dayButtonTextInRange,
-                              (isStartDate || isEndDate) && styles.dayButtonTextSelected,
-                              isDisabled && styles.dayButtonTextDisabled,
-                              isEmpty && styles.dayButtonTextEmpty,
+                              styles.dayButton,
+                              { width: cellWidth },
+                              isInRange && styles.dayButtonInRange,
+                              isStartDate && styles.dayButtonStart,
+                              isEndDate && styles.dayButtonEnd,
+                              isStartDate && isEndDate && styles.dayButtonSingle,
+                              isDisabled && styles.dayButtonDisabled,
+                              isEmpty && styles.dayButtonEmpty,
                             ]}
+                            onPress={() => {
+                              if (!isDisabled && !isEmpty && day !== null) {
+                                handleDaySelect(day);
+                              }
+                            }}
+                            disabled={isDisabled || isEmpty}
+                            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                            activeOpacity={0.7}
                           >
-                            {isEmpty ? '' : day}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                            <Text
+                              style={[
+                                styles.dayButtonText,
+                                isInRange && styles.dayButtonTextInRange,
+                                (isStartDate || isEndDate) && styles.dayButtonTextSelected,
+                                isDisabled && styles.dayButtonTextDisabled,
+                                isEmpty && styles.dayButtonTextEmpty,
+                              ]}
+                            >
+                              {isEmpty ? '' : day}
+                            </Text>
+                          </TouchableOpacity>
+                        )
+                      )}
                     </View>
                   </ScrollView>
                 </>
@@ -508,7 +561,11 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
             {/* Instructions */}
             <View style={styles.instructions}>
-              <Ionicons name="information-circle-outline" size={16} color={theme.color.text.muted} />
+              <Ionicons
+                name="information-circle-outline"
+                size={16}
+                color={theme.color.text.muted}
+              />
               <Text style={styles.instructionsText}>
                 {selectingDate === 'start'
                   ? 'Selecciona la fecha de inicio'
@@ -522,284 +579,285 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: theme.color.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  container: {
-    backgroundColor: theme.color.surface.base,
-    borderTopLeftRadius: theme.radii['2xl'],
-    borderTopRightRadius: theme.radii['2xl'],
-    maxHeight: '85%',
-  },
-  content: {
-    backgroundColor: theme.color.surface.base,
-    borderTopLeftRadius: theme.radii['2xl'],
-    borderTopRightRadius: theme.radii['2xl'],
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[4],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerButton: {
-    paddingVertical: theme.space[1],
-    paddingHorizontal: theme.space[2],
-  },
-  headerButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-  },
-  headerButtonConfirm: {
-    color: theme.color.brand.primary,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  dateRangeDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.space[4],
-    paddingHorizontal: theme.space[4],
-    backgroundColor: theme.color.background.subtle,
-  },
-  dateBox: {
-    flex: 1,
-    backgroundColor: theme.color.surface.base,
-    borderRadius: theme.radii.lg,
-    borderWidth: 2,
-    borderColor: theme.color.border.subtle,
-    paddingVertical: theme.space[3],
-    paddingHorizontal: theme.space[3],
-    alignItems: 'center',
-  },
-  dateBoxActive: {
-    borderColor: theme.color.brand.primary,
-    backgroundColor: theme.color.brand.primarySoft,
-  },
-  dateBoxLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-    marginBottom: theme.space[1],
-  },
-  dateBoxContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.space[2],
-  },
-  dateBoxValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.color.text.heading,
-  },
-  dateBoxValueActive: {
-    color: theme.color.brand.primary,
-  },
-  dateRangeSeparator: {
-    paddingHorizontal: theme.space[3],
-  },
-  pickerContainer: {
-    minHeight: 320,
-  },
-  monthYearNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.space[2],
-    paddingVertical: theme.space[2],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  navButton: {
-    padding: theme.space[2],
-  },
-  monthYearSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  monthYearButton: {
-    paddingHorizontal: theme.space[3],
-    paddingVertical: theme.space[2],
-  },
-  monthYearText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  weekDays: {
-    flexDirection: 'row',
-    paddingVertical: theme.space[2],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  weekDayText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-    textAlign: 'center',
-  },
-  daysContainer: {
-    flex: 1,
-  },
-  daysScrollContent: {
-    flexGrow: 1,
-  },
-  daysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayButton: {
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayButtonInRange: {
-    backgroundColor: theme.color.brand.primarySoft,
-  },
-  dayButtonStart: {
-    backgroundColor: theme.color.brand.primary,
-    borderTopLeftRadius: theme.radii.full,
-    borderBottomLeftRadius: theme.radii.full,
-  },
-  dayButtonEnd: {
-    backgroundColor: theme.color.brand.primary,
-    borderTopRightRadius: theme.radii.full,
-    borderBottomRightRadius: theme.radii.full,
-  },
-  dayButtonSingle: {
-    borderRadius: theme.radii.full,
-  },
-  dayButtonDisabled: {
-    opacity: 0.3,
-  },
-  dayButtonEmpty: {
-    opacity: 0,
-  },
-  dayButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.body,
-  },
-  dayButtonTextInRange: {
-    color: theme.color.brand.primary,
-  },
-  dayButtonTextSelected: {
-    color: theme.color.text.inverse,
-  },
-  dayButtonTextDisabled: {
-    color: theme.color.text.disabled,
-  },
-  dayButtonTextEmpty: {
-    color: 'transparent',
-  },
-  monthsContainer: {
-    flex: 1,
-  },
-  monthsScrollContent: {
-    flexGrow: 1,
-  },
-  monthsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: theme.space[4],
-    justifyContent: 'center',
-  },
-  monthButton: {
-    width: 80,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: theme.radii.lg,
-    margin: theme.space[2],
-    backgroundColor: theme.color.background.subtle,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  monthButtonSelected: {
-    backgroundColor: theme.color.brand.primary,
-    borderColor: theme.color.brand.primary,
-  },
-  monthButtonDisabled: {
-    opacity: 0.3,
-  },
-  monthButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.body,
-  },
-  monthButtonTextSelected: {
-    color: theme.color.text.inverse,
-  },
-  monthButtonTextDisabled: {
-    color: theme.color.text.disabled,
-  },
-  yearsContainer: {
-    flex: 1,
-  },
-  yearsScrollContent: {
-    flexGrow: 1,
-  },
-  yearsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: theme.space[4],
-    justifyContent: 'center',
-  },
-  yearButton: {
-    width: 70,
-    height: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: theme.radii.lg,
-    margin: theme.space[1.5],
-    backgroundColor: theme.color.background.subtle,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  yearButtonSelected: {
-    backgroundColor: theme.color.brand.primary,
-    borderColor: theme.color.brand.primary,
-  },
-  yearButtonDisabled: {
-    opacity: 0.3,
-  },
-  yearButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.body,
-  },
-  yearButtonTextSelected: {
-    color: theme.color.text.inverse,
-  },
-  yearButtonTextDisabled: {
-    color: theme.color.text.disabled,
-  },
-  instructions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.space[3],
-    paddingHorizontal: theme.space[4],
-    backgroundColor: theme.color.background.subtle,
-    borderTopWidth: 1,
-    borderTopColor: theme.color.border.subtle,
-    gap: theme.space[2],
-  },
-  instructionsText: {
-    fontSize: 13,
-    color: theme.color.text.muted,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    container: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '85%',
+    },
+    content: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerButton: {
+      paddingVertical: theme.space[1],
+      paddingHorizontal: theme.space[2],
+    },
+    headerButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    headerButtonConfirm: {
+      color: theme.color.brand.primary,
+    },
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    dateRangeDisplay: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[4],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.background.subtle,
+    },
+    dateBox: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      alignItems: 'center',
+    },
+    dateBoxActive: {
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    dateBoxLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    dateBoxContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    dateBoxValue: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    dateBoxValueActive: {
+      color: theme.color.brand.primary,
+    },
+    dateRangeSeparator: {
+      paddingHorizontal: theme.space[3],
+    },
+    pickerContainer: {
+      minHeight: 320,
+    },
+    monthYearNav: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    navButton: {
+      padding: theme.space[2],
+    },
+    monthYearSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    monthYearButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+    },
+    monthYearText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    weekDays: {
+      flexDirection: 'row',
+      paddingVertical: theme.space[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    weekDayText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    daysContainer: {
+      flex: 1,
+    },
+    daysScrollContent: {
+      flexGrow: 1,
+    },
+    daysGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    dayButton: {
+      height: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    dayButtonInRange: {
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    dayButtonStart: {
+      backgroundColor: theme.color.brand.primary,
+      borderTopLeftRadius: theme.radii.full,
+      borderBottomLeftRadius: theme.radii.full,
+    },
+    dayButtonEnd: {
+      backgroundColor: theme.color.brand.primary,
+      borderTopRightRadius: theme.radii.full,
+      borderBottomRightRadius: theme.radii.full,
+    },
+    dayButtonSingle: {
+      borderRadius: theme.radii.full,
+    },
+    dayButtonDisabled: {
+      opacity: 0.3,
+    },
+    dayButtonEmpty: {
+      opacity: 0,
+    },
+    dayButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    dayButtonTextInRange: {
+      color: theme.color.brand.primary,
+    },
+    dayButtonTextSelected: {
+      color: theme.color.text.inverse,
+    },
+    dayButtonTextDisabled: {
+      color: theme.color.text.disabled,
+    },
+    dayButtonTextEmpty: {
+      color: 'transparent',
+    },
+    monthsContainer: {
+      flex: 1,
+    },
+    monthsScrollContent: {
+      flexGrow: 1,
+    },
+    monthsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      padding: theme.space[4],
+      justifyContent: 'center',
+    },
+    monthButton: {
+      width: 80,
+      height: 50,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: theme.radii.lg,
+      margin: theme.space[2],
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    monthButtonSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    monthButtonDisabled: {
+      opacity: 0.3,
+    },
+    monthButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    monthButtonTextSelected: {
+      color: theme.color.text.inverse,
+    },
+    monthButtonTextDisabled: {
+      color: theme.color.text.disabled,
+    },
+    yearsContainer: {
+      flex: 1,
+    },
+    yearsScrollContent: {
+      flexGrow: 1,
+    },
+    yearsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      padding: theme.space[4],
+      justifyContent: 'center',
+    },
+    yearButton: {
+      width: 70,
+      height: 45,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: theme.radii.lg,
+      margin: theme.space[1.5],
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    yearButtonSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    yearButtonDisabled: {
+      opacity: 0.3,
+    },
+    yearButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    yearButtonTextSelected: {
+      color: theme.color.text.inverse,
+    },
+    yearButtonTextDisabled: {
+      color: theme.color.text.disabled,
+    },
+    instructions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.background.subtle,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[2],
+    },
+    instructionsText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+  });
 
 export default DateRangePicker;

@@ -65,6 +65,8 @@ const yesterday = (): Date => {
   return d;
 };
 
+const today = (): Date => new Date();
+
 const daysBetween = (from: Date, to: Date): number =>
   Math.floor((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
@@ -138,8 +140,8 @@ export const ExternalSalesSyncModal: React.FC<Props> = ({ visible, onClose }) =>
   const [tab, setTab] = useState<Tab>('sync');
 
   // ---- Form state (sync tab) ----
-  const [dateFrom, setDateFrom] = useState<Date>(yesterday());
-  const [dateTo, setDateTo] = useState<Date>(yesterday());
+  const [dateFrom, setDateFrom] = useState<Date>(today());
+  const [dateTo, setDateTo] = useState<Date>(today());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [invoiceTypes, setInvoiceTypes] = useState<ExternalSalesInvoiceType[]>([
     '01',
