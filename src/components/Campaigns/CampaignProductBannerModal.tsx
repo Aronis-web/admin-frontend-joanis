@@ -952,12 +952,45 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   // catalog (miniatura del catálogo, igual que la lista). Si el endpoint
   // `full` no trae fotos, cae a la imagen cargada por separado.
   const bannerPhoto: { type?: string; url: string } | null = (() => {
-    const photos = (fullData?.photos ?? []).filter((p) => !!p?.url);
-    const byType = (t: string) => photos.find((p) => (p.type || '').toLowerCase() === t);
+    const pickUrl = (p: any): string | undefined => {
+      if (!p) return undefined;
+      if (typeof p === 'string') return p;
+      if (typeof p === 'object' && typeof p.url === 'string') return p.url;
+      return undefined;
+    };
+    const normalize = (arr: any): { type?: string; url: string }[] => {
+      if (!Array.isArray(arr)) return [];
+      return arr
+        .map((p) => {
+          const url = pickUrl(p);
+          if (!url) return null;
+          const type =
+            p && typeof p === 'object' && typeof p.type === 'string' ? p.type : undefined;
+          return { type, url };
+        })
+        .filter((x): x is { type?: string; url: string } => !!x);
+    };
+    // Prioridad: fullData.photos > productDetails.photos/photoUrls/imageUrls > imagen cargada aparte > productDetails.imageUrl.
+    const candidates = [
+      ...normalize(fullData?.photos),
+      ...normalize((productDetails as any)?.photos),
+      ...normalize((productDetails as any)?.photoUrls),
+      ...normalize((productDetails as any)?.imageUrls),
+    ];
+    const byType = (t: string) => candidates.find((p) => (p.type || '').toLowerCase() === t);
     const picked =
-      byType('price') || byType('design') || byType('reference') || byType('catalog') || photos[0];
+      byType('price') ||
+      byType('design') ||
+      byType('reference') ||
+      byType('catalog') ||
+      candidates[0];
     if (picked) return picked;
-    return productImageUrl ? { url: productImageUrl } : null;
+    if (productImageUrl) return { url: productImageUrl };
+    const fallbackImageUrl =
+      typeof (productDetails as any)?.imageUrl === 'string'
+        ? (productDetails as any).imageUrl
+        : undefined;
+    return fallbackImageUrl ? { url: fallbackImageUrl } : null;
   })();
 
   // Tarjeta reutilizable de precio de venta (display + edición inline).
