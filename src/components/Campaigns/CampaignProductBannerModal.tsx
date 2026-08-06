@@ -294,6 +294,24 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         (salePricesResponse as any).salePrices || salePricesResponse.data || [];
       setSalePrices(salePricesArray);
 
+      // Si el getProduct no trajo costCents (p. ej. banner de recomendaciones
+      // con producto que aún no está en la campaña), usamos el costo que sí
+      // devuelve el endpoint de precios de venta para poblar el estado local.
+      const salePricesCostRaw = (salePricesResponse as any).costCents;
+      if (
+        localCostCents === null &&
+        (productDetails?.costCents === undefined || productDetails?.costCents === null) &&
+        salePricesCostRaw !== undefined &&
+        salePricesCostRaw !== null
+      ) {
+        const parsed =
+          typeof salePricesCostRaw === 'string' ? parseFloat(salePricesCostRaw) : salePricesCostRaw;
+        if (!isNaN(parsed)) {
+          setLocalCostCents(parsed);
+          setCostValue((parsed / 100).toFixed(2));
+        }
+      }
+
       // Initialize form data
       const formData: PriceFormData[] = profilesResponse.map((profile) => {
         const existingPrice = salePricesArray.find(
@@ -1400,17 +1418,43 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
               {/* Stock disponible resumido - fallback para el banner de
                   recomendaciones cuando el endpoint /full no devuelve
-                  stock por sede (producto todavía no ligado a la campaña). */}
+                  stock por sede (producto todavía no ligado a la campaña).
+                  Priorizamos productDetails.stock (viene del buscador v2)
+                  porque /admin/inventory/stock/product/:id puede devolver []. */}
               {hideStockAndDistribution &&
                 !(fullData && fullData.stockBySite.length > 0) &&
-                stockData.stock !== undefined && (
-                  <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
-                    <Text style={styles.bannerLabel}>STOCK DISPONIBLE</Text>
-                    <Text style={[styles.bannerValue, isTablet && styles.bannerValueTablet]}>
-                      {stockData.stock}
-                    </Text>
-                  </View>
-                )}
+                (() => {
+                  const searchStock: any = (productDetails as any)?.stock;
+                  const searchAvailable =
+                    searchStock && typeof searchStock === 'object'
+                      ? (searchStock.available ?? searchStock.total)
+                      : typeof searchStock === 'number'
+                        ? searchStock
+                        : undefined;
+                  const value = searchAvailable !== undefined ? searchAvailable : stockData.stock;
+                  if (value === undefined) return null;
+                  const reserved =
+                    searchStock && typeof searchStock === 'object'
+                      ? searchStock.reserved
+                      : undefined;
+                  const total =
+                    searchStock && typeof searchStock === 'object' ? searchStock.total : undefined;
+                  return (
+                    <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+                      <Text style={styles.bannerLabel}>STOCK DISPONIBLE</Text>
+                      <Text style={[styles.bannerValue, isTablet && styles.bannerValueTablet]}>
+                        {value}
+                      </Text>
+                      {(reserved !== undefined || total !== undefined) && (
+                        <Text style={styles.bannerLabelSubtitle}>
+                          {reserved !== undefined ? `Reservado: ${reserved}` : ''}
+                          {reserved !== undefined && total !== undefined ? ' · ' : ''}
+                          {total !== undefined ? `Total: ${total}` : ''}
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })()}
 
               {/* Foto del producto */}
               <View style={[styles.bannerSection, styles.bannerSectionAlt]}>

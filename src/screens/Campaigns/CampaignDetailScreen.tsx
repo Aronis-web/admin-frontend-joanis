@@ -751,6 +751,26 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         console.log('📦 Full product details:', fullProductDetails);
         console.log('💰 Cost from API:', (fullProductDetails as any).costCents);
 
+        // Fusionamos la data del resultado de búsqueda v2 (que ya trae photos,
+        // stock y a veces costCents) con el detalle del producto. El endpoint
+        // /admin/campaigns/:c/products/:p/full devuelve 404 cuando el producto
+        // todavía no está en la campaña, así que sin este merge el banner de
+        // recomendaciones se quedaría sin foto ni stock.
+        const mergedDetails: any = {
+          ...fullProductDetails,
+          photos:
+            (fullProductDetails as any).photos ||
+            (product as any).photos ||
+            (product as any).photoUrls,
+          imageUrl: (fullProductDetails as any).imageUrl || (product as any).imageUrl,
+          imageUrls: (fullProductDetails as any).imageUrls || (product as any).imageUrls,
+          stock: (product as any).stock ?? (fullProductDetails as any).stock,
+          costCents:
+            (fullProductDetails as any).costCents ??
+            (fullProductDetails as any).costCentsBase ??
+            (product as any).costCents,
+        };
+
         // Create a mock campaign product structure for the banner modal
         const mockCampaignProduct = {
           productId: product.id,
@@ -759,11 +779,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           productStatus:
             product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
           distributionGenerated: false,
-          product: fullProductDetails, // Use fullProductDetails instead of product to ensure we have costCents
+          product: mergedDetails,
         };
 
         setSelectedProductForBannerSearch(mockCampaignProduct);
-        setProductDetailsForBannerSearch(fullProductDetails);
+        setProductDetailsForBannerSearch(mergedDetails);
         setShowBannerModalFromSearch(true);
       } catch (error) {
         console.error('Error loading product details for banner:', error);
