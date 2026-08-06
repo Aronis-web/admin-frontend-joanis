@@ -960,15 +960,17 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     };
     const normalize = (arr: any): { type?: string; url: string }[] => {
       if (!Array.isArray(arr)) return [];
-      return arr
-        .map((p) => {
-          const url = pickUrl(p);
-          if (!url) return null;
-          const type =
-            p && typeof p === 'object' && typeof p.type === 'string' ? p.type : undefined;
-          return { type, url };
-        })
-        .filter((x): x is { type?: string; url: string } => !!x);
+      const out: { type?: string; url: string }[] = [];
+      for (const p of arr) {
+        const url = pickUrl(p);
+        if (!url) continue;
+        const type =
+          p && typeof p === 'object' && typeof (p as any).type === 'string'
+            ? (p as { type: string }).type
+            : undefined;
+        out.push({ type, url });
+      }
+      return out;
     };
     // Prioridad: fullData.photos > productDetails.photos/photoUrls/imageUrls > imagen cargada aparte > productDetails.imageUrl.
     const candidates = [
