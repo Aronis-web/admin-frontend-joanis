@@ -3256,10 +3256,48 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         </TouchableOpacity>
 
                         {(() => {
-                          const firstPhoto: any = (product as any).photos?.[0];
-                          const photoUrl =
-                            typeof firstPhoto === 'string' ? firstPhoto : firstPhoto?.url;
-                          const uri = photoUrl || product.imageUrl;
+                          // Misma lógica que la tarjeta normal de producto:
+                          // preferimos design > reference > primera disponible,
+                          // y caemos a imageUrl/imageUrls si no hay photos.
+                          const pickPhotoUrl = (p: any): string | undefined => {
+                            if (!p) return undefined;
+                            if (typeof p === 'string') return p;
+                            if (typeof p === 'object' && typeof p.url === 'string') return p.url;
+                            return undefined;
+                          };
+                          const pickPreferredPhotoUrl = (arr: any): string | undefined => {
+                            if (!Array.isArray(arr)) return undefined;
+                            const byType = (t: string) =>
+                              arr.find(
+                                (p) =>
+                                  p &&
+                                  typeof p === 'object' &&
+                                  typeof p.type === 'string' &&
+                                  p.type.toLowerCase() === t
+                              );
+                            const design = byType('design');
+                            if (design) {
+                              const url = pickPhotoUrl(design);
+                              if (url) return url;
+                            }
+                            const reference = byType('reference');
+                            if (reference) {
+                              const url = pickPhotoUrl(reference);
+                              if (url) return url;
+                            }
+                            for (const p of arr) {
+                              const url = pickPhotoUrl(p);
+                              if (url) return url;
+                            }
+                            return undefined;
+                          };
+                          const uri =
+                            pickPreferredPhotoUrl((product as any).photos) ||
+                            pickPreferredPhotoUrl((product as any).photoUrls) ||
+                            (typeof (product as any).imageUrl === 'string'
+                              ? (product as any).imageUrl
+                              : undefined) ||
+                            pickPreferredPhotoUrl((product as any).imageUrls);
                           if (!uri) return null;
                           return (
                             <Image

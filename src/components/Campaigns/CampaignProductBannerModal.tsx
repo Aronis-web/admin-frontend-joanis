@@ -128,10 +128,10 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   // Fetch stock data and price profiles when modal opens
   useEffect(() => {
     if (visible && campaignProduct?.productId) {
-      // Only fetch stock if not hiding stock and distribution
-      if (!hideStockAndDistribution) {
-        fetchStockData();
-      }
+      // Siempre traemos stock: la vista de "recomendaciones" (búsqueda global)
+      // también lo necesita para mostrarlo como el banner normal, aunque el
+      // producto todavía no esté en la campaña.
+      fetchStockData();
       fetchPriceProfiles();
       fetchProductImage(); // Cargar imagen en segundo plano
 
@@ -1341,24 +1341,41 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                 )}
               </View>
 
-              {/* Total Cost Banner */}
-              <View style={[styles.bannerSection, styles.bannerSectionTotal]}>
-                <Text style={styles.bannerLabel}>TOTAL COSTO</Text>
-                <Text style={styles.bannerLabelSubtitle}>(Costo × Cantidad Campaña)</Text>
-                <Text
-                  style={[
-                    styles.bannerValue,
-                    styles.totalCostValue,
-                    isTablet && styles.bannerValueTablet,
-                  ]}
-                >
-                  {formatCurrency(displayCostCents * (campaignProduct.totalQuantityBase || 0))}
-                </Text>
-                <Text style={styles.totalCostBreakdown}>
-                  {formatCurrency(displayCostCents)} × {campaignProduct.totalQuantityBase || 0}{' '}
-                  unidades
-                </Text>
-              </View>
+              {/* Total Cost Banner - Solo cuando el producto está en la campaña
+                  (en el banner de recomendaciones no hay cantidad definida). */}
+              {!hideStockAndDistribution && (
+                <View style={[styles.bannerSection, styles.bannerSectionTotal]}>
+                  <Text style={styles.bannerLabel}>TOTAL COSTO</Text>
+                  <Text style={styles.bannerLabelSubtitle}>(Costo × Cantidad Campaña)</Text>
+                  <Text
+                    style={[
+                      styles.bannerValue,
+                      styles.totalCostValue,
+                      isTablet && styles.bannerValueTablet,
+                    ]}
+                  >
+                    {formatCurrency(displayCostCents * (campaignProduct.totalQuantityBase || 0))}
+                  </Text>
+                  <Text style={styles.totalCostBreakdown}>
+                    {formatCurrency(displayCostCents)} × {campaignProduct.totalQuantityBase || 0}{' '}
+                    unidades
+                  </Text>
+                </View>
+              )}
+
+              {/* Stock disponible resumido - fallback para el banner de
+                  recomendaciones cuando el endpoint /full no devuelve
+                  stock por sede (producto todavía no ligado a la campaña). */}
+              {hideStockAndDistribution &&
+                !(fullData && fullData.stockBySite.length > 0) &&
+                stockData.stock !== undefined && (
+                  <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+                    <Text style={styles.bannerLabel}>STOCK DISPONIBLE</Text>
+                    <Text style={[styles.bannerValue, isTablet && styles.bannerValueTablet]}>
+                      {stockData.stock}
+                    </Text>
+                  </View>
+                )}
 
               {/* Foto del producto */}
               <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
