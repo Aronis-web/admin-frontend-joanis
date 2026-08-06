@@ -21,6 +21,7 @@ import { purchasesService } from '@/services/api/purchases';
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import { campaignsService } from '@/services/api';
 import { productsApi } from '@/services/api/products';
+import { photoCampaignsApi } from '@/services/api/photo-campaigns';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
 import { DistributionFormModalV2 as DistributionFormModal } from './DistributionFormModalV2';
 import logger from '@/utils/logger';
@@ -84,6 +85,18 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     stock?: number;
     preliminaryStock?: number;
   }>({});
+  // Breakdown por bodega/sede para el banner de recomendaciones cuando
+  // el endpoint /full devuelve 404 y no podemos usar `fullData.stockBySite`.
+  const [stockByWarehouseFallback, setStockByWarehouseFallback] = useState<
+    Array<{
+      warehouseId?: string;
+      warehouseName: string;
+      siteName?: string;
+      quantityBase: number;
+      reservedQuantityBase?: number;
+      availableQuantityBase?: number;
+    }>
+  >([]);
   const [loadingPrices, setLoadingPrices] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingCost, setSavingCost] = useState(false);
@@ -110,6 +123,11 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
 
   // Product image states
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
+  // Fotos completas del producto (tipadas) para el banner de recomendaciones,
+  // cuando el endpoint /full no devuelve el arreglo photos.
+  const [photoCampaignAssets, setPhotoCampaignAssets] = useState<
+    Array<{ type?: string; url: string }>
+  >([]);
   // Foto seleccionada para vista ampliada (null = modal cerrado).
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(false);
@@ -248,16 +266,69 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
           preliminaryStock: prelimStock,
         });
       } else {
-        // For active products, use inventory API
-        const stockData = await inventoryApi.getStockByProduct(campaignProduct.productId);
-        console.log('📦 Fetched inventory stock data:', stockData);
+        // For active products, use inventory API. El backend a veces devuelve
+        // un array de items en vez del objeto StockByProductResponse; soportamos
+        // ambos formatos y guardamos el desglose para el banner de recomendaciones.
+        const raw: any = await inventoryApi.getStockByProduct(campaignProduct.productId);
+        console.log('📦 Fetched inventory stock data:', raw);
 
-        const totalStock = stockData.totalQuantityBase || 0;
+        const toNum = (v: any): number => {
+          if (typeof v === 'number') return v;
+          if (typeof v === 'string') {
+            const n = parseFloat(v);
+            return isNaN(n) ? 0 : n;
+          }
+          return 0;
+        };
+
+        let totalStock = 0;
+        const breakdown: Array<{
+          warehouseId?: string;
+          warehouseName: string;
+          siteName?: string;
+          quantityBase: number;
+          reservedQuantityBase?: number;
+          availableQuantityBase?: number;
+        }> = [];
+
+        if (Array.isArray(raw)) {
+          for (const item of raw) {
+            const qty = toNum(item?.availableQuantityBase ?? item?.quantityBase ?? item?.stock);
+            totalStock += qty;
+            breakdown.push({
+              warehouseId: item?.warehouseId,
+              warehouseName:
+                item?.warehouseName || item?.siteName || item?.warehouse?.name || 'Almacén',
+              siteName: item?.siteName || item?.site?.name,
+              quantityBase: toNum(item?.quantityBase ?? item?.availableQuantityBase),
+              reservedQuantityBase:
+                item?.reservedQuantityBase !== undefined
+                  ? toNum(item.reservedQuantityBase)
+                  : undefined,
+              availableQuantityBase:
+                item?.availableQuantityBase !== undefined
+                  ? toNum(item.availableQuantityBase)
+                  : undefined,
+            });
+          }
+        } else if (raw && typeof raw === 'object') {
+          totalStock = toNum(raw.totalQuantityBase);
+          if (Array.isArray(raw.stockByWarehouse)) {
+            for (const wh of raw.stockByWarehouse) {
+              breakdown.push({
+                warehouseId: wh?.warehouseId,
+                warehouseName: wh?.warehouseName || 'Almacén',
+                quantityBase: toNum(wh?.quantityBase),
+              });
+            }
+          }
+        }
 
         setStockData({
           stock: totalStock,
           preliminaryStock: totalStock,
         });
+        setStockByWarehouseFallback(breakdown);
       }
     } catch (error) {
       console.error('Error fetching stock data:', error);
@@ -371,6 +442,30 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       } else {
         logger.debug('⚠️ No se encontraron imágenes para el producto');
         setProductImageUrl(null);
+      }
+
+      // Además, cargar las fotos tipadas (design/reference/price/catalog)
+      // desde photo-campaigns para el banner de recomendaciones.
+      try {
+        const assets = await photoCampaignsApi.getProductPhotos(campaignProduct.productId);
+        if (Array.isArray(assets) && assets.length > 0) {
+          const mapped = assets
+            .map((a) => ({
+              type: typeof a.photoType === 'string' ? a.photoType.toLowerCase() : undefined,
+              url: a.fileUrl,
+            }))
+            .filter((x) => !!x.url);
+          setPhotoCampaignAssets(mapped);
+          if (!productImageUrl && mapped[0]) {
+            setProductImageUrl(mapped[0].url);
+          }
+          logger.debug('✅ Fotos tipadas cargadas:', mapped.length);
+        } else {
+          setPhotoCampaignAssets([]);
+        }
+      } catch (photoErr) {
+        logger.warn('⚠️ No se pudieron cargar fotos tipadas:', photoErr);
+        setPhotoCampaignAssets([]);
       }
     } catch (error) {
       logger.error('❌ Error cargando imagen del producto:', error);
@@ -990,9 +1085,12 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       }
       return out;
     };
-    // Prioridad: fullData.photos > productDetails.photos/photoUrls/imageUrls > imagen cargada aparte > productDetails.imageUrl.
+    // Prioridad: fullData.photos > photoCampaigns (getProductPhotos) >
+    // productDetails.photos/photoUrls/imageUrls > imagen cargada aparte >
+    // productDetails.imageUrl.
     const candidates = [
       ...normalize(fullData?.photos),
+      ...photoCampaignAssets,
       ...normalize((productDetails as any)?.photos),
       ...normalize((productDetails as any)?.photoUrls),
       ...normalize((productDetails as any)?.imageUrls),
@@ -1416,13 +1514,50 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                 </View>
               )}
 
-              {/* Stock disponible resumido - fallback para el banner de
-                  recomendaciones cuando el endpoint /full no devuelve
-                  stock por sede (producto todavía no ligado a la campaña).
-                  Priorizamos productDetails.stock (viene del buscador v2)
-                  porque /admin/inventory/stock/product/:id puede devolver []. */}
+              {/* Stock por Sede - fallback para el banner de recomendaciones
+                  cuando /full no devuelve stockBySite. Renderizamos el
+                  desglose por bodega que devuelve /admin/inventory/stock/product/:id. */}
               {hideStockAndDistribution &&
                 !(fullData && fullData.stockBySite.length > 0) &&
+                stockByWarehouseFallback.length > 0 && (
+                  <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
+                    <Text style={styles.bannerLabel}>STOCK POR SEDE</Text>
+                    {stockByWarehouseFallback.map((wh, idx) => (
+                      <View key={`${wh.warehouseId || 'wh'}-${idx}`} style={styles.detailRow}>
+                        <Text style={styles.detailRowTitle}>
+                          {wh.siteName ? `${wh.siteName} · ` : ''}
+                          {wh.warehouseName}
+                        </Text>
+                        <View style={styles.detailStockChips}>
+                          <View style={styles.stockChip}>
+                            <Text style={styles.stockChipLabel}>Total</Text>
+                            <Text style={styles.stockChipValue}>{wh.quantityBase}</Text>
+                          </View>
+                          {wh.reservedQuantityBase !== undefined && (
+                            <View style={styles.stockChip}>
+                              <Text style={styles.stockChipLabel}>Reservado</Text>
+                              <Text style={styles.stockChipValue}>{wh.reservedQuantityBase}</Text>
+                            </View>
+                          )}
+                          {wh.availableQuantityBase !== undefined && (
+                            <View style={styles.stockChip}>
+                              <Text style={styles.stockChipLabel}>Disponible</Text>
+                              <Text style={[styles.stockChipValue, styles.stockChipValueAvailable]}>
+                                {wh.availableQuantityBase}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+              {/* Stock resumido - último fallback (buscador v2) cuando ni
+                  /full ni el desglose por bodega devolvieron nada. */}
+              {hideStockAndDistribution &&
+                !(fullData && fullData.stockBySite.length > 0) &&
+                stockByWarehouseFallback.length === 0 &&
                 (() => {
                   const searchStock: any = (productDetails as any)?.stock;
                   const searchAvailable =
@@ -1433,25 +1568,12 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                         : undefined;
                   const value = searchAvailable !== undefined ? searchAvailable : stockData.stock;
                   if (value === undefined) return null;
-                  const reserved =
-                    searchStock && typeof searchStock === 'object'
-                      ? searchStock.reserved
-                      : undefined;
-                  const total =
-                    searchStock && typeof searchStock === 'object' ? searchStock.total : undefined;
                   return (
                     <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
                       <Text style={styles.bannerLabel}>STOCK DISPONIBLE</Text>
                       <Text style={[styles.bannerValue, isTablet && styles.bannerValueTablet]}>
                         {value}
                       </Text>
-                      {(reserved !== undefined || total !== undefined) && (
-                        <Text style={styles.bannerLabelSubtitle}>
-                          {reserved !== undefined ? `Reservado: ${reserved}` : ''}
-                          {reserved !== undefined && total !== undefined ? ' · ' : ''}
-                          {total !== undefined ? `Total: ${total}` : ''}
-                        </Text>
-                      )}
                     </View>
                   );
                 })()}

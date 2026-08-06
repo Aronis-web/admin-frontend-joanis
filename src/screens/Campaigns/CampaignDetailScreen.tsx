@@ -75,6 +75,89 @@ interface CampaignDetailScreenProps {
 
 type TabType = 'overview' | 'participants' | 'products';
 
+/**
+ * Miniatura para cada resultado del buscador global.
+ * - Intenta primero las fuentes ya presentes en el producto (photos, imageUrl…).
+ * - Si no hay ninguna, hace un lazy-fetch a photoCampaignsApi.getProductPhotos.
+ * Mantiene una cache en memoria por productId para no repetir requests.
+ */
+const searchResultPhotoCache = new Map<string, string | null>();
+
+const SearchResultThumb: React.FC<{
+  product: any;
+  style: any;
+  placeholderStyle: any;
+  placeholderTextStyle: any;
+}> = ({ product, style, placeholderStyle, placeholderTextStyle }) => {
+  const pickPhotoUrl = (p: any): string | undefined => {
+    if (!p) return undefined;
+    if (typeof p === 'string') return p;
+    if (typeof p === 'object' && typeof p.url === 'string') return p.url;
+    if (typeof p === 'object' && typeof p.fileUrl === 'string') return p.fileUrl;
+    return undefined;
+  };
+  const pickPreferredPhotoUrl = (arr: any): string | undefined => {
+    if (!Array.isArray(arr)) return undefined;
+    const byType = (t: string) =>
+      arr.find((p) => {
+        if (!p || typeof p !== 'object') return false;
+        const t1 = typeof p.type === 'string' ? p.type.toLowerCase() : '';
+        const t2 = typeof p.photoType === 'string' ? p.photoType.toLowerCase() : '';
+        return t1 === t || t2 === t;
+      });
+    for (const t of ['design', 'reference', 'price', 'catalog']) {
+      const found = byType(t);
+      if (found) {
+        const url = pickPhotoUrl(found);
+        if (url) return url;
+      }
+    }
+    for (const p of arr) {
+      const url = pickPhotoUrl(p);
+      if (url) return url;
+    }
+    return undefined;
+  };
+
+  const initialUri =
+    pickPreferredPhotoUrl(product?.photos) ||
+    pickPreferredPhotoUrl(product?.photoUrls) ||
+    (typeof product?.imageUrl === 'string' ? product.imageUrl : undefined) ||
+    pickPreferredPhotoUrl(product?.imageUrls) ||
+    (product?.id ? (searchResultPhotoCache.get(product.id) ?? undefined) : undefined);
+
+  const [uri, setUri] = useState<string | undefined>(initialUri);
+
+  useEffect(() => {
+    if (uri || !product?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const assets = await photoCampaignsApi.getProductPhotos(product.id);
+        if (cancelled) return;
+        const picked = pickPreferredPhotoUrl(assets);
+        searchResultPhotoCache.set(product.id, picked ?? null);
+        if (picked) setUri(picked);
+      } catch {
+        if (!cancelled) searchResultPhotoCache.set(product.id, null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.id, uri]);
+
+  if (!uri) {
+    return (
+      <View style={placeholderStyle}>
+        <Text style={placeholderTextStyle}>📦</Text>
+      </View>
+    );
+  }
+
+  return <Image source={{ uri }} style={style} resizeMode="cover" />;
+};
+
 export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   navigation,
   route,
@@ -3275,58 +3358,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
                         </TouchableOpacity>
 
-                        {(() => {
-                          // Misma lógica que la tarjeta normal de producto:
-                          // preferimos design > reference > primera disponible,
-                          // y caemos a imageUrl/imageUrls si no hay photos.
-                          const pickPhotoUrl = (p: any): string | undefined => {
-                            if (!p) return undefined;
-                            if (typeof p === 'string') return p;
-                            if (typeof p === 'object' && typeof p.url === 'string') return p.url;
-                            return undefined;
-                          };
-                          const pickPreferredPhotoUrl = (arr: any): string | undefined => {
-                            if (!Array.isArray(arr)) return undefined;
-                            const byType = (t: string) =>
-                              arr.find(
-                                (p) =>
-                                  p &&
-                                  typeof p === 'object' &&
-                                  typeof p.type === 'string' &&
-                                  p.type.toLowerCase() === t
-                              );
-                            const design = byType('design');
-                            if (design) {
-                              const url = pickPhotoUrl(design);
-                              if (url) return url;
-                            }
-                            const reference = byType('reference');
-                            if (reference) {
-                              const url = pickPhotoUrl(reference);
-                              if (url) return url;
-                            }
-                            for (const p of arr) {
-                              const url = pickPhotoUrl(p);
-                              if (url) return url;
-                            }
-                            return undefined;
-                          };
-                          const uri =
-                            pickPreferredPhotoUrl((product as any).photos) ||
-                            pickPreferredPhotoUrl((product as any).photoUrls) ||
-                            (typeof (product as any).imageUrl === 'string'
-                              ? (product as any).imageUrl
-                              : undefined) ||
-                            pickPreferredPhotoUrl((product as any).imageUrls);
-                          if (!uri) return null;
-                          return (
-                            <Image
-                              source={{ uri }}
-                              style={styles.globalSearchImage}
-                              resizeMode="cover"
-                            />
-                          );
-                        })()}
+                        <SearchResultThumb
+                          product={product}
+                          style={styles.globalSearchImage}
+                          placeholderStyle={styles.globalSearchImagePlaceholder}
+                          placeholderTextStyle={styles.productImagePlaceholderText}
+                        />
+
                         <View style={styles.globalSearchContent}>
                           <Text
                             style={[
@@ -5240,6 +5278,15 @@ const createStyles = (theme: Theme) =>
       borderRadius: 8,
       marginRight: 12,
       backgroundColor: theme.color.surface.muted,
+    },
+    globalSearchImagePlaceholder: {
+      width: 50,
+      height: 50,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     globalSearchContent: {
       flex: 1,
