@@ -9,9 +9,14 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes/defaultLight';
 import { attendanceRecordsApi } from '@/services/api/attendance';
+import { config } from '@/utils/config';
+import { authService } from '@/services/AuthService';
+import { useAuthStore } from '@/store/auth';
 import logger from '@/utils/logger';
 
 interface AttendanceEvidenceModalProps {
@@ -24,9 +29,11 @@ interface AttendanceEvidenceModalProps {
 
 /**
  * Modal para reproducir el video de evidencia de un evento de asistencia.
- * Descarga el stream con el token JWT (blob) y lo reproduce vía objectURL en un <video>.
- * En plataformas nativas (Android/iOS) muestra un mensaje: hoy la reproducción
- * solo está disponible en web/desktop (Electron).
+ *
+ * - En **web/desktop (Electron)**: descarga el stream como Blob y lo reproduce
+ *   con un `<video>` HTML vía `URL.createObjectURL`.
+ * - En **nativo (Android/iOS)**: descarga el Blob, lo persiste como archivo
+ *   temporal en `cacheDirectory` y lo reproduce con `expo-av` `<Video>`.
  */
 export const AttendanceEvidenceModal: React.FC<AttendanceEvidenceModalProps> = ({
   visible,
@@ -45,7 +52,6 @@ export const AttendanceEvidenceModal: React.FC<AttendanceEvidenceModalProps> = (
 
   useEffect(() => {
     if (!visible) return;
-    if (Platform.OS !== 'web') return;
     if (!recordId) {
       setError(
         'Este evento no tiene un ID de registro disponible. El backend debe incluir "lastEvent.id" en la respuesta de active-workers/finished-workers.'
@@ -55,7 +61,16 @@ export const AttendanceEvidenceModal: React.FC<AttendanceEvidenceModalProps> = (
     }
 
     let objectUrl: string | null = null;
+    let nativeFileUri: string | null = null;
     let cancelled = false;
+
+    const extensionFromMime = (type: string): string => {
+      if (type.includes('mp4')) return 'mp4';
+      if (type.includes('quicktime')) return 'mov';
+      if (type.includes('webm')) return 'webm';
+      if (type.includes('ogg')) return 'ogv';
+      return 'mp4';
+    };
 
     const load = async () => {
       try {
@@ -63,13 +78,62 @@ export const AttendanceEvidenceModal: React.FC<AttendanceEvidenceModalProps> = (
         setError(null);
         setVideoUrl(null);
 
-        const blob = await attendanceRecordsApi.getRecordEvidence(recordId);
-        if (cancelled) return;
+        if (Platform.OS === 'web') {
+          const blob = await attendanceRecordsApi.getRecordEvidence(recordId);
+          if (cancelled) return;
+          const type = blob.type && blob.type.startsWith('video/') ? blob.type : 'video/mp4';
+          setMimeType(type);
+          objectUrl = URL.createObjectURL(blob);
+          setVideoUrl(objectUrl);
+        } else {
+          // Nativo: descargar directamente a un archivo con FileSystem.downloadAsync
+          // usando los headers de auth + tenant. Esto evita el round-trip por Blob
+          // (que en React Native es poco confiable) y permite a `expo-av` reproducir
+          // el video desde una URI local.
+          const authStore = useAuthStore.getState();
+          const token = authService.getAccessToken() || authStore.token;
+          const headers: Record<string, string> = {
+            Accept: 'video/*,*/*;q=0.9',
+            'X-App-Id': config.APP_ID,
+            'X-App-Version': config.APP_VERSION,
+          };
+          if (token) headers.Authorization = `Bearer ${token}`;
+          if (authStore.user?.id) headers['X-User-Id'] = authStore.user.id;
+          if (authStore.currentCompany?.id) headers['X-Company-Id'] = authStore.currentCompany.id;
+          if (authStore.currentSite?.id) headers['X-Site-Id'] = authStore.currentSite.id;
 
-        const type = blob.type && blob.type.startsWith('video/') ? blob.type : 'video/webm';
-        setMimeType(type);
-        objectUrl = URL.createObjectURL(blob);
-        setVideoUrl(objectUrl);
+          // Guardamos primero con extensión .mp4 (default), luego renombramos si
+          // la respuesta indica otro mime.
+          const tempFileUri = `${FileSystem.cacheDirectory}attendance-evidence-${recordId}.tmp`;
+          const url = `${config.API_URL}/attendance/records/${recordId}/evidence`;
+          const result = await FileSystem.downloadAsync(url, tempFileUri, { headers });
+          if (cancelled) return;
+
+          if (result.status < 200 || result.status >= 300) {
+            const err: any = new Error(`HTTP ${result.status}`);
+            err.response = { status: result.status };
+            throw err;
+          }
+
+          const contentType =
+            (result.headers?.['content-type'] as string | undefined) ||
+            (result.headers?.['Content-Type'] as string | undefined) ||
+            'video/mp4';
+          const type = contentType.startsWith('video/') ? contentType : 'video/mp4';
+          setMimeType(type);
+
+          const ext = extensionFromMime(type);
+          const finalUri = `${FileSystem.cacheDirectory}attendance-evidence-${recordId}.${ext}`;
+          try {
+            await FileSystem.deleteAsync(finalUri, { idempotent: true });
+          } catch {
+            // noop
+          }
+          await FileSystem.moveAsync({ from: result.uri, to: finalUri });
+          if (cancelled) return;
+          nativeFileUri = finalUri;
+          setVideoUrl(finalUri);
+        }
       } catch (err: any) {
         if (cancelled) return;
         logger.error('Error cargando video de evidencia:', err);
@@ -91,18 +155,30 @@ export const AttendanceEvidenceModal: React.FC<AttendanceEvidenceModalProps> = (
     return () => {
       cancelled = true;
       if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch {
+          // noop
+        }
+      }
+      if (nativeFileUri) {
+        // Limpieza best-effort del archivo temporal en cache
+        FileSystem.deleteAsync(nativeFileUri, { idempotent: true }).catch(() => {
+          // noop
+        });
       }
     };
   }, [visible, recordId]);
 
-  // Limpia el objectURL cuando se cierra el modal
+  // Limpia estado cuando se cierra el modal
   useEffect(() => {
-    if (!visible && videoUrl) {
-      try {
-        URL.revokeObjectURL(videoUrl);
-      } catch {
-        // noop
+    if (!visible) {
+      if (videoUrl && Platform.OS === 'web') {
+        try {
+          URL.revokeObjectURL(videoUrl);
+        } catch {
+          // noop
+        }
       }
       setVideoUrl(null);
       setError(null);
@@ -110,18 +186,6 @@ export const AttendanceEvidenceModal: React.FC<AttendanceEvidenceModalProps> = (
   }, [visible, videoUrl]);
 
   const renderVideo = () => {
-    if (Platform.OS !== 'web') {
-      return (
-        <View style={styles.messageBox}>
-          <Ionicons name="phone-portrait-outline" size={40} color={theme.color.text.muted} />
-          <Text style={styles.messageTitle}>Solo disponible en web/desktop</Text>
-          <Text style={styles.messageText}>
-            La reproducción del video de evidencia se soporta desde la versión web o Electron.
-          </Text>
-        </View>
-      );
-    }
-
     if (loading) {
       return (
         <View style={styles.messageBox}>
@@ -145,19 +209,33 @@ export const AttendanceEvidenceModal: React.FC<AttendanceEvidenceModalProps> = (
       return null;
     }
 
-    // Render HTML <video> vía React Native Web
-    return React.createElement('video' as any, {
-      src: videoUrl,
-      controls: true,
-      autoPlay: true,
-      style: {
-        width: '100%',
-        maxHeight: 480,
-        backgroundColor: '#000',
-        borderRadius: 8,
-      },
-      children: React.createElement('source' as any, { src: videoUrl, type: mimeType }),
-    });
+    if (Platform.OS === 'web') {
+      // Render HTML <video> vía React Native Web
+      return React.createElement('video' as any, {
+        src: videoUrl,
+        controls: true,
+        autoPlay: true,
+        style: {
+          width: '100%',
+          maxHeight: 480,
+          backgroundColor: '#000',
+          borderRadius: 8,
+        },
+        children: React.createElement('source' as any, { src: videoUrl, type: mimeType }),
+      });
+    }
+
+    // Nativo: expo-av
+    return (
+      <Video
+        source={{ uri: videoUrl }}
+        style={styles.nativeVideo}
+        useNativeControls
+        resizeMode={ResizeMode.CONTAIN}
+        shouldPlay
+        isLooping={false}
+      />
+    );
   };
 
   return (
@@ -258,6 +336,13 @@ const createStyles = (theme: Theme) =>
       fontSize: 13,
       color: theme.color.text.muted,
       textAlign: 'center',
+    },
+    nativeVideo: {
+      width: '100%',
+      aspectRatio: 16 / 9,
+      maxHeight: 480,
+      backgroundColor: '#000',
+      borderRadius: 8,
     },
   });
 
