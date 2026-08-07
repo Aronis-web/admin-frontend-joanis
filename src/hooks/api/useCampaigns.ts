@@ -86,6 +86,12 @@ export const useCampaignProductFull = (campaignId: string, productId: string, en
     enabled: enabled && !!campaignId && !!productId,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
+    // El banner de "recomendaciones" del buscador global llama a este hook
+    // aunque el producto todavía NO está en la campaña; en ese caso el
+    // backend devuelve 404. Sin este `retry: false` React Query reintenta
+    // 3 veces manteniendo `isLoading = true`, lo que congela el spinner
+    // de "Cargando imagen..." y bloquea que se muestren los fallbacks.
+    retry: false,
   });
 };
 
