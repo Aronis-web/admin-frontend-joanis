@@ -428,51 +428,57 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       return;
     }
 
-    try {
-      setLoadingImage(true);
-      logger.debug('📸 Cargando imagen del producto en segundo plano...');
+    setLoadingImage(true);
+    logger.debug('📸 Cargando imagen del producto en segundo plano...');
 
-      // Obtener las imágenes del producto
-      const imagesResponse = await productsApi.getProductImages(campaignProduct.productId);
+    // Corremos las dos fuentes en paralelo y de forma independiente para
+    // que una falla en /files/products/:id/images no deje sin foto al
+    // banner de recomendaciones (donde /files puede dar 404 pero
+    // /admin/photo-campaigns/products/:id/photos sí tiene fotos).
+    const [imagesResult, photosResult] = await Promise.allSettled([
+      productsApi.getProductImages(campaignProduct.productId),
+      photoCampaignsApi.getProductPhotos(campaignProduct.productId),
+    ]);
 
-      if (imagesResponse && imagesResponse.images && imagesResponse.images.length > 0) {
-        // Usar la primera imagen disponible
-        setProductImageUrl(imagesResponse.images[0].url);
-        logger.debug('✅ Imagen del producto cargada:', imagesResponse.images[0].url);
+    let firstFallbackUrl: string | null = null;
+
+    if (imagesResult.status === 'fulfilled') {
+      const resp = imagesResult.value;
+      if (resp && resp.images && resp.images.length > 0) {
+        firstFallbackUrl = resp.images[0].url;
+        logger.debug('✅ Imagen del producto cargada (files):', firstFallbackUrl);
       } else {
-        logger.debug('⚠️ No se encontraron imágenes para el producto');
-        setProductImageUrl(null);
+        logger.debug('⚠️ /files no devolvió imágenes para el producto');
       }
-
-      // Además, cargar las fotos tipadas (design/reference/price/catalog)
-      // desde photo-campaigns para el banner de recomendaciones.
-      try {
-        const assets = await photoCampaignsApi.getProductPhotos(campaignProduct.productId);
-        if (Array.isArray(assets) && assets.length > 0) {
-          const mapped = assets
-            .map((a) => ({
-              type: typeof a.photoType === 'string' ? a.photoType.toLowerCase() : undefined,
-              url: a.fileUrl,
-            }))
-            .filter((x) => !!x.url);
-          setPhotoCampaignAssets(mapped);
-          if (!productImageUrl && mapped[0]) {
-            setProductImageUrl(mapped[0].url);
-          }
-          logger.debug('✅ Fotos tipadas cargadas:', mapped.length);
-        } else {
-          setPhotoCampaignAssets([]);
-        }
-      } catch (photoErr) {
-        logger.warn('⚠️ No se pudieron cargar fotos tipadas:', photoErr);
-        setPhotoCampaignAssets([]);
-      }
-    } catch (error) {
-      logger.error('❌ Error cargando imagen del producto:', error);
-      setProductImageUrl(null);
-    } finally {
-      setLoadingImage(false);
+    } else {
+      logger.warn('⚠️ Error /files/products/:id/images:', imagesResult.reason);
     }
+
+    if (photosResult.status === 'fulfilled') {
+      const assets = photosResult.value;
+      if (Array.isArray(assets) && assets.length > 0) {
+        const mapped = assets
+          .map((a) => ({
+            type: typeof a.photoType === 'string' ? a.photoType.toLowerCase() : undefined,
+            url: a.fileUrl,
+          }))
+          .filter((x) => !!x.url);
+        setPhotoCampaignAssets(mapped);
+        if (!firstFallbackUrl && mapped[0]) {
+          firstFallbackUrl = mapped[0].url;
+        }
+        logger.debug('✅ Fotos tipadas cargadas (photo-campaigns):', mapped.length);
+      } else {
+        setPhotoCampaignAssets([]);
+        logger.debug('⚠️ photo-campaigns no devolvió fotos');
+      }
+    } else {
+      setPhotoCampaignAssets([]);
+      logger.warn('⚠️ Error /admin/photo-campaigns/.../photos:', photosResult.reason);
+    }
+
+    setProductImageUrl(firstFallbackUrl);
+    setLoadingImage(false);
   };
 
   const handleStartEditPrice = (priceData: PriceFormData) => {
@@ -1044,7 +1050,40 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
     return `S/ ${(cents / 100).toFixed(2)}`;
   };
 
-  // Proveedor efectivo: prioriza el prop y cae al dato del endpoint `full`.
+  // Proveedor efectivo: prioriza el prop, luego el endpoint `full` y por
+  // último los campos que a veces vienen dentro de `productDetails`
+  // (ej. banner de recomendaciones, donde el prop `supplier` no se pasa).
+  const supplierFromDetails: { id?: string; name: string; purchaseCode?: string } | null = (() => {
+    const pd: any = productDetails;
+    if (!pd) return null;
+    // 1) Objeto supplier explícito.
+    if (pd.supplier && typeof pd.supplier === 'object' && pd.supplier.name) {
+      return {
+        id: pd.supplier.id,
+        name: pd.supplier.name,
+        purchaseCode: pd.supplier.purchaseCode ?? pd.purchase?.code ?? undefined,
+      };
+    }
+    // 2) `purchase` embebido (buscador v2, listado de campaña).
+    if (pd.purchase && typeof pd.purchase === 'object') {
+      const name: string =
+        pd.purchase.supplier?.name || pd.purchase.supplierName || pd.purchase.name || '';
+      const code: string | undefined = pd.purchase.code || pd.purchase.purchaseCode;
+      if (name || code) {
+        return {
+          id: pd.purchase.supplier?.id,
+          name: name || '',
+          purchaseCode: code,
+        };
+      }
+    }
+    // 3) Nombre plano (poco común).
+    if (typeof pd.supplierName === 'string' && pd.supplierName) {
+      return { name: pd.supplierName, purchaseCode: pd.purchaseCode };
+    }
+    return null;
+  })();
+
   const effectiveSupplier = supplier?.name
     ? supplier
     : fullData?.supplier
@@ -1053,7 +1092,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
           name: fullData.supplier.name,
           purchaseCode: fullData.supplier.purchaseCode ?? undefined,
         }
-      : supplier;
+      : supplierFromDetails
+        ? supplierFromDetails
+        : supplier;
 
   // Precio Socia (destacado) vs. el resto de perfiles de venta.
   const isSociaProfile = (p: PriceFormData) =>

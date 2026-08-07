@@ -852,6 +852,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             (fullProductDetails as any).costCents ??
             (fullProductDetails as any).costCentsBase ??
             (product as any).costCents,
+          // Preservamos supplier/purchase si el backend los devuelve (ambas
+          // formas), para que el banner de recomendaciones muestre PROVEEDOR.
+          supplier: (fullProductDetails as any).supplier || (product as any).supplier || undefined,
+          purchase: (fullProductDetails as any).purchase || (product as any).purchase || undefined,
+          supplierName:
+            (fullProductDetails as any).supplierName || (product as any).supplierName || undefined,
         };
 
         // Create a mock campaign product structure for the banner modal
