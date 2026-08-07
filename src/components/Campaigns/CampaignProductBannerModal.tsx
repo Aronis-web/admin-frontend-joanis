@@ -137,10 +137,15 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   // que las sugerencias muestren los mismos datos (foto, costo, stock, lotes).
   const campaignId = campaignProduct?.campaignId;
   const productId = campaignProduct?.productId;
+  // En el banner de "recomendaciones" el producto todavía NO está en la
+  // campaña, así que /full siempre respondería 404. Evitamos disparar la
+  // query en ese caso para no ensuciar la consola con errores y para que
+  // los fallbacks locales (stockByWarehouseFallback, photoCampaignAssets,
+  // supplierFromDetails) se muestren de inmediato.
   const { data: fullData, isLoading: loadingFull } = useCampaignProductFull(
     campaignId || '',
     productId || '',
-    visible && !!campaignId && !!productId
+    visible && !hideStockAndDistribution && !!campaignId && !!productId
   );
 
   // Fetch stock data and price profiles when modal opens
