@@ -41,6 +41,7 @@ import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
 import Alert from '@/utils/alert';
 import { ExternalSalesSyncModal } from '@/components/ExternalSales/ExternalSalesSyncModal';
+import { IzipaySyncModal } from '@/components/IzipaySync/IzipaySyncModal';
 
 interface PurchasesSummary {
   startDate: string;
@@ -67,6 +68,35 @@ interface GroupedData {
   totalValidated: number;
   purchaseCount: number;
   productCount: number;
+}
+
+interface CampaignSiteDistributionSite {
+  participantId: string;
+  participantType: 'INTERNAL_SITE' | 'EXTERNAL_COMPANY' | string;
+  siteId?: string;
+  siteName: string;
+  priceProfileName?: string;
+  totalPurchaseCents: number;
+  totalSaleCents: number;
+  marginCents: number;
+  marginPercentage: number;
+  totalValidatedProducts: number;
+}
+
+interface CampaignSiteDistribution {
+  campaignId: string;
+  campaignCode: string;
+  campaignName: string;
+  createdAt: string;
+  totalPurchaseCents: number;
+  totalSaleCents: number;
+  sites: CampaignSiteDistributionSite[];
+}
+
+interface CampaignSiteDistributionResponse {
+  campaigns: CampaignSiteDistribution[];
+  grandTotalPurchaseCents: number;
+  grandTotalSaleCents: number;
 }
 
 interface PurchasesGroupedSummary {
@@ -103,6 +133,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
   const [purchasesSummary, setPurchasesSummary] = useState<PurchasesSummary | null>(null);
   const [purchasesGrouped, setPurchasesGrouped] = useState<PurchasesGroupedSummary | null>(null);
+  const [campaignsDistribution, setCampaignsDistribution] =
+    useState<CampaignSiteDistributionResponse | null>(null);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+  const [campaignsError, setCampaignsError] = useState<string | null>(null);
   const [salesSummary, setSalesSummary] = useState<ResumenDiarioResponse | null>(null);
   const [salesChart, setSalesChart] = useState<ResumenDiarioResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -273,6 +307,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     hasPermission(PERMISSIONS.ADMIN.EXTERNAL_SALES.SYNC) ||
     hasPermission(PERMISSIONS.ADMIN.EXTERNAL_SALES.SOURCES_WRITE);
   const [showExternalSalesSyncModal, setShowExternalSalesSyncModal] = useState(false);
+  const canViewIzipaySync =
+    hasPermission(PERMISSIONS.ADMIN.IZIPAY_SYNC.RUNS_READ) ||
+    hasPermission(PERMISSIONS.ADMIN.IZIPAY_SYNC.SYNC);
+  const [showIzipaySyncModal, setShowIzipaySyncModal] = useState(false);
   const [downloadingSedeSummary, setDownloadingSedeSummary] = useState(false);
 
   // Load sedes when company changes
@@ -319,7 +357,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         // Delay de 300ms para no saturar la red
         setTimeout(async () => {
           setLoading(true);
-          await Promise.all([loadPurchasesSummary(), loadPurchasesGrouped()]);
+          await Promise.all([
+            loadPurchasesSummary(),
+            loadPurchasesGrouped(),
+            loadCampaignsDistribution(),
+          ]);
           setLoading(false);
         }, 300);
       } else {
@@ -561,6 +603,26 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     } catch (err: any) {
       console.error('❌ Error loading purchases grouped:', err);
       // No mostramos error aquí para no interferir con el resumen principal
+    }
+  };
+
+  const loadCampaignsDistribution = async () => {
+    try {
+      setLoadingCampaigns(true);
+      setCampaignsError(null);
+      const data = await apiClient.get<CampaignSiteDistributionResponse>(
+        '/admin/campaigns/dashboard/site-distribution',
+        { params: { limit: 5 } }
+      );
+      setCampaignsDistribution(data);
+    } catch (err: any) {
+      console.error('❌ Error loading campaigns distribution:', err);
+      setCampaignsError(
+        err.response?.data?.message || 'Error al cargar la distribución de campañas'
+      );
+      setCampaignsDistribution(null);
+    } finally {
+      setLoadingCampaigns(false);
     }
   };
 
@@ -862,7 +924,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     const promises = [];
 
     if (canViewPurchases) {
-      promises.push(loadPurchasesSummary(), loadPurchasesGrouped());
+      promises.push(loadPurchasesSummary(), loadPurchasesGrouped(), loadCampaignsDistribution());
     }
 
     if (canViewSales) {
@@ -982,6 +1044,202 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       style: 'currency',
       currency: 'PEN',
     }).format(amount);
+  };
+
+  const formatCampaignDate = (iso: string): string => {
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = String(d.getFullYear()).slice(-2);
+      return `${day}/${month}/${year}`;
+    } catch {
+      return '';
+    }
+  };
+
+  // Renderiza una tabla con sedes (filas) x campañas (columnas) mostrando
+  // la mercadería repartida (totalPurchaseCents). La primer columna con el
+  // nombre de sede queda fija; las columnas de campañas hacen scroll horizontal.
+  const renderCampaignsDistributionTable = (data: CampaignSiteDistributionResponse) => {
+    const campaigns = data.campaigns || [];
+    if (campaigns.length === 0) return null;
+
+    // Consolidar todas las sedes/participantes únicos que aparecen en cualquier campaña.
+    const siteMap = new Map<
+      string,
+      { key: string; name: string; type: string; priceProfileName?: string }
+    >();
+    campaigns.forEach((c) => {
+      c.sites.forEach((s) => {
+        const key = s.participantId || s.siteId || s.siteName;
+        if (!siteMap.has(key)) {
+          siteMap.set(key, {
+            key,
+            name: s.siteName,
+            type: s.participantType,
+            priceProfileName: s.priceProfileName,
+          });
+        }
+      });
+    });
+    const rows = Array.from(siteMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+    );
+
+    // Índice rápido para buscar la celda (site, campaign)
+    const cellIndex = new Map<string, CampaignSiteDistributionSite>();
+    campaigns.forEach((c) => {
+      c.sites.forEach((s) => {
+        const key = `${s.participantId || s.siteId || s.siteName}__${c.campaignId}`;
+        cellIndex.set(key, s);
+      });
+    });
+
+    // Totales por sede (suma en todas las campañas listadas).
+    const rowTotals = new Map<string, number>();
+    rows.forEach((r) => {
+      let sum = 0;
+      campaigns.forEach((c) => {
+        const cell = cellIndex.get(`${r.key}__${c.campaignId}`);
+        if (cell) sum += cell.totalPurchaseCents || 0;
+      });
+      rowTotals.set(r.key, sum);
+    });
+
+    const CELL_WIDTH = 120;
+    const SEDE_COL_WIDTH = isTablet ? 200 : 160;
+
+    return (
+      <View style={styles.campaignsTableWrapper}>
+        <View style={styles.campaignsTableRow}>
+          {/* Columna fija: sedes */}
+          <View style={{ width: SEDE_COL_WIDTH }}>
+            <View
+              style={[
+                styles.campaignsHeaderCell,
+                styles.campaignsSedeCell,
+                { width: SEDE_COL_WIDTH },
+              ]}
+            >
+              <Text style={styles.campaignsHeaderText}>Sede</Text>
+            </View>
+            {rows.map((r) => (
+              <View
+                key={r.key}
+                style={[
+                  styles.campaignsBodyCell,
+                  styles.campaignsSedeCell,
+                  { width: SEDE_COL_WIDTH },
+                ]}
+              >
+                <Text style={styles.campaignsSedeName} numberOfLines={2}>
+                  {r.name}
+                </Text>
+                {r.priceProfileName ? (
+                  <Text style={styles.campaignsSedeMeta}>{r.priceProfileName}</Text>
+                ) : null}
+              </View>
+            ))}
+            {/* Total */}
+            <View
+              style={[
+                styles.campaignsBodyCell,
+                styles.campaignsSedeCell,
+                styles.campaignsTotalRow,
+                { width: SEDE_COL_WIDTH },
+              ]}
+            >
+              <Text style={styles.campaignsTotalLabel}>Total</Text>
+            </View>
+          </View>
+
+          {/* Columnas scrollables: campañas */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator
+            contentContainerStyle={{ flexDirection: 'column' }}
+          >
+            <View>
+              {/* Header row de campañas */}
+              <View style={{ flexDirection: 'row' }}>
+                {campaigns.map((c) => (
+                  <View
+                    key={c.campaignId}
+                    style={[styles.campaignsHeaderCell, { width: CELL_WIDTH }]}
+                  >
+                    <Text style={styles.campaignsHeaderText} numberOfLines={1}>
+                      {c.campaignCode}
+                    </Text>
+                    <Text style={styles.campaignsHeaderSubtext} numberOfLines={1}>
+                      {c.campaignName}
+                    </Text>
+                    <Text style={styles.campaignsHeaderDate}>
+                      {formatCampaignDate(c.createdAt)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Filas por sede */}
+              {rows.map((r) => (
+                <View key={r.key} style={{ flexDirection: 'row' }}>
+                  {campaigns.map((c) => {
+                    const cell = cellIndex.get(`${r.key}__${c.campaignId}`);
+                    return (
+                      <View
+                        key={c.campaignId}
+                        style={[styles.campaignsBodyCell, { width: CELL_WIDTH }]}
+                      >
+                        {cell ? (
+                          <>
+                            <Text style={styles.campaignsCellValue}>
+                              {formatCurrency((cell.totalPurchaseCents || 0) / 100)}
+                            </Text>
+                            <Text style={styles.campaignsCellMeta}>
+                              {cell.totalValidatedProducts} prod.
+                            </Text>
+                          </>
+                        ) : (
+                          <Text style={styles.campaignsCellEmpty}>—</Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+
+              {/* Totales por campaña */}
+              <View style={{ flexDirection: 'row' }}>
+                {campaigns.map((c) => (
+                  <View
+                    key={c.campaignId}
+                    style={[
+                      styles.campaignsBodyCell,
+                      styles.campaignsTotalRow,
+                      { width: CELL_WIDTH },
+                    ]}
+                  >
+                    <Text style={styles.campaignsTotalValue}>
+                      {formatCurrency((c.totalPurchaseCents || 0) / 100)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Gran total */}
+        <View style={styles.campaignsGrandTotalRow}>
+          <Text style={styles.campaignsGrandTotalLabel}>Gran total mercadería repartida:</Text>
+          <Text style={styles.campaignsGrandTotalValue}>
+            {formatCurrency((data.grandTotalPurchaseCents || 0) / 100)}
+          </Text>
+        </View>
+      </View>
+    );
   };
 
   const formatCompactNumber = (amount: number): string => {
@@ -2328,6 +2586,49 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </View>
         )}
 
+        {/* Campaigns Site Distribution Section */}
+        {canViewPurchases && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                📦 Mercadería repartida por sede (últimas 5 campañas)
+              </Text>
+            </View>
+
+            {loadingCampaigns && !refreshing && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.color.chart.categorical[0]} />
+                <Text style={styles.loadingText}>Cargando distribución de campañas...</Text>
+              </View>
+            )}
+
+            {campaignsError && !loadingCampaigns && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorIcon}>⚠️</Text>
+                <Text style={styles.errorText}>{campaignsError}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={loadCampaignsDistribution}>
+                  <Text style={styles.retryButtonText}>Reintentar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {!loadingCampaigns &&
+              !campaignsError &&
+              campaignsDistribution &&
+              renderCampaignsDistributionTable(campaignsDistribution)}
+
+            {!loadingCampaigns &&
+              !campaignsError &&
+              campaignsDistribution &&
+              campaignsDistribution.campaigns.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateIcon}>📭</Text>
+                  <Text style={styles.emptyStateText}>No hay campañas registradas</Text>
+                </View>
+              )}
+          </View>
+        )}
+
         {/* Reports Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -2369,6 +2670,25 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 <Text style={styles.reportArrow}>→</Text>
               </TouchableOpacity>
             )}
+
+            {/* Izipay Report Sync — sólo con permisos del módulo */}
+            {canViewIzipaySync && (
+              <TouchableOpacity
+                style={styles.reportCard}
+                onPress={() => setShowIzipaySyncModal(true)}
+              >
+                <View style={styles.reportIconContainer}>
+                  <Text style={styles.reportIcon}>💳</Text>
+                </View>
+                <View style={styles.reportInfo}>
+                  <Text style={styles.reportTitle}>Sincronización Izipay</Text>
+                  <Text style={styles.reportDescription}>
+                    Importa el reporte mensual de Izipay (panel.izipay.pe) hacia conciliación
+                  </Text>
+                </View>
+                <Text style={styles.reportArrow}>→</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -2378,6 +2698,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         <ExternalSalesSyncModal
           visible={showExternalSalesSyncModal}
           onClose={() => setShowExternalSalesSyncModal(false)}
+        />
+      )}
+
+      {/* Izipay Sync Modal */}
+      {canViewIzipaySync && (
+        <IzipaySyncModal
+          visible={showIzipaySyncModal}
+          onClose={() => setShowIzipaySyncModal(false)}
         />
       )}
 
@@ -3660,6 +3988,117 @@ const createStyles = (theme: Theme) =>
     },
     modalApplyButtonDisabled: {
       opacity: 0.6,
+    },
+    // Campaigns × Sites distribution table
+    campaignsTableWrapper: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    campaignsTableRow: {
+      flexDirection: 'row',
+    },
+    campaignsHeaderCell: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.background.subtle,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      borderRightWidth: 1,
+      borderRightColor: theme.color.border.subtle,
+      justifyContent: 'center',
+    },
+    campaignsHeaderText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    campaignsHeaderSubtext: {
+      fontSize: 10,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    campaignsHeaderDate: {
+      fontSize: 10,
+      color: theme.color.text.muted,
+      marginTop: 2,
+      fontWeight: '500',
+    },
+    campaignsBodyCell: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      borderRightWidth: 1,
+      borderRightColor: theme.color.border.subtle,
+      justifyContent: 'center',
+      minHeight: 56,
+    },
+    campaignsSedeCell: {
+      backgroundColor: theme.color.surface.base,
+    },
+    campaignsSedeName: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    campaignsSedeMeta: {
+      fontSize: 10,
+      color: theme.color.text.muted,
+      marginTop: 2,
+      fontWeight: '500',
+    },
+    campaignsCellValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    campaignsCellMeta: {
+      fontSize: 10,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    campaignsCellEmpty: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    campaignsTotalRow: {
+      backgroundColor: theme.color.background.subtle,
+    },
+    campaignsTotalLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    campaignsTotalValue: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    campaignsGrandTotalRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.brand.accentSoft,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    campaignsGrandTotalLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    campaignsGrandTotalValue: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: theme.color.text.heading,
     },
   });
 
