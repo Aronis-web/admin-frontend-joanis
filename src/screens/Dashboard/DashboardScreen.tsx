@@ -1613,10 +1613,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             sedeReportSelectedCampaignIds.includes(c.campaignId)
           )
         : [];
-    const selectedCampaignsTotalCents = selectedCampaigns.reduce(
-      (acc, c) => acc + (c.totalPurchaseCents || 0),
-      0
-    );
     try {
       const rows = [...salesSummary.por_sede].sort((a, b) => {
         const aNet = a.totales_periodo.ventas_total - a.totales_periodo.notas_credito_total;
@@ -1725,6 +1721,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   .sede-name { font-weight: 600; }
   .sede-code { font-size: 10px; color: #6b7280; margin-top: 2px; }
   tr.totals td { background: #eef2ff; font-weight: 700; border-top: 2px solid #6366f1; border-bottom: 2px solid #6366f1; }
+  td.pay, th.pay { background: #f5f3ff; border-left: 2px solid #7c3aed; }
+  td.num.pay { color: #6d28d9; }
+  .badge { display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.5px; vertical-align: middle; }
+  .badge-int { background: #dbeafe; color: #1d4ed8; }
+  .badge-ext { background: #fef3c7; color: #b45309; }
+  h3 { color: #111; }
   .footer { margin-top: 24px; font-size: 10px; color: #6b7280; text-align: center; }
 </style>
 </head>
@@ -1760,40 +1762,98 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     </tbody>
   </table>
 
-  ${
-    selectedCampaigns.length > 0
-      ? `
-  <h2 style="margin-top:28px;margin-bottom:4px;font-size:16px;">📦 Campañas incluidas</h2>
-  <div class="meta">Mercadería repartida en las campañas seleccionadas</div>
+  ${(() => {
+    if (selectedCampaigns.length === 0) return '';
+    // Divisor de "Monto a pagar" para sedes EXTERNAL_COMPANY (descuento IGV).
+    const EXTERNAL_DIVISOR = 1.15;
+    let grandTotalRepartidoCents = 0;
+    let grandTotalPagarSoles = 0;
+    const perCampaignTables = selectedCampaigns
+      .map((c) => {
+        // Orden estable: sedes internas primero, luego externas, alfabético.
+        const sortedSites = [...(c.sites || [])].sort((a, b) => {
+          if (a.participantType !== b.participantType)
+            return a.participantType === 'INTERNAL_SITE' ? -1 : 1;
+          return (a.siteName || '').localeCompare(b.siteName || '', 'es', {
+            sensitivity: 'base',
+          });
+        });
+        let campaignRepartidoCents = 0;
+        let campaignPagarSoles = 0;
+        const rowsHtml = sortedSites
+          .map((s) => {
+            const repartidoSoles = (s.totalPurchaseCents || 0) / 100;
+            const pagarSoles =
+              s.participantType === 'EXTERNAL_COMPANY'
+                ? repartidoSoles / EXTERNAL_DIVISOR
+                : repartidoSoles;
+            campaignRepartidoCents += s.totalPurchaseCents || 0;
+            campaignPagarSoles += pagarSoles;
+            const isExt = s.participantType === 'EXTERNAL_COMPANY';
+            const badge = isExt
+              ? '<span class="badge badge-ext">EXT</span>'
+              : '<span class="badge badge-int">INT</span>';
+            const profile = s.priceProfileName
+              ? `<div class="sede-code">${escapeHtml(s.priceProfileName)}</div>`
+              : '';
+            return `
+        <tr>
+          <td class="sede">${badge}<div class="sede-name" style="display:inline-block;margin-left:6px;">${escapeHtml(s.siteName || '—')}</div>${profile}</td>
+          <td class="num">${s.totalValidatedProducts ?? 0}</td>
+          <td class="num strong">${fmt(repartidoSoles)}</td>
+          <td class="num strong pay">${fmt(pagarSoles)}${isExt ? ' <span class="muted" style="font-weight:400;">(÷1.15)</span>' : ''}</td>
+        </tr>`;
+          })
+          .join('');
+        grandTotalRepartidoCents += campaignRepartidoCents;
+        grandTotalPagarSoles += campaignPagarSoles;
+        return `
+  <h3 style="margin-top:20px;margin-bottom:4px;font-size:14px;">${escapeHtml(c.campaignName || c.campaignCode || '—')}</h3>
+  <div class="meta"><b>Código:</b> ${escapeHtml(c.campaignCode || '—')} · <b>Fecha:</b> ${escapeHtml(formatCampaignDate(c.createdAt))} · <b>Sedes:</b> ${sortedSites.length}</div>
   <table>
     <thead>
       <tr>
-        <th class="left">Campaña</th>
-        <th class="left">Código</th>
-        <th class="left">Fecha</th>
+        <th class="left">Sede</th>
+        <th>Productos</th>
         <th>Monto repartido</th>
+        <th>Monto a pagar</th>
       </tr>
     </thead>
     <tbody>
-      ${selectedCampaigns
-        .map(
-          (c) => `
-        <tr>
-          <td class="sede"><div class="sede-name">${escapeHtml(c.campaignName || '—')}</div></td>
-          <td class="sede"><div class="sede-code">${escapeHtml(c.campaignCode || '—')}</div></td>
-          <td class="sede">${escapeHtml(formatCampaignDate(c.createdAt))}</td>
-          <td class="num strong">${fmt((c.totalPurchaseCents || 0) / 100)}</td>
-        </tr>`
-        )
-        .join('')}
+      ${rowsHtml || '<tr><td class="sede" colspan="4"><i>Sin sedes con mercadería.</i></td></tr>'}
       <tr class="totals">
-        <td class="sede" colspan="3">TOTAL MERCADERÍA REPARTIDA (${selectedCampaigns.length} ${selectedCampaigns.length === 1 ? 'campaña' : 'campañas'})</td>
-        <td class="num strong">${fmt(selectedCampaignsTotalCents / 100)}</td>
+        <td class="sede">Subtotal campaña</td>
+        <td class="num">—</td>
+        <td class="num strong">${fmt(campaignRepartidoCents / 100)}</td>
+        <td class="num strong pay">${fmt(campaignPagarSoles)}</td>
       </tr>
     </tbody>
-  </table>`
-      : ''
-  }
+  </table>`;
+      })
+      .join('');
+    return `
+  <h2 style="margin-top:28px;margin-bottom:4px;font-size:16px;">📦 Campañas incluidas · detalle por sede</h2>
+  <div class="meta">Se muestra la mercadería repartida en cada sede para cada campaña seleccionada. El "Monto a pagar" divide el total entre 1.15 para sedes externas (descuento IGV).</div>
+  ${perCampaignTables}
+  <table style="margin-top:16px;">
+    <thead>
+      <tr>
+        <th class="left">Consolidado</th>
+        <th>Campañas</th>
+        <th>Monto repartido</th>
+        <th>Monto a pagar</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="totals">
+        <td class="sede">TOTAL GENERAL</td>
+        <td class="num">${selectedCampaigns.length}</td>
+        <td class="num strong">${fmt(grandTotalRepartidoCents / 100)}</td>
+        <td class="num strong pay">${fmt(grandTotalPagarSoles)}</td>
+      </tr>
+    </tbody>
+  </table>`;
+  })()}
 
   <div class="footer">Reporte generado desde el panel admin — ${escapeHtml(downloadedAt)}</div>
 </body>
