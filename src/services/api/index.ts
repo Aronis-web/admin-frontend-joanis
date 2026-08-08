@@ -27,6 +27,16 @@ export * from './transport';
 export * from './users';
 export { salesApi } from './sales';
 export { externalSalesApi } from './external-sales';
+export { izipayReportSyncApi } from './izipay-report-sync';
+export type {
+  IzipayRun,
+  IzipayRunStatus,
+  IzipaySyncBody,
+  IzipaySyncResponse,
+  IzipayActiveResponse,
+  IzipayActiveRunConflict,
+  IzipayRunsList,
+} from './izipay-report-sync';
 export type {
   ExternalSalesInvoiceType,
   ExternalSalesRunStatus,

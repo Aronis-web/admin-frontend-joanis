@@ -412,6 +412,11 @@ export const PERMISSIONS = {
       SOURCES_WRITE: 'admin.external_sales.sources.write',
       RUNS_READ: 'admin.external_sales.runs.read',
     },
+
+    IZIPAY_SYNC: {
+      SYNC: 'admin.izipay_sync.sync',
+      RUNS_READ: 'admin.izipay_sync.runs.read',
+    },
   },
 
   // ========== FACTURACIÓN / BILLING ==========

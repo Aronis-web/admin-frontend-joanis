@@ -152,6 +152,9 @@ function createWindow(port) {
       enableRemoteModule: false,
       webSecurity: false, // Disable to allow loading local resources
       allowRunningInsecureContent: true,
+      // Habilita el tag <webview> para embeber sitios externos (p.ej. panel.izipay.pe)
+      // dentro de la app y capturar tokens de sesión (Izipay Report Sync).
+      webviewTag: true,
     },
     icon: path.join(__dirname, 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     title: 'ERP-aio - Panel de Administración',
