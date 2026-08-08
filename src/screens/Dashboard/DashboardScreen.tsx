@@ -314,6 +314,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const [showIzipaySyncModal, setShowIzipaySyncModal] = useState(false);
   const [downloadingSedeSummary, setDownloadingSedeSummary] = useState(false);
 
+  // Modal previo a la descarga del resumen por sede: permite incluir la
+  // información opcional de campañas seleccionadas debajo del reporte.
+  const [showSedeReportModal, setShowSedeReportModal] = useState(false);
+  const [sedeReportIncludeCampaigns, setSedeReportIncludeCampaigns] = useState(false);
+  const [sedeReportSelectedCampaignIds, setSedeReportSelectedCampaignIds] = useState<string[]>([]);
+
   // Load sedes when company changes
   useEffect(() => {
     if (currentCompany?.id) {
@@ -1117,8 +1123,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
     const CELL_WIDTH = isTablet ? 140 : 120;
     const SEDE_COL_WIDTH = isTablet ? 210 : 160;
+    const PAY_COL_WIDTH = isTablet ? 150 : 130;
     const HEADER_HEIGHT = 68;
     const BODY_ROW_HEIGHT = 60;
+
+    // "Monto a pagar" por sede: INTERNAL_SITE paga el total completo;
+    // EXTERNAL_COMPANY paga total/1.15 (descuento por IGV, según regla del negocio).
+    const EXTERNAL_DIVISOR = 1.15;
+    const computeMontoAPagar = (rowTotalSoles: number, type: string) =>
+      type === 'EXTERNAL_COMPANY' ? rowTotalSoles / EXTERNAL_DIVISOR : rowTotalSoles;
+    const grandTotalMontoAPagar = rows.reduce(
+      (acc, r) => acc + computeMontoAPagar(r.rowTotalCents / 100, r.type),
+      0
+    );
 
     return (
       <View style={styles.campaignsTableWrapper}>
@@ -1207,38 +1224,79 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                   </View>
                 ))}
+                {/* Header: Monto a pagar */}
+                <View
+                  style={[
+                    styles.campaignsHeaderCell,
+                    styles.campaignsPayHeaderCell,
+                    { width: PAY_COL_WIDTH, height: HEADER_HEIGHT },
+                  ]}
+                >
+                  <Text style={styles.campaignsHeaderText} numberOfLines={1}>
+                    Monto a pagar
+                  </Text>
+                  <Text style={styles.campaignsHeaderSubtext} numberOfLines={1}>
+                    EXT ÷ 1.15
+                  </Text>
+                </View>
               </View>
 
               {/* Filas por sede */}
-              {rows.map((r) => (
-                <View key={r.key} style={{ flexDirection: 'row', height: BODY_ROW_HEIGHT }}>
-                  {campaigns.map((c) => {
-                    const cell = cellIndex.get(`${r.key}__${c.campaignId}`);
-                    return (
-                      <View
-                        key={c.campaignId}
-                        style={[
-                          styles.campaignsBodyCell,
-                          { width: CELL_WIDTH, height: BODY_ROW_HEIGHT },
-                        ]}
-                      >
-                        {cell && (cell.totalPurchaseCents || 0) > 0 ? (
-                          <>
-                            <Text style={styles.campaignsCellValue} numberOfLines={1}>
-                              {formatCurrency((cell.totalPurchaseCents || 0) / 100)}
-                            </Text>
-                            <Text style={styles.campaignsCellMeta} numberOfLines={1}>
-                              {cell.totalValidatedProducts} prod.
-                            </Text>
-                          </>
-                        ) : (
-                          <Text style={styles.campaignsCellEmpty}>—</Text>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-              ))}
+              {rows.map((r) => {
+                const rowTotalSoles = r.rowTotalCents / 100;
+                const montoAPagar = computeMontoAPagar(rowTotalSoles, r.type);
+                const isExternal = r.type === 'EXTERNAL_COMPANY';
+                return (
+                  <View key={r.key} style={{ flexDirection: 'row', height: BODY_ROW_HEIGHT }}>
+                    {campaigns.map((c) => {
+                      const cell = cellIndex.get(`${r.key}__${c.campaignId}`);
+                      return (
+                        <View
+                          key={c.campaignId}
+                          style={[
+                            styles.campaignsBodyCell,
+                            { width: CELL_WIDTH, height: BODY_ROW_HEIGHT },
+                          ]}
+                        >
+                          {cell && (cell.totalPurchaseCents || 0) > 0 ? (
+                            <>
+                              <Text style={styles.campaignsCellValue} numberOfLines={1}>
+                                {formatCurrency((cell.totalPurchaseCents || 0) / 100)}
+                              </Text>
+                              <Text style={styles.campaignsCellMeta} numberOfLines={1}>
+                                {cell.totalValidatedProducts} prod.
+                              </Text>
+                            </>
+                          ) : (
+                            <Text style={styles.campaignsCellEmpty}>—</Text>
+                          )}
+                        </View>
+                      );
+                    })}
+                    {/* Celda: Monto a pagar por sede */}
+                    <View
+                      style={[
+                        styles.campaignsBodyCell,
+                        styles.campaignsPayBodyCell,
+                        { width: PAY_COL_WIDTH, height: BODY_ROW_HEIGHT },
+                      ]}
+                    >
+                      {rowTotalSoles > 0 ? (
+                        <>
+                          <Text style={styles.campaignsPayValue} numberOfLines={1}>
+                            {formatCurrency(montoAPagar)}
+                          </Text>
+                          <Text style={styles.campaignsCellMeta} numberOfLines={1}>
+                            {isExternal ? '÷ 1.15' : 'sin dscto.'}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={styles.campaignsCellEmpty}>—</Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
 
               {/* Totales por campaña */}
               <View style={{ flexDirection: 'row', height: BODY_ROW_HEIGHT }}>
@@ -1256,6 +1314,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                   </View>
                 ))}
+                {/* Total: Monto a pagar */}
+                <View
+                  style={[
+                    styles.campaignsBodyCell,
+                    styles.campaignsTotalRow,
+                    styles.campaignsPayBodyCell,
+                    { width: PAY_COL_WIDTH, height: BODY_ROW_HEIGHT },
+                  ]}
+                >
+                  <Text
+                    style={[styles.campaignsTotalValue, styles.campaignsPayValue]}
+                    numberOfLines={1}
+                  >
+                    {formatCurrency(grandTotalMontoAPagar)}
+                  </Text>
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -1530,6 +1604,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const handleDownloadSedeSummaryPdf = async () => {
     if (!salesSummary || !salesSummary.por_sede || salesSummary.por_sede.length === 0) return;
     setDownloadingSedeSummary(true);
+    // Snapshot inmutable de las opciones seleccionadas en el modal (por si el
+    // usuario cambia algo antes de que termine la generación del PDF).
+    const includeCampaigns = sedeReportIncludeCampaigns;
+    const selectedCampaigns =
+      includeCampaigns && campaignsDistribution
+        ? campaignsDistribution.campaigns.filter((c) =>
+            sedeReportSelectedCampaignIds.includes(c.campaignId)
+          )
+        : [];
+    const selectedCampaignsTotalCents = selectedCampaigns.reduce(
+      (acc, c) => acc + (c.totalPurchaseCents || 0),
+      0
+    );
     try {
       const rows = [...salesSummary.por_sede].sort((a, b) => {
         const aNet = a.totales_periodo.ventas_total - a.totales_periodo.notas_credito_total;
@@ -1672,6 +1759,41 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       ${totalsHtml}
     </tbody>
   </table>
+
+  ${
+    selectedCampaigns.length > 0
+      ? `
+  <h2 style="margin-top:28px;margin-bottom:4px;font-size:16px;">📦 Campañas incluidas</h2>
+  <div class="meta">Mercadería repartida en las campañas seleccionadas</div>
+  <table>
+    <thead>
+      <tr>
+        <th class="left">Campaña</th>
+        <th class="left">Código</th>
+        <th class="left">Fecha</th>
+        <th>Monto repartido</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${selectedCampaigns
+        .map(
+          (c) => `
+        <tr>
+          <td class="sede"><div class="sede-name">${escapeHtml(c.campaignName || '—')}</div></td>
+          <td class="sede"><div class="sede-code">${escapeHtml(c.campaignCode || '—')}</div></td>
+          <td class="sede">${escapeHtml(formatCampaignDate(c.createdAt))}</td>
+          <td class="num strong">${fmt((c.totalPurchaseCents || 0) / 100)}</td>
+        </tr>`
+        )
+        .join('')}
+      <tr class="totals">
+        <td class="sede" colspan="3">TOTAL MERCADERÍA REPARTIDA (${selectedCampaigns.length} ${selectedCampaigns.length === 1 ? 'campaña' : 'campañas'})</td>
+        <td class="num strong">${fmt(selectedCampaignsTotalCents / 100)}</td>
+      </tr>
+    </tbody>
+  </table>`
+      : ''
+  }
 
   <div class="footer">Reporte generado desde el panel admin — ${escapeHtml(downloadedAt)}</div>
 </body>
@@ -1822,7 +1944,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.sedeTableDownload}
-            onPress={handleDownloadSedeSummaryPdf}
+            onPress={() => {
+              // Precargar selección de campañas con todas las que tengan monto > 0.
+              const preselected = (campaignsDistribution?.campaigns || [])
+                .filter((c) => (c.totalPurchaseCents || 0) > 0)
+                .map((c) => c.campaignId);
+              setSedeReportSelectedCampaignIds(preselected);
+              setSedeReportIncludeCampaigns(false);
+              setShowSedeReportModal(true);
+            }}
             disabled={downloadingSedeSummary}
             activeOpacity={0.7}
             accessibilityLabel="Descargar resumen por sede en PDF"
@@ -3111,6 +3241,148 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         </View>
       </Modal>
 
+      {/* Sede Summary Download Modal (opciones de campañas) */}
+      <Modal
+        visible={showSedeReportModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !downloadingSedeSummary && setShowSedeReportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.reportsModalContent]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📄 Descargar Resumen por Sede</Text>
+              <TouchableOpacity
+                onPress={() => !downloadingSedeSummary && setShowSedeReportModal(false)}
+                disabled={downloadingSedeSummary}
+              >
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <View style={styles.reportParamSection}>
+                <TouchableOpacity
+                  style={styles.reportCheckboxContainer}
+                  onPress={() => setSedeReportIncludeCampaigns((v) => !v)}
+                >
+                  <View
+                    style={[
+                      styles.reportCheckbox,
+                      sedeReportIncludeCampaigns && styles.reportCheckboxChecked,
+                    ]}
+                  >
+                    {sedeReportIncludeCampaigns && (
+                      <Text style={styles.reportCheckboxCheck}>✓</Text>
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.reportCheckboxLabel}>Incluir información de campañas</Text>
+                    <Text style={styles.collapsibleHeaderHint}>
+                      Añade una tabla con las campañas seleccionadas y su monto repartido debajo del
+                      reporte de ventas.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {sedeReportIncludeCampaigns && (
+                <View style={styles.reportParamSection}>
+                  <Text style={styles.reportParamLabel}>📦 Campañas a incluir</Text>
+                  {(!campaignsDistribution || campaignsDistribution.campaigns.length === 0) && (
+                    <Text style={styles.collapsibleHeaderHint}>
+                      No hay campañas disponibles para el período seleccionado.
+                    </Text>
+                  )}
+                  {campaignsDistribution && campaignsDistribution.campaigns.length > 0 && (
+                    <>
+                      <View style={styles.campaignSelectActions}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setSedeReportSelectedCampaignIds(
+                              campaignsDistribution.campaigns.map((c) => c.campaignId)
+                            )
+                          }
+                        >
+                          <Text style={styles.campaignSelectActionText}>Seleccionar todas</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.campaignSelectActionSeparator}>·</Text>
+                        <TouchableOpacity onPress={() => setSedeReportSelectedCampaignIds([])}>
+                          <Text style={styles.campaignSelectActionText}>Ninguna</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {campaignsDistribution.campaigns.map((c) => {
+                        const checked = sedeReportSelectedCampaignIds.includes(c.campaignId);
+                        return (
+                          <TouchableOpacity
+                            key={c.campaignId}
+                            style={styles.campaignCheckboxRow}
+                            onPress={() =>
+                              setSedeReportSelectedCampaignIds((prev) =>
+                                prev.includes(c.campaignId)
+                                  ? prev.filter((id) => id !== c.campaignId)
+                                  : [...prev, c.campaignId]
+                              )
+                            }
+                          >
+                            <View
+                              style={[
+                                styles.reportCheckbox,
+                                checked && styles.reportCheckboxChecked,
+                              ]}
+                            >
+                              {checked && <Text style={styles.reportCheckboxCheck}>✓</Text>}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.campaignCheckboxTitle} numberOfLines={1}>
+                                {c.campaignName || c.campaignCode}
+                              </Text>
+                              <Text style={styles.campaignCheckboxMeta} numberOfLines={1}>
+                                {c.campaignCode} · {formatCampaignDate(c.createdAt)}
+                              </Text>
+                            </View>
+                            <Text style={styles.campaignCheckboxAmount}>
+                              {formatCurrency((c.totalPurchaseCents || 0) / 100)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </>
+                  )}
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowSedeReportModal(false)}
+                disabled={downloadingSedeSummary}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalApplyButton,
+                  downloadingSedeSummary && styles.modalApplyButtonDisabled,
+                ]}
+                onPress={async () => {
+                  await handleDownloadSedeSummaryPdf();
+                  setShowSedeReportModal(false);
+                }}
+                disabled={downloadingSedeSummary}
+              >
+                {downloadingSedeSummary ? (
+                  <ActivityIndicator size="small" color={theme.color.text.onAction} />
+                ) : (
+                  <Text style={styles.modalApplyButtonText}>📄 Descargar PDF</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Report Date Picker */}
       {showReportDatePicker && (
         <DateTimePicker
@@ -4194,6 +4466,21 @@ const createStyles = (theme: Theme) =>
       fontWeight: '700',
       color: theme.color.text.heading,
     },
+    campaignsPayHeaderCell: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderLeftWidth: 2,
+      borderLeftColor: theme.color.brand.accent,
+    },
+    campaignsPayBodyCell: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderLeftWidth: 2,
+      borderLeftColor: theme.color.brand.accent,
+    },
+    campaignsPayValue: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+    },
     campaignsGrandTotalRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -4213,6 +4500,50 @@ const createStyles = (theme: Theme) =>
       fontSize: 11,
       color: theme.color.text.muted,
       marginTop: 2,
+    },
+    // Modal: selección de campañas para el PDF del resumen por sede
+    campaignSelectActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      marginBottom: theme.space[2],
+    },
+    campaignSelectActionText: {
+      fontSize: 12,
+      color: theme.color.brand.accent,
+      fontWeight: '700',
+    },
+    campaignSelectActionSeparator: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    campaignCheckboxRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[2],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      marginBottom: theme.space[2],
+      gap: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    campaignCheckboxTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    campaignCheckboxMeta: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    campaignCheckboxAmount: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginLeft: theme.space[2],
     },
     campaignsGrandTotalValue: {
       fontSize: 15,
