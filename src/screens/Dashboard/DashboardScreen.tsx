@@ -471,9 +471,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         return;
       }
 
+      // El backend espera parámetros en camelCase (startDate/endDate).
+      // Enviarlos como fecha_inicio/fecha_fin hace que los ignore y devuelva
+      // siempre el acumulado del año (bug del "monto fijo ~16M" en el dashboard).
       const params: any = {
-        fecha_inicio: startDate,
-        fecha_fin: endDate,
+        startDate,
+        endDate,
         sede_id: sedeIdParam,
       };
 
@@ -524,9 +527,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
       const groupBy = getGroupBy(selectedFilter);
 
+      // Backend espera camelCase (startDate/endDate); ver nota en loadPurchasesSummary.
       const params: any = {
-        fecha_inicio: dateRange.startDate,
-        fecha_fin: dateRange.endDate,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
         groupBy,
       };
 
@@ -538,8 +542,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       params.sede_id = sedeIdParam;
 
       console.log('📊 Loading purchases grouped:', {
-        fecha_inicio: params.fecha_inicio,
-        fecha_fin: params.fecha_fin,
+        startDate: params.startDate,
+        endDate: params.endDate,
         groupBy: params.groupBy,
         filter: selectedFilter,
         sedeId: sedeIdParam,
