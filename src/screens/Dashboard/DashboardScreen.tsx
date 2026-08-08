@@ -137,6 +137,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     useState<CampaignSiteDistributionResponse | null>(null);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [campaignsError, setCampaignsError] = useState<string | null>(null);
+  const [campaignsCollapsed, setCampaignsCollapsed] = useState(true);
   const [salesSummary, setSalesSummary] = useState<ResumenDiarioResponse | null>(null);
   const [salesChart, setSalesChart] = useState<ResumenDiarioResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1063,53 +1064,61 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   // la mercadería repartida (totalPurchaseCents). La primer columna con el
   // nombre de sede queda fija; las columnas de campañas hacen scroll horizontal.
   const renderCampaignsDistributionTable = (data: CampaignSiteDistributionResponse) => {
-    const campaigns = data.campaigns || [];
-    if (campaigns.length === 0) return null;
+    const campaignsRaw = data.campaigns || [];
+    if (campaignsRaw.length === 0) return null;
 
-    // Consolidar todas las sedes/participantes únicos que aparecen en cualquier campaña.
+    // Ordenar campañas por fecha descendente (la más reciente a la izquierda).
+    const campaigns = [...campaignsRaw].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // IMPORTANTE: participantId NO es estable entre campañas para la misma sede
+    // (el backend crea uno nuevo por campaña). Consolidamos filas por siteId
+    // (INTERNAL_SITE) o por nombre para EXTERNAL_COMPANY. Sin esto la tabla
+    // salía con filas duplicadas y desalineadas.
+    const siteKey = (s: CampaignSiteDistributionSite) =>
+      s.siteId ? `int:${s.siteId}` : `ext:${(s.siteName || '').trim().toLowerCase()}`;
+
     const siteMap = new Map<
       string,
-      { key: string; name: string; type: string; priceProfileName?: string }
+      {
+        key: string;
+        name: string;
+        type: 'INTERNAL_SITE' | 'EXTERNAL_COMPANY' | string;
+        priceProfileName?: string;
+        rowTotalCents: number;
+      }
     >();
+    const cellIndex = new Map<string, CampaignSiteDistributionSite>();
     campaigns.forEach((c) => {
       c.sites.forEach((s) => {
-        const key = s.participantId || s.siteId || s.siteName;
-        if (!siteMap.has(key)) {
-          siteMap.set(key, {
-            key,
+        const k = siteKey(s);
+        cellIndex.set(`${k}__${c.campaignId}`, s);
+        const existing = siteMap.get(k);
+        if (existing) {
+          existing.rowTotalCents += s.totalPurchaseCents || 0;
+        } else {
+          siteMap.set(k, {
+            key: k,
             name: s.siteName,
             type: s.participantType,
             priceProfileName: s.priceProfileName,
+            rowTotalCents: s.totalPurchaseCents || 0,
           });
         }
       });
     });
-    const rows = Array.from(siteMap.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
-    );
 
-    // Índice rápido para buscar la celda (site, campaign)
-    const cellIndex = new Map<string, CampaignSiteDistributionSite>();
-    campaigns.forEach((c) => {
-      c.sites.forEach((s) => {
-        const key = `${s.participantId || s.siteId || s.siteName}__${c.campaignId}`;
-        cellIndex.set(key, s);
-      });
+    // Ordenar: sedes internas primero (por nombre), luego externas (por nombre).
+    const rows = Array.from(siteMap.values()).sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'INTERNAL_SITE' ? -1 : 1;
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
     });
 
-    // Totales por sede (suma en todas las campañas listadas).
-    const rowTotals = new Map<string, number>();
-    rows.forEach((r) => {
-      let sum = 0;
-      campaigns.forEach((c) => {
-        const cell = cellIndex.get(`${r.key}__${c.campaignId}`);
-        if (cell) sum += cell.totalPurchaseCents || 0;
-      });
-      rowTotals.set(r.key, sum);
-    });
-
-    const CELL_WIDTH = 120;
-    const SEDE_COL_WIDTH = isTablet ? 200 : 160;
+    const CELL_WIDTH = isTablet ? 140 : 120;
+    const SEDE_COL_WIDTH = isTablet ? 210 : 160;
+    const HEADER_HEIGHT = 68;
+    const BODY_ROW_HEIGHT = 60;
 
     return (
       <View style={styles.campaignsTableWrapper}>
@@ -1120,10 +1129,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               style={[
                 styles.campaignsHeaderCell,
                 styles.campaignsSedeCell,
-                { width: SEDE_COL_WIDTH },
+                { width: SEDE_COL_WIDTH, height: HEADER_HEIGHT },
               ]}
             >
               <Text style={styles.campaignsHeaderText}>Sede</Text>
+              <Text style={styles.campaignsHeaderSubtext}>Perfil de precio</Text>
             </View>
             {rows.map((r) => (
               <View
@@ -1131,49 +1141,66 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 style={[
                   styles.campaignsBodyCell,
                   styles.campaignsSedeCell,
-                  { width: SEDE_COL_WIDTH },
+                  { width: SEDE_COL_WIDTH, height: BODY_ROW_HEIGHT },
                 ]}
               >
-                <Text style={styles.campaignsSedeName} numberOfLines={2}>
-                  {r.name}
-                </Text>
-                {r.priceProfileName ? (
-                  <Text style={styles.campaignsSedeMeta}>{r.priceProfileName}</Text>
-                ) : null}
+                <View style={styles.campaignsSedeRow}>
+                  <View
+                    style={[
+                      styles.campaignsTypeBadge,
+                      r.type === 'INTERNAL_SITE'
+                        ? styles.campaignsTypeBadgeInternal
+                        : styles.campaignsTypeBadgeExternal,
+                    ]}
+                  >
+                    <Text style={styles.campaignsTypeBadgeText}>
+                      {r.type === 'INTERNAL_SITE' ? 'INT' : 'EXT'}
+                    </Text>
+                  </View>
+                  <View style={styles.campaignsSedeTextWrap}>
+                    <Text style={styles.campaignsSedeName} numberOfLines={1}>
+                      {r.name}
+                    </Text>
+                    {r.priceProfileName ? (
+                      <Text style={styles.campaignsSedeMeta} numberOfLines={1}>
+                        {r.priceProfileName}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
               </View>
             ))}
-            {/* Total */}
+            {/* Total campaña */}
             <View
               style={[
                 styles.campaignsBodyCell,
                 styles.campaignsSedeCell,
                 styles.campaignsTotalRow,
-                { width: SEDE_COL_WIDTH },
+                { width: SEDE_COL_WIDTH, height: BODY_ROW_HEIGHT },
               ]}
             >
-              <Text style={styles.campaignsTotalLabel}>Total</Text>
+              <Text style={styles.campaignsTotalLabel}>Total campaña</Text>
             </View>
           </View>
 
           {/* Columnas scrollables: campañas */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator
-            contentContainerStyle={{ flexDirection: 'column' }}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator>
             <View>
               {/* Header row de campañas */}
-              <View style={{ flexDirection: 'row' }}>
+              <View style={{ flexDirection: 'row', height: HEADER_HEIGHT }}>
                 {campaigns.map((c) => (
                   <View
                     key={c.campaignId}
-                    style={[styles.campaignsHeaderCell, { width: CELL_WIDTH }]}
+                    style={[
+                      styles.campaignsHeaderCell,
+                      { width: CELL_WIDTH, height: HEADER_HEIGHT },
+                    ]}
                   >
                     <Text style={styles.campaignsHeaderText} numberOfLines={1}>
-                      {c.campaignCode}
+                      {c.campaignName || c.campaignCode}
                     </Text>
                     <Text style={styles.campaignsHeaderSubtext} numberOfLines={1}>
-                      {c.campaignName}
+                      {c.campaignCode}
                     </Text>
                     <Text style={styles.campaignsHeaderDate}>
                       {formatCampaignDate(c.createdAt)}
@@ -1184,20 +1211,23 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
               {/* Filas por sede */}
               {rows.map((r) => (
-                <View key={r.key} style={{ flexDirection: 'row' }}>
+                <View key={r.key} style={{ flexDirection: 'row', height: BODY_ROW_HEIGHT }}>
                   {campaigns.map((c) => {
                     const cell = cellIndex.get(`${r.key}__${c.campaignId}`);
                     return (
                       <View
                         key={c.campaignId}
-                        style={[styles.campaignsBodyCell, { width: CELL_WIDTH }]}
+                        style={[
+                          styles.campaignsBodyCell,
+                          { width: CELL_WIDTH, height: BODY_ROW_HEIGHT },
+                        ]}
                       >
-                        {cell ? (
+                        {cell && (cell.totalPurchaseCents || 0) > 0 ? (
                           <>
-                            <Text style={styles.campaignsCellValue}>
+                            <Text style={styles.campaignsCellValue} numberOfLines={1}>
                               {formatCurrency((cell.totalPurchaseCents || 0) / 100)}
                             </Text>
-                            <Text style={styles.campaignsCellMeta}>
+                            <Text style={styles.campaignsCellMeta} numberOfLines={1}>
                               {cell.totalValidatedProducts} prod.
                             </Text>
                           </>
@@ -1211,17 +1241,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               ))}
 
               {/* Totales por campaña */}
-              <View style={{ flexDirection: 'row' }}>
+              <View style={{ flexDirection: 'row', height: BODY_ROW_HEIGHT }}>
                 {campaigns.map((c) => (
                   <View
                     key={c.campaignId}
                     style={[
                       styles.campaignsBodyCell,
                       styles.campaignsTotalRow,
-                      { width: CELL_WIDTH },
+                      { width: CELL_WIDTH, height: BODY_ROW_HEIGHT },
                     ]}
                   >
-                    <Text style={styles.campaignsTotalValue}>
+                    <Text style={styles.campaignsTotalValue} numberOfLines={1}>
                       {formatCurrency((c.totalPurchaseCents || 0) / 100)}
                     </Text>
                   </View>
@@ -1233,7 +1263,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
         {/* Gran total */}
         <View style={styles.campaignsGrandTotalRow}>
-          <Text style={styles.campaignsGrandTotalLabel}>Gran total mercadería repartida:</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.campaignsGrandTotalLabel}>Gran total mercadería repartida</Text>
+            <Text style={styles.campaignsGrandTotalHint}>
+              {rows.length} {rows.length === 1 ? 'sede' : 'sedes'} · {campaigns.length}{' '}
+              {campaigns.length === 1 ? 'campaña' : 'campañas'}
+            </Text>
+          </View>
           <Text style={styles.campaignsGrandTotalValue}>
             {formatCurrency((data.grandTotalPurchaseCents || 0) / 100)}
           </Text>
@@ -2589,43 +2625,68 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         {/* Campaigns Site Distribution Section */}
         {canViewPurchases && (
           <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-                📦 Mercadería repartida por sede (últimas 5 campañas)
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={styles.collapsibleHeader}
+              onPress={() => setCampaignsCollapsed((v) => !v)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.collapsibleHeaderTextWrap}>
+                <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
+                  📦 Mercadería repartida por sede
+                </Text>
+                <Text style={styles.collapsibleHeaderHint}>
+                  Últimas 5 campañas
+                  {campaignsDistribution
+                    ? ` · ${formatCurrency((campaignsDistribution.grandTotalPurchaseCents || 0) / 100)}`
+                    : ''}
+                </Text>
+              </View>
+              <Ionicons
+                name={campaignsCollapsed ? 'chevron-down' : 'chevron-up'}
+                size={22}
+                color={theme.color.text.muted}
+              />
+            </TouchableOpacity>
 
-            {loadingCampaigns && !refreshing && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={theme.color.chart.categorical[0]} />
-                <Text style={styles.loadingText}>Cargando distribución de campañas...</Text>
+            {!campaignsCollapsed && (
+              <View style={styles.collapsibleBody}>
+                {loadingCampaigns && !refreshing && (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={theme.color.chart.categorical[0]} />
+                    <Text style={styles.loadingText}>Cargando distribución de campañas...</Text>
+                  </View>
+                )}
+
+                {campaignsError && !loadingCampaigns && (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorIcon}>⚠️</Text>
+                    <Text style={styles.errorText}>{campaignsError}</Text>
+                    <TouchableOpacity
+                      style={styles.retryButton}
+                      onPress={loadCampaignsDistribution}
+                    >
+                      <Text style={styles.retryButtonText}>Reintentar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {!loadingCampaigns &&
+                  !campaignsError &&
+                  campaignsDistribution &&
+                  campaignsDistribution.campaigns.length > 0 &&
+                  renderCampaignsDistributionTable(campaignsDistribution)}
+
+                {!loadingCampaigns &&
+                  !campaignsError &&
+                  campaignsDistribution &&
+                  campaignsDistribution.campaigns.length === 0 && (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyStateIcon}>📭</Text>
+                      <Text style={styles.emptyStateText}>No hay campañas registradas</Text>
+                    </View>
+                  )}
               </View>
             )}
-
-            {campaignsError && !loadingCampaigns && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorIcon}>⚠️</Text>
-                <Text style={styles.errorText}>{campaignsError}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={loadCampaignsDistribution}>
-                  <Text style={styles.retryButtonText}>Reintentar</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {!loadingCampaigns &&
-              !campaignsError &&
-              campaignsDistribution &&
-              renderCampaignsDistributionTable(campaignsDistribution)}
-
-            {!loadingCampaigns &&
-              !campaignsError &&
-              campaignsDistribution &&
-              campaignsDistribution.campaigns.length === 0 && (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateIcon}>📭</Text>
-                  <Text style={styles.emptyStateText}>No hay campañas registradas</Text>
-                </View>
-              )}
           </View>
         )}
 
@@ -3989,7 +4050,60 @@ const createStyles = (theme: Theme) =>
     modalApplyButtonDisabled: {
       opacity: 0.6,
     },
+    // Collapsible section header (usada por la tabla de mercadería repartida)
+    collapsibleHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      marginBottom: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    collapsibleHeaderTextWrap: {
+      flex: 1,
+      paddingRight: theme.space[3],
+    },
+    collapsibleHeaderHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 2,
+      fontWeight: '500',
+    },
+    collapsibleBody: {
+      marginTop: theme.space[1],
+    },
     // Campaigns × Sites distribution table
+    campaignsSedeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    campaignsSedeTextWrap: {
+      flex: 1,
+    },
+    campaignsTypeBadge: {
+      paddingHorizontal: theme.space[1.5],
+      paddingVertical: 2,
+      borderRadius: theme.radii.sm,
+      minWidth: 28,
+      alignItems: 'center',
+    },
+    campaignsTypeBadgeInternal: {
+      backgroundColor: theme.color.state.info.background,
+    },
+    campaignsTypeBadgeExternal: {
+      backgroundColor: theme.color.state.warning.background,
+    },
+    campaignsTypeBadgeText: {
+      fontSize: 9,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+      letterSpacing: 0.5,
+    },
     campaignsTableWrapper: {
       backgroundColor: theme.color.surface.base,
       borderRadius: theme.radii.xl,
@@ -4094,6 +4208,11 @@ const createStyles = (theme: Theme) =>
       fontSize: 13,
       fontWeight: '600',
       color: theme.color.text.heading,
+    },
+    campaignsGrandTotalHint: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: 2,
     },
     campaignsGrandTotalValue: {
       fontSize: 15,
