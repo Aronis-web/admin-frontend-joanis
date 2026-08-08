@@ -1706,10 +1706,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
   ${(() => {
     if (selectedCampaigns.length === 0) return '';
-    // Divisor de "Monto a pagar" para sedes EXTERNAL_COMPANY (descuento IGV).
-    const EXTERNAL_DIVISOR = 1.15;
     let grandTotalRepartidoCents = 0;
-    let grandTotalPagarSoles = 0;
     const perCampaignTables = selectedCampaigns
       .map((c) => {
         // Orden estable: sedes internas primero, luego externas, alfabético.
@@ -1721,16 +1718,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           });
         });
         let campaignRepartidoCents = 0;
-        let campaignPagarSoles = 0;
         const rowsHtml = sortedSites
           .map((s) => {
             const repartidoSoles = (s.totalPurchaseCents || 0) / 100;
-            const pagarSoles =
-              s.participantType === 'EXTERNAL_COMPANY'
-                ? repartidoSoles / EXTERNAL_DIVISOR
-                : repartidoSoles;
             campaignRepartidoCents += s.totalPurchaseCents || 0;
-            campaignPagarSoles += pagarSoles;
             const isExt = s.participantType === 'EXTERNAL_COMPANY';
             const badge = isExt
               ? '<span class="badge badge-ext">EXT</span>'
@@ -1743,12 +1734,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           <td class="sede">${badge}<div class="sede-name" style="display:inline-block;margin-left:6px;">${escapeHtml(s.siteName || '—')}</div>${profile}</td>
           <td class="num">${s.totalValidatedProducts ?? 0}</td>
           <td class="num strong">${fmt(repartidoSoles)}</td>
-          <td class="num strong pay">${fmt(pagarSoles)}${isExt ? ' <span class="muted" style="font-weight:400;">(÷1.15)</span>' : ''}</td>
         </tr>`;
           })
           .join('');
         grandTotalRepartidoCents += campaignRepartidoCents;
-        grandTotalPagarSoles += campaignPagarSoles;
         return `
   <h3 style="margin-top:20px;margin-bottom:4px;font-size:14px;">${escapeHtml(c.campaignName || c.campaignCode || '—')}</h3>
   <div class="meta"><b>Código:</b> ${escapeHtml(c.campaignCode || '—')} · <b>Fecha:</b> ${escapeHtml(formatCampaignDate(c.createdAt))} · <b>Sedes:</b> ${sortedSites.length}</div>
@@ -1758,16 +1747,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         <th class="left">Sede</th>
         <th>Productos</th>
         <th>Monto repartido</th>
-        <th>Monto a pagar</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td class="sede" colspan="4"><i>Sin sedes con mercadería.</i></td></tr>'}
+      ${rowsHtml || '<tr><td class="sede" colspan="3"><i>Sin sedes con mercadería.</i></td></tr>'}
       <tr class="totals">
         <td class="sede">Subtotal campaña</td>
         <td class="num">—</td>
         <td class="num strong">${fmt(campaignRepartidoCents / 100)}</td>
-        <td class="num strong pay">${fmt(campaignPagarSoles)}</td>
       </tr>
     </tbody>
   </table>`;
@@ -1775,7 +1762,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       .join('');
     return `
   <h2 style="margin-top:28px;margin-bottom:4px;font-size:16px;">📦 Campañas incluidas · detalle por sede</h2>
-  <div class="meta">Se muestra la mercadería repartida en cada sede para cada campaña seleccionada. El "Monto a pagar" divide el total entre 1.15 para sedes externas (descuento IGV).</div>
+  <div class="meta">Mercadería repartida en cada sede para cada campaña seleccionada.</div>
   ${perCampaignTables}
   <table style="margin-top:16px;">
     <thead>
@@ -1783,7 +1770,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         <th class="left">Consolidado</th>
         <th>Campañas</th>
         <th>Monto repartido</th>
-        <th>Monto a pagar</th>
       </tr>
     </thead>
     <tbody>
@@ -1791,7 +1777,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         <td class="sede">TOTAL GENERAL</td>
         <td class="num">${selectedCampaigns.length}</td>
         <td class="num strong">${fmt(grandTotalRepartidoCents / 100)}</td>
-        <td class="num strong pay">${fmt(grandTotalPagarSoles)}</td>
       </tr>
     </tbody>
   </table>`;
