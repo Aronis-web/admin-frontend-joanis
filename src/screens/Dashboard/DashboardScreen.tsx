@@ -1224,79 +1224,38 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                   </View>
                 ))}
-                {/* Header: Monto a pagar */}
-                <View
-                  style={[
-                    styles.campaignsHeaderCell,
-                    styles.campaignsPayHeaderCell,
-                    { width: PAY_COL_WIDTH, height: HEADER_HEIGHT },
-                  ]}
-                >
-                  <Text style={styles.campaignsHeaderText} numberOfLines={1}>
-                    Monto a pagar
-                  </Text>
-                  <Text style={styles.campaignsHeaderSubtext} numberOfLines={1}>
-                    EXT ÷ 1.15
-                  </Text>
-                </View>
               </View>
 
               {/* Filas por sede */}
-              {rows.map((r) => {
-                const rowTotalSoles = r.rowTotalCents / 100;
-                const montoAPagar = computeMontoAPagar(rowTotalSoles, r.type);
-                const isExternal = r.type === 'EXTERNAL_COMPANY';
-                return (
-                  <View key={r.key} style={{ flexDirection: 'row', height: BODY_ROW_HEIGHT }}>
-                    {campaigns.map((c) => {
-                      const cell = cellIndex.get(`${r.key}__${c.campaignId}`);
-                      return (
-                        <View
-                          key={c.campaignId}
-                          style={[
-                            styles.campaignsBodyCell,
-                            { width: CELL_WIDTH, height: BODY_ROW_HEIGHT },
-                          ]}
-                        >
-                          {cell && (cell.totalPurchaseCents || 0) > 0 ? (
-                            <>
-                              <Text style={styles.campaignsCellValue} numberOfLines={1}>
-                                {formatCurrency((cell.totalPurchaseCents || 0) / 100)}
-                              </Text>
-                              <Text style={styles.campaignsCellMeta} numberOfLines={1}>
-                                {cell.totalValidatedProducts} prod.
-                              </Text>
-                            </>
-                          ) : (
-                            <Text style={styles.campaignsCellEmpty}>—</Text>
-                          )}
-                        </View>
-                      );
-                    })}
-                    {/* Celda: Monto a pagar por sede */}
-                    <View
-                      style={[
-                        styles.campaignsBodyCell,
-                        styles.campaignsPayBodyCell,
-                        { width: PAY_COL_WIDTH, height: BODY_ROW_HEIGHT },
-                      ]}
-                    >
-                      {rowTotalSoles > 0 ? (
-                        <>
-                          <Text style={styles.campaignsPayValue} numberOfLines={1}>
-                            {formatCurrency(montoAPagar)}
-                          </Text>
-                          <Text style={styles.campaignsCellMeta} numberOfLines={1}>
-                            {isExternal ? '÷ 1.15' : 'sin dscto.'}
-                          </Text>
-                        </>
-                      ) : (
-                        <Text style={styles.campaignsCellEmpty}>—</Text>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
+              {rows.map((r) => (
+                <View key={r.key} style={{ flexDirection: 'row', height: BODY_ROW_HEIGHT }}>
+                  {campaigns.map((c) => {
+                    const cell = cellIndex.get(`${r.key}__${c.campaignId}`);
+                    return (
+                      <View
+                        key={c.campaignId}
+                        style={[
+                          styles.campaignsBodyCell,
+                          { width: CELL_WIDTH, height: BODY_ROW_HEIGHT },
+                        ]}
+                      >
+                        {cell && (cell.totalPurchaseCents || 0) > 0 ? (
+                          <>
+                            <Text style={styles.campaignsCellValue} numberOfLines={1}>
+                              {formatCurrency((cell.totalPurchaseCents || 0) / 100)}
+                            </Text>
+                            <Text style={styles.campaignsCellMeta} numberOfLines={1}>
+                              {cell.totalValidatedProducts} prod.
+                            </Text>
+                          </>
+                        ) : (
+                          <Text style={styles.campaignsCellEmpty}>—</Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
 
               {/* Totales por campaña */}
               <View style={{ flexDirection: 'row', height: BODY_ROW_HEIGHT }}>
@@ -1314,25 +1273,71 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     </Text>
                   </View>
                 ))}
-                {/* Total: Monto a pagar */}
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Columna fija derecha: Monto a pagar (siempre visible) */}
+          <View style={{ width: PAY_COL_WIDTH }}>
+            <View
+              style={[
+                styles.campaignsHeaderCell,
+                styles.campaignsPayHeaderCell,
+                { width: PAY_COL_WIDTH, height: HEADER_HEIGHT },
+              ]}
+            >
+              <Text style={styles.campaignsHeaderText} numberOfLines={1}>
+                Monto a pagar
+              </Text>
+              <Text style={styles.campaignsHeaderSubtext} numberOfLines={1}>
+                EXT ÷ 1.15
+              </Text>
+            </View>
+            {rows.map((r) => {
+              const rowTotalSoles = r.rowTotalCents / 100;
+              const montoAPagar = computeMontoAPagar(rowTotalSoles, r.type);
+              const isExternal = r.type === 'EXTERNAL_COMPANY';
+              return (
                 <View
+                  key={r.key}
                   style={[
                     styles.campaignsBodyCell,
-                    styles.campaignsTotalRow,
                     styles.campaignsPayBodyCell,
                     { width: PAY_COL_WIDTH, height: BODY_ROW_HEIGHT },
                   ]}
                 >
-                  <Text
-                    style={[styles.campaignsTotalValue, styles.campaignsPayValue]}
-                    numberOfLines={1}
-                  >
-                    {formatCurrency(grandTotalMontoAPagar)}
-                  </Text>
+                  {rowTotalSoles > 0 ? (
+                    <>
+                      <Text style={styles.campaignsPayValue} numberOfLines={1}>
+                        {formatCurrency(montoAPagar)}
+                      </Text>
+                      <Text style={styles.campaignsCellMeta} numberOfLines={1}>
+                        {isExternal ? '÷ 1.15' : 'sin dscto.'}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.campaignsCellEmpty}>—</Text>
+                  )}
                 </View>
-              </View>
+              );
+            })}
+            {/* Total consolidado */}
+            <View
+              style={[
+                styles.campaignsBodyCell,
+                styles.campaignsTotalRow,
+                styles.campaignsPayBodyCell,
+                { width: PAY_COL_WIDTH, height: BODY_ROW_HEIGHT },
+              ]}
+            >
+              <Text
+                style={[styles.campaignsTotalValue, styles.campaignsPayValue]}
+                numberOfLines={1}
+              >
+                {formatCurrency(grandTotalMontoAPagar)}
+              </Text>
             </View>
-          </ScrollView>
+          </View>
         </View>
 
         {/* Gran total */}
