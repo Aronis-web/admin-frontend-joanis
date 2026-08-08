@@ -1905,29 +1905,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   // Divisor de "Monto a pagar" para sedes EXTERNAL_COMPANY (descuento IGV).
   const EXTERNAL_PAY_DIVISOR = 1.15;
 
-  // Identifica sedes externas cruzando con la distribución de campañas:
-  // en `campaignsDistribution` cada site trae `participantType` y (si aplica)
-  // `siteId`. Aquí armamos sets por siteId y por nombre normalizado.
-  const externalSedeMatchers = useMemo(() => {
-    const idSet = new Set<string>();
-    const nameSet = new Set<string>();
-    const norm = (s: string) => (s || '').trim().toLowerCase();
-    (campaignsDistribution?.campaigns || []).forEach((c) => {
-      (c.sites || []).forEach((s) => {
-        if (s.participantType === 'EXTERNAL_COMPANY') {
-          if (s.siteId) idSet.add(s.siteId);
-          if (s.siteName) nameSet.add(norm(s.siteName));
-        }
-      });
-    });
-    return { idSet, nameSet, norm };
-  }, [campaignsDistribution]);
-
-  const isExternalSede = (sede: { id?: string; name?: string }) => {
-    if (sede.id && externalSedeMatchers.idSet.has(sede.id)) return true;
-    if (sede.name && externalSedeMatchers.nameSet.has(externalSedeMatchers.norm(sede.name)))
-      return true;
-    return false;
+  // Identifica sedes externas. En este backend, las sedes que representan
+  // empresas externas tienen como `code` el RUC de la empresa (11 dígitos
+  // numéricos), mientras que las sedes internas usan códigos alfabéticos
+  // (SJL, COMAS, ATE, AREQUIPA, ALMACEN, etc.). Ese es el discriminador
+  // más confiable disponible desde el resumen de ventas.
+  const RUC_REGEX = /^\d{11}$/;
+  const isExternalSede = (sede: { id?: string; code?: string; name?: string }) => {
+    return !!(sede.code && RUC_REGEX.test(sede.code));
   };
 
   const computeMontoAPagar = (ventasNetas: number, external: boolean) =>
