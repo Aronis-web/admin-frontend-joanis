@@ -39,6 +39,7 @@ import {
   AddProductRequest,
 } from '@/types/campaigns';
 import { useCampaignProductsDetail } from '@/hooks/api/useCampaigns';
+import { useTenantStore } from '@/store/tenant';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { Product } from '@/services/api/products';
@@ -164,6 +165,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  // Sede actual seleccionada en el login. Se usa para filtrar `stockBySite`
+  // en la lista de "Productos disponibles para agregar" y validar la
+  // cantidad al agregar sólo contra el stock de esa sede.
+  const currentSiteId = useTenantStore((s) => s.selectedSite?.id);
+  const currentSiteName = useTenantStore((s) => s.selectedSite?.name);
   const { campaignId } = route.params;
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -573,6 +579,26 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   // Get product stock from search results (backend now returns stock structure)
   const getProductStock = useCallback(
     (product: any): { available: number; reserved: number; total: number } => {
+      // ✅ Prioridad 1: si el backend devolvió stockBySite (v2 search), usamos
+      // sólo la sede actual seleccionada en el login. Así tanto la lista
+      // "Productos disponibles para agregar" como la validación de cantidad
+      // al agregar respetan el contexto de sede.
+      if (Array.isArray(product?.stockBySite) && product.stockBySite.length > 0) {
+        const siteEntry = currentSiteId
+          ? product.stockBySite.find((s: any) => s?.siteId === currentSiteId)
+          : null;
+        if (siteEntry) {
+          return {
+            available: Number(siteEntry.available) || 0,
+            reserved: Number(siteEntry.reserved) || 0,
+            total: Number(siteEntry.total) || 0,
+          };
+        }
+        // Sede actual sin stock (o no está en la lista): mostramos 0 en vez
+        // de caer al consolidado para no permitir agregar más de lo real.
+        return { available: 0, reserved: 0, total: 0 };
+      }
+
       // If product has stock from backend (v2 search), use it
       if (product.stock) {
         // Backend returns stock structure for both preliminary and active products
@@ -607,7 +633,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }, 0);
       return { available: totalStock, reserved: 0, total: totalStock };
     },
-    [stockItems]
+    [stockItems, currentSiteId]
   );
 
   // Global search for products not in campaign
@@ -3399,6 +3425,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               >
                                 {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}
                                 {stockInfo.available}
+                                {currentSiteName ? ` (${currentSiteName})` : ''}
                               </Text>
                               {!isPreliminary && stockInfo.reserved > 0 && (
                                 <Text style={styles.stockReserved}>

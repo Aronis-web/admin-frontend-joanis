@@ -107,6 +107,17 @@ export interface Product {
     reserved: number;
     total: number;
   };
+  // ✅ Nuevo (v2 search): desglose de stock por sede del tenant. Cuando está
+  // presente, la UI debe filtrar por la sede actualmente seleccionada en el
+  // login (useTenantStore().selectedSite) en vez de mostrar el consolidado.
+  stockBySite?: Array<{
+    siteId: string;
+    siteCode?: string;
+    siteName?: string;
+    available: number;
+    reserved: number;
+    total: number;
+  }>;
 }
 
 // Product entity for detail endpoint (simplified)
@@ -440,9 +451,13 @@ export const productsApi = {
     total: number;
     cached?: boolean;
   }> => {
-    return apiClient.post('/admin/products/v2/batch', { ids }, {
-      params: { includePhotos }
-    });
+    return apiClient.post(
+      '/admin/products/v2/batch',
+      { ids },
+      {
+        params: { includePhotos },
+      }
+    );
   },
 
   /**
