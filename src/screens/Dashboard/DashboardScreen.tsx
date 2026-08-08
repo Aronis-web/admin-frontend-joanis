@@ -1123,19 +1123,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
     const CELL_WIDTH = isTablet ? 140 : 120;
     const SEDE_COL_WIDTH = isTablet ? 210 : 160;
-    const PAY_COL_WIDTH = isTablet ? 150 : 130;
     const HEADER_HEIGHT = 68;
     const BODY_ROW_HEIGHT = 60;
-
-    // "Monto a pagar" por sede: INTERNAL_SITE paga el total completo;
-    // EXTERNAL_COMPANY paga total/1.15 (descuento por IGV, según regla del negocio).
-    const EXTERNAL_DIVISOR = 1.15;
-    const computeMontoAPagar = (rowTotalSoles: number, type: string) =>
-      type === 'EXTERNAL_COMPANY' ? rowTotalSoles / EXTERNAL_DIVISOR : rowTotalSoles;
-    const grandTotalMontoAPagar = rows.reduce(
-      (acc, r) => acc + computeMontoAPagar(r.rowTotalCents / 100, r.type),
-      0
-    );
 
     return (
       <View style={styles.campaignsTableWrapper}>
@@ -1276,68 +1265,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               </View>
             </View>
           </ScrollView>
-
-          {/* Columna fija derecha: Monto a pagar (siempre visible) */}
-          <View style={{ width: PAY_COL_WIDTH }}>
-            <View
-              style={[
-                styles.campaignsHeaderCell,
-                styles.campaignsPayHeaderCell,
-                { width: PAY_COL_WIDTH, height: HEADER_HEIGHT },
-              ]}
-            >
-              <Text style={styles.campaignsHeaderText} numberOfLines={1}>
-                Monto a pagar
-              </Text>
-              <Text style={styles.campaignsHeaderSubtext} numberOfLines={1}>
-                EXT ÷ 1.15
-              </Text>
-            </View>
-            {rows.map((r) => {
-              const rowTotalSoles = r.rowTotalCents / 100;
-              const montoAPagar = computeMontoAPagar(rowTotalSoles, r.type);
-              const isExternal = r.type === 'EXTERNAL_COMPANY';
-              return (
-                <View
-                  key={r.key}
-                  style={[
-                    styles.campaignsBodyCell,
-                    styles.campaignsPayBodyCell,
-                    { width: PAY_COL_WIDTH, height: BODY_ROW_HEIGHT },
-                  ]}
-                >
-                  {rowTotalSoles > 0 ? (
-                    <>
-                      <Text style={styles.campaignsPayValue} numberOfLines={1}>
-                        {formatCurrency(montoAPagar)}
-                      </Text>
-                      <Text style={styles.campaignsCellMeta} numberOfLines={1}>
-                        {isExternal ? '÷ 1.15' : 'sin dscto.'}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={styles.campaignsCellEmpty}>—</Text>
-                  )}
-                </View>
-              );
-            })}
-            {/* Total consolidado */}
-            <View
-              style={[
-                styles.campaignsBodyCell,
-                styles.campaignsTotalRow,
-                styles.campaignsPayBodyCell,
-                { width: PAY_COL_WIDTH, height: BODY_ROW_HEIGHT },
-              ]}
-            >
-              <Text
-                style={[styles.campaignsTotalValue, styles.campaignsPayValue]}
-                numberOfLines={1}
-              >
-                {formatCurrency(grandTotalMontoAPagar)}
-              </Text>
-            </View>
-          </View>
         </View>
 
         {/* Gran total */}
@@ -1664,12 +1591,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       const companyLabel = escapeHtml(currentCompany?.name || '—');
       const rangeLabel = `${formatDateShort(salesSummary.fecha_inicio)} – ${formatDateLong(salesSummary.fecha_fin)}`;
 
+      let totalPagarSoles = 0;
       const bodyRowsHtml = visibleRows
         .map((row) => {
           const t = row.totales_periodo;
           const netas = t.ventas_total - t.notas_credito_total;
           const dif = t.diferencia_total ?? 0;
           const difClass = Math.abs(dif) < 0.005 ? 'muted' : dif < 0 ? 'negative' : 'positive';
+          const isExt = isExternalSede(row.sede);
+          const pagar = computeMontoAPagar(netas, isExt);
+          totalPagarSoles += pagar;
+          const payHint = isExt
+            ? '<div class="sede-code">EXT ÷ 1.15</div>'
+            : '<div class="sede-code">INT · sin dscto.</div>';
           return `
             <tr>
               <td class="sede">
@@ -1683,6 +1617,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               <td class="num">${fmt(t.prosegur_depositos)}</td>
               <td class="num strong">${fmt(t.total_a_recibir)}</td>
               <td class="num ${difClass}">${fmt(dif)}</td>
+              <td class="num strong pay">${fmt(pagar)}${payHint}</td>
             </tr>`;
         })
         .join('');
@@ -1698,6 +1633,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           <td class="num">${fmt(aggregatedSalesTotals.prosegur_depositos)}</td>
           <td class="num strong">${fmt(aggregatedSalesTotals.total_a_recibir)}</td>
           <td class="num">${fmt(aggregatedSalesTotals.diferencia_total ?? 0)}</td>
+          <td class="num strong pay">${fmt(totalPagarSoles)}</td>
         </tr>`
         : '';
 
@@ -1759,6 +1695,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         <th>Prosegur</th>
         <th>A Recibir</th>
         <th>Diferencia</th>
+        <th class="pay">Monto a pagar</th>
       </tr>
     </thead>
     <tbody>
@@ -1965,6 +1902,37 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     }
   };
 
+  // Divisor de "Monto a pagar" para sedes EXTERNAL_COMPANY (descuento IGV).
+  const EXTERNAL_PAY_DIVISOR = 1.15;
+
+  // Identifica sedes externas cruzando con la distribución de campañas:
+  // en `campaignsDistribution` cada site trae `participantType` y (si aplica)
+  // `siteId`. Aquí armamos sets por siteId y por nombre normalizado.
+  const externalSedeMatchers = useMemo(() => {
+    const idSet = new Set<string>();
+    const nameSet = new Set<string>();
+    const norm = (s: string) => (s || '').trim().toLowerCase();
+    (campaignsDistribution?.campaigns || []).forEach((c) => {
+      (c.sites || []).forEach((s) => {
+        if (s.participantType === 'EXTERNAL_COMPANY') {
+          if (s.siteId) idSet.add(s.siteId);
+          if (s.siteName) nameSet.add(norm(s.siteName));
+        }
+      });
+    });
+    return { idSet, nameSet, norm };
+  }, [campaignsDistribution]);
+
+  const isExternalSede = (sede: { id?: string; name?: string }) => {
+    if (sede.id && externalSedeMatchers.idSet.has(sede.id)) return true;
+    if (sede.name && externalSedeMatchers.nameSet.has(externalSedeMatchers.norm(sede.name)))
+      return true;
+    return false;
+  };
+
+  const computeMontoAPagar = (ventasNetas: number, external: boolean) =>
+    external ? ventasNetas / EXTERNAL_PAY_DIVISOR : ventasNetas;
+
   const renderSalesBySedeTable = () => {
     if (!salesSummary || !salesSummary.por_sede || salesSummary.por_sede.length === 0) {
       return null;
@@ -1989,6 +1957,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       : rows.filter(
           (r) => r.totales_periodo.ventas_total - r.totales_periodo.notas_credito_total > 0
         );
+
+    // Total consolidado del "Monto a pagar" respetando INT/EXT por sede.
+    const totalMontoAPagar = visibleRows.reduce((acc, r) => {
+      const netas = r.totales_periodo.ventas_total - r.totales_periodo.notas_credito_total;
+      return acc + computeMontoAPagar(netas, isExternalSede(r.sede));
+    }, 0);
 
     return (
       <View style={styles.sedeTableContainer}>
@@ -2142,12 +2116,24 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   >
                     Diferencia
                   </Text>
+                  <Text
+                    style={[
+                      styles.sedeTableCell,
+                      styles.sedeTableHeaderCell,
+                      styles.sedeTableCellNum,
+                      styles.sedeTableCellPay,
+                    ]}
+                  >
+                    Monto a pagar
+                  </Text>
                 </View>
                 {visibleRows.map((row, idx) => {
                   const t = row.totales_periodo;
                   const ventasNetas = t.ventas_total - t.notas_credito_total;
                   const isZero = ventasNetas <= 0;
                   const dif = t.diferencia_total;
+                  const isExt = isExternalSede(row.sede);
+                  const montoAPagar = computeMontoAPagar(ventasNetas, isExt);
                   const difColor =
                     Math.abs(dif) < 0.005
                       ? theme.color.text.muted
@@ -2236,6 +2222,21 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                       >
                         {formatCurrency(dif)}
                       </Text>
+                      <View style={[styles.sedeTableCell, styles.sedeTableCellPay]}>
+                        <Text
+                          style={[
+                            styles.sedeTableCellNum,
+                            styles.sedeTableCellPayValue,
+                            isZero && { color: theme.color.text.muted, fontWeight: '600' },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {formatCurrency(montoAPagar)}
+                        </Text>
+                        <Text style={styles.sedeTableCellPayHint} numberOfLines={1}>
+                          {isExt ? 'EXT ÷ 1.15' : 'INT · sin dscto.'}
+                        </Text>
+                      </View>
                     </View>
                   );
                 })}
@@ -2309,6 +2310,17 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                       ]}
                     >
                       {formatCurrency(aggregatedSalesTotals.diferencia_total)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sedeTableCell,
+                        styles.sedeTableCellNum,
+                        styles.sedeTableCellPay,
+                        styles.sedeTableTotalText,
+                        styles.sedeTableCellPayValue,
+                      ]}
+                    >
+                      {formatCurrency(totalMontoAPagar)}
                     </Text>
                   </View>
                 )}
@@ -4055,6 +4067,24 @@ const createStyles = (theme: Theme) =>
     },
     sedeTableCellNegative: {
       color: theme.color.text.danger,
+    },
+    sedeTableCellPay: {
+      width: 150,
+      backgroundColor: theme.color.brand.accentSoft,
+      borderLeftWidth: 2,
+      borderLeftColor: theme.color.brand.accent,
+      justifyContent: 'center',
+    },
+    sedeTableCellPayValue: {
+      color: theme.color.brand.accent,
+      fontWeight: '700',
+      textAlign: 'right',
+    },
+    sedeTableCellPayHint: {
+      fontSize: 10,
+      color: theme.color.text.muted,
+      textAlign: 'right',
+      marginTop: 2,
     },
     sedeTableCellStrong: {
       fontWeight: '700',
