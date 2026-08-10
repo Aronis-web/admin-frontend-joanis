@@ -636,6 +636,24 @@ export const productsApi = {
     });
   },
 
+  // Send bulk update format via WhatsApp - POST /admin/products/bulk/download-update-format/send
+  sendBulkUpdateFormat: async (payload: {
+    siteContactId: string;
+    siteId?: string;
+    fromCorrelative?: number;
+    toCorrelative?: number;
+    correlatives?: number[];
+    fromDate?: string;
+    toDate?: string;
+    caption?: string;
+  }): Promise<{
+    jobId: string;
+    contactName: string;
+    message: string;
+  }> => {
+    return apiClient.post('/admin/products/bulk/download-update-format/send', payload);
+  },
+
   // Upload bulk update file - POST /admin/products/bulk/update
   uploadBulkUpdate: async (
     file: File | Blob | any

@@ -764,7 +764,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       await transfersApi.shipTransfer(selectedTransfer.id, shipDto);
       Alert.alert(
         'Éxito',
-        'Traslado despachado exitosamente. Stock descontado del almacén origen.'
+        'Traslado despachado exitosamente. El stock ya fue trasladado del almacén origen al destino y está disponible para venta.'
       );
       setShowShipModal(false);
       setShowDetailModal(false);
@@ -1340,7 +1340,9 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                   {selectedTransfer.status === TransferStatus.IN_TRANSIT && (
                     <View style={styles.infoBox}>
                       <Text style={styles.infoText}>
-                        ℹ️ Este traslado está en tránsito. Debe ser recibido en la sede destino.
+                        ℹ️ Este traslado está en tránsito. El stock ya fue trasladado al almacén
+                        destino y está disponible para venta. En la sede destino se debe confirmar
+                        la recepción y registrar diferencias (faltante/dañado) si las hay.
                       </Text>
                     </View>
                   )}

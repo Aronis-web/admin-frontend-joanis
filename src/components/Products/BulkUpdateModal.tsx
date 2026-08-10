@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +10,9 @@ import {
   Platform,
 } from 'react-native';
 import { productsApi } from '@/services/api/products';
+import { siteContactsApi } from '@/services/api/site-contacts';
+import type { SiteContact } from '@/types/site-contacts';
+import { useTenantStore } from '@/store/tenant';
 import { saveAndShareExcel } from '@/utils/fileDownload';
 import logger from '@/utils/logger';
 import { getDocumentAsync } from '@/utils/filePicker';
@@ -17,15 +20,7 @@ import Alert from '@/utils/alert';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import {
-  Text,
-  Title,
-  Body,
-  Caption,
-  Label,
-  Button,
-  IconButton,
-} from '@/design-system/components';
+import { Text, Title, Body, Caption, Label, Button, IconButton } from '@/design-system/components';
 
 interface BulkUpdateModalProps {
   visible: boolean;
@@ -46,10 +41,93 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const selectedSite = useTenantStore((state) => state.selectedSite);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selectedFile, setSelectedFile] = useState<any>(null);
+  const [contacts, setContacts] = useState<SiteContact[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [caption, setCaption] = useState('');
+
+  useEffect(() => {
+    if (!visible || mode !== 'products') return;
+    let cancelled = false;
+    if (!selectedSite?.id) {
+      setContacts([]);
+      setLoadingContacts(false);
+      return;
+    }
+    (async () => {
+      try {
+        setLoadingContacts(true);
+        const data = await siteContactsApi.getSiteContacts(selectedSite.id);
+        if (cancelled) return;
+        const eligible = data.filter((c) => c.isActive && c.receiveWhatsApp && !!c.phoneNumber);
+        setContacts(eligible);
+        if (eligible.length === 1) {
+          setSelectedContactId(eligible[0].id);
+        }
+      } catch (error) {
+        logger.error('❌ Error cargando contactos:', error);
+        if (!cancelled) setContacts([]);
+      } finally {
+        if (!cancelled) setLoadingContacts(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, mode, selectedSite?.id]);
+
+  const handleSendFormat = async () => {
+    if (!selectedContactId) {
+      Alert.alert(
+        'Contacto requerido',
+        'Selecciona un contacto para recibir el formato por WhatsApp.'
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+      logger.info('📤 Enviando formato de actualización por WhatsApp...');
+
+      const payload: Parameters<typeof productsApi.sendBulkUpdateFormat>[0] = {
+        siteContactId: selectedContactId,
+      };
+
+      if (selectedSite?.id) {
+        payload.siteId = selectedSite.id;
+      }
+      if (fromDate) {
+        payload.fromDate = fromDate;
+      }
+      if (toDate) {
+        payload.toDate = toDate;
+      }
+      if (caption.trim()) {
+        payload.caption = caption.trim();
+      }
+
+      const result = await productsApi.sendBulkUpdateFormat(payload);
+
+      Alert.alert(
+        'Envío programado',
+        result.message ||
+          `El formato se está generando y se enviará por WhatsApp a ${result.contactName}.`
+      );
+    } catch (error: any) {
+      logger.error('❌ Error enviando formato:', error);
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Error al enviar el formato de actualización'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDownloadFormat = async () => {
     try {
@@ -69,7 +147,10 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
       } else if (mode === 'campaign' && campaignProducts) {
         // Para campaña, enviar los correlativos de los productos
         logger.info('📦 Campaign products received:', campaignProducts.length);
-        logger.info('📦 Products map available:', productsMap ? Object.keys(productsMap).length : 0);
+        logger.info(
+          '📦 Products map available:',
+          productsMap ? Object.keys(productsMap).length : 0
+        );
 
         const correlatives = campaignProducts
           .map((cp) => {
@@ -89,7 +170,9 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
         logger.info('📊 Correlatives extracted:', correlatives);
 
         if (correlatives.length === 0) {
-          throw new Error('No se encontraron números correlativos en los productos de la campaña. Asegúrate de que los productos tengan información completa.');
+          throw new Error(
+            'No se encontraron números correlativos en los productos de la campaña. Asegúrate de que los productos tengan información completa.'
+          );
         }
 
         filters.correlatives = correlatives;
@@ -164,14 +247,18 @@ export const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({
           const response = await fetch(selectedFile.uri);
           const blob = await response.blob();
           fileToUpload = new File([blob], selectedFile.name, {
-            type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            type:
+              selectedFile.mimeType ||
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           });
         }
       } else {
         // Mobile: Create file object from URI
         fileToUpload = {
           uri: selectedFile.uri,
-          type: selectedFile.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          type:
+            selectedFile.mimeType ||
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           name: selectedFile.name,
         };
       }
@@ -241,6 +328,8 @@ Total procesado: ${result.totalRows}
     setFromDate('');
     setToDate('');
     setSelectedFile(null);
+    setSelectedContactId(null);
+    setCaption('');
     onClose();
   };
 
@@ -252,30 +341,32 @@ Total procesado: ${result.totalRows}
             {/* Header */}
             <View style={styles.header}>
               <Title size="medium" style={{ flex: 1 }}>
-                {mode === 'products' ? 'Actualización Masiva de Productos' : 'Actualización de Productos de Campaña'}
+                {mode === 'products'
+                  ? 'Actualización Masiva de Productos'
+                  : 'Actualización de Productos de Campaña'}
               </Title>
-              <IconButton
-                icon="close"
-                onPress={handleClose}
-                variant="ghost"
-                size="small"
-              />
+              <IconButton icon="close" onPress={handleClose} variant="ghost" size="small" />
             </View>
 
             {/* Instructions */}
             <View style={styles.section}>
-              <Label size="large" style={styles.sectionTitle}>📋 Instrucciones</Label>
+              <Label size="large" style={styles.sectionTitle}>
+                📋 Instrucciones
+              </Label>
               <Body size="small" color="secondary">
-                1. Descarga el formato Excel con los productos{'\n'}
-                2. Modifica SKU, Nombre, Costo y/o Precios{'\n'}
-                3. NO modifiques la columna "Correlativo"{'\n'}
-                4. Sube el archivo modificado para actualizar
+                {mode === 'products'
+                  ? '1. Envía el formato Excel por WhatsApp a un contacto\n2. Modifica SKU, Nombre, Costo y/o Precios en el archivo recibido\n3. NO modifiques la columna "Correlativo"\n4. Sube el archivo modificado para actualizar'
+                  : '1. Descarga el formato Excel con los productos\n2. Modifica SKU, Nombre, Costo y/o Precios\n3. NO modifiques la columna "Correlativo"\n4. Sube el archivo modificado para actualizar'}
               </Body>
             </View>
 
             {/* Download Section */}
             <View style={styles.section}>
-              <Label size="large" style={styles.sectionTitle}>📥 Paso 1: Descargar Formato</Label>
+              <Label size="large" style={styles.sectionTitle}>
+                {mode === 'products'
+                  ? '📲 Paso 1: Enviar Formato por WhatsApp'
+                  : '📥 Paso 1: Descargar Formato'}
+              </Label>
 
               {mode === 'products' && (
                 <View style={styles.filterContainer}>
@@ -284,7 +375,9 @@ Total procesado: ${result.totalRows}
                   </Label>
                   <View style={styles.dateInputContainer}>
                     <View style={styles.dateInput}>
-                      <Caption color="tertiary" style={styles.dateLabel}>Desde:</Caption>
+                      <Caption color="tertiary" style={styles.dateLabel}>
+                        Desde:
+                      </Caption>
                       <TextInput
                         style={styles.input}
                         placeholder="YYYY-MM-DD"
@@ -295,7 +388,9 @@ Total procesado: ${result.totalRows}
                       />
                     </View>
                     <View style={styles.dateInput}>
-                      <Caption color="tertiary" style={styles.dateLabel}>Hasta:</Caption>
+                      <Caption color="tertiary" style={styles.dateLabel}>
+                        Hasta:
+                      </Caption>
                       <TextInput
                         style={styles.input}
                         placeholder="YYYY-MM-DD"
@@ -307,8 +402,80 @@ Total procesado: ${result.totalRows}
                     </View>
                   </View>
                   <Caption color="tertiary" style={styles.helperText}>
-                    Deja vacío para descargar todos los productos
+                    Deja vacío para incluir todos los productos
                   </Caption>
+
+                  <Label
+                    size="medium"
+                    color="secondary"
+                    style={[styles.filterLabel, { marginTop: theme.space[4] }]}
+                  >
+                    Contacto que recibirá el WhatsApp *
+                  </Label>
+                  {loadingContacts ? (
+                    <View style={styles.contactsLoading}>
+                      <ActivityIndicator size="small" color={theme.color.brand.primary} />
+                      <Caption color="tertiary" style={{ marginLeft: theme.space[2] }}>
+                        Cargando contactos...
+                      </Caption>
+                    </View>
+                  ) : !selectedSite ? (
+                    <View style={styles.emptyContacts}>
+                      <Caption color={theme.color.state.warning.text}>
+                        Selecciona una sede para ver los contactos disponibles.
+                      </Caption>
+                    </View>
+                  ) : contacts.length === 0 ? (
+                    <View style={styles.emptyContacts}>
+                      <Caption color={theme.color.state.warning.text}>
+                        No hay contactos activos con WhatsApp habilitado para la sede{' '}
+                        {selectedSite.name}.
+                      </Caption>
+                    </View>
+                  ) : (
+                    <View style={styles.contactsList}>
+                      {contacts.map((contact) => {
+                        const isSelected = selectedContactId === contact.id;
+                        return (
+                          <TouchableOpacity
+                            key={contact.id}
+                            style={[styles.contactItem, isSelected && styles.contactItemSelected]}
+                            onPress={() => setSelectedContactId(contact.id)}
+                            disabled={loading}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Body size="small" color={isSelected ? 'primary' : 'heading'}>
+                                {contact.contactName}
+                              </Body>
+                              <Caption color="tertiary">
+                                {contact.phoneNumber}
+                                {contact.position ? ` · ${contact.position}` : ''}
+                              </Caption>
+                            </View>
+                            {isSelected && <Caption color={theme.color.brand.primary}>✓</Caption>}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  <Label
+                    size="medium"
+                    color="secondary"
+                    style={[styles.filterLabel, { marginTop: theme.space[4] }]}
+                  >
+                    Mensaje (opcional)
+                  </Label>
+                  <TextInput
+                    style={[styles.input, styles.captionInput]}
+                    placeholder="Texto que acompañará al archivo en WhatsApp"
+                    placeholderTextColor={theme.color.text.placeholder}
+                    value={caption}
+                    onChangeText={setCaption}
+                    editable={!loading}
+                    multiline
+                    numberOfLines={2}
+                  />
                 </View>
               )}
 
@@ -319,10 +486,14 @@ Total procesado: ${result.totalRows}
               )}
 
               <Button
-                title="📥 Descargar Formato Excel"
+                title={
+                  mode === 'products' ? '📲 Enviar por WhatsApp' : '📥 Descargar Formato Excel'
+                }
                 variant="primary"
-                onPress={handleDownloadFormat}
-                disabled={loading}
+                onPress={mode === 'products' ? handleSendFormat : handleDownloadFormat}
+                disabled={
+                  loading || (mode === 'products' && (loadingContacts || !selectedContactId))
+                }
                 loading={loading}
                 fullWidth
                 style={styles.actionButton}
@@ -331,11 +502,15 @@ Total procesado: ${result.totalRows}
 
             {/* Upload Section */}
             <View style={styles.section}>
-              <Label size="large" style={styles.sectionTitle}>📤 Paso 2: Subir Archivo Modificado</Label>
+              <Label size="large" style={styles.sectionTitle}>
+                📤 Paso 2: Subir Archivo Modificado
+              </Label>
 
               {selectedFile && (
                 <View style={styles.fileInfo}>
-                  <Body size="small" color="primary" style={{ flex: 1 }}>📄 {selectedFile.name}</Body>
+                  <Body size="small" color="primary" style={{ flex: 1 }}>
+                    📄 {selectedFile.name}
+                  </Body>
                   <IconButton
                     icon="close-circle"
                     onPress={() => setSelectedFile(null)}
@@ -443,6 +618,40 @@ const createStyles = (theme: Theme) =>
     helperText: {
       marginTop: theme.space[1.5],
       fontStyle: 'italic',
+    },
+    captionInput: {
+      minHeight: 60,
+      textAlignVertical: 'top',
+    },
+    contactsLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+    },
+    emptyContacts: {
+      backgroundColor: theme.color.state.warning.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.warning.border,
+    },
+    contactsList: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      overflow: 'hidden',
+    },
+    contactItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    contactItemSelected: {
+      backgroundColor: theme.color.brand.accentSoft,
     },
     campaignInfo: {
       marginBottom: theme.space[3],
