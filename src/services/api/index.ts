@@ -50,6 +50,14 @@ export type {
   UpsertExternalSalesSourceDto,
 } from './external-sales';
 export { posSessionsApi } from './pos-sessions';
+export { reportsApi } from './reports';
+export type {
+  SalesProfitReport,
+  SalesProfitRow,
+  SalesProfitTotals,
+  SalesProfitGroupBy,
+  GetSalesProfitParams,
+} from './reports';
 export { photoCampaignsApi } from './photo-campaigns';
 export type {
   PhotoCampaign,
