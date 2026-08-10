@@ -18,7 +18,7 @@ import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { apiClient, scopesApi, reportsApi } from '@/services/api';
-import type { ResolvedScope, SalesProfitReport, SalesProfitGroupBy } from '@/services/api';
+import type { ResolvedScope, SalesProfitReport, SalesProfitRow } from '@/services/api';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import Svg, { Line, Text as SvgText, Circle, Polyline, Path } from 'react-native-svg';
 import {
@@ -141,10 +141,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const [salesSummary, setSalesSummary] = useState<ResumenDiarioResponse | null>(null);
   const [salesChart, setSalesChart] = useState<ResumenDiarioResponse | null>(null);
   const [salesProfit, setSalesProfit] = useState<SalesProfitReport | null>(null);
-  const [salesProfitGroupBy, setSalesProfitGroupBy] = useState<SalesProfitGroupBy>('site_day');
   const [loadingSalesProfit, setLoadingSalesProfit] = useState(false);
-  const [salesProfitError, setSalesProfitError] = useState<string | null>(null);
-  const [salesProfitCollapsed, setSalesProfitCollapsed] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingSales, setLoadingSales] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -933,10 +930,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     }
   };
 
-  const loadSalesProfit = async (groupByOverride?: SalesProfitGroupBy) => {
+  const loadSalesProfit = async () => {
     try {
       setLoadingSalesProfit(true);
-      setSalesProfitError(null);
 
       const sedeIdParam = getSedeIdParam();
       if (!sedeIdParam) {
@@ -949,22 +945,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         from: startDate,
         to: endDate,
         siteId: sedeIdParam,
-        groupBy: groupByOverride || salesProfitGroupBy,
+        groupBy: 'site',
       });
       setSalesProfit(data);
     } catch (err: any) {
       console.error('❌ Error loading sales profit:', err);
-      setSalesProfitError(err.response?.data?.message || 'Error al cargar la utilidad de ventas');
       setSalesProfit(null);
     } finally {
       setLoadingSalesProfit(false);
     }
-  };
-
-  const handleChangeSalesProfitGroupBy = (next: SalesProfitGroupBy) => {
-    if (next === salesProfitGroupBy) return;
-    setSalesProfitGroupBy(next);
-    loadSalesProfit(next);
   };
 
   const handleRefresh = async () => {
@@ -1944,317 +1933,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const computeMontoAPagar = (ventasNetas: number, external: boolean) =>
     external ? ventasNetas / EXTERNAL_PAY_DIVISOR : ventasNetas;
 
-  const formatCents = (cents: number) => formatCurrency((cents || 0) / 100);
-  const formatMarginPct = (v: number | null | undefined) =>
-    v == null ? '—' : `${(v * 100).toFixed(2)}%`;
-  const formatUnits = (n: number) =>
-    Number.isFinite(n) ? new Intl.NumberFormat('es-PE').format(Number(n.toFixed(2))) : '—';
-
-  const renderSalesProfitSection = () => {
-    const groupOptions: { value: SalesProfitGroupBy; label: string }[] = [
-      { value: 'site_day', label: 'Sede + día' },
-      { value: 'site', label: 'Por sede' },
-      { value: 'day', label: 'Por día' },
-    ];
-
-    return (
-      <View style={styles.section}>
-        <TouchableOpacity
-          style={styles.collapsibleHeader}
-          onPress={() => setSalesProfitCollapsed((v) => !v)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.collapsibleHeaderTextWrap}>
-            <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
-              📈 Utilidad de ventas
-            </Text>
-            <Text style={styles.collapsibleHeaderHint}>
-              Neto sin IGV · COGS
-              {salesProfit
-                ? ` · ${formatCents(salesProfit.totals.profitCents)} (${formatMarginPct(
-                    salesProfit.totals.marginPct
-                  )})`
-                : ''}
-            </Text>
-          </View>
-          <Ionicons
-            name={salesProfitCollapsed ? 'chevron-down' : 'chevron-up'}
-            size={22}
-            color={theme.color.text.muted}
-          />
-        </TouchableOpacity>
-
-        {!salesProfitCollapsed && (
-          <View style={styles.collapsibleBody}>
-            {/* GroupBy selector */}
-            <View style={styles.salesProfitGroupRow}>
-              {groupOptions.map((opt) => {
-                const active = salesProfitGroupBy === opt.value;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[
-                      styles.salesProfitGroupChip,
-                      active && styles.salesProfitGroupChipActive,
-                    ]}
-                    onPress={() => handleChangeSalesProfitGroupBy(opt.value)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.salesProfitGroupChipText,
-                        active && styles.salesProfitGroupChipTextActive,
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {loadingSalesProfit && !refreshing && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={theme.color.chart.categorical[6]} />
-                <Text style={styles.loadingText}>Cargando utilidad...</Text>
-              </View>
-            )}
-
-            {salesProfitError && !loadingSalesProfit && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorIcon}>⚠️</Text>
-                <Text style={styles.errorText}>{salesProfitError}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={() => loadSalesProfit()}>
-                  <Text style={styles.retryButtonText}>Reintentar</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {!loadingSalesProfit && !salesProfitError && salesProfit && (
-              <>
-                {/* Totales */}
-                <View style={[styles.statsGrid, isTablet && styles.statsGridTablet]}>
-                  <View style={[styles.statCard, styles.statCardInfo]}>
-                    <Text style={styles.statIcon}>💵</Text>
-                    <Text style={styles.statLabel}>Ingreso neto</Text>
-                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                      {formatCents(salesProfit.totals.revenueNetCents)}
-                    </Text>
-                    <Text style={styles.statSubtext}>
-                      {formatUnits(salesProfit.totals.unitsSold)} unidades
-                    </Text>
-                  </View>
-
-                  <View style={[styles.statCard, styles.statCardDanger]}>
-                    <Text style={styles.statIcon}>📉</Text>
-                    <Text style={styles.statLabel}>Costo (COGS)</Text>
-                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                      {formatCents(salesProfit.totals.costCents)}
-                    </Text>
-                    <Text style={styles.statSubtext}>Entry consumido</Text>
-                  </View>
-
-                  <View style={[styles.statCard, styles.statCardSuccess]}>
-                    <Text style={styles.statIcon}>💹</Text>
-                    <Text style={styles.statLabel}>Utilidad</Text>
-                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                      {formatCents(salesProfit.totals.profitCents)}
-                    </Text>
-                    <Text style={styles.statSubtext}>
-                      Margen {formatMarginPct(salesProfit.totals.marginPct)}
-                    </Text>
-                  </View>
-
-                  <View style={[styles.statCard, styles.statCardWarning]}>
-                    <Text style={styles.statIcon}>⚠️</Text>
-                    <Text style={styles.statLabel}>Costo 0/desconocido</Text>
-                    <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                      {formatCents(salesProfit.totals.revenueCostZeroCents)}
-                    </Text>
-                    <Text style={styles.statSubtext}>
-                      {formatUnits(salesProfit.totals.unitsCostZero)} u ·{' '}
-                      {salesProfit.totals.linesCostZero} líneas
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Tabla filas */}
-                {salesProfit.rows.length > 0 ? (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator
-                    style={styles.salesProfitTableScroll}
-                  >
-                    <View>
-                      <View style={[styles.salesProfitRow, styles.salesProfitHeaderRow]}>
-                        {(salesProfitGroupBy === 'site' || salesProfitGroupBy === 'site_day') && (
-                          <Text
-                            style={[
-                              styles.salesProfitCell,
-                              styles.salesProfitHeaderCell,
-                              styles.salesProfitCellSite,
-                            ]}
-                          >
-                            Sede
-                          </Text>
-                        )}
-                        {(salesProfitGroupBy === 'day' || salesProfitGroupBy === 'site_day') && (
-                          <Text
-                            style={[
-                              styles.salesProfitCell,
-                              styles.salesProfitHeaderCell,
-                              styles.salesProfitCellDay,
-                            ]}
-                          >
-                            Día
-                          </Text>
-                        )}
-                        <Text
-                          style={[
-                            styles.salesProfitCell,
-                            styles.salesProfitHeaderCell,
-                            styles.salesProfitCellNum,
-                          ]}
-                        >
-                          Unidades
-                        </Text>
-                        <Text
-                          style={[
-                            styles.salesProfitCell,
-                            styles.salesProfitHeaderCell,
-                            styles.salesProfitCellNum,
-                          ]}
-                        >
-                          Ingreso neto
-                        </Text>
-                        <Text
-                          style={[
-                            styles.salesProfitCell,
-                            styles.salesProfitHeaderCell,
-                            styles.salesProfitCellNum,
-                          ]}
-                        >
-                          Costo
-                        </Text>
-                        <Text
-                          style={[
-                            styles.salesProfitCell,
-                            styles.salesProfitHeaderCell,
-                            styles.salesProfitCellNum,
-                          ]}
-                        >
-                          Utilidad
-                        </Text>
-                        <Text
-                          style={[
-                            styles.salesProfitCell,
-                            styles.salesProfitHeaderCell,
-                            styles.salesProfitCellNum,
-                          ]}
-                        >
-                          Margen
-                        </Text>
-                        <Text
-                          style={[
-                            styles.salesProfitCell,
-                            styles.salesProfitHeaderCell,
-                            styles.salesProfitCellNum,
-                          ]}
-                        >
-                          Costo 0
-                        </Text>
-                      </View>
-                      {salesProfit.rows.map((row, idx) => {
-                        const hasZero =
-                          row.linesCostZero > 0 || (row.revenueCostZeroCents || 0) > 0;
-                        return (
-                          <View
-                            key={`${row.siteId ?? ''}-${row.day ?? ''}-${idx}`}
-                            style={[
-                              styles.salesProfitRow,
-                              idx % 2 === 1 && styles.salesProfitRowAlt,
-                            ]}
-                          >
-                            {(salesProfitGroupBy === 'site' ||
-                              salesProfitGroupBy === 'site_day') && (
-                              <Text
-                                style={[styles.salesProfitCell, styles.salesProfitCellSite]}
-                                numberOfLines={2}
-                              >
-                                {row.siteName || row.siteId || '—'}
-                              </Text>
-                            )}
-                            {(salesProfitGroupBy === 'day' ||
-                              salesProfitGroupBy === 'site_day') && (
-                              <Text style={[styles.salesProfitCell, styles.salesProfitCellDay]}>
-                                {row.day || '—'}
-                              </Text>
-                            )}
-                            <Text style={[styles.salesProfitCell, styles.salesProfitCellNum]}>
-                              {formatUnits(row.unitsSold)}
-                            </Text>
-                            <Text style={[styles.salesProfitCell, styles.salesProfitCellNum]}>
-                              {formatCents(row.revenueNetCents)}
-                            </Text>
-                            <Text style={[styles.salesProfitCell, styles.salesProfitCellNum]}>
-                              {formatCents(row.costCents)}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.salesProfitCell,
-                                styles.salesProfitCellNum,
-                                styles.salesProfitCellStrong,
-                              ]}
-                            >
-                              {formatCents(row.profitCents)}
-                            </Text>
-                            <Text style={[styles.salesProfitCell, styles.salesProfitCellNum]}>
-                              {formatMarginPct(row.marginPct)}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.salesProfitCell,
-                                styles.salesProfitCellNum,
-                                hasZero && styles.salesProfitCellWarn,
-                              ]}
-                            >
-                              {row.linesCostZero > 0
-                                ? `${row.linesCostZero} · ${formatCents(row.revenueCostZeroCents)}`
-                                : '—'}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </ScrollView>
-                ) : (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateIcon}>📭</Text>
-                    <Text style={styles.emptyStateText}>
-                      Sin datos de utilidad en el período seleccionado
-                    </Text>
-                  </View>
-                )}
-
-                {salesProfit.totals.linesCostZero > 0 && (
-                  <Text style={styles.salesProfitDisclaimer}>
-                    ⚠️ Hay {salesProfit.totals.linesCostZero} líneas con costo 0/desconocido (
-                    {formatCents(salesProfit.totals.revenueCostZeroCents)} en ingreso). La utilidad
-                    de esas ventas no es confiable.
-                  </Text>
-                )}
-              </>
-            )}
-          </View>
-        )}
-      </View>
-    );
-  };
-
   const renderSalesBySedeTable = () => {
     if (!salesSummary || !salesSummary.por_sede || salesSummary.por_sede.length === 0) {
       return null;
     }
+
+    // Índice de utilidad por siteId para inyectar en cada fila de la tabla de sedes.
+    const profitBySiteId = new Map<string, SalesProfitRow>();
+    (salesProfit?.rows || []).forEach((r) => {
+      if (r.siteId) profitBySiteId.set(r.siteId, r);
+    });
 
     // Orden: sedes con ventas > 0 primero (desc por ventas netas), luego las de 0 ventas (alfabético).
     const rows = [...salesSummary.por_sede].sort((a, b) => {
@@ -2405,6 +2093,33 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                       styles.sedeTableCellNum,
                     ]}
                   >
+                    Costo
+                  </Text>
+                  <Text
+                    style={[
+                      styles.sedeTableCell,
+                      styles.sedeTableHeaderCell,
+                      styles.sedeTableCellNum,
+                    ]}
+                  >
+                    Utilidad
+                  </Text>
+                  <Text
+                    style={[
+                      styles.sedeTableCell,
+                      styles.sedeTableHeaderCell,
+                      styles.sedeTableCellNum,
+                    ]}
+                  >
+                    Margen
+                  </Text>
+                  <Text
+                    style={[
+                      styles.sedeTableCell,
+                      styles.sedeTableHeaderCell,
+                      styles.sedeTableCellNum,
+                    ]}
+                  >
                     Izipay Neto
                   </Text>
                   <Text
@@ -2516,6 +2231,42 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                       >
                         {formatCurrency(ventasNetas)}
                       </Text>
+                      {(() => {
+                        const p = profitBySiteId.get(row.sede.id);
+                        const hasZero =
+                          !!p && (p.linesCostZero > 0 || (p.revenueCostZeroCents || 0) > 0);
+                        return (
+                          <>
+                            <Text style={[styles.sedeTableCell, styles.sedeTableCellNum]}>
+                              {p ? formatCurrency((p.costCents || 0) / 100) : '—'}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.sedeTableCell,
+                                styles.sedeTableCellNum,
+                                styles.sedeTableCellStrong,
+                                p && p.profitCents < 0 && { color: theme.color.text.danger },
+                              ]}
+                            >
+                              {p ? formatCurrency((p.profitCents || 0) / 100) : '—'}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.sedeTableCell,
+                                styles.sedeTableCellNum,
+                                hasZero && {
+                                  color: theme.color.state.warning.text,
+                                  fontWeight: '600',
+                                },
+                              ]}
+                            >
+                              {p == null || p.marginPct == null
+                                ? '—'
+                                : `${(p.marginPct * 100).toFixed(1)}%`}
+                            </Text>
+                          </>
+                        );
+                      })()}
                       <Text style={[styles.sedeTableCell, styles.sedeTableCellNum]}>
                         {formatCurrency(t.izipay_neto)}
                       </Text>
@@ -2600,6 +2351,39 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                         styles.sedeTableTotalText,
                       ]}
                     >
+                      {salesProfit
+                        ? formatCurrency((salesProfit.totals.costCents || 0) / 100)
+                        : '—'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sedeTableCell,
+                        styles.sedeTableCellNum,
+                        styles.sedeTableTotalText,
+                      ]}
+                    >
+                      {salesProfit
+                        ? formatCurrency((salesProfit.totals.profitCents || 0) / 100)
+                        : '—'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sedeTableCell,
+                        styles.sedeTableCellNum,
+                        styles.sedeTableTotalText,
+                      ]}
+                    >
+                      {salesProfit && salesProfit.totals.marginPct != null
+                        ? `${(salesProfit.totals.marginPct * 100).toFixed(1)}%`
+                        : '—'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sedeTableCell,
+                        styles.sedeTableCellNum,
+                        styles.sedeTableTotalText,
+                      ]}
+                    >
                       {formatCurrency(aggregatedSalesTotals.izipay_neto)}
                     </Text>
                     <Text
@@ -2644,6 +2428,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 )}
               </View>
             </ScrollView>
+            {salesProfit && salesProfit.totals.linesCostZero > 0 && (
+              <Text style={styles.salesProfitDisclaimer}>
+                ⚠️ {salesProfit.totals.linesCostZero} líneas con costo 0/desconocido (
+                {formatCurrency((salesProfit.totals.revenueCostZeroCents || 0) / 100)} en ingreso).
+                La utilidad de esas ventas no es confiable.
+              </Text>
+            )}
+            {loadingSalesProfit && !salesProfit && (
+              <Text style={styles.salesProfitDisclaimer}>Calculando utilidad…</Text>
+            )}
           </>
         )}
       </View>
@@ -3008,9 +2802,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
               )}
           </View>
         )}
-
-        {/* Sales Profit (COGS) Section */}
-        {canViewSales && renderSalesProfitSection()}
 
         {/* Purchases Summary Section */}
         {canViewPurchases && (
@@ -4764,81 +4555,10 @@ const createStyles = (theme: Theme) =>
     collapsibleBody: {
       marginTop: theme.space[1],
     },
-    // Sales Profit (utilidad)
-    salesProfitGroupRow: {
-      flexDirection: 'row',
-      gap: theme.space[2],
-      marginBottom: theme.space[3],
-      flexWrap: 'wrap',
-    },
-    salesProfitGroupChip: {
-      paddingHorizontal: theme.space[3],
-      paddingVertical: theme.space[2],
-      borderRadius: theme.radii.full,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-      backgroundColor: theme.color.surface.base,
-    },
-    salesProfitGroupChipActive: {
-      backgroundColor: theme.color.brand.primary,
-      borderColor: theme.color.brand.primary,
-    },
-    salesProfitGroupChipText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: theme.color.text.body,
-    },
-    salesProfitGroupChipTextActive: {
-      color: theme.color.text.onAction,
-    },
-    salesProfitTableScroll: {
-      marginTop: theme.space[3],
-    },
-    salesProfitRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: theme.space[2],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    salesProfitHeaderRow: {
-      backgroundColor: theme.color.surface.muted,
-    },
-    salesProfitRowAlt: {
-      backgroundColor: theme.color.surface.subtle,
-    },
-    salesProfitCell: {
-      paddingHorizontal: theme.space[2],
-      fontSize: 12,
-      color: theme.color.text.body,
-    },
-    salesProfitHeaderCell: {
-      fontWeight: '700',
-      color: theme.color.text.muted,
-      fontSize: 11,
-      textTransform: 'uppercase',
-    },
-    salesProfitCellSite: {
-      width: 160,
-    },
-    salesProfitCellDay: {
-      width: 110,
-    },
-    salesProfitCellNum: {
-      width: 120,
-      textAlign: 'right',
-      fontVariant: ['tabular-nums'],
-    },
-    salesProfitCellStrong: {
-      fontWeight: '700',
-      color: theme.color.text.heading,
-    },
-    salesProfitCellWarn: {
-      color: theme.color.state.warning.text,
-      fontWeight: '600',
-    },
+    // Utilidad: aviso de líneas con costo 0
     salesProfitDisclaimer: {
-      marginTop: theme.space[3],
+      marginTop: theme.space[2],
+      marginHorizontal: theme.space[3],
       fontSize: 12,
       color: theme.color.state.warning.text,
       fontStyle: 'italic',
