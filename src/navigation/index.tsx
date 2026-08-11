@@ -10,6 +10,7 @@ import { PERMISSIONS } from '@/constants/permissions';
 // Type Definitions
 import { AuthStackParamList, MainStackParamList } from '@/types/navigation';
 import { AUTH_ROUTES, MAIN_ROUTES } from '@/constants/routes';
+import { linking } from '@/navigation/linking';
 
 // ============================================
 // EAGER LOADED - Critical screens (always loaded)
@@ -2234,31 +2235,8 @@ export const Navigation = () => {
     hasDashboardPermission,
   ]);
 
-  // En web, sincronizamos el botón "atrás" del navegador con la pila de
-  // React Navigation para evitar que salga de la SPA.
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !isReady) return;
-    // Estado inicial para tener siempre algo que consumir con el back.
-    try {
-      window.history.pushState({ rnNav: true }, '');
-    } catch {
-      /* no-op */
-    }
-    const onPopState = () => {
-      const nav = navigationRef.current;
-      if (nav?.canGoBack?.()) {
-        nav.goBack();
-        // Volvemos a empujar un estado para no perder capacidad de retroceder.
-        try {
-          window.history.pushState({ rnNav: true }, '');
-        } catch {
-          /* no-op */
-        }
-      }
-    };
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, [isReady]);
+  // Nota: la sincronización con el botón "atrás" del navegador y con la URL
+  // ahora la maneja `linking` en el NavigationContainer.
 
   // Don't render until we've restored state
   if (!isReady) {
@@ -2268,6 +2246,7 @@ export const Navigation = () => {
   return (
     <NavigationContainer
       ref={navigationRef}
+      linking={linking}
       initialState={initialState}
       onStateChange={(state) => {
         // Save navigation state whenever it changes

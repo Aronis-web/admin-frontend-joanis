@@ -6,10 +6,11 @@
  */
 
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Platform, NativeModules } from 'react-native';
+import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/design-system/tokens/colors';
 import { spacing } from '@/design-system/tokens/spacing';
+import { reloadCurrentScreen } from '@/utils/reload';
 
 interface ReloadButtonProps {
   /**
@@ -26,33 +27,45 @@ interface ReloadButtonProps {
   opacity?: number;
 }
 
-/**
- * Función para recargar la aplicación
- */
-const handleReload = () => {
-  if (Platform.OS === 'web') {
-    window.location.reload();
-  } else {
-    const { DevSettings } = NativeModules;
-    if (DevSettings?.reload) {
-      DevSettings.reload();
-    }
-  }
-};
-
 export const ReloadButton: React.FC<ReloadButtonProps> = ({
   color = colors.neutral[0],
   size = 20,
   opacity = 0.6,
 }) => {
+  const [busy, setBusy] = React.useState(false);
+  const spin = React.useRef(new Animated.Value(0)).current;
+
+  const handlePress = async () => {
+    if (busy) return;
+    setBusy(true);
+    spin.setValue(0);
+    const anim = Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 800, useNativeDriver: true })
+    );
+    anim.start();
+    try {
+      await reloadCurrentScreen();
+    } finally {
+      anim.stop();
+      spin.setValue(0);
+      setBusy(false);
+    }
+  };
+
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
   return (
     <TouchableOpacity
       style={[styles.button, { opacity }]}
-      onPress={handleReload}
+      onPress={handlePress}
       activeOpacity={0.7}
+      disabled={busy}
+      accessibilityLabel="Recargar pantalla"
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
-      <Ionicons name="refresh" size={size} color={color} />
+      <Animated.View style={{ transform: [{ rotate }] }}>
+        <Ionicons name="refresh" size={size} color={color} />
+      </Animated.View>
     </TouchableOpacity>
   );
 };

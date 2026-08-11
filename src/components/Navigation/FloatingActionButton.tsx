@@ -1,35 +1,15 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  View,
-  Platform,
-  NativeModules,
-} from 'react-native';
+import { TouchableOpacity, StyleSheet, Animated, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { useFloatingActionBottomOffset } from '@/design-system/layout/FloatingFooterProvider';
+import { reloadCurrentScreen } from '@/utils/reload';
 
 interface FloatingActionButtonProps {
   onPress: () => void;
 }
-
-/**
- * Función para recargar la aplicación
- */
-const handleReload = () => {
-  if (Platform.OS === 'web') {
-    window.location.reload();
-  } else {
-    const { DevSettings } = NativeModules;
-    if (DevSettings?.reload) {
-      DevSettings.reload();
-    }
-  }
-};
 
 export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPress }) => {
   const theme = useTheme();
@@ -39,6 +19,8 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPr
 
   const scaleValue = React.useRef(new Animated.Value(1)).current;
   const reloadScaleValue = React.useRef(new Animated.Value(1)).current;
+  const reloadSpin = React.useRef(new Animated.Value(0)).current;
+  const [reloading, setReloading] = React.useState(false);
 
   const animatePress = (ref: Animated.Value) => {
     Animated.sequence([
@@ -52,10 +34,33 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPr
     onPress();
   };
 
-  const handleReloadPress = () => {
+  const handleReloadPress = async () => {
+    if (reloading) return;
     animatePress(reloadScaleValue);
-    handleReload();
+    setReloading(true);
+    // Giro visual del icono mientras refresca
+    reloadSpin.setValue(0);
+    const spinAnim = Animated.loop(
+      Animated.timing(reloadSpin, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      })
+    );
+    spinAnim.start();
+    try {
+      await reloadCurrentScreen();
+    } finally {
+      spinAnim.stop();
+      reloadSpin.setValue(0);
+      setReloading(false);
+    }
   };
+
+  const spin = reloadSpin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   return (
     <View style={[styles.wrapper, { bottom }]} pointerEvents="box-none">
@@ -64,9 +69,12 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ onPr
           style={styles.reloadButton}
           onPress={handleReloadPress}
           activeOpacity={0.7}
-          accessibilityLabel="Recargar"
+          accessibilityLabel="Recargar pantalla"
+          disabled={reloading}
         >
-          <Ionicons name="refresh" size={18} color={theme.color.icon.muted} />
+          <Animated.View style={{ transform: [{ rotate: spin }] }}>
+            <Ionicons name="refresh" size={18} color={theme.color.icon.muted} />
+          </Animated.View>
         </TouchableOpacity>
       </Animated.View>
 
