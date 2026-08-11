@@ -1,9 +1,14 @@
 /**
  * DriveFAB
  *
- * FAB rojo con speed-dial vertical para acciones de creación/subida.
- * Mismo estilo visual que `BizlinksDocumentsFAB` y `ExpensesFAB`.
- * Se posiciona respetando la altura de la BottomBar (via FloatingFooterProvider).
+ * FAB rojo con speed-dial vertical hacia arriba y a la izquierda.
+ * Replica el patrón visual de `BizlinksDocumentsFAB` / `ExpensesFAB`:
+ *  - Botón principal circular en color `theme.color.brand.accent`.
+ *  - Al abrir, botones pequeños se despliegan hacia arriba+izquierda con
+ *    stagger, cada uno con una "label pill" a la izquierda.
+ *  - Overlay oscuro cubre el fondo mientras está abierto.
+ *
+ * Se posiciona respetando la altura de la BottomBar via FloatingFooterProvider.
  */
 
 import React, { useRef, useState } from 'react';
@@ -50,17 +55,15 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
-  // Tier "module": queda encima de la BottomBar y por debajo del botón de menú/reload.
+  // Tier "module": el FAB queda encima de la BottomBar y por debajo del botón menú/reload
   const bottomOffset = useFloatingActionBottomOffset('module', insets.bottom, 0);
 
   const [isOpen, setIsOpen] = useState(false);
-  const rotate = useRef(new Animated.Value(0)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const overlayAnim = useRef(new Animated.Value(0)).current;
+
+  // Aseguramos sincrónicamente una animation.Value por cada acción actual
   const buttonAnimsRef = useRef<Animated.Value[]>([]);
-  // Aseguramos SINCRÓNICAMENTE (antes de mapear en el render) que haya
-  // una Animated.Value por cada acción actual. Si sólo lo hiciéramos en
-  // useEffect, un cambio en `actions` provocaría `buttonAnims[index] === undefined`
-  // y `.interpolate` crashearía la primera vez.
   while (buttonAnimsRef.current.length < actions.length) {
     buttonAnimsRef.current.push(new Animated.Value(0));
   }
@@ -73,8 +76,8 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
   const toggle = () => {
     const to = isOpen ? 0 : 1;
     Animated.parallel([
-      Animated.timing(rotate, { toValue: to, duration: 250, useNativeDriver: true }),
-      Animated.timing(overlayOpacity, { toValue: to, duration: 250, useNativeDriver: true }),
+      Animated.timing(rotateAnim, { toValue: to, duration: 300, useNativeDriver: true }),
+      Animated.timing(overlayAnim, { toValue: to, duration: 300, useNativeDriver: true }),
       Animated.stagger(
         50,
         buttonAnims
@@ -87,21 +90,34 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
     setIsOpen((v) => !v);
   };
 
-  const handlePress = (id: DriveFABActionId) => {
+  const handleAction = (id: DriveFABActionId) => {
     toggle();
-    setTimeout(() => onAction(id), 250);
+    setTimeout(() => onAction(id), 300);
   };
 
-  const rotation = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
-  const spacing = isTablet ? 70 : 64;
+  const rotation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '45deg'],
+  });
+
+  // Posiciones: apiladas hacia arriba y desplazadas a la izquierda para
+  // que el label pill quepa cómodo (mismo criterio que Bizlinks).
+  const verticalSpacing = isTablet ? 70 : 65;
+  const horizontalOffset = isTablet ? -80 : -70;
+
+  const getButtonPosition = (index: number) => ({
+    x: horizontalOffset,
+    y: -(verticalSpacing * (index + 1)),
+  });
 
   return (
     <>
+      {/* Overlay oscuro */}
       <Animated.View
         style={[
           styles.overlay,
           {
-            opacity: overlayOpacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.45] }),
+            opacity: overlayAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.5] }),
           },
         ]}
         pointerEvents={isOpen ? 'auto' : 'none'}
@@ -109,49 +125,71 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={toggle} activeOpacity={1} />
       </Animated.View>
 
+      {/* Contenedor absoluto anclado a la esquina inferior derecha */}
       <View
-        style={[styles.container, { bottom: bottomOffset, right: isTablet ? 28 : 16 }]}
+        style={[styles.fabContainer, { bottom: bottomOffset, right: isTablet ? 30 : 20 }]}
         pointerEvents="box-none"
       >
+        {/* Botones de acciones */}
         {options.map((opt, index) => {
+          const pos = getButtonPosition(index);
           const anim = buttonAnims[index];
           return (
             <Animated.View
               key={opt.id}
-              pointerEvents={isOpen ? 'auto' : 'none'}
               style={[
-                styles.optionWrap,
+                styles.optionButtonContainer,
                 {
                   opacity: anim,
                   transform: [
                     {
-                      translateY: anim.interpolate({
+                      translateX: anim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0, -spacing * (index + 1)],
+                        outputRange: [0, pos.x],
                       }),
                     },
                     {
-                      scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
+                      translateY: anim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, pos.y],
+                      }),
+                    },
+                    {
+                      scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] }),
                     },
                   ],
                 },
               ]}
+              pointerEvents={isOpen ? 'auto' : 'none'}
             >
-              <View style={styles.labelPill}>
-                <Text style={styles.labelText}>{opt.label}</Text>
+              <View style={styles.optionRow}>
+                <View style={styles.labelContainer}>
+                  <Text style={[styles.optionLabel, isTablet && styles.optionLabelTablet]}>
+                    {opt.label}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.optionButton,
+                    isTablet && styles.optionButtonTablet,
+                    { backgroundColor: opt.color },
+                  ]}
+                  onPress={() => handleAction(opt.id)}
+                  activeOpacity={0.9}
+                >
+                  <Ionicons
+                    name={opt.icon}
+                    size={isTablet ? 24 : 20}
+                    color={theme.color.text.inverse}
+                  />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={[styles.optionButton, { backgroundColor: opt.color }]}
-                onPress={() => handlePress(opt.id)}
-                activeOpacity={0.9}
-              >
-                <Ionicons name={opt.icon} size={22} color={theme.color.text.inverse} />
-              </TouchableOpacity>
             </Animated.View>
           );
         })}
 
-        <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+        {/* FAB principal */}
+        <Animated.View style={[styles.mainFabContainer, { transform: [{ rotate: rotation }] }]}>
           <TouchableOpacity
             style={[styles.mainFab, isTablet && styles.mainFabTablet]}
             onPress={toggle}
@@ -171,12 +209,17 @@ const createStyles = (theme: Theme) =>
     overlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: theme.color.overlay.strong,
-      zIndex: 9998,
+      zIndex: 10000,
     },
-    container: {
+    fabContainer: {
       position: 'absolute',
       zIndex: 10001,
       alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mainFabContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     mainFab: {
       width: 56,
@@ -197,13 +240,17 @@ const createStyles = (theme: Theme) =>
       width: 64,
       height: 64,
       borderRadius: 32,
+      shadowRadius: 16,
+      elevation: 10,
     },
-    optionWrap: {
+    optionButtonContainer: {
       position: 'absolute',
-      right: 4,
+      alignItems: 'center',
+    },
+    optionRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: theme.space[3],
     },
     optionButton: {
       width: 48,
@@ -219,7 +266,12 @@ const createStyles = (theme: Theme) =>
       borderWidth: 2,
       borderColor: theme.color.surface.base,
     },
-    labelPill: {
+    optionButtonTablet: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+    },
+    labelContainer: {
       backgroundColor: theme.color.surface.base,
       paddingHorizontal: theme.space[3],
       paddingVertical: 6,
@@ -229,11 +281,16 @@ const createStyles = (theme: Theme) =>
       shadowOpacity: 0.15,
       shadowRadius: 4,
       elevation: 4,
+      minWidth: 140,
     },
-    labelText: {
+    optionLabel: {
       fontSize: 12,
       fontWeight: '600',
       color: theme.color.text.heading,
+      textAlign: 'center',
+    },
+    optionLabelTablet: {
+      fontSize: 13,
     },
   });
 

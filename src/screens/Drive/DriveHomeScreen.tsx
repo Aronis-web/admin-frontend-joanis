@@ -41,6 +41,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   driveKeys,
   useCreateDriveFolder,
+  useCreateDriveSpace,
   useDriveFolderChildren,
   useDriveSharedWithMe,
   useDriveSpaceChildren,
@@ -72,8 +73,13 @@ import UploadConflictModal, {
   type UploadConflictChoice,
 } from '@/components/Drive/UploadConflictModal';
 import DriveNodeActionSheet, { type NodeActionId } from '@/components/Drive/DriveNodeActionSheet';
+import DriveFileOpenSheet, { type FileOpenAction } from '@/components/Drive/DriveFileOpenSheet';
+import CreateSpaceModal from '@/components/Drive/CreateSpaceModal';
 import { pickFilesForUpload } from '@/components/Drive/pickFileCrossPlatform';
 import { useWebFileDrop } from '@/components/Drive/useWebFileDrop';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { Linking } from 'react-native';
 
 interface Props {
   navigation: unknown;
@@ -131,7 +137,9 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
 
   // Modales
   const [newFolderVisible, setNewFolderVisible] = useState(false);
+  const [newSpaceVisible, setNewSpaceVisible] = useState(false);
   const [viewerNode, setViewerNode] = useState<DriveNode | null>(null);
+  const [openSheetNode, setOpenSheetNode] = useState<DriveNode | null>(null);
   const [actionSheetNode, setActionSheetNode] = useState<DriveNode | null>(null);
   const [renameNode, setRenameNode] = useState<DriveNode | null>(null);
   const [movePicker, setMovePicker] = useState<{ node: DriveNode; mode: MoveCopyMode } | null>(
@@ -207,6 +215,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // --------------------------------------------------------------------------
 
   const createFolder = useCreateDriveFolder();
+  const createSpace = useCreateDriveSpace();
   const uploadFile = useUploadDriveFile();
   const uploadVersion = useUploadDriveVersion();
   const renameNodeMut = useRenameDriveNode();
@@ -294,7 +303,86 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     if (node.kind === 'folder') {
       setFolderStack((s) => [...s, { id: node.id, name: node.name }]);
     } else {
+      // Ya no renderizamos directo: mostramos un sheet con las opciones.
+      setOpenSheetNode(node);
+    }
+  };
+
+  const handleFileOpenAction = async (action: FileOpenAction, node: DriveNode) => {
+    if (action === 'preview-in-erp') {
       setViewerNode(node);
+      return;
+    }
+    if (action === 'download') {
+      try {
+        if (Platform.OS === 'web') {
+          const blob = await driveApi.downloadNode(node.id, { disposition: 'attachment' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = node.name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } else {
+          const blob = await driveApi.downloadNode(node.id, { disposition: 'attachment' });
+          const reader = new FileReader();
+          const base64: string = await new Promise((resolve, reject) => {
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1] || '');
+            };
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+          });
+          const dir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
+          const path = `${dir}${encodeURIComponent(node.name)}`;
+          await FileSystem.writeAsStringAsync(path, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(path);
+          }
+        }
+      } catch (e) {
+        logger.error('Error descargando:', e);
+        Alert.alert('No se pudo descargar', (e as Error).message || 'Error.');
+      }
+      return;
+    }
+    if (action === 'open-external') {
+      try {
+        const blob = await driveApi.downloadNode(node.id, { disposition: 'inline' });
+        if (Platform.OS === 'web') {
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        } else {
+          const reader = new FileReader();
+          const base64: string = await new Promise((resolve, reject) => {
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1] || '');
+            };
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+          });
+          const dir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
+          const path = `${dir}${encodeURIComponent(node.name)}`;
+          await FileSystem.writeAsStringAsync(path, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(path);
+          } else {
+            await Linking.openURL(path);
+          }
+        }
+      } catch (e) {
+        logger.error('Error abriendo externo:', e);
+        Alert.alert('No se pudo abrir', (e as Error).message || 'Error.');
+      }
     }
   };
 
@@ -467,9 +555,22 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
       return;
     }
     if (id === 'new-space') {
+      setNewSpaceVisible(true);
+    }
+  };
+
+  const handleCreateSpace = async (dto: { name: string; quotaBytes: number }) => {
+    try {
+      const created = await createSpace.mutateAsync(dto);
+      setNewSpaceVisible(false);
+      // Entrar al espacio recién creado
+      setActiveSpaceId(created.id);
+      setFolderStack([]);
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
       Alert.alert(
-        'Próximamente',
-        'La creación de espacios compartidos llega en el siguiente release.'
+        'No se pudo crear el espacio',
+        err.status === 409 ? 'Ya existe un espacio con ese nombre.' : err.message || 'Error.'
       );
     }
   };
@@ -951,6 +1052,21 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
           suggestedName={conflict?.suggested ?? ''}
           existingIsFolder={conflict?.existingNode?.kind === 'folder'}
           onResolve={(choice) => void handleConflictResolve(choice)}
+        />
+        <DriveFileOpenSheet
+          visible={!!openSheetNode}
+          node={openSheetNode}
+          onClose={() => setOpenSheetNode(null)}
+          onSelect={(action, node) => {
+            setOpenSheetNode(null);
+            void handleFileOpenAction(action, node);
+          }}
+        />
+        <CreateSpaceModal
+          visible={newSpaceVisible}
+          loading={createSpace.isPending}
+          onClose={() => setNewSpaceVisible(false)}
+          onSubmit={handleCreateSpace}
         />
       </View>
     </ScreenLayout>
