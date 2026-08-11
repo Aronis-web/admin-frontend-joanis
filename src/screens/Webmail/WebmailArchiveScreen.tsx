@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -17,6 +17,7 @@ import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
 import logger from '@/utils/logger';
 import { useWebmailArchive } from '@/hooks/api/useWebmail';
+import { useOnReload } from '@/hooks/useOnReload';
 import { webmailAdminApi } from '@/services/api/webmail';
 import { saveAndShareFile } from '@/utils/fileDownload';
 import type { ArchiveDirection, ArchiveItem } from '@/types/webmail';
@@ -65,6 +66,12 @@ export const WebmailArchiveScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   const query = useWebmailArchive(params);
+
+  useOnReload(
+    useCallback(() => {
+      void query.refetch();
+    }, [query])
+  );
 
   const totalPages = useMemo(() => {
     if (!query.data) return 1;

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import {
   ActivityIndicator,
@@ -35,6 +35,7 @@ import {
 import { webmailApi } from '@/services/api/webmail';
 import { saveAndShareFile } from '@/utils/fileDownload';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { useOnReload } from '@/hooks/useOnReload';
 import type { MessageAttachment, MessageDetail } from '@/types/webmail';
 import {
   folderLabel,
@@ -117,6 +118,16 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const inTrash = isTrash(folder, folders.data);
   const inSpam = isSpam(folder, folders.data);
+
+  // Recarga desde el botón universal: refetch del mensaje, hilo y catálogos.
+  useOnReload(
+    useCallback(() => {
+      void status.refetch();
+      void folders.refetch();
+      if (showThread) void thread.refetch();
+      // El detalle del mensaje se refetch-ea vía React Query invalidando.
+    }, [status, folders, thread, showThread])
+  );
 
   const updateFlags = useUpdateFlags();
   const archiveMsg = useArchiveMessage();

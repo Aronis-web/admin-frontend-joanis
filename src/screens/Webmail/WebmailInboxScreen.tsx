@@ -41,6 +41,7 @@ import {
 } from '@/hooks/api/useWebmail';
 import type { MailFolder, MessageListItem } from '@/types/webmail';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { useOnReload } from '@/hooks/useOnReload';
 import { WebmailFolderSidebar } from './WebmailFolderSidebar';
 import {
   formatMailDate,
@@ -113,6 +114,17 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
 
   const inTrash = isTrash(currentFolder, folders.data);
   const inSpam = isSpam(currentFolder, folders.data);
+
+  // Refresh manual desde el botón universal de recarga: refetch de la vista
+  // actual (lista o búsqueda) + status/folders/quota. No cambiamos de página.
+  useOnReload(
+    useCallback(() => {
+      void status.refetch();
+      void folders.refetch();
+      void quota.refetch();
+      void activeQuery.refetch();
+    }, [status, folders, quota, activeQuery])
+  );
 
   // En web, cuando el drawer móvil está abierto, empujamos un estado al
   // historial del navegador para que el botón "atrás" cierre el drawer en

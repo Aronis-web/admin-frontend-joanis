@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useScreenTracking } from '@/hooks/useScreenTracking';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useOnReload } from '@/hooks/useOnReload';
 import { PERMISSIONS } from '@/constants/permissions';
 import { apiClient, scopesApi, reportsApi } from '@/services/api';
 import type { ResolvedScope, SalesProfitReport, SalesProfitRow } from '@/services/api';
@@ -971,6 +972,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     await Promise.all(promises);
     setRefreshing(false);
   };
+
+  // Botón universal de recarga: reutiliza handleRefresh manteniendo filtros
+  // (fechas, sede seleccionada, etc.) sin cambiar de ruta.
+  useOnReload(handleRefresh);
 
   const downloadAccountsReceivableReport = async () => {
     try {
