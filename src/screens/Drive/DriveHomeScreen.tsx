@@ -1,16 +1,20 @@
 /**
  * DriveHomeScreen
  *
- * Pantalla principal del módulo Drive (fase 1):
- *  - BottomBar siempre visible (Mi unidad, Espacios, Compartido conmigo, Papelera)
- *  - Breadcrumb + navegación por carpetas
- *  - Listado de nodos (carpetas + archivos)
- *  - FAB rojo con speed-dial: Subir archivo / Nueva carpeta / Nuevo espacio
- *  - Subida con progreso (via XHR) y toast simple
- *  - Visor básico para imagen / pdf / video / texto
+ * Pantalla principal del módulo Drive (fase 2):
+ *  - BottomBar con 4 tabs (Mi unidad, Espacios, Compartido, Papelera).
+ *  - "Mi unidad" navega el espacio personal.
+ *  - "Espacios" muestra grid de espacios compartidos y permite entrar a cada uno.
+ *  - Grid grande de carpetas/archivos (iconos grandes) con menú contextual.
+ *  - Acciones por nodo: Renombrar, Mover a..., Copiar a..., Papelera, Restaurar,
+ *    Borrar definitivo.
+ *  - Subida con progreso, drag & drop (web/Electron), Ctrl+V para pegar archivos.
+ *  - Detección de nombre duplicado: pregunta Reemplazar (nueva versión) o
+ *    Renombrar (con sugerencia name (1)).
+ *  - Visor + editor de Excel integrado en el DriveFileViewerModal.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,6 +22,7 @@ import {
   RefreshControl,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,21 +47,33 @@ import {
   useDriveSpaceUsage,
   useDriveSpaces,
   useDriveTrash,
+  useMoveDriveNode,
   usePermanentDeleteDriveNode,
+  useRenameDriveNode,
   useRestoreDriveNode,
   useTrashDriveNode,
   useUploadDriveFile,
+  useUploadDriveVersion,
 } from '@/hooks/api/useDrive';
+import { driveApi } from '@/services/api/drive';
 import type { DriveNode, DriveSpace } from '@/types/drive';
 import { toBytesNumber } from '@/types/drive';
 
 import DriveBottomBar, { type DriveBottomTab } from '@/components/Drive/DriveBottomBar';
 import DriveFAB, { type DriveFABActionId } from '@/components/Drive/DriveFAB';
 import DriveBreadcrumb, { type BreadcrumbItem } from '@/components/Drive/DriveBreadcrumb';
-import DriveNodeRow from '@/components/Drive/DriveNodeRow';
+import DriveNodeCard from '@/components/Drive/DriveNodeCard';
+import DriveSpaceCard from '@/components/Drive/DriveSpaceCard';
 import DriveFileViewerModal from '@/components/Drive/DriveFileViewerModal';
 import NewFolderModal from '@/components/Drive/NewFolderModal';
+import RenameNodeModal from '@/components/Drive/RenameNodeModal';
+import MoveCopyPickerModal, { type MoveCopyMode } from '@/components/Drive/MoveCopyPickerModal';
+import UploadConflictModal, {
+  type UploadConflictChoice,
+} from '@/components/Drive/UploadConflictModal';
+import DriveNodeActionSheet, { type NodeActionId } from '@/components/Drive/DriveNodeActionSheet';
 import { pickFilesForUpload } from '@/components/Drive/pickFileCrossPlatform';
+import { useWebFileDrop } from '@/components/Drive/useWebFileDrop';
 
 interface Props {
   navigation: unknown;
@@ -69,24 +86,69 @@ const humanBytes = (n: number): string => {
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 
+/** Divide `name.ext` en base + extensión (con punto). Si no hay extensión, ext=''. */
+const splitNameExt = (name: string): { base: string; ext: string } => {
+  const idx = name.lastIndexOf('.');
+  if (idx <= 0 || idx === name.length - 1) return { base: name, ext: '' };
+  return { base: name.slice(0, idx), ext: name.slice(idx) };
+};
+
+/** Genera un nombre único al estilo Windows: "archivo (1).ext", (2), ... */
+const suggestUniqueName = (name: string, existing: Set<string>): string => {
+  if (!existing.has(name)) return name;
+  const { base, ext } = splitNameExt(name);
+  for (let i = 1; i < 1000; i += 1) {
+    const candidate = `${base} (${i})${ext}`;
+    if (!existing.has(candidate)) return candidate;
+  }
+  return `${base} (${Date.now()})${ext}`;
+};
+
+interface PendingUpload {
+  file: Blob | File | { uri: string; name: string; type: string };
+  name: string;
+  mimeType?: string;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const DriveHomeScreen: React.FC<Props> = (_props) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { width: windowWidth } = useWindowDimensions();
   const { hasPermission } = usePermissions();
   const qc = useQueryClient();
 
   const canUpload = hasPermission(PERMISSIONS.DRIVE.UPLOAD);
   const canManage = hasPermission(PERMISSIONS.DRIVE.MANAGE);
 
+  // --------------------------------------------------------------------------
+  // Navegación
+  // --------------------------------------------------------------------------
+
   const [tab, setTab] = useState<DriveBottomTab>('my-unit');
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
-  /** Stack de carpetas navegadas dentro del space activo. null en root. */
   const [folderStack, setFolderStack] = useState<BreadcrumbItem[]>([]);
 
+  // Modales
   const [newFolderVisible, setNewFolderVisible] = useState(false);
   const [viewerNode, setViewerNode] = useState<DriveNode | null>(null);
+  const [actionSheetNode, setActionSheetNode] = useState<DriveNode | null>(null);
+  const [renameNode, setRenameNode] = useState<DriveNode | null>(null);
+  const [movePicker, setMovePicker] = useState<{ node: DriveNode; mode: MoveCopyMode } | null>(
+    null
+  );
+  const [conflict, setConflict] = useState<{
+    original: string;
+    suggested: string;
+    pending: PendingUpload;
+    existingNode: DriveNode | null;
+  } | null>(null);
   const [uploading, setUploading] = useState<{ name: string; ratio: number } | null>(null);
+  const [copying, setCopying] = useState<{ name: string; ratio: number } | null>(null);
+
+  // --------------------------------------------------------------------------
+  // Queries
+  // --------------------------------------------------------------------------
 
   const spacesQ = useDriveSpaces();
   const personalSpace: DriveSpace | undefined = useMemo(
@@ -98,61 +160,134 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     [spacesQ.data]
   );
 
-  // Auto-seleccionar espacio personal al entrar en "Mi unidad"
-  React.useEffect(() => {
-    if (tab === 'my-unit' && personalSpace && !activeSpaceId) {
+  // Auto-seleccionar personal al entrar en "Mi unidad"
+  useEffect(() => {
+    if (tab === 'my-unit' && personalSpace && activeSpaceId !== personalSpace.id) {
       setActiveSpaceId(personalSpace.id);
+      setFolderStack([]);
     }
   }, [tab, personalSpace, activeSpaceId]);
 
-  const currentFolderId = folderStack.length > 0 ? folderStack[folderStack.length - 1].id : null;
+  // En "Espacios": si no hay space activo o el activo es el personal → mostrar grid.
+  const spacesGridMode =
+    tab === 'spaces' && (!activeSpaceId || activeSpaceId === personalSpace?.id);
 
-  // Queries de contenido según tab
+  const currentFolderId = folderStack.length > 0 ? folderStack[folderStack.length - 1].id : null;
   const isSpaceRoot = currentFolderId === null;
+
+  const browsingEnabled =
+    (tab === 'my-unit' || (tab === 'spaces' && !spacesGridMode)) && !!activeSpaceId;
+
   const spaceChildrenQ = useDriveSpaceChildren(
     activeSpaceId ?? undefined,
     {},
-    tab !== 'shared-with-me' && tab !== 'trash' && isSpaceRoot && !!activeSpaceId
+    browsingEnabled && isSpaceRoot
   );
   const folderChildrenQ = useDriveFolderChildren(
     currentFolderId ?? undefined,
     {},
-    tab !== 'shared-with-me' && tab !== 'trash' && !isSpaceRoot && !!currentFolderId
+    browsingEnabled && !isSpaceRoot
   );
   const trashQ = useDriveTrash(activeSpaceId ?? undefined, tab === 'trash' && !!activeSpaceId);
   const sharedQ = useDriveSharedWithMe(tab === 'shared-with-me');
-  const usageQ = useDriveSpaceUsage(activeSpaceId ?? undefined, !!activeSpaceId);
+  const usageQ = useDriveSpaceUsage(activeSpaceId ?? undefined, browsingEnabled);
 
-  const spaceName = useMemo(() => {
-    if (!activeSpaceId) return '';
-    return spacesQ.data?.find((s) => s.id === activeSpaceId)?.name ?? '';
-  }, [activeSpaceId, spacesQ.data]);
-
-  const breadcrumb: BreadcrumbItem[] = useMemo(
-    () => [{ id: null, name: spaceName || 'Mi unidad' }, ...folderStack],
-    [spaceName, folderStack]
+  const activeSpace = useMemo(
+    () => spacesQ.data?.find((s) => s.id === activeSpaceId) ?? null,
+    [spacesQ.data, activeSpaceId]
   );
 
+  const breadcrumb: BreadcrumbItem[] = useMemo(
+    () => [{ id: null, name: activeSpace?.name ?? 'Mi unidad' }, ...folderStack],
+    [activeSpace?.name, folderStack]
+  );
+
+  // --------------------------------------------------------------------------
   // Mutations
+  // --------------------------------------------------------------------------
+
   const createFolder = useCreateDriveFolder();
   const uploadFile = useUploadDriveFile();
+  const uploadVersion = useUploadDriveVersion();
+  const renameNodeMut = useRenameDriveNode();
+  const moveNodeMut = useMoveDriveNode();
   const trashNode = useTrashDriveNode();
   const restoreNode = useRestoreDriveNode();
   const permanentDelete = usePermanentDeleteDriveNode();
 
-  // Reload global
+  // --------------------------------------------------------------------------
+  // Data actual
+  // --------------------------------------------------------------------------
+
+  const listData: DriveNode[] = useMemo(() => {
+    if (tab === 'shared-with-me') return (sharedQ.data ?? []).map((s) => s.node);
+    if (tab === 'trash') return trashQ.data ?? [];
+    if (!browsingEnabled) return [];
+    if (isSpaceRoot) return spaceChildrenQ.data ?? [];
+    return folderChildrenQ.data ?? [];
+  }, [
+    tab,
+    isSpaceRoot,
+    browsingEnabled,
+    sharedQ.data,
+    trashQ.data,
+    spaceChildrenQ.data,
+    folderChildrenQ.data,
+  ]);
+
+  // Ordenar: carpetas primero, luego archivos, por nombre.
+  const sortedList = useMemo(() => {
+    const arr = [...listData];
+    arr.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, { numeric: true });
+    });
+    return arr;
+  }, [listData]);
+
+  const existingNamesSet = useMemo(
+    () => new Set(sortedList.filter((n) => !n.isTrashed).map((n) => n.name)),
+    [sortedList]
+  );
+
+  const isLoading =
+    (tab === 'shared-with-me' && sharedQ.isLoading) ||
+    (tab === 'trash' && trashQ.isLoading) ||
+    (browsingEnabled && isSpaceRoot && spaceChildrenQ.isLoading) ||
+    (browsingEnabled && !isSpaceRoot && folderChildrenQ.isLoading);
+
+  const isRefreshing =
+    (tab === 'shared-with-me' && sharedQ.isFetching && !sharedQ.isLoading) ||
+    (tab === 'trash' && trashQ.isFetching && !trashQ.isLoading) ||
+    (browsingEnabled && isSpaceRoot && spaceChildrenQ.isFetching && !spaceChildrenQ.isLoading) ||
+    (browsingEnabled && !isSpaceRoot && folderChildrenQ.isFetching && !folderChildrenQ.isLoading);
+
+  const onRefresh = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: driveKeys.all });
+  }, [qc]);
+
   useOnReload(async () => {
-    await Promise.all([qc.invalidateQueries({ queryKey: driveKeys.all })]);
+    await qc.invalidateQueries({ queryKey: driveKeys.all });
   });
 
-  // ----- Handlers -----
+  // --------------------------------------------------------------------------
+  // Handlers de navegación
+  // --------------------------------------------------------------------------
 
   const handleSelectTab = (t: DriveBottomTab) => {
     setTab(t);
     setFolderStack([]);
     if (t === 'my-unit' && personalSpace) setActiveSpaceId(personalSpace.id);
-    if (t === 'spaces' && sharedSpaces.length > 0) setActiveSpaceId(sharedSpaces[0].id);
+    if (t === 'spaces') {
+      // Reseteamos para mostrar el grid de espacios
+      setActiveSpaceId(null);
+    }
     if (t === 'trash' && !activeSpaceId && personalSpace) setActiveSpaceId(personalSpace.id);
+  };
+
+  const handleOpenSpaceCard = (s: DriveSpace) => {
+    setActiveSpaceId(s.id);
+    setFolderStack([]);
   };
 
   const handleOpenNode = (node: DriveNode) => {
@@ -164,13 +299,151 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   };
 
   const handleBreadcrumbNavigate = (item: BreadcrumbItem, index: number) => {
-    // index 0 => raíz del espacio (folderStack = [])
-    if (index === 0) {
-      setFolderStack([]);
-    } else {
-      setFolderStack((s) => s.slice(0, index));
+    if (index === 0) setFolderStack([]);
+    else setFolderStack((s) => s.slice(0, index));
+  };
+
+  const handleBackToSpaces = () => {
+    setActiveSpaceId(null);
+    setFolderStack([]);
+  };
+
+  // --------------------------------------------------------------------------
+  // Uploads
+  // --------------------------------------------------------------------------
+
+  const performUpload = useCallback(
+    async (upload: PendingUpload) => {
+      if (!activeSpaceId) return;
+      setUploading({ name: upload.name, ratio: 0 });
+      try {
+        const opts = {
+          onProgress: (p: { ratio: number }) => setUploading({ name: upload.name, ratio: p.ratio }),
+        };
+        const args = currentFolderId
+          ? {
+              target: 'folder' as const,
+              folderId: currentFolderId,
+              spaceId: activeSpaceId,
+              file: upload.file,
+              filename: upload.name,
+              options: opts,
+            }
+          : {
+              target: 'space' as const,
+              spaceId: activeSpaceId,
+              file: upload.file,
+              filename: upload.name,
+              options: opts,
+            };
+        await uploadFile.mutateAsync(args);
+      } catch (e) {
+        logger.error('Error subiendo archivo:', e);
+        const err = e as { status?: number; message?: string };
+        if (err.status === 409) {
+          Alert.alert('No se pudo subir', 'Cuota excedida o nombre duplicado.');
+        } else {
+          Alert.alert('No se pudo subir', err.message || 'Error desconocido.');
+        }
+      } finally {
+        setUploading(null);
+      }
+    },
+    [activeSpaceId, currentFolderId, uploadFile]
+  );
+
+  const performReplace = useCallback(
+    async (upload: PendingUpload, targetNode: DriveNode) => {
+      setUploading({ name: upload.name, ratio: 0 });
+      try {
+        await uploadVersion.mutateAsync({
+          nodeId: targetNode.id,
+          spaceId: targetNode.spaceId,
+          file: upload.file,
+          filename: upload.name,
+          options: {
+            onProgress: (p: { ratio: number }) =>
+              setUploading({ name: upload.name, ratio: p.ratio }),
+          },
+        });
+      } catch (e) {
+        logger.error('Error reemplazando archivo:', e);
+        const err = e as { status?: number; message?: string };
+        Alert.alert('No se pudo reemplazar', err.message || 'Error desconocido.');
+      } finally {
+        setUploading(null);
+      }
+    },
+    [uploadVersion]
+  );
+
+  /** Punto único: recibe uno o varios archivos y los sube (con detección de conflictos). */
+  const handleIncomingFiles = useCallback(
+    async (files: PendingUpload[]) => {
+      if (!activeSpaceId) {
+        Alert.alert('Drive', 'Entra primero a un espacio para subir archivos.');
+        return;
+      }
+      for (const upload of files) {
+        const existing = sortedList.find((n) => n.name === upload.name && !n.isTrashed);
+        if (existing) {
+          // Espera a que el usuario resuelva el conflicto
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise<void>((resolve) => {
+            setConflict({
+              original: upload.name,
+              suggested: suggestUniqueName(upload.name, existingNamesSet),
+              pending: upload,
+              existingNode: existing,
+            });
+            // Guardamos el resolver en un ref implícito via cierre: cuando el
+            // modal llame a onResolve, nosotros seteamos `conflict=null` y
+            // resolvemos la promesa dentro del handler abajo.
+            resolveConflictRef.current = resolve;
+          });
+        } else {
+          // eslint-disable-next-line no-await-in-loop
+          await performUpload(upload);
+        }
+      }
+    },
+    [activeSpaceId, sortedList, existingNamesSet, performUpload]
+  );
+
+  const resolveConflictRef = React.useRef<(() => void) | null>(null);
+
+  const handleConflictResolve = async (choice: UploadConflictChoice) => {
+    const current = conflict;
+    if (!current) return;
+    setConflict(null);
+    try {
+      if (choice.action === 'cancel') {
+        return;
+      }
+      if (choice.action === 'replace' && current.existingNode) {
+        await performReplace(current.pending, current.existingNode);
+      } else if (choice.action === 'rename') {
+        await performUpload({ ...current.pending, name: choice.name });
+      }
+    } finally {
+      resolveConflictRef.current?.();
+      resolveConflictRef.current = null;
     }
   };
+
+  // Drag & drop + paste (solo web)
+  const { isDragging } = useWebFileDrop({
+    enabled: browsingEnabled && canUpload && Platform.OS === 'web',
+    onFiles: (files) => {
+      void handleIncomingFiles(
+        files.map((f) => ({ file: f, name: f.name, mimeType: f.type || undefined }))
+      );
+    },
+  });
+
+  // --------------------------------------------------------------------------
+  // FAB
+  // --------------------------------------------------------------------------
 
   const handleFabAction = async (id: DriveFABActionId) => {
     if (id === 'new-folder') {
@@ -179,47 +452,17 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     }
     if (id === 'upload-file' || id === 'upload-folder') {
       if (!activeSpaceId) {
-        Alert.alert('Drive', 'Selecciona primero un espacio.');
+        Alert.alert('Drive', 'Entra primero a un espacio para subir archivos.');
         return;
       }
       try {
-        const files = await pickFilesForUpload({ multiple: false });
-        if (files.length === 0) return;
-        const file = files[0];
-        setUploading({ name: file.name, ratio: 0 });
-        const args = currentFolderId
-          ? {
-              target: 'folder' as const,
-              folderId: currentFolderId,
-              spaceId: activeSpaceId,
-              file: file.payload,
-              filename: file.name,
-              options: {
-                onProgress: (p: { ratio: number }) =>
-                  setUploading({ name: file.name, ratio: p.ratio }),
-              },
-            }
-          : {
-              target: 'space' as const,
-              spaceId: activeSpaceId,
-              file: file.payload,
-              filename: file.name,
-              options: {
-                onProgress: (p: { ratio: number }) =>
-                  setUploading({ name: file.name, ratio: p.ratio }),
-              },
-            };
-        await uploadFile.mutateAsync(args);
+        const picked = await pickFilesForUpload({ multiple: true });
+        if (picked.length === 0) return;
+        await handleIncomingFiles(
+          picked.map((p) => ({ file: p.payload, name: p.name, mimeType: p.mimeType }))
+        );
       } catch (e) {
-        logger.error('Error subiendo archivo:', e);
-        const err = e as { status?: number; message?: string };
-        if (err.status === 409) {
-          Alert.alert('No se pudo subir', 'Nombre duplicado o cuota excedida.');
-        } else {
-          Alert.alert('No se pudo subir', err.message || 'Error desconocido.');
-        }
-      } finally {
-        setUploading(null);
+        logger.error('Error seleccionando archivo:', e);
       }
       return;
     }
@@ -250,97 +493,176 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     }
   };
 
-  const handleNodeMore = (node: DriveNode) => {
+  // --------------------------------------------------------------------------
+  // Menú contextual del nodo
+  // --------------------------------------------------------------------------
+
+  const nodeActions: NodeActionId[] = useMemo(() => {
     if (tab === 'trash') {
-      if (!canManage) return;
-      Alert.alert(node.name, '¿Qué deseas hacer?', [
+      if (!canManage) return [];
+      return ['restore', 'delete-forever'];
+    }
+    const acts: NodeActionId[] = ['open'];
+    if (canManage) {
+      acts.push('rename', 'move');
+    }
+    // Copy solo si es archivo (F2 limitación)
+    if (canUpload && actionSheetNode?.kind === 'file') acts.push('copy');
+    if (canManage) acts.push('trash');
+    return acts;
+  }, [tab, canManage, canUpload, actionSheetNode?.kind]);
+
+  const handleActionSheet = async (id: NodeActionId, node: DriveNode) => {
+    if (id === 'open') {
+      handleOpenNode(node);
+      return;
+    }
+    if (id === 'rename') {
+      setRenameNode(node);
+      return;
+    }
+    if (id === 'move') {
+      setMovePicker({ node, mode: 'move' });
+      return;
+    }
+    if (id === 'copy') {
+      if (node.kind === 'folder') {
+        Alert.alert(
+          'Próximamente',
+          'La copia de carpetas completas se agrega en el siguiente release.'
+        );
+        return;
+      }
+      setMovePicker({ node, mode: 'copy' });
+      return;
+    }
+    if (id === 'trash') {
+      Alert.alert(node.name, '¿Enviar a la papelera?', [
+        { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Restaurar',
-          onPress: () =>
-            restoreNode.mutate(
-              { nodeId: node.id, spaceId: node.spaceId },
-              {
-                onError: (e) => Alert.alert('Error', (e as Error).message),
-              }
-            ),
-        },
-        {
-          text: 'Borrar definitivo',
+          text: 'Enviar',
           style: 'destructive',
           onPress: () =>
-            Alert.alert('Borrado definitivo', 'Esta acción es irreversible.', [
-              { text: 'Cancelar', style: 'cancel' },
-              {
-                text: 'Borrar',
-                style: 'destructive',
-                onPress: () => permanentDelete.mutate({ nodeId: node.id, spaceId: node.spaceId }),
-              },
-            ]),
+            trashNode.mutate({
+              nodeId: node.id,
+              spaceId: node.spaceId,
+              parentId: node.parentId,
+            }),
         },
-        { text: 'Cancelar', style: 'cancel' },
       ]);
       return;
     }
-    if (!canManage) return;
-    Alert.alert(node.name, '¿Qué deseas hacer?', [
-      {
-        text: 'Enviar a papelera',
-        style: 'destructive',
-        onPress: () =>
-          trashNode.mutate({
-            nodeId: node.id,
-            spaceId: node.spaceId,
-            parentId: node.parentId,
-          }),
-      },
-      { text: 'Cancelar', style: 'cancel' },
-    ]);
+    if (id === 'restore') {
+      restoreNode.mutate(
+        { nodeId: node.id, spaceId: node.spaceId },
+        { onError: (e) => Alert.alert('Error', (e as Error).message) }
+      );
+      return;
+    }
+    if (id === 'delete-forever') {
+      Alert.alert('Borrado definitivo', 'Esta acción es irreversible.', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar',
+          style: 'destructive',
+          onPress: () => permanentDelete.mutate({ nodeId: node.id, spaceId: node.spaceId }),
+        },
+      ]);
+      return;
+    }
   };
 
-  // ----- Data seleccionada según tab -----
-
-  const listData: DriveNode[] = useMemo(() => {
-    if (tab === 'shared-with-me') {
-      return (sharedQ.data ?? []).map((s) => s.node);
+  const handleRenameSubmit = async (newName: string) => {
+    if (!renameNode) return;
+    try {
+      await renameNodeMut.mutateAsync({ nodeId: renameNode.id, dto: { name: newName } });
+      setRenameNode(null);
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      Alert.alert(
+        'No se pudo renombrar',
+        err.status === 409 ? 'Ya existe algo con ese nombre.' : err.message || 'Error.'
+      );
     }
-    if (tab === 'trash') {
-      return trashQ.data ?? [];
+  };
+
+  const handleMoveCopySubmit = async (target: { spaceId: string; parentId: string | null }) => {
+    if (!movePicker) return;
+    const { node, mode } = movePicker;
+    try {
+      if (mode === 'move') {
+        // NOTA: el backend actual mueve dentro del mismo espacio. Si el target
+        // pertenece a otro espacio, informamos.
+        if (target.spaceId !== node.spaceId) {
+          Alert.alert(
+            'Movimiento entre espacios',
+            'Aún no se puede mover entre espacios. Usa Copiar para eso.'
+          );
+          return;
+        }
+        await moveNodeMut.mutateAsync({
+          nodeId: node.id,
+          dto: { targetParentId: target.parentId },
+          previousParentId: node.parentId,
+          spaceId: node.spaceId,
+        });
+      } else {
+        // COPIAR: descargamos el blob y lo subimos al destino.
+        if (node.kind === 'folder') {
+          Alert.alert('Próximamente', 'Copia de carpetas próximamente.');
+          return;
+        }
+        setCopying({ name: node.name, ratio: 0 });
+        const blob = await driveApi.downloadNode(node.id, { disposition: 'attachment' });
+        const opts = {
+          onProgress: (p: { ratio: number }) => setCopying({ name: node.name, ratio: p.ratio }),
+        };
+        if (target.parentId) {
+          await driveApi.uploadToFolder(target.parentId, blob, node.name, opts);
+        } else {
+          await driveApi.uploadToSpace(target.spaceId, blob, node.name, opts);
+        }
+        // Invalidar destino
+        void qc.invalidateQueries({ queryKey: driveKeys.all });
+      }
+      setMovePicker(null);
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      Alert.alert(
+        movePicker.mode === 'move' ? 'No se pudo mover' : 'No se pudo copiar',
+        err.status === 409
+          ? 'Ya existe algo con ese nombre en el destino.'
+          : err.message || 'Error.'
+      );
+    } finally {
+      setCopying(null);
     }
-    if (isSpaceRoot) {
-      return spaceChildrenQ.data ?? [];
-    }
-    return folderChildrenQ.data ?? [];
-  }, [tab, isSpaceRoot, sharedQ.data, trashQ.data, spaceChildrenQ.data, folderChildrenQ.data]);
+  };
 
-  const isLoading =
-    (tab === 'shared-with-me' && sharedQ.isLoading) ||
-    (tab === 'trash' && trashQ.isLoading) ||
-    (tab !== 'shared-with-me' && tab !== 'trash' && isSpaceRoot && spaceChildrenQ.isLoading) ||
-    (tab !== 'shared-with-me' && tab !== 'trash' && !isSpaceRoot && folderChildrenQ.isLoading);
-
-  const isRefreshing =
-    (tab === 'shared-with-me' && sharedQ.isFetching && !sharedQ.isLoading) ||
-    (tab === 'trash' && trashQ.isFetching && !trashQ.isLoading) ||
-    (isSpaceRoot && spaceChildrenQ.isFetching && !spaceChildrenQ.isLoading) ||
-    (!isSpaceRoot && folderChildrenQ.isFetching && !folderChildrenQ.isLoading);
-
-  const onRefresh = useCallback(() => {
-    void qc.invalidateQueries({ queryKey: driveKeys.all });
-  }, [qc]);
+  // --------------------------------------------------------------------------
+  // FAB actions
+  // --------------------------------------------------------------------------
 
   const fabActions: DriveFABActionId[] = useMemo(() => {
     if (tab === 'shared-with-me' || tab === 'trash') return [];
+    if (spacesGridMode) {
+      const acts: DriveFABActionId[] = [];
+      if (canManage) acts.push('new-space');
+      return acts;
+    }
+    if (!activeSpaceId) return [];
     const acts: DriveFABActionId[] = [];
     if (canUpload) {
       acts.push('upload-file');
       if (Platform.OS === 'web') acts.push('upload-folder');
       acts.push('new-folder');
     }
-    if (canManage && tab === 'spaces') acts.push('new-space');
     return acts;
-  }, [canManage, canUpload, tab]);
+  }, [tab, spacesGridMode, activeSpaceId, canManage, canUpload]);
 
-  // ----- Header info -----
+  // --------------------------------------------------------------------------
+  // Header meta
+  // --------------------------------------------------------------------------
 
   const usedRatio = useMemo(() => {
     if (!usageQ.data) return null;
@@ -348,6 +670,89 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     const quota = toBytesNumber(usageQ.data.quotaBytes);
     return quota > 0 ? used / quota : 0;
   }, [usageQ.data]);
+
+  // --------------------------------------------------------------------------
+  // Layout de grid
+  // --------------------------------------------------------------------------
+
+  const GRID_PADDING = 16;
+  const GRID_GAP = 12;
+  const cardMinWidth = 140;
+  const cardMaxWidth = 200;
+  const availableWidth = windowWidth - GRID_PADDING * 2;
+  const columns = Math.max(2, Math.floor((availableWidth + GRID_GAP) / (cardMinWidth + GRID_GAP)));
+  const cardWidth = Math.min(
+    cardMaxWidth,
+    Math.floor((availableWidth - GRID_GAP * (columns - 1)) / columns)
+  );
+
+  // --------------------------------------------------------------------------
+  // Render
+  // --------------------------------------------------------------------------
+
+  const renderSpacesGrid = () => (
+    <FlatList
+      data={sharedSpaces}
+      key={`spaces-${columns}`}
+      keyExtractor={(s) => s.id}
+      numColumns={columns}
+      renderItem={({ item }) => (
+        <View style={{ margin: GRID_GAP / 2 }}>
+          <DriveSpaceCard space={item} onOpen={handleOpenSpaceCard} width={cardWidth} />
+        </View>
+      )}
+      contentContainerStyle={styles.gridContent}
+      columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
+      ListEmptyComponent={
+        <View style={styles.center}>
+          <EmptyState
+            icon="people-outline"
+            title="No perteneces a espacios compartidos"
+            description={
+              canManage
+                ? 'Crea uno con el botón + o pide que te agreguen.'
+                : 'Pide a un administrador que te agregue a un espacio.'
+            }
+          />
+        </View>
+      }
+      refreshControl={
+        <RefreshControl
+          refreshing={spacesQ.isFetching && !spacesQ.isLoading}
+          onRefresh={onRefresh}
+          tintColor={theme.color.brand.primary}
+        />
+      }
+    />
+  );
+
+  const renderNodesGrid = () => (
+    <FlatList
+      data={sortedList}
+      key={`nodes-${columns}`}
+      keyExtractor={(n) => n.id}
+      numColumns={columns}
+      renderItem={({ item }) => (
+        <View style={{ margin: GRID_GAP / 2 }}>
+          <DriveNodeCard
+            node={item}
+            onOpen={handleOpenNode}
+            onMore={(n) => setActionSheetNode(n)}
+            width={cardWidth}
+          />
+        </View>
+      )}
+      contentContainerStyle={styles.gridContent}
+      columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.color.brand.primary}
+        />
+      }
+    />
+  );
 
   return (
     <ScreenLayout navigation={{} as never}>
@@ -359,37 +764,19 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
             <Text variant="titleMedium" style={styles.headerTitle}>
               Drive
             </Text>
-            {tab !== 'shared-with-me' &&
-              tab !== 'trash' &&
-              sharedSpaces.length > 0 &&
-              tab === 'spaces' && (
-                <TouchableOpacity
-                  style={styles.spaceSwitcher}
-                  onPress={() => {
-                    // Ciclo simple entre spaces compartidos
-                    const idx = sharedSpaces.findIndex((s) => s.id === activeSpaceId);
-                    const next = sharedSpaces[(idx + 1) % sharedSpaces.length];
-                    if (next) {
-                      setActiveSpaceId(next.id);
-                      setFolderStack([]);
-                    }
-                  }}
-                  activeOpacity={activeOpacity.medium}
-                >
-                  <Ionicons
-                    name="swap-horizontal"
-                    size={iconSizes.sm}
-                    color={theme.color.icon.default}
-                  />
-                  <Text variant="caption" numberOfLines={1} style={styles.spaceSwitcherText}>
-                    {spaceName || 'Elegir espacio'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+            {tab === 'spaces' && !spacesGridMode && (
+              <TouchableOpacity
+                onPress={handleBackToSpaces}
+                style={styles.pillBtn}
+                activeOpacity={activeOpacity.medium}
+              >
+                <Ionicons name="arrow-back" size={iconSizes.sm} color={theme.color.icon.default} />
+                <Text variant="caption">Espacios</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          {/* Barra de cuota */}
-          {tab !== 'shared-with-me' && usageQ.data && usedRatio !== null && (
+          {browsingEnabled && usageQ.data && usedRatio !== null && (
             <View style={styles.quotaRow}>
               <View style={styles.quotaBarTrack}>
                 <View
@@ -414,19 +801,19 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
             </View>
           )}
 
-          {tab !== 'shared-with-me' && tab !== 'trash' && (
+          {browsingEnabled && (
             <DriveBreadcrumb items={breadcrumb} onNavigate={handleBreadcrumbNavigate} />
           )}
           {tab === 'trash' && (
-            <View style={styles.trashBanner}>
+            <View style={styles.banner}>
               <Ionicons name="trash-outline" size={iconSizes.md} color={theme.color.icon.default} />
               <Text variant="bodySmall" color="secondary">
-                Papelera del espacio: {spaceName}
+                Papelera del espacio: {activeSpace?.name ?? ''}
               </Text>
             </View>
           )}
           {tab === 'shared-with-me' && (
-            <View style={styles.trashBanner}>
+            <View style={styles.banner}>
               <Ionicons
                 name="share-social-outline"
                 size={iconSizes.md}
@@ -437,14 +824,28 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
               </Text>
             </View>
           )}
+          {spacesGridMode && (
+            <View style={styles.banner}>
+              <Ionicons
+                name="people-outline"
+                size={iconSizes.md}
+                color={theme.color.icon.default}
+              />
+              <Text variant="bodySmall" color="secondary">
+                Espacios compartidos ({sharedSpaces.length})
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Lista */}
+        {/* Contenido */}
         {isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={theme.color.brand.primary} />
           </View>
-        ) : listData.length === 0 ? (
+        ) : spacesGridMode ? (
+          renderSpacesGrid()
+        ) : sortedList.length === 0 ? (
           <View style={styles.center}>
             <EmptyState
               icon="folder-open-outline"
@@ -456,53 +857,54 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
                     : 'Esta carpeta está vacía'
               }
               description={
-                canUpload && tab !== 'trash' && tab !== 'shared-with-me'
-                  ? 'Usa el botón + para subir un archivo o crear una carpeta.'
+                canUpload && browsingEnabled
+                  ? Platform.OS === 'web'
+                    ? 'Usa el botón + para subir un archivo, arrastra archivos aquí o pega con Ctrl+V.'
+                    : 'Usa el botón + para subir un archivo o crear una carpeta.'
                   : undefined
               }
             />
           </View>
         ) : (
-          <FlatList
-            data={listData}
-            keyExtractor={(n) => n.id}
-            renderItem={({ item }) => (
-              <DriveNodeRow node={item} onOpen={handleOpenNode} onMore={handleNodeMore} />
-            )}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.color.brand.primary}
-              />
-            }
-          />
+          renderNodesGrid()
         )}
 
-        {/* Overlay progreso subida */}
-        {uploading && (
+        {/* Drop overlay */}
+        {isDragging && (
+          <View style={styles.dropOverlay} pointerEvents="none">
+            <View style={styles.dropCard}>
+              <Ionicons name="cloud-upload-outline" size={48} color={theme.color.brand.primary} />
+              <Text variant="titleSmall">Suelta los archivos para subir</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Overlay progreso subida / copia */}
+        {(uploading || copying) && (
           <View style={styles.uploadOverlay} pointerEvents="none">
             <View style={styles.uploadCard}>
               <Text variant="bodySmall" numberOfLines={1}>
-                Subiendo: {uploading.name}
+                {uploading ? 'Subiendo' : 'Copiando'}: {uploading?.name ?? copying?.name}
               </Text>
               <View style={styles.uploadBarTrack}>
                 <View
-                  style={[styles.uploadBarFill, { width: `${Math.round(uploading.ratio * 100)}%` }]}
+                  style={[
+                    styles.uploadBarFill,
+                    {
+                      width: `${Math.round((uploading ?? copying)!.ratio * 100)}%`,
+                    },
+                  ]}
                 />
               </View>
               <Text variant="caption" color="secondary">
-                {Math.round(uploading.ratio * 100)}%
+                {Math.round((uploading ?? copying)!.ratio * 100)}%
               </Text>
             </View>
           </View>
         )}
 
-        {/* Bottom bar */}
+        {/* BottomBar + FAB */}
         <DriveBottomBar active={tab} onSelect={handleSelectTab} />
-
-        {/* FAB rojo */}
         <DriveFAB onAction={handleFabAction} actions={fabActions} visible={fabActions.length > 0} />
 
         {/* Modales */}
@@ -516,6 +918,39 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
           visible={!!viewerNode}
           node={viewerNode}
           onClose={() => setViewerNode(null)}
+        />
+        <DriveNodeActionSheet
+          visible={!!actionSheetNode}
+          node={actionSheetNode}
+          actions={nodeActions}
+          onSelect={(action, node) => {
+            setActionSheetNode(null);
+            void handleActionSheet(action, node);
+          }}
+          onClose={() => setActionSheetNode(null)}
+        />
+        <RenameNodeModal
+          visible={!!renameNode}
+          initialName={renameNode?.name ?? ''}
+          loading={renameNodeMut.isPending}
+          onClose={() => setRenameNode(null)}
+          onSubmit={handleRenameSubmit}
+        />
+        <MoveCopyPickerModal
+          visible={!!movePicker}
+          mode={movePicker?.mode ?? 'move'}
+          sourceNode={movePicker?.node ?? null}
+          defaultSpaceId={movePicker?.node.spaceId ?? null}
+          loading={moveNodeMut.isPending || !!copying}
+          onClose={() => setMovePicker(null)}
+          onSubmit={handleMoveCopySubmit}
+        />
+        <UploadConflictModal
+          visible={!!conflict}
+          originalName={conflict?.original ?? ''}
+          suggestedName={conflict?.suggested ?? ''}
+          existingIsFolder={conflict?.existingNode?.kind === 'folder'}
+          onResolve={(choice) => void handleConflictResolve(choice)}
         />
       </View>
     </ScreenLayout>
@@ -543,7 +978,7 @@ const createStyles = (theme: Theme) =>
     headerTitle: {
       flex: 1,
     },
-    spaceSwitcher: {
+    pillBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
@@ -551,10 +986,6 @@ const createStyles = (theme: Theme) =>
       paddingVertical: 4,
       borderRadius: theme.radii.md,
       backgroundColor: theme.color.surface.muted,
-      maxWidth: 180,
-    },
-    spaceSwitcherText: {
-      maxWidth: 140,
     },
     quotaRow: {
       flexDirection: 'row',
@@ -574,7 +1005,7 @@ const createStyles = (theme: Theme) =>
       height: '100%',
       borderRadius: 3,
     },
-    trashBanner: {
+    banner: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.space[2],
@@ -587,8 +1018,31 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'center',
       padding: theme.space[4],
     },
-    listContent: {
-      paddingBottom: 140, // deja espacio para BottomBar + FAB
+    gridContent: {
+      paddingHorizontal: theme.space[3],
+      paddingTop: theme.space[3],
+      paddingBottom: 160, // BottomBar + FAB
+    },
+    gridRow: {
+      justifyContent: 'flex-start',
+    },
+    dropOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: `${theme.color.brand.primary}25`,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 950,
+    },
+    dropCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[6],
+      alignItems: 'center',
+      gap: theme.space[2],
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+      borderStyle: 'dashed',
+      ...theme.shadow.lg,
     },
     uploadOverlay: {
       position: 'absolute',

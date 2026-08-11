@@ -22,6 +22,7 @@ import { ThemeProvider, FloatingFooterProvider, useThemeValue } from '@/design-s
 // import { initSentry } from '@/config/sentry';
 import { useSessionWarning } from '@/hooks/useSessionWarning';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
+import { clearLazyReloadFlag } from '@/utils/lazyLoad';
 
 export const App = () => {
   const [fontsLoaded] = useFonts({
@@ -45,6 +46,11 @@ export const App = () => {
     userIdleThresholdMs: 15 * 60 * 1000, // No enviar heartbeat si usuario inactivo 15+ min
     debug: __DEV__, // Solo logging en desarrollo
   });
+
+  // La app llegó a montar; limpiar flag de reload por chunk fallido.
+  useEffect(() => {
+    clearLazyReloadFlag();
+  }, []);
 
   useEffect(() => {
     const initialize = async () => {

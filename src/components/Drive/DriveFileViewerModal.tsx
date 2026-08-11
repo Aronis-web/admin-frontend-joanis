@@ -8,7 +8,7 @@
  *  - Fallback: card con "Descargar" (usa expo-sharing / anchor download en web).
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -29,6 +29,8 @@ import type { Theme } from '@/design-system/themes';
 import { driveApi } from '@/services/api/drive';
 import type { DriveNode } from '@/types/drive';
 import { logger } from '@/utils/logger';
+import DriveExcelEditor from '@/components/Drive/DriveExcelEditor';
+import { useUploadDriveVersion } from '@/hooks/api/useDrive';
 
 interface Props {
   visible: boolean;
@@ -36,7 +38,7 @@ interface Props {
   onClose: () => void;
 }
 
-type ViewerKind = 'image' | 'pdf' | 'video' | 'text' | 'fallback';
+type ViewerKind = 'image' | 'pdf' | 'video' | 'text' | 'excel' | 'fallback';
 
 const classify = (mime: string | null | undefined, name: string): ViewerKind => {
   const m = (mime || '').toLowerCase();
@@ -44,6 +46,14 @@ const classify = (mime: string | null | undefined, name: string): ViewerKind => 
   if (m.startsWith('image/')) return 'image';
   if (m === 'application/pdf' || n.endsWith('.pdf')) return 'pdf';
   if (m.startsWith('video/')) return 'video';
+  if (
+    n.endsWith('.xlsx') ||
+    n.endsWith('.xls') ||
+    n.endsWith('.ods') ||
+    m.includes('spreadsheet') ||
+    m.includes('excel')
+  )
+    return 'excel';
   if (
     m.startsWith('text/') ||
     m === 'application/json' ||
@@ -62,9 +72,14 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [rawBlob, setRawBlob] = useState<Blob | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [excelDirty, setExcelDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const excelSaverRef = useRef<(() => Promise<Blob>) | null>(null);
+  const uploadVersion = useUploadDriveVersion();
 
   const kind: ViewerKind = useMemo(
     () => (node ? classify(node.mimeType, node.name) : 'fallback'),
@@ -79,6 +94,8 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
     setError(null);
     setTextContent(null);
     setBlobUrl(null);
+    setRawBlob(null);
+    setExcelDirty(false);
 
     (async () => {
       try {
@@ -89,10 +106,11 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
         }
         const blob = await driveApi.downloadNode(node.id, { disposition: 'inline' });
         if (cancelled) return;
+        setRawBlob(blob);
         if (kind === 'text') {
           const txt = await blob.text();
           if (!cancelled) setTextContent(txt);
-        } else {
+        } else if (kind !== 'excel') {
           const url = URL.createObjectURL(blob);
           createdUrl = url;
           if (!cancelled) setBlobUrl(url);
@@ -116,6 +134,26 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
       }
     };
   }, [visible, node, kind]);
+
+  const handleSaveExcel = async () => {
+    if (!node || !excelSaverRef.current) return;
+    try {
+      setSaving(true);
+      const blob = await excelSaverRef.current();
+      await uploadVersion.mutateAsync({
+        nodeId: node.id,
+        spaceId: node.spaceId,
+        file: blob,
+        filename: node.name,
+      });
+      setExcelDirty(false);
+    } catch (e) {
+      logger.error('Error guardando xlsx:', e);
+      setError('No se pudo guardar el archivo.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDownload = async () => {
     if (!node) return;
@@ -175,6 +213,21 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
               {node?.name ?? ''}
             </Text>
           </View>
+          {kind === 'excel' && (
+            <TouchableOpacity
+              onPress={handleSaveExcel}
+              style={styles.headerBtn}
+              activeOpacity={activeOpacity.medium}
+              accessibilityLabel="Guardar cambios"
+              disabled={!excelDirty || saving}
+            >
+              <Ionicons
+                name="save-outline"
+                size={iconSizes.lg}
+                color={excelDirty && !saving ? theme.color.brand.primary : theme.color.icon.subtle}
+              />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={handleDownload}
             style={styles.headerBtn}
@@ -215,6 +268,16 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
           ) : kind === 'video' && blobUrl && Platform.OS === 'web' ? (
             // eslint-disable-next-line react-native/no-inline-styles
             <video src={blobUrl} controls style={{ width: '100%', height: '100%' }} />
+          ) : kind === 'excel' && rawBlob ? (
+            <DriveExcelEditor
+              blob={rawBlob}
+              filename={node?.name ?? ''}
+              editable
+              onDirtyChange={setExcelDirty}
+              registerSaver={(fn) => {
+                excelSaverRef.current = fn;
+              }}
+            />
           ) : kind === 'text' && textContent !== null ? (
             <ScrollView style={styles.textScroll} contentContainerStyle={styles.textContainer}>
               <Text variant="bodySmall" selectable>
