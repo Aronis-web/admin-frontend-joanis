@@ -1,15 +1,22 @@
-# Configuración de Cloudflare Pages para ERP-aio (web).
-# Solo se usa para despliegue con `wrangler pages deploy` o el dashboard.
+# Configuración de Cloudflare Workers Static Assets para ERP-aio (web).
+# Sirve la web estática exportada por Expo (web-build/) desde el edge de Cloudflare.
+# Dominio final: https://app.gritlabs.app
 # NO afecta a los builds de APK Android ni al .exe de Electron.
+#
+# Docs: https://developers.cloudflare.com/workers/static-assets/
 
 name = "erp-aio"
-pages_build_output_dir = "web-build"
 compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
 
-# Variables públicas por entorno.
-# Las secretas (si hubiera) se configuran desde el dashboard de Cloudflare.
-[env.production.vars]
-EXPO_PUBLIC_API_URL = "https://api.tu-dominio.com"
+# Assets estáticos (la SPA compilada por Expo).
+[assets]
+directory = "./web-build"
+# SPA fallback: cualquier ruta no encontrada devuelve index.html con status 200.
+# Reemplaza al archivo public/_redirects y hace que React Navigation funcione
+# con URLs directas (ej. /ventas/123).
+not_found_handling = "single-page-application"
 
-[env.preview.vars]
-EXPO_PUBLIC_API_URL = "https://api-staging.tu-dominio.com"
+# Nota: Las variables EXPO_PUBLIC_* NO se ponen aquí porque Expo las inyecta
+# en tiempo de BUILD, no en runtime. Se configuran como Build variables en el
+# dashboard de Cloudflare Workers (Settings -> Variables and Secrets -> Build).
