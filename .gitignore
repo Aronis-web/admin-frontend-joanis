@@ -19,3 +19,8 @@ electron/build/*
 
 # Firebender session data (markers de hooks, no versionar)
 .firebender/.session/
+
+# Firebender local state (SQLite locks bloquean merges en Windows)
+.idea/firebender/*.db*
+.idea/firebender/plans/
+
