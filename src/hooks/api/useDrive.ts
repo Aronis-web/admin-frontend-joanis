@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { driveApi } from '@/services/api/drive';
 import type { UploadOptions } from '@/services/api/drive';
 import type {
+  AddDriveSpaceMemberDto,
   CreateDriveFolderDto,
   CreateDriveShareDto,
   CreateDriveSpaceDto,
@@ -36,8 +37,11 @@ export const driveKeys = {
   trash: (spaceId: string) => [...driveKeys.all, 'trash', spaceId] as const,
 
   sharedWithMe: () => [...driveKeys.all, 'shared-with-me'] as const,
+  shared: () => [...driveKeys.all, 'shared'] as const,
 
   usersSearch: (q: string) => [...driveKeys.all, 'users-search', q] as const,
+
+  spaceMembers: (spaceId: string) => [...driveKeys.all, 'space-members', spaceId] as const,
 };
 
 // ============================================================================
@@ -137,6 +141,19 @@ export const useDriveSharedWithMe = (enabled = true) =>
     refetchOnWindowFocus: false,
   });
 
+/**
+ * Vista unificada de "Compartido conmigo" (GET /drive/shared): nodos sueltos +
+ * espacios compartidos donde el usuario es miembro.
+ */
+export const useDriveShared = (enabled = true) =>
+  useQuery({
+    queryKey: driveKeys.shared(),
+    queryFn: () => driveApi.listShared(),
+    enabled,
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
 /** Búsqueda de usuarios para el selector de "Compartir con". */
 export const useDriveUserSearch = (q: string, enabled = true) =>
   useQuery({
@@ -144,6 +161,16 @@ export const useDriveUserSearch = (q: string, enabled = true) =>
     queryFn: () => driveApi.searchUsers(q),
     enabled,
     staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+/** Miembros de un espacio compartido. */
+export const useDriveSpaceMembers = (spaceId: string | undefined, enabled = true) =>
+  useQuery({
+    queryKey: driveKeys.spaceMembers(spaceId ?? ''),
+    queryFn: () => driveApi.listSpaceMembers(spaceId as string),
+    enabled: enabled && !!spaceId,
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -189,8 +216,21 @@ export const useUpdateDriveSpace = () => {
     onSuccess: (_data, { id }) => {
       void qc.invalidateQueries({ queryKey: driveKeys.spaces() });
       void qc.invalidateQueries({ queryKey: driveKeys.spaceUsage(id) });
+      void qc.invalidateQueries({ queryKey: driveKeys.shared() });
     },
     onError: (e) => logger.error('Error actualizando espacio Drive:', e),
+  });
+};
+
+export const useDeleteDriveSpace = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => driveApi.deleteSpace(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: driveKeys.spaces() });
+      void qc.invalidateQueries({ queryKey: driveKeys.shared() });
+    },
+    onError: (e) => logger.error('Error eliminando espacio Drive:', e),
   });
 };
 
@@ -391,6 +431,7 @@ export const useCreateDriveShare = () => {
     onSuccess: (_res, { nodeId }) => {
       void qc.invalidateQueries({ queryKey: driveKeys.shares(nodeId) });
       void qc.invalidateQueries({ queryKey: driveKeys.sharedWithMe() });
+      void qc.invalidateQueries({ queryKey: driveKeys.shared() });
     },
     onError: (e) => logger.error('Error compartiendo nodo:', e),
   });
@@ -403,7 +444,38 @@ export const useRevokeDriveShare = () => {
     onSuccess: (_res, { nodeId }) => {
       void qc.invalidateQueries({ queryKey: driveKeys.shares(nodeId) });
       void qc.invalidateQueries({ queryKey: driveKeys.sharedWithMe() });
+      void qc.invalidateQueries({ queryKey: driveKeys.shared() });
     },
     onError: (e) => logger.error('Error revocando comparticion:', e),
+  });
+};
+
+// ============================================================================
+// Mutations - Miembros de espacio
+// ============================================================================
+
+export const useAddDriveSpaceMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ spaceId, dto }: { spaceId: string; dto: AddDriveSpaceMemberDto }) =>
+      driveApi.addSpaceMember(spaceId, dto),
+    onSuccess: (_res, { spaceId }) => {
+      void qc.invalidateQueries({ queryKey: driveKeys.spaceMembers(spaceId) });
+      void qc.invalidateQueries({ queryKey: driveKeys.shared() });
+    },
+    onError: (e) => logger.error('Error agregando miembro al espacio:', e),
+  });
+};
+
+export const useRemoveDriveSpaceMember = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ spaceId, userId }: { spaceId: string; userId: string }) =>
+      driveApi.removeSpaceMember(spaceId, userId),
+    onSuccess: (_res, { spaceId }) => {
+      void qc.invalidateQueries({ queryKey: driveKeys.spaceMembers(spaceId) });
+      void qc.invalidateQueries({ queryKey: driveKeys.shared() });
+    },
+    onError: (e) => logger.error('Error quitando miembro del espacio:', e),
   });
 };

@@ -42,8 +42,9 @@ import {
   driveKeys,
   useCreateDriveFolder,
   useCreateDriveSpace,
+  useDeleteDriveSpace,
   useDriveFolderChildren,
-  useDriveSharedWithMe,
+  useDriveShared,
   useDriveSpaceChildren,
   useDriveSpaceUsage,
   useDriveSpaces,
@@ -54,6 +55,7 @@ import {
   useRestoreDriveNode,
   useTrashDriveNode,
   useUploadDriveFile,
+  useUpdateDriveSpace,
   useUploadDriveVersion,
 } from '@/hooks/api/useDrive';
 import { driveApi } from '@/services/api/drive';
@@ -61,7 +63,7 @@ import type { DriveNode, DriveSpace } from '@/types/drive';
 import { toBytesNumber } from '@/types/drive';
 
 import DriveBottomBar, { type DriveBottomTab } from '@/components/Drive/DriveBottomBar';
-import DriveFAB, { type DriveFABActionId } from '@/components/Drive/DriveFAB';
+import { ProtectedFAB, type FABAction } from '@/components/ui/ProtectedFAB';
 import DriveBreadcrumb, { type BreadcrumbItem } from '@/components/Drive/DriveBreadcrumb';
 import DriveNodeCard from '@/components/Drive/DriveNodeCard';
 import DriveSpaceCard from '@/components/Drive/DriveSpaceCard';
@@ -74,6 +76,10 @@ import UploadConflictModal, {
 } from '@/components/Drive/UploadConflictModal';
 import DriveNodeActionSheet, { type NodeActionId } from '@/components/Drive/DriveNodeActionSheet';
 import ShareNodeModal from '@/components/Drive/ShareNodeModal';
+import SpaceMembersModal from '@/components/Drive/SpaceMembersModal';
+import DriveSpaceActionSheet, {
+  type SpaceActionId,
+} from '@/components/Drive/DriveSpaceActionSheet';
 import DriveFileOpenSheet, { type FileOpenAction } from '@/components/Drive/DriveFileOpenSheet';
 import CreateSpaceModal from '@/components/Drive/CreateSpaceModal';
 import { pickFilesForUpload } from '@/components/Drive/pickFileCrossPlatform';
@@ -141,6 +147,9 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // Modales
   const [newFolderVisible, setNewFolderVisible] = useState(false);
   const [newSpaceVisible, setNewSpaceVisible] = useState(false);
+  const [membersSpace, setMembersSpace] = useState<DriveSpace | null>(null);
+  const [spaceActionSheet, setSpaceActionSheet] = useState<DriveSpace | null>(null);
+  const [renameSpaceTarget, setRenameSpaceTarget] = useState<DriveSpace | null>(null);
   const [viewerNode, setViewerNode] = useState<DriveNode | null>(null);
   const [openSheetNode, setOpenSheetNode] = useState<DriveNode | null>(null);
   const [actionSheetNode, setActionSheetNode] = useState<DriveNode | null>(null);
@@ -201,12 +210,19 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     browsingEnabled && !isSpaceRoot
   );
   const trashQ = useDriveTrash(activeSpaceId ?? undefined, tab === 'trash' && !!activeSpaceId);
-  const sharedQ = useDriveSharedWithMe(tab === 'shared-with-me');
+  const sharedQ = useDriveShared(tab === 'shared-with-me');
+  const sharedWithMeSpaces = useMemo<DriveSpace[]>(
+    () => sharedQ.data?.spaces ?? [],
+    [sharedQ.data]
+  );
   const usageQ = useDriveSpaceUsage(activeSpaceId ?? undefined, browsingEnabled);
 
   const activeSpace = useMemo(
-    () => spacesQ.data?.find((s) => s.id === activeSpaceId) ?? null,
-    [spacesQ.data, activeSpaceId]
+    () =>
+      spacesQ.data?.find((s) => s.id === activeSpaceId) ??
+      sharedWithMeSpaces.find((s) => s.id === activeSpaceId) ??
+      null,
+    [spacesQ.data, sharedWithMeSpaces, activeSpaceId]
   );
 
   const breadcrumb: BreadcrumbItem[] = useMemo(
@@ -220,6 +236,8 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
 
   const createFolder = useCreateDriveFolder();
   const createSpace = useCreateDriveSpace();
+  const updateSpace = useUpdateDriveSpace();
+  const deleteSpace = useDeleteDriveSpace();
   const uploadFile = useUploadDriveFile();
   const uploadVersion = useUploadDriveVersion();
   const renameNodeMut = useRenameDriveNode();
@@ -233,7 +251,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // --------------------------------------------------------------------------
 
   const listData: DriveNode[] = useMemo(() => {
-    if (tab === 'shared-with-me') return (sharedQ.data ?? []).map((s) => s.node);
+    if (tab === 'shared-with-me') return (sharedQ.data?.nodes ?? []).map((s) => s.node);
     if (tab === 'trash') return trashQ.data ?? [];
     if (!browsingEnabled) return [];
     if (isSpaceRoot) return spaceChildrenQ.data ?? [];
@@ -301,6 +319,78 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   const handleOpenSpaceCard = (s: DriveSpace) => {
     setActiveSpaceId(s.id);
     setFolderStack([]);
+  };
+
+  /** Abre un espacio compartido desde la pestaña "Compartido conmigo". */
+  const handleOpenSharedSpace = (s: DriveSpace) => {
+    setTab('spaces');
+    setActiveSpaceId(s.id);
+    setFolderStack([]);
+  };
+
+  // --------------------------------------------------------------------------
+  // Acciones sobre espacios (miembros / renombrar / eliminar)
+  // --------------------------------------------------------------------------
+
+  const spaceActions: SpaceActionId[] = useMemo(() => {
+    const acts: SpaceActionId[] = [];
+    if (canRead) acts.push('members');
+    if (canManage) acts.push('rename', 'delete');
+    return acts;
+  }, [canRead, canManage]);
+
+  const handleSpaceAction = (id: SpaceActionId, space: DriveSpace) => {
+    if (id === 'members') {
+      setMembersSpace(space);
+      return;
+    }
+    if (id === 'rename') {
+      setRenameSpaceTarget(space);
+      return;
+    }
+    if (id === 'delete') {
+      Alert.alert(
+        space.name,
+        '¿Eliminar este espacio? Se perderá el acceso de todos sus miembros.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () =>
+              deleteSpace.mutate(space.id, {
+                onSuccess: () => {
+                  if (activeSpaceId === space.id) {
+                    setActiveSpaceId(null);
+                    setFolderStack([]);
+                  }
+                },
+                onError: (e) => {
+                  const err = e as { message?: string };
+                  Alert.alert('No se pudo eliminar', err.message || 'Error.');
+                },
+              }),
+          },
+        ]
+      );
+    }
+  };
+
+  const handleRenameSpaceSubmit = (name: string) => {
+    if (!renameSpaceTarget) return;
+    updateSpace.mutate(
+      { id: renameSpaceTarget.id, dto: { name } },
+      {
+        onSuccess: () => setRenameSpaceTarget(null),
+        onError: (e) => {
+          const err = e as { status?: number; message?: string };
+          Alert.alert(
+            'No se pudo renombrar',
+            err.status === 409 ? 'Ya existe un espacio con ese nombre.' : err.message || 'Error.'
+          );
+        },
+      }
+    );
   };
 
   const handleOpenNode = (node: DriveNode) => {
@@ -537,31 +627,21 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // FAB
   // --------------------------------------------------------------------------
 
-  const handleFabAction = async (id: DriveFABActionId) => {
-    if (id === 'new-folder') {
-      setNewFolderVisible(true);
+  const handleUpload = useCallback(async () => {
+    if (!activeSpaceId) {
+      Alert.alert('Drive', 'Entra primero a un espacio para subir archivos.');
       return;
     }
-    if (id === 'upload-file' || id === 'upload-folder') {
-      if (!activeSpaceId) {
-        Alert.alert('Drive', 'Entra primero a un espacio para subir archivos.');
-        return;
-      }
-      try {
-        const picked = await pickFilesForUpload({ multiple: true });
-        if (picked.length === 0) return;
-        await handleIncomingFiles(
-          picked.map((p) => ({ file: p.payload, name: p.name, mimeType: p.mimeType }))
-        );
-      } catch (e) {
-        logger.error('Error seleccionando archivo:', e);
-      }
-      return;
+    try {
+      const picked = await pickFilesForUpload({ multiple: true });
+      if (picked.length === 0) return;
+      await handleIncomingFiles(
+        picked.map((p) => ({ file: p.payload, name: p.name, mimeType: p.mimeType }))
+      );
+    } catch (e) {
+      logger.error('Error seleccionando archivo:', e);
     }
-    if (id === 'new-space') {
-      setNewSpaceVisible(true);
-    }
-  };
+  }, [activeSpaceId, handleIncomingFiles]);
 
   const handleCreateSpace = async (dto: { name: string; quotaBytes: number }) => {
     try {
@@ -613,12 +693,11 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     }
     // Copy solo si es archivo (F2 limitación)
     if (canUpload && actionSheetNode?.kind === 'file') acts.push('copy');
-    // Compartir aplica en cualquier espacio que NO sea el personal del usuario.
-    const isSharedSpace = !!actionSheetNode && actionSheetNode.spaceId !== personalSpace?.id;
-    if (canRead && isSharedSpace) acts.push('share');
+    // Compartir disponible tanto en "Mi unidad" como en espacios compartidos.
+    if (canRead || canShare) acts.push('share');
     if (canManage) acts.push('trash');
     return acts;
-  }, [tab, canManage, canUpload, canRead, actionSheetNode, personalSpace?.id]);
+  }, [tab, canManage, canUpload, canRead, canShare, actionSheetNode]);
 
   const handleActionSheet = async (id: NodeActionId, node: DriveNode) => {
     if (id === 'open') {
@@ -755,22 +834,40 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // FAB actions
   // --------------------------------------------------------------------------
 
-  const fabActions: DriveFABActionId[] = useMemo(() => {
+  const fabActions: FABAction[] = useMemo(() => {
     if (tab === 'shared-with-me' || tab === 'trash') return [];
     if (spacesGridMode) {
-      const acts: DriveFABActionId[] = [];
-      if (canManage) acts.push('new-space');
-      return acts;
+      if (!canManage) return [];
+      return [
+        {
+          icon: 'albums-outline',
+          label: 'Nuevo espacio',
+          onPress: () => setNewSpaceVisible(true),
+        },
+      ];
     }
-    if (!activeSpaceId) return [];
-    const acts: DriveFABActionId[] = [];
-    if (canUpload) {
-      acts.push('upload-file');
-      if (Platform.OS === 'web') acts.push('upload-folder');
-      acts.push('new-folder');
+    if (!activeSpaceId || !canUpload) return [];
+    const acts: FABAction[] = [
+      {
+        icon: 'cloud-upload-outline',
+        label: 'Subir archivo',
+        onPress: () => void handleUpload(),
+      },
+    ];
+    if (Platform.OS === 'web') {
+      acts.push({
+        icon: 'folder-open-outline',
+        label: 'Subir carpeta',
+        onPress: () => void handleUpload(),
+      });
     }
+    acts.push({
+      icon: 'folder-outline',
+      label: 'Nueva carpeta',
+      onPress: () => setNewFolderVisible(true),
+    });
     return acts;
-  }, [tab, spacesGridMode, activeSpaceId, canManage, canUpload]);
+  }, [tab, spacesGridMode, activeSpaceId, canManage, canUpload, handleUpload]);
 
   // --------------------------------------------------------------------------
   // Header meta
@@ -810,7 +907,12 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
       numColumns={columns}
       renderItem={({ item }) => (
         <View style={{ margin: GRID_GAP / 2 }}>
-          <DriveSpaceCard space={item} onOpen={handleOpenSpaceCard} width={cardWidth} />
+          <DriveSpaceCard
+            space={item}
+            onOpen={handleOpenSpaceCard}
+            onMore={spaceActions.length > 0 ? (s) => setSpaceActionSheet(s) : undefined}
+            width={cardWidth}
+          />
         </View>
       )}
       contentContainerStyle={styles.gridContent}
@@ -866,6 +968,75 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     />
   );
 
+  /**
+   * Pestaña "Compartido conmigo": muestra los espacios compartidos donde soy
+   * miembro (cards) seguidos de los nodos sueltos compartidos directamente.
+   */
+  const renderSharedWithMe = () => (
+    <FlatList
+      data={sortedList}
+      key={`shared-${columns}`}
+      keyExtractor={(n) => n.id}
+      numColumns={columns}
+      renderItem={({ item }) => (
+        <View style={{ margin: GRID_GAP / 2 }}>
+          <DriveNodeCard
+            node={item}
+            onOpen={handleOpenNode}
+            onMore={(n) => setActionSheetNode(n)}
+            width={cardWidth}
+          />
+        </View>
+      )}
+      contentContainerStyle={styles.gridContent}
+      columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
+      ListHeaderComponent={
+        sharedWithMeSpaces.length > 0 ? (
+          <View style={styles.sharedSection}>
+            <Text variant="labelMedium" color="secondary" style={styles.sharedSectionLabel}>
+              Espacios compartidos conmigo
+            </Text>
+            <View style={styles.sharedSpacesWrap}>
+              {sharedWithMeSpaces.map((sp) => (
+                <View key={sp.id} style={{ margin: GRID_GAP / 2 }}>
+                  <DriveSpaceCard
+                    space={sp}
+                    onOpen={handleOpenSharedSpace}
+                    onMore={canRead ? (s) => setSpaceActionSheet(s) : undefined}
+                    width={cardWidth}
+                  />
+                </View>
+              ))}
+            </View>
+            {sortedList.length > 0 && (
+              <Text variant="labelMedium" color="secondary" style={styles.sharedSectionLabel}>
+                Archivos y carpetas compartidos
+              </Text>
+            )}
+          </View>
+        ) : null
+      }
+      ListEmptyComponent={
+        sharedWithMeSpaces.length === 0 ? (
+          <View style={styles.center}>
+            <EmptyState
+              icon="share-social-outline"
+              title="Aún no te han compartido nada"
+              description="Los archivos, carpetas y espacios que te compartan aparecerán aquí."
+            />
+          </View>
+        ) : null
+      }
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.color.brand.primary}
+        />
+      }
+    />
+  );
+
   return (
     <ScreenLayout navigation={{} as never}>
       <View style={styles.container}>
@@ -876,6 +1047,16 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
             <Text variant="titleMedium" style={styles.headerTitle}>
               Drive
             </Text>
+            {tab === 'spaces' && !spacesGridMode && activeSpace?.type === 'shared' && canRead && (
+              <TouchableOpacity
+                onPress={() => activeSpace && setMembersSpace(activeSpace)}
+                style={styles.pillBtn}
+                activeOpacity={activeOpacity.medium}
+              >
+                <Ionicons name="people" size={iconSizes.sm} color={theme.color.icon.default} />
+                <Text variant="caption">Miembros</Text>
+              </TouchableOpacity>
+            )}
             {tab === 'spaces' && !spacesGridMode && (
               <TouchableOpacity
                 onPress={handleBackToSpaces}
@@ -955,19 +1136,15 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
           <View style={styles.center}>
             <ActivityIndicator size="large" color={theme.color.brand.primary} />
           </View>
+        ) : tab === 'shared-with-me' ? (
+          renderSharedWithMe()
         ) : spacesGridMode ? (
           renderSpacesGrid()
         ) : sortedList.length === 0 ? (
           <View style={styles.center}>
             <EmptyState
               icon="folder-open-outline"
-              title={
-                tab === 'trash'
-                  ? 'Papelera vacía'
-                  : tab === 'shared-with-me'
-                    ? 'Aún no te han compartido nada'
-                    : 'Esta carpeta está vacía'
-              }
+              title={tab === 'trash' ? 'Papelera vacía' : 'Esta carpeta está vacía'}
               description={
                 canUpload && browsingEnabled
                   ? Platform.OS === 'web'
@@ -1017,7 +1194,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
 
         {/* BottomBar + FAB */}
         <DriveBottomBar active={tab} onSelect={handleSelectTab} />
-        <DriveFAB onAction={handleFabAction} actions={fabActions} visible={fabActions.length > 0} />
+        <ProtectedFAB actions={fabActions} />
 
         {/* Modales */}
         <NewFolderModal
@@ -1084,6 +1261,29 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
           loading={createSpace.isPending}
           onClose={() => setNewSpaceVisible(false)}
           onSubmit={handleCreateSpace}
+        />
+        <SpaceMembersModal
+          visible={!!membersSpace}
+          space={membersSpace}
+          canManage={canShare}
+          onClose={() => setMembersSpace(null)}
+        />
+        <DriveSpaceActionSheet
+          visible={!!spaceActionSheet}
+          space={spaceActionSheet}
+          actions={spaceActions}
+          onSelect={(action, space) => {
+            setSpaceActionSheet(null);
+            handleSpaceAction(action, space);
+          }}
+          onClose={() => setSpaceActionSheet(null)}
+        />
+        <RenameNodeModal
+          visible={!!renameSpaceTarget}
+          initialName={renameSpaceTarget?.name ?? ''}
+          loading={updateSpace.isPending}
+          onClose={() => setRenameSpaceTarget(null)}
+          onSubmit={handleRenameSpaceSubmit}
         />
       </View>
     </ScreenLayout>
@@ -1158,6 +1358,18 @@ const createStyles = (theme: Theme) =>
     },
     gridRow: {
       justifyContent: 'flex-start',
+    },
+    sharedSection: {
+      width: '100%',
+    },
+    sharedSectionLabel: {
+      marginTop: theme.space[2],
+      marginBottom: theme.space[1],
+      marginLeft: theme.space[1.5],
+    },
+    sharedSpacesWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
     },
     dropOverlay: {
       ...StyleSheet.absoluteFillObject,

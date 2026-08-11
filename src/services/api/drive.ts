@@ -4,6 +4,7 @@ import { downloadWithAuth } from '@/utils/downloadWithAuth';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import type {
+  AddDriveSpaceMemberDto,
   ApiEnvelope,
   CreateDriveFolderDto,
   CreateDriveShareDto,
@@ -15,8 +16,10 @@ import type {
   DrivePermanentDeleteResponse,
   DriveShare,
   DriveShareUser,
+  DriveSharedResponse,
   DriveSharedWithMeItem,
   DriveSpace,
+  DriveSpaceMember,
   DriveSpaceUsage,
   DriveVersion,
   MoveDriveNodeDto,
@@ -188,6 +191,11 @@ export const driveApi = {
     return unwrap(res);
   },
 
+  deleteSpace: async (id: string): Promise<{ deleted: boolean }> => {
+    const res = await apiClient.delete<ApiEnvelope<{ deleted: boolean }>>(`/drive/spaces/${id}`);
+    return unwrap(res);
+  },
+
   getSpaceUsage: async (id: string): Promise<DriveSpaceUsage> => {
     const res = await apiClient.get<ApiEnvelope<DriveSpaceUsage>>(`/drive/spaces/${id}/usage`);
     return unwrap(res);
@@ -342,11 +350,50 @@ export const driveApi = {
     return unwrap(res);
   },
 
+  /**
+   * Vista unificada de "Compartido conmigo": nodos sueltos + espacios donde
+   * el usuario es miembro, en una sola respuesta.
+   */
+  listShared: async (): Promise<DriveSharedResponse> => {
+    const res = await apiClient.get<ApiEnvelope<DriveSharedResponse>>('/drive/shared');
+    return unwrap(res);
+  },
+
   /** Busca usuarios para el selector de "Compartir con". */
   searchUsers: async (q: string, limit = 20): Promise<DriveShareUser[]> => {
     const res = await apiClient.get<ApiEnvelope<DriveShareUser[]>>('/drive/users/search', {
       params: { q: q.trim() || undefined, limit },
     });
+    return unwrap(res);
+  },
+
+  // -------------------- Miembros de espacio (Shared Drives) --------------------
+
+  /** Lista los miembros de un espacio compartido (dueño o miembro del espacio). */
+  listSpaceMembers: async (spaceId: string): Promise<DriveSpaceMember[]> => {
+    const res = await apiClient.get<ApiEnvelope<DriveSpaceMember[]>>(
+      `/drive/spaces/${spaceId}/members`
+    );
+    return unwrap(res);
+  },
+
+  /** Agrega un miembro o actualiza su rol si ya existe (idempotente por usuario). */
+  addSpaceMember: async (
+    spaceId: string,
+    dto: AddDriveSpaceMemberDto
+  ): Promise<DriveSpaceMember> => {
+    const res = await apiClient.post<ApiEnvelope<DriveSpaceMember>>(
+      `/drive/spaces/${spaceId}/members`,
+      dto
+    );
+    return unwrap(res);
+  },
+
+  /** Quita a un usuario del espacio. */
+  removeSpaceMember: async (spaceId: string, userId: string): Promise<{ removed: boolean }> => {
+    const res = await apiClient.delete<ApiEnvelope<{ removed: boolean }>>(
+      `/drive/spaces/${spaceId}/members/${userId}`
+    );
     return unwrap(res);
   },
 };

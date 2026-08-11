@@ -19,6 +19,7 @@ import { toBytesNumber } from '@/types/drive';
 interface Props {
   space: DriveSpace;
   onOpen: (space: DriveSpace) => void;
+  onMore?: (space: DriveSpace) => void;
   width: number;
 }
 
@@ -29,7 +30,7 @@ const humanBytes = (n: number): string => {
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 
-export const DriveSpaceCard: React.FC<Props> = ({ space, onOpen, width }) => {
+export const DriveSpaceCard: React.FC<Props> = ({ space, onOpen, onMore, width }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
@@ -52,6 +53,16 @@ export const DriveSpaceCard: React.FC<Props> = ({ space, onOpen, width }) => {
       onPress={() => onOpen(space)}
       activeOpacity={activeOpacity.medium}
     >
+      {onMore && (
+        <TouchableOpacity
+          onPress={() => onMore(space)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.moreBtn}
+          accessibilityLabel="Más opciones del espacio"
+        >
+          <Ionicons name="ellipsis-vertical" size={18} color={theme.color.icon.muted} />
+        </TouchableOpacity>
+      )}
       <View
         style={[
           styles.iconWrap,
@@ -105,6 +116,13 @@ const createStyles = (theme: Theme) =>
     iconWrap: {
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    moreBtn: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      padding: 4,
+      zIndex: 2,
     },
     info: {
       alignItems: 'center',

@@ -151,6 +151,52 @@ export interface DriveSharedWithMeItem {
   sharedBy?: DriveShareUser | null;
 }
 
+/**
+ * Espacio compartido donde el usuario actual es miembro (Shared Drive).
+ * Incluye todos los campos de `DriveSpace` más metadatos de la membresía.
+ */
+export interface DriveSharedSpace extends DriveSpace {
+  myRole: DriveSpaceMemberRole;
+  joinedAt?: string;
+  owner?: DriveShareUser | null;
+}
+
+/**
+ * Vista unificada de "Compartido conmigo" (GET /drive/shared): nodos sueltos
+ * compartidos directamente + espacios completos donde el usuario es miembro.
+ */
+export interface DriveSharedResponse {
+  nodes: DriveSharedWithMeItem[];
+  spaces: DriveSharedSpace[];
+}
+
+// ============================================================================
+// Miembros de espacio (Shared Drives)
+// ============================================================================
+
+/**
+ * Rol base de un miembro dentro de un espacio compartido. Se hereda por todos
+ * los nodos del espacio y se combina con el compartir por nodo (gana el rol
+ * más permisivo).
+ *  - viewer:  lectura de todo el espacio.
+ *  - editor:  lectura + escritura (subir, crear carpetas, mover).
+ *  - manager: editor + gestión de miembros del espacio.
+ */
+export type DriveSpaceMemberRole = 'viewer' | 'editor' | 'manager';
+
+export interface DriveSpaceMember {
+  id: string;
+  role: DriveSpaceMemberRole;
+  grantedBy?: string | null;
+  createdAt?: string;
+  user: DriveShareUser;
+}
+
+export interface AddDriveSpaceMemberDto {
+  userId: string;
+  role: DriveSpaceMemberRole;
+}
+
 // ============================================================================
 // Respuestas de operaciones
 // ============================================================================
