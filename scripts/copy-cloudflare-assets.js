@@ -17,7 +17,10 @@ if (!fs.existsSync(outDir)) {
   process.exit(1);
 }
 
-const files = ['_redirects', '_headers'];
+// _redirects se omite: Workers Static Assets ya maneja SPA fallback via
+// `not_found_handling = "single-page-application"` en wrangler.toml. Tener
+// ambos causa "Infinite loop detected" en el deploy.
+const files = ['_headers'];
 
 for (const file of files) {
   const src = path.join(publicDir, file);
