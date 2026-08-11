@@ -125,7 +125,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   }, [currentCompany?.id]);
 
   useEffect(() => {
-    console.log('🔍 Dashboard useEffect - canViewPurchases:', canViewPurchases, 'canViewSales:', canViewSales, 'selectedFilter:', selectedFilter, 'selectedSedeId:', selectedSedeId);
+    console.log(
+      '🔍 Dashboard useEffect - canViewPurchases:',
+      canViewPurchases,
+      'canViewSales:',
+      canViewSales,
+      'selectedFilter:',
+      selectedFilter,
+      'selectedSedeId:',
+      selectedSedeId
+    );
 
     // ✅ OPTIMIZACIÓN: Carga secuencial priorizada
     const loadDataSequentially = async () => {
@@ -143,10 +152,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         // Delay de 300ms para no saturar la red
         setTimeout(async () => {
           setLoading(true);
-          await Promise.all([
-            loadPurchasesSummary(),
-            loadPurchasesGrouped()
-          ]);
+          await Promise.all([loadPurchasesSummary(), loadPurchasesGrouped()]);
           setLoading(false);
         }, 300);
       } else {
@@ -170,8 +176,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       case 'yesterday':
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
-        start = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
-        end = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+        start = new Date(
+          yesterday.getFullYear(),
+          yesterday.getMonth(),
+          yesterday.getDate(),
+          0,
+          0,
+          0
+        );
+        end = new Date(
+          yesterday.getFullYear(),
+          yesterday.getMonth(),
+          yesterday.getDate(),
+          23,
+          59,
+          59
+        );
         break;
       case 'week':
         const dayOfWeek = now.getDay();
@@ -196,8 +216,22 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
         break;
       case 'custom':
-        start = new Date(customStartDate.getFullYear(), customStartDate.getMonth(), customStartDate.getDate(), 0, 0, 0);
-        end = new Date(customEndDate.getFullYear(), customEndDate.getMonth(), customEndDate.getDate(), 23, 59, 59);
+        start = new Date(
+          customStartDate.getFullYear(),
+          customStartDate.getMonth(),
+          customStartDate.getDate(),
+          0,
+          0,
+          0
+        );
+        end = new Date(
+          customEndDate.getFullYear(),
+          customEndDate.getMonth(),
+          customEndDate.getDate(),
+          23,
+          59,
+          59
+        );
         break;
       default:
         start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
@@ -256,7 +290,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       setError(null);
 
       const { startDate, endDate } = getDateRange(selectedFilter);
-      console.log('📅 Loading purchases summary:', { startDate, endDate, filter: selectedFilter, sedeId: selectedSedeId });
+      console.log('📅 Loading purchases summary:', {
+        startDate,
+        endDate,
+        filter: selectedFilter,
+        sedeId: selectedSedeId,
+      });
 
       const params: any = {
         fecha_inicio: startDate,
@@ -285,7 +324,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     try {
       // Para la gráfica, siempre usar los últimos 7 días si es hoy, ayer o semana
       let dateRange;
-      if (selectedFilter === 'today' || selectedFilter === 'yesterday' || selectedFilter === 'week') {
+      if (
+        selectedFilter === 'today' ||
+        selectedFilter === 'yesterday' ||
+        selectedFilter === 'week'
+      ) {
         // Últimos 7 días
         const now = new Date();
         const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
@@ -328,9 +371,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         sedeId: selectedSedeId,
       });
 
-      const data = await apiClient.get<PurchasesGroupedSummary>('/admin/purchases/summary/grouped', {
-        params,
-      });
+      const data = await apiClient.get<PurchasesGroupedSummary>(
+        '/admin/purchases/summary/grouped',
+        {
+          params,
+        }
+      );
 
       console.log('✅ Purchases grouped loaded:', data);
       setPurchasesGrouped(data);
@@ -372,7 +418,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       setSalesError(null);
 
       const { startDate, endDate } = getDateRange(selectedFilter);
-      console.log('📅 Loading sales summary:', { startDate, endDate, filter: selectedFilter, sedeId: selectedSedeId });
+      console.log('📅 Loading sales summary:', {
+        startDate,
+        endDate,
+        filter: selectedFilter,
+        sedeId: selectedSedeId,
+      });
 
       const params: any = {
         fecha_inicio: startDate,
@@ -386,7 +437,50 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       const data = await cashReconciliationApi.getResumenDiario(params);
 
       console.log('✅ Sales summary loaded:', data);
-      setSalesSummary(data);
+      // Normalizamos la respuesta: algunos entornos del backend devuelven
+      // `por_sede` en vez de `detalle_diario` y omiten `totales_periodo`.
+      // Derivamos los faltantes sumando los items disponibles para no crashear
+      // el render (fix cross-platform, ya que afectaba también APK y Electron).
+      const rawAny: any = data ?? {};
+      const detalle = rawAny.detalle_diario ?? rawAny.por_sede ?? [];
+      const zeroTotals = {
+        ventas_total: 0,
+        ventas_efectivo: 0,
+        ventas_tarjeta: 0,
+        ventas_cantidad: 0,
+        notas_credito_total: 0,
+        notas_credito_efectivo: 0,
+        notas_credito_tarjeta: 0,
+        notas_credito_cantidad: 0,
+        izipay_bruto: 0,
+        izipay_comisiones: 0,
+        izipay_neto: 0,
+        izipay_cantidad: 0,
+        prosegur_depositos: 0,
+        prosegur_cantidad: 0,
+        total_a_recibir: 0,
+        total_comisiones: 0,
+        diferencia_total: 0,
+      };
+      const totales_periodo =
+        rawAny.totales_periodo ??
+        (Array.isArray(detalle)
+          ? detalle.reduce(
+              (acc: any, item: any) => {
+                for (const key of Object.keys(zeroTotals)) {
+                  acc[key] = (acc[key] ?? 0) + (Number(item?.[key]) || 0);
+                }
+                return acc;
+              },
+              { ...zeroTotals }
+            )
+          : zeroTotals);
+      const normalized = {
+        ...rawAny,
+        detalle_diario: detalle,
+        totales_periodo,
+      };
+      setSalesSummary(normalized);
     } catch (err: any) {
       console.error('❌ Error loading sales summary:', err);
       setSalesError(err.response?.data?.message || 'Error al cargar el resumen de ventas');
@@ -410,8 +504,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     await Promise.all(promises);
     setRefreshing(false);
   };
-
-
 
   const downloadAccountsReceivableReport = async () => {
     try {
@@ -460,7 +552,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           headers: {
             'X-App-Id': config.APP_ID,
             'X-App-Version': config.APP_VERSION,
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -491,7 +583,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         const downloadResult = await FileSystem.downloadAsync(url, fileUri, {
           headers: {
             'X-App-Id': config.APP_ID,
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -536,13 +628,39 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
   const formatDateShort = (dateStr: string): string => {
     const date = new Date(dateStr);
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const months = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
     return `${date.getDate()} ${months[date.getMonth()]}`;
   };
 
   const formatDateLong = (dateStr: string): string => {
     const date = new Date(dateStr);
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const months = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
@@ -610,9 +728,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     const graphWidth = chartWidth - padding.left - padding.right;
     const graphHeight = chartHeight - padding.top - padding.bottom;
 
-    const maxValue = Math.max(...data.map(d => d.totalValidated), 1);
+    const maxValue = Math.max(...data.map((d) => d.totalValidated), 1);
     const pointSpacing = Math.max(graphWidth / (data.length - 1 || 1), 40);
-    const totalWidth = Math.max(chartWidth, (data.length - 1) * pointSpacing + padding.left + padding.right);
+    const totalWidth = Math.max(
+      chartWidth,
+      (data.length - 1) * pointSpacing + padding.left + padding.right
+    );
 
     // Generar puntos para la línea
     const points = data.map((item, index) => {
@@ -622,21 +743,21 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     });
 
     // Crear path para la línea
-    const linePath = points.map((point, index) => {
-      if (index === 0) {
-        return `M ${point.x} ${point.y}`;
-      }
-      return `L ${point.x} ${point.y}`;
-    }).join(' ');
+    const linePath = points
+      .map((point, index) => {
+        if (index === 0) {
+          return `M ${point.x} ${point.y}`;
+        }
+        return `L ${point.x} ${point.y}`;
+      })
+      .join(' ');
 
     // Crear path para el área bajo la línea (gradiente)
     const areaPath = `${linePath} L ${points[points.length - 1].x} ${padding.top + graphHeight} L ${padding.left} ${padding.top + graphHeight} Z`;
 
     return (
       <View style={styles.chartContainer}>
-        <Text style={[styles.chartTitle, isTablet && styles.chartTitleTablet]}>
-          {title}
-        </Text>
+        <Text style={[styles.chartTitle, isTablet && styles.chartTitleTablet]}>{title}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <Svg width={totalWidth} height={chartHeight}>
             {/* Eje Y - Líneas de referencia */}
@@ -668,11 +789,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             })}
 
             {/* Área bajo la línea (gradiente suave) */}
-            <Path
-              d={areaPath}
-              fill={color}
-              fillOpacity="0.1"
-            />
+            <Path d={areaPath} fill={color} fillOpacity="0.1" />
 
             {/* Línea principal */}
             <Path
@@ -705,7 +822,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   textAnchor="middle"
                   transform={`rotate(-45, ${point.x}, ${chartHeight - 10})`}
                 >
-                  {point.item.label.length > 10 ? point.item.label.substring(0, 10) + '...' : point.item.label}
+                  {point.item.label.length > 10
+                    ? point.item.label.substring(0, 10) + '...'
+                    : point.item.label}
                 </SvgText>
               </React.Fragment>
             ))}
@@ -748,10 +867,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
     const data = salesSummary.detalle_diario;
     // Calcular ventas netas (ventas - notas de crédito) para cada día
-    const ventasNetas = data.map(d => d.ventas_total - d.notas_credito_total);
+    const ventasNetas = data.map((d) => d.ventas_total - d.notas_credito_total);
     const maxValue = Math.max(...ventasNetas, 1);
     const pointSpacing = Math.max(graphWidth / (data.length - 1 || 1), 40);
-    const totalWidth = Math.max(chartWidth, (data.length - 1) * pointSpacing + padding.left + padding.right);
+    const totalWidth = Math.max(
+      chartWidth,
+      (data.length - 1) * pointSpacing + padding.left + padding.right
+    );
 
     // Generar puntos para la línea (usando ventas netas)
     const points = data.map((item, index) => {
@@ -762,12 +884,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     });
 
     // Crear path para la línea
-    const linePath = points.map((point, index) => {
-      if (index === 0) {
-        return `M ${point.x} ${point.y}`;
-      }
-      return `L ${point.x} ${point.y}`;
-    }).join(' ');
+    const linePath = points
+      .map((point, index) => {
+        if (index === 0) {
+          return `M ${point.x} ${point.y}`;
+        }
+        return `L ${point.x} ${point.y}`;
+      })
+      .join(' ');
 
     // Crear path para el área bajo la línea
     const areaPath = `${linePath} L ${points[points.length - 1].x} ${padding.top + graphHeight} L ${padding.left} ${padding.top + graphHeight} Z`;
@@ -808,11 +932,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             })}
 
             {/* Área bajo la línea */}
-            <Path
-              d={areaPath}
-              fill="#10B981"
-              fillOpacity="0.1"
-            />
+            <Path d={areaPath} fill="#10B981" fillOpacity="0.1" />
 
             {/* Línea principal */}
             <Path
@@ -908,7 +1028,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 <Text style={styles.sedeSelectorLabel}>Sede</Text>
                 <Text style={styles.sedeSelectorValue} numberOfLines={1}>
                   {selectedSedeId
-                    ? sedes.find(s => s.id === selectedSedeId)?.name || 'Todas'
+                    ? sedes.find((s) => s.id === selectedSedeId)?.name || 'Todas'
                     : 'Todas'}
                 </Text>
               </View>
@@ -921,9 +1041,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.accent[500]]} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.accent[500]]}
+          />
+        }
       >
-
         {/* Date Filters - Ahora arriba de todo */}
         {(canViewPurchases || canViewSales) && (
           <View style={styles.filtersSection}>
@@ -1009,11 +1134,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     <Text style={styles.statIcon}>✅</Text>
                     <Text style={styles.statLabel}>Ventas Netas</Text>
                     <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
-                      {formatCurrency(salesSummary.totales_periodo.ventas_total - salesSummary.totales_periodo.notas_credito_total)}
+                      {formatCurrency(
+                        salesSummary.totales_periodo.ventas_total -
+                          salesSummary.totales_periodo.notas_credito_total
+                      )}
                     </Text>
-                    <Text style={styles.statSubtext}>
-                      Ventas - Notas de Crédito
-                    </Text>
+                    <Text style={styles.statSubtext}>Ventas - Notas de Crédito</Text>
                   </View>
 
                   {/* Total Prosegur */}
@@ -1047,9 +1173,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
                       {formatCurrency(salesSummary.totales_periodo.total_a_recibir)}
                     </Text>
-                    <Text style={styles.statSubtext}>
-                      Prosegur + Izipay neto
-                    </Text>
+                    <Text style={styles.statSubtext}>Prosegur + Izipay neto</Text>
                   </View>
 
                   {/* Comisiones */}
@@ -1059,9 +1183,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                     <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>
                       {formatCurrency(salesSummary.totales_periodo.total_comisiones)}
                     </Text>
-                    <Text style={styles.statSubtext}>
-                      Izipay
-                    </Text>
+                    <Text style={styles.statSubtext}>Izipay</Text>
                   </View>
                 </View>
 
@@ -1153,7 +1275,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                       🏆 Top 5 Proveedores
                     </Text>
                     <Text style={styles.suppliersSubtitle}>
-                      Período: {formatDateShort(purchasesSummary.startDate)} - {formatDateLong(purchasesSummary.endDate)}
+                      Período: {formatDateShort(purchasesSummary.startDate)} -{' '}
+                      {formatDateLong(purchasesSummary.endDate)}
                     </Text>
 
                     {purchasesSummary.topSuppliers.map((supplier, index) => (
@@ -1162,7 +1285,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                           <Text style={styles.supplierRankText}>#{index + 1}</Text>
                         </View>
                         <View style={styles.supplierInfo}>
-                          <Text style={[styles.supplierName, isTablet && styles.supplierNameTablet]}>
+                          <Text
+                            style={[styles.supplierName, isTablet && styles.supplierNameTablet]}
+                          >
                             {supplier.supplierName}
                           </Text>
                           <View style={styles.supplierStats}>
@@ -1171,7 +1296,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                             </Text>
                             <Text style={styles.supplierStatSeparator}>•</Text>
                             <Text style={styles.supplierStat}>
-                              {supplier.purchaseCount} {supplier.purchaseCount === 1 ? 'compra' : 'compras'}
+                              {supplier.purchaseCount}{' '}
+                              {supplier.purchaseCount === 1 ? 'compra' : 'compras'}
                             </Text>
                           </View>
                         </View>
@@ -1222,10 +1348,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
 
           <View style={styles.reportsGrid}>
             {/* Cuentas por Cobrar Report */}
-            <TouchableOpacity
-              style={styles.reportCard}
-              onPress={() => setShowReportsModal(true)}
-            >
+            <TouchableOpacity style={styles.reportCard} onPress={() => setShowReportsModal(true)}>
               <View style={styles.reportIconContainer}>
                 <Text style={styles.reportIcon}>💰</Text>
               </View>
@@ -1275,10 +1398,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             <ScrollView style={styles.modalBody}>
               {/* Opción "Todas las sedes" */}
               <TouchableOpacity
-                style={[
-                  styles.sedeModalItem,
-                  !selectedSedeId && styles.sedeModalItemSelected,
-                ]}
+                style={[styles.sedeModalItem, !selectedSedeId && styles.sedeModalItemSelected]}
                 onPress={() => {
                   setSelectedSedeId('');
                   setShowSedeModal(false);
@@ -1316,9 +1436,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                       )}
                     </View>
                   </View>
-                  {selectedSedeId === sede.id && (
-                    <Text style={styles.sedeModalItemCheck}>✓</Text>
-                  )}
+                  {selectedSedeId === sede.id && <Text style={styles.sedeModalItemCheck}>✓</Text>}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -1367,10 +1485,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.reportChipsContainer}>
                     <TouchableOpacity
-                      style={[
-                        styles.reportChip,
-                        !reportSedeId && styles.reportChipActive,
-                      ]}
+                      style={[styles.reportChip, !reportSedeId && styles.reportChipActive]}
                       onPress={() => setReportSedeId('')}
                     >
                       <Text
@@ -1411,10 +1526,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.reportChipsContainer}>
                     <TouchableOpacity
-                      style={[
-                        styles.reportChip,
-                        !reportTipoOrigen && styles.reportChipActive,
-                      ]}
+                      style={[styles.reportChip, !reportTipoOrigen && styles.reportChipActive]}
                       onPress={() => setReportTipoOrigen('')}
                     >
                       <Text
@@ -1468,10 +1580,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.reportChipsContainer}>
                     <TouchableOpacity
-                      style={[
-                        styles.reportChip,
-                        !reportEstado && styles.reportChipActive,
-                      ]}
+                      style={[styles.reportChip, !reportEstado && styles.reportChipActive]}
                       onPress={() => setReportEstado('')}
                     >
                       <Text
@@ -1525,7 +1634,12 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                   style={styles.reportCheckboxContainer}
                   onPress={() => setReportIncluirDetalle(!reportIncluirDetalle)}
                 >
-                  <View style={[styles.reportCheckbox, reportIncluirDetalle && styles.reportCheckboxChecked]}>
+                  <View
+                    style={[
+                      styles.reportCheckbox,
+                      reportIncluirDetalle && styles.reportCheckboxChecked,
+                    ]}
+                  >
                     {reportIncluirDetalle && <Text style={styles.reportCheckboxCheck}>✓</Text>}
                   </View>
                   <Text style={styles.reportCheckboxLabel}>Incluir detalle completo</Text>
@@ -1542,7 +1656,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
                 <Text style={styles.modalCancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalApplyButton, downloadingReport && styles.modalApplyButtonDisabled]}
+                style={[
+                  styles.modalApplyButton,
+                  downloadingReport && styles.modalApplyButtonDisabled,
+                ]}
                 onPress={downloadAccountsReceivableReport}
                 disabled={downloadingReport}
               >
