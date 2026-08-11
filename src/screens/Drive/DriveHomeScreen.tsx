@@ -613,10 +613,15 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     }
     // Copy solo si es archivo (F2 limitación)
     if (canUpload && actionSheetNode?.kind === 'file') acts.push('copy');
-    if (canRead) acts.push('share');
+    // Compartir solo aplica en Espacios compartidos (no en Mi unidad personal).
+    const isSharedSpace =
+      !!actionSheetNode &&
+      actionSheetNode.spaceId !== personalSpace?.id &&
+      sharedSpaces.some((s) => s.id === actionSheetNode.spaceId);
+    if (canRead && isSharedSpace) acts.push('share');
     if (canManage) acts.push('trash');
     return acts;
-  }, [tab, canManage, canUpload, canRead, actionSheetNode?.kind]);
+  }, [tab, canManage, canUpload, canRead, actionSheetNode, personalSpace?.id, sharedSpaces]);
 
   const handleActionSheet = async (id: NodeActionId, node: DriveNode) => {
     if (id === 'open') {

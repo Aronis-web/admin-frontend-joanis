@@ -2,11 +2,8 @@
  * DriveFAB
  *
  * FAB rojo con speed-dial vertical hacia arriba y a la izquierda.
- * Replica el patrón visual de `BizlinksDocumentsFAB` / `ExpensesFAB`:
- *  - Botón principal circular en color `theme.color.brand.accent`.
- *  - Al abrir, botones pequeños se despliegan hacia arriba+izquierda con
- *    stagger, cada uno con una "label pill" a la izquierda.
- *  - Overlay oscuro cubre el fondo mientras está abierto.
+ * Estilos idénticos a `ExpensesFAB` (rojo `action.danger.background`,
+ * borde blanco de 3px, label pill blanca a la izquierda).
  *
  * Se posiciona respetando la altura de la BottomBar via FloatingFooterProvider.
  */
@@ -15,7 +12,7 @@ import React, { useRef, useState } from 'react';
 import {
   Animated,
   StyleSheet,
-  Text,
+  Text as RNText,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -42,13 +39,6 @@ export interface DriveFABProps {
   visible?: boolean;
 }
 
-const ACTION_CATALOG: Record<DriveFABActionId, Omit<ActionOption, 'id'>> = {
-  'upload-file': { label: 'Subir archivo', icon: 'cloud-upload-outline', color: '#3B82F6' },
-  'upload-folder': { label: 'Subir carpeta', icon: 'folder-open-outline', color: '#8B5CF6' },
-  'new-folder': { label: 'Nueva carpeta', icon: 'folder-outline', color: '#10B981' },
-  'new-space': { label: 'Nuevo espacio', icon: 'albums-outline', color: '#F59E0B' },
-};
-
 export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible = true }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -68,6 +58,30 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
     buttonAnimsRef.current.push(new Animated.Value(0));
   }
   const buttonAnims = buttonAnimsRef.current;
+
+  // Catálogo dentro del componente para acceder al theme
+  const ACTION_CATALOG: Record<DriveFABActionId, Omit<ActionOption, 'id'>> = {
+    'upload-file': {
+      label: 'Subir archivo',
+      icon: 'cloud-upload',
+      color: theme.color.icon.accent,
+    },
+    'upload-folder': {
+      label: 'Subir carpeta',
+      icon: 'folder-open',
+      color: theme.color.brand.primary,
+    },
+    'new-folder': {
+      label: 'Nueva carpeta',
+      icon: 'folder',
+      color: theme.color.icon.success,
+    },
+    'new-space': {
+      label: 'Nuevo espacio',
+      icon: 'albums',
+      color: theme.color.icon.warning,
+    },
+  };
 
   if (!visible || actions.length === 0) return null;
 
@@ -100,8 +114,6 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
     outputRange: ['0deg', '45deg'],
   });
 
-  // Posiciones: apiladas hacia arriba y desplazadas a la izquierda para
-  // que el label pill quepa cómodo (mismo criterio que Bizlinks).
   const verticalSpacing = isTablet ? 70 : 65;
   const horizontalOffset = isTablet ? -80 : -70;
 
@@ -164,9 +176,9 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
             >
               <View style={styles.optionRow}>
                 <View style={styles.labelContainer}>
-                  <Text style={[styles.optionLabel, isTablet && styles.optionLabelTablet]}>
+                  <RNText style={[styles.optionLabel, isTablet && styles.optionLabelTablet]}>
                     {opt.label}
-                  </Text>
+                  </RNText>
                 </View>
                 <TouchableOpacity
                   style={[
@@ -196,7 +208,7 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
             activeOpacity={0.9}
             accessibilityLabel="Acciones del Drive"
           >
-            <Ionicons name="add" size={isTablet ? 32 : 28} color={theme.color.text.inverse} />
+            <RNText style={[styles.mainFabIcon, isTablet && styles.mainFabIconTablet]}>+</RNText>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -208,7 +220,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     overlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: theme.color.overlay.strong,
+      backgroundColor: theme.color.shadow,
       zIndex: 10000,
     },
     fabContainer: {
@@ -224,11 +236,11 @@ const createStyles = (theme: Theme) =>
     mainFab: {
       width: 56,
       height: 56,
-      borderRadius: theme.radii.full,
-      backgroundColor: theme.color.brand.accent,
+      borderRadius: 28,
+      backgroundColor: theme.color.action.danger.background,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: theme.color.brand.accent,
+      shadowColor: theme.color.action.danger.background,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.4,
       shadowRadius: 12,
@@ -243,6 +255,14 @@ const createStyles = (theme: Theme) =>
       shadowRadius: 16,
       elevation: 10,
     },
+    mainFabIcon: {
+      fontSize: 28,
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+    },
+    mainFabIconTablet: {
+      fontSize: 32,
+    },
     optionButtonContainer: {
       position: 'absolute',
       alignItems: 'center',
@@ -255,7 +275,7 @@ const createStyles = (theme: Theme) =>
     optionButton: {
       width: 48,
       height: 48,
-      borderRadius: theme.radii.full,
+      borderRadius: 24,
       justifyContent: 'center',
       alignItems: 'center',
       shadowColor: theme.color.shadow,
