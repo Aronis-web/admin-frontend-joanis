@@ -44,6 +44,12 @@ import { MAIN_ROUTES } from '@/constants/routes';
 import { useOnReload } from '@/hooks/useOnReload';
 import { WebmailFolderSidebar } from './WebmailFolderSidebar';
 import {
+  WebmailSearchFiltersPanel,
+  EMPTY_FILTERS,
+  countActiveFilters,
+  type WebmailSearchFilters as WebmailSearchFiltersModel,
+} from './WebmailSearchFilters';
+import {
   formatMailDate,
   isSpam,
   isTrash,
@@ -75,6 +81,9 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState(''); // el que dispara la búsqueda
   const [showMobileFolders, setShowMobileFolders] = useState(false);
   const [moveTarget, setMoveTarget] = useState<MessageListItem | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<WebmailSearchFiltersModel>(EMPTY_FILTERS);
+  const activeFilterCount = countActiveFilters(filters);
 
   const status = useWebmailStatus();
   const enabled = !!(status.data?.configured && status.data?.active);
@@ -147,6 +156,7 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
     setPage(1);
     setSearchQuery('');
     setSearchTerm('');
+    setFilters(EMPTY_FILTERS);
     setShowMobileFolders(false);
   }, []);
 
@@ -156,6 +166,22 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const clearSearch = () => {
+    setSearchTerm('');
+    setSearchQuery('');
+    setFilters(EMPTY_FILTERS);
+    setPage(1);
+  };
+
+  const handleApplyFilters = (next: WebmailSearchFiltersModel, query: string) => {
+    setFilters(next);
+    setSearchTerm(query);
+    setSearchQuery(query);
+    setPage(1);
+    setShowFilters(false);
+  };
+
+  const handleClearFilters = () => {
+    setFilters(EMPTY_FILTERS);
     setSearchTerm('');
     setSearchQuery('');
     setPage(1);
@@ -494,8 +520,38 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons name="close-circle" size={18} color={theme.color.icon.muted} />
               </TouchableOpacity>
             ) : null}
+            <TouchableOpacity
+              onPress={() => setShowFilters((v) => !v)}
+              style={[styles.filterToggle, showFilters && styles.filterToggleActive]}
+              accessibilityLabel="Filtros"
+              hitSlop={6}
+            >
+              <Ionicons
+                name="options-outline"
+                size={18}
+                color={
+                  showFilters || activeFilterCount > 0
+                    ? theme.color.brand.accent
+                    : theme.color.icon.muted
+                }
+              />
+              {activeFilterCount > 0 ? (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
             <Button title="Buscar" size="small" variant="secondary" onPress={runSearch} />
           </View>
+
+          {showFilters ? (
+            <WebmailSearchFiltersPanel
+              initial={filters}
+              onApply={handleApplyFilters}
+              onClear={handleClearFilters}
+              onClose={() => setShowFilters(false)}
+            />
+          ) : null}
 
           {activeQuery.isLoading ? (
             <View style={styles.centered}>
@@ -695,6 +751,30 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.body,
       paddingVertical: 6,
       outlineStyle: 'none' as any,
+    },
+    filterToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      padding: 6,
+      borderRadius: theme.radii.md,
+    },
+    filterToggleActive: {
+      backgroundColor: theme.color.surface.hover,
+    },
+    filterBadge: {
+      minWidth: 16,
+      height: 16,
+      paddingHorizontal: 4,
+      borderRadius: 8,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    filterBadgeText: {
+      color: theme.color.text.onAction,
+      fontSize: 10,
+      fontWeight: '700',
     },
     list: {
       padding: theme.space[3],

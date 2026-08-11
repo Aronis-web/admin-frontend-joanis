@@ -56,14 +56,15 @@ export const DriveFAB: React.FC<DriveFABProps> = ({ onAction, actions, visible =
   const [isOpen, setIsOpen] = useState(false);
   const rotate = useRef(new Animated.Value(0)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const buttonAnims = useRef(actions.map(() => new Animated.Value(0))).current;
-
-  // Reajusta el número de anims si cambia el conjunto de acciones
-  React.useEffect(() => {
-    while (buttonAnims.length < actions.length) {
-      buttonAnims.push(new Animated.Value(0));
-    }
-  }, [actions, buttonAnims]);
+  const buttonAnimsRef = useRef<Animated.Value[]>([]);
+  // Aseguramos SINCRÓNICAMENTE (antes de mapear en el render) que haya
+  // una Animated.Value por cada acción actual. Si sólo lo hiciéramos en
+  // useEffect, un cambio en `actions` provocaría `buttonAnims[index] === undefined`
+  // y `.interpolate` crashearía la primera vez.
+  while (buttonAnimsRef.current.length < actions.length) {
+    buttonAnimsRef.current.push(new Animated.Value(0));
+  }
+  const buttonAnims = buttonAnimsRef.current;
 
   if (!visible || actions.length === 0) return null;
 
