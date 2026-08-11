@@ -1,6 +1,12 @@
 // IMPORTANT: This must be imported FIRST before any other imports that use crypto/uuid
 import 'react-native-get-random-values';
 
+// Web-only: parchea Alert.alert/Alert.prompt para que funcionen en navegador
+// (no-op en iOS/Android). Debe ejecutarse antes de que cualquier pantalla
+// llame a Alert.alert.
+import { installWebAlertPatch } from '@/utils/installWebAlertPatch';
+installWebAlertPatch();
+
 import React, { useEffect, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, AppState, AppStateStatus } from 'react-native';
@@ -38,8 +44,8 @@ export const App = () => {
   // 🆕 Enable activity tracking for inactivity-based session expiration
   // Solo envía heartbeat cuando el usuario está activo pero no hace API calls
   useActivityTracker({
-    checkIntervalMs: 5 * 60 * 1000,      // Verificar cada 5 minutos
-    apiIdleThresholdMs: 10 * 60 * 1000,  // Heartbeat si no hay API calls en 10 min
+    checkIntervalMs: 5 * 60 * 1000, // Verificar cada 5 minutos
+    apiIdleThresholdMs: 10 * 60 * 1000, // Heartbeat si no hay API calls en 10 min
     userIdleThresholdMs: 15 * 60 * 1000, // No enviar heartbeat si usuario inactivo 15+ min
     debug: __DEV__, // Solo logging en desarrollo
   });
@@ -102,11 +108,7 @@ export const App = () => {
     <GlobalErrorBoundary>
       <QueryProvider>
         <SafeAreaProvider>
-          <StatusBar
-            barStyle="dark-content"
-            translucent={true}
-            backgroundColor="transparent"
-          />
+          <StatusBar barStyle="dark-content" translucent={true} backgroundColor="transparent" />
           <Navigation />
         </SafeAreaProvider>
       </QueryProvider>

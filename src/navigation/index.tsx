@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -46,166 +46,495 @@ import { CuadreScreen } from '@/screens/CashReconciliation/CuadreScreen';
 // ============================================
 
 // Main Screens - Lazy Loaded
-const CompaniesScreen = lazyLoad(() => import('@/screens/Companies/CompaniesScreen').then(m => ({ default: m.CompaniesScreen })));
-const CompanyDetailScreen = lazyLoad(() => import('@/screens/Companies/CompanyDetailScreen').then(m => ({ default: m.CompanyDetailScreen })));
-const RolesPermissionsScreen = lazyLoad(() => import('@/screens/Roles/RolesPermissionsScreen').then(m => ({ default: m.RolesPermissionsScreen })));
-const UsersScreen = lazyLoad(() => import('@/screens/Users/UsersScreen').then(m => ({ default: m.UsersScreen })));
-const AppsScreen = lazyLoad(() => import('@/screens/Apps/AppsScreen').then(m => ({ default: m.AppsScreen })));
-const AppVersionsScreen = lazyLoad(() => import('@/screens/AppVersions').then(m => ({ default: m.AppVersionsScreen })), 'Cargando versiones...');
-const SitesScreen = lazyLoad(() => import('@/screens/Sites/SitesScreen').then(m => ({ default: m.SitesScreen })));
-const WarehousesScreen = lazyLoad(() => import('@/screens/Warehouses').then(m => ({ default: m.WarehousesScreen })));
-const WarehouseAreasScreen = lazyLoad(() => import('@/screens/Warehouses').then(m => ({ default: m.WarehouseAreasScreen })));
-const PermissionsDebugScreen = lazyLoad(() => import('@/screens/Debug/PermissionsDebugScreen').then(m => ({ default: m.PermissionsDebugScreen })));
-const ProductsScreen = lazyLoad(() => import('@/screens/Inventory/ProductsScreen').then(m => ({ default: m.ProductsScreen })), 'Cargando productos...');
-const StockScreen = lazyLoad(() => import('@/screens/Inventory/StockScreen').then(m => ({ default: m.StockScreen })), 'Cargando inventario...');
-const PhotosScreen = lazyLoad(() => import('@/screens/Photos').then(m => ({ default: m.PhotosScreen })), 'Cargando campañas de fotos...');
-const PhotoCampaignManagementScreen = lazyLoad(() => import('@/screens/Photos').then(m => ({ default: m.PhotoCampaignManagementScreen })), 'Cargando gestión de campaña...');
-const PriceProfilesScreen = lazyLoad(() => import('@/screens/PriceProfiles/PriceProfilesScreen').then(m => ({ default: m.PriceProfilesScreen })));
-const PresentationsScreen = lazyLoad(() => import('@/screens/Presentations/PresentationsScreen').then(m => ({ default: m.PresentationsScreen })));
+const CompaniesScreen = lazyLoad(() =>
+  import('@/screens/Companies/CompaniesScreen').then((m) => ({ default: m.CompaniesScreen }))
+);
+const CompanyDetailScreen = lazyLoad(() =>
+  import('@/screens/Companies/CompanyDetailScreen').then((m) => ({
+    default: m.CompanyDetailScreen,
+  }))
+);
+const RolesPermissionsScreen = lazyLoad(() =>
+  import('@/screens/Roles/RolesPermissionsScreen').then((m) => ({
+    default: m.RolesPermissionsScreen,
+  }))
+);
+const UsersScreen = lazyLoad(() =>
+  import('@/screens/Users/UsersScreen').then((m) => ({ default: m.UsersScreen }))
+);
+const AppsScreen = lazyLoad(() =>
+  import('@/screens/Apps/AppsScreen').then((m) => ({ default: m.AppsScreen }))
+);
+const AppVersionsScreen = lazyLoad(
+  () => import('@/screens/AppVersions').then((m) => ({ default: m.AppVersionsScreen })),
+  'Cargando versiones...'
+);
+const SitesScreen = lazyLoad(() =>
+  import('@/screens/Sites/SitesScreen').then((m) => ({ default: m.SitesScreen }))
+);
+const WarehousesScreen = lazyLoad(() =>
+  import('@/screens/Warehouses').then((m) => ({ default: m.WarehousesScreen }))
+);
+const WarehouseAreasScreen = lazyLoad(() =>
+  import('@/screens/Warehouses').then((m) => ({ default: m.WarehouseAreasScreen }))
+);
+const PermissionsDebugScreen = lazyLoad(() =>
+  import('@/screens/Debug/PermissionsDebugScreen').then((m) => ({
+    default: m.PermissionsDebugScreen,
+  }))
+);
+const ProductsScreen = lazyLoad(
+  () => import('@/screens/Inventory/ProductsScreen').then((m) => ({ default: m.ProductsScreen })),
+  'Cargando productos...'
+);
+const StockScreen = lazyLoad(
+  () => import('@/screens/Inventory/StockScreen').then((m) => ({ default: m.StockScreen })),
+  'Cargando inventario...'
+);
+const PhotosScreen = lazyLoad(
+  () => import('@/screens/Photos').then((m) => ({ default: m.PhotosScreen })),
+  'Cargando campañas de fotos...'
+);
+const PhotoCampaignManagementScreen = lazyLoad(
+  () => import('@/screens/Photos').then((m) => ({ default: m.PhotoCampaignManagementScreen })),
+  'Cargando gestión de campaña...'
+);
+const PriceProfilesScreen = lazyLoad(() =>
+  import('@/screens/PriceProfiles/PriceProfilesScreen').then((m) => ({
+    default: m.PriceProfilesScreen,
+  }))
+);
+const PresentationsScreen = lazyLoad(() =>
+  import('@/screens/Presentations/PresentationsScreen').then((m) => ({
+    default: m.PresentationsScreen,
+  }))
+);
 
 // Transfers Screens - Lazy Loaded
-const InternalTransfersScreen = lazyLoad(() => import('@/screens/Transfers/InternalTransfersScreen'));
-const ExternalTransfersScreen = lazyLoad(() => import('@/screens/Transfers/ExternalTransfersScreen'));
+const InternalTransfersScreen = lazyLoad(
+  () => import('@/screens/Transfers/InternalTransfersScreen')
+);
+const ExternalTransfersScreen = lazyLoad(
+  () => import('@/screens/Transfers/ExternalTransfersScreen')
+);
 const ReceptionsScreen = lazyLoad(() => import('@/screens/Transfers/ReceptionsScreen'));
 const TransferDetailScreen = lazyLoad(() => import('@/screens/Transfers/TransferDetailScreen'));
 
 // Suppliers Screens - Lazy Loaded
-const SuppliersScreen = lazyLoad(() => import('@/screens/Suppliers/SuppliersScreen').then(m => ({ default: m.SuppliersScreen })));
-const SupplierDetailScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierDetailScreen').then(m => ({ default: m.SupplierDetailScreen })));
-const SupplierDebtsScreen = lazyLoad(() => import('@/screens/Suppliers/SupplierDebtsScreen').then(m => ({ default: m.SupplierDebtsScreen })));
+const SuppliersScreen = lazyLoad(() =>
+  import('@/screens/Suppliers/SuppliersScreen').then((m) => ({ default: m.SuppliersScreen }))
+);
+const SupplierDetailScreen = lazyLoad(() =>
+  import('@/screens/Suppliers/SupplierDetailScreen').then((m) => ({
+    default: m.SupplierDetailScreen,
+  }))
+);
+const SupplierDebtsScreen = lazyLoad(() =>
+  import('@/screens/Suppliers/SupplierDebtsScreen').then((m) => ({
+    default: m.SupplierDebtsScreen,
+  }))
+);
 
 // Accounts Payable Screens - Lazy Loaded
-const AccountsPayableScreen = lazyLoad(() => import('@/screens/AccountsPayable').then(m => ({ default: m.AccountsPayableScreen })), 'Cargando cuentas por pagar...');
-const AccountPayableDetailScreen = lazyLoad(() => import('@/screens/AccountsPayable').then(m => ({ default: m.AccountPayableDetailScreen })), 'Cargando detalle...');
+const AccountsPayableScreen = lazyLoad(
+  () => import('@/screens/AccountsPayable').then((m) => ({ default: m.AccountsPayableScreen })),
+  'Cargando cuentas por pagar...'
+);
+const AccountPayableDetailScreen = lazyLoad(
+  () =>
+    import('@/screens/AccountsPayable').then((m) => ({ default: m.AccountPayableDetailScreen })),
+  'Cargando detalle...'
+);
 
 // Accounts Receivable Screens - Lazy Loaded
-const AccountsReceivableScreen = lazyLoad(() => import('@/screens/AccountsReceivable').then(m => ({ default: m.AccountsReceivableScreen })), 'Cargando cuentas por cobrar...');
-const AccountReceivableDetailScreen = lazyLoad(() => import('@/screens/AccountsReceivable').then(m => ({ default: m.AccountReceivableDetailScreen })), 'Cargando detalle...');
+const AccountsReceivableScreen = lazyLoad(
+  () =>
+    import('@/screens/AccountsReceivable').then((m) => ({ default: m.AccountsReceivableScreen })),
+  'Cargando cuentas por cobrar...'
+);
+const AccountReceivableDetailScreen = lazyLoad(
+  () =>
+    import('@/screens/AccountsReceivable').then((m) => ({
+      default: m.AccountReceivableDetailScreen,
+    })),
+  'Cargando detalle...'
+);
 
 // Customers Screens - Lazy Loaded
-const CustomersScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomersScreen })));
-const CustomerDetailScreen = lazyLoad(() => import('@/screens/Customers').then(m => ({ default: m.CustomerDetailScreen })));
+const CustomersScreen = lazyLoad(() =>
+  import('@/screens/Customers').then((m) => ({ default: m.CustomersScreen }))
+);
+const CustomerDetailScreen = lazyLoad(() =>
+  import('@/screens/Customers').then((m) => ({ default: m.CustomerDetailScreen }))
+);
 
 // Sales Screens - Lazy Loaded
-const SalesScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SalesScreen })), 'Cargando ventas...');
-const SessionsManagementScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SessionsManagementScreen })), 'Cargando sesiones...');
-const CreateSaleScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.CreateSaleScreen })));
-const SaleDetailScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.SaleDetailScreen })));
-const RegisterSalePaymentScreen = lazyLoad(() => import('@/screens/Sales').then(m => ({ default: m.RegisterSalePaymentScreen })));
+const SalesScreen = lazyLoad(
+  () => import('@/screens/Sales').then((m) => ({ default: m.SalesScreen })),
+  'Cargando ventas...'
+);
+const SessionsManagementScreen = lazyLoad(
+  () => import('@/screens/Sales').then((m) => ({ default: m.SessionsManagementScreen })),
+  'Cargando sesiones...'
+);
+const CreateSaleScreen = lazyLoad(() =>
+  import('@/screens/Sales').then((m) => ({ default: m.CreateSaleScreen }))
+);
+const SaleDetailScreen = lazyLoad(() =>
+  import('@/screens/Sales').then((m) => ({ default: m.SaleDetailScreen }))
+);
+const RegisterSalePaymentScreen = lazyLoad(() =>
+  import('@/screens/Sales').then((m) => ({ default: m.RegisterSalePaymentScreen }))
+);
 
 // Purchases Screens - Now eager loaded (see imports above)
 
 // Expenses Screens - Lazy Loaded
-const ExpensesScreen = lazyLoad(() => import('@/screens/Expenses/ExpensesScreen').then(m => ({ default: m.ExpensesScreen })), 'Cargando gastos...');
-const CreateExpenseScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseScreen').then(m => ({ default: m.CreateExpenseScreen })));
-const ExpenseDetailScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseDetailScreen').then(m => ({ default: m.ExpenseDetailScreen })));
-const CreateExpensePaymentScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpensePaymentScreen').then(m => ({ default: m.CreateExpensePaymentScreen })));
-const ExpenseProjectsScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseProjectsScreen').then(m => ({ default: m.ExpenseProjectsScreen })));
-const CreateExpenseProjectScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseProjectScreen').then(m => ({ default: m.CreateExpenseProjectScreen })));
-const ExpenseProjectDetailScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseProjectDetailScreen').then(m => ({ default: m.ExpenseProjectDetailScreen })));
-const ExpenseCategoriesScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseCategoriesScreen').then(m => ({ default: m.ExpenseCategoriesScreen })));
-const ExpenseCategoryDetailScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseCategoryDetailScreen').then(m => ({ default: m.ExpenseCategoryDetailScreen })));
-const CreateExpenseCategoryScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseCategoryScreen'));
-const ExpenseReportsScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseReportsScreen').then(m => ({ default: m.ExpenseReportsScreen })));
-const ExpenseTemplatesScreen = lazyLoad(() => import('@/screens/Expenses/ExpenseTemplatesScreen').then(m => ({ default: m.ExpenseTemplatesScreen })));
-const CreateExpenseTemplateScreen = lazyLoad(() => import('@/screens/Expenses/CreateExpenseTemplateScreen').then(m => ({ default: m.CreateExpenseTemplateScreen })));
-const TemplateExpensesScreen = lazyLoad(() => import('@/screens/Expenses/TemplateExpensesScreen').then(m => ({ default: m.TemplateExpensesScreen })));
+const ExpensesScreen = lazyLoad(
+  () => import('@/screens/Expenses/ExpensesScreen').then((m) => ({ default: m.ExpensesScreen })),
+  'Cargando gastos...'
+);
+const CreateExpenseScreen = lazyLoad(() =>
+  import('@/screens/Expenses/CreateExpenseScreen').then((m) => ({ default: m.CreateExpenseScreen }))
+);
+const ExpenseDetailScreen = lazyLoad(() =>
+  import('@/screens/Expenses/ExpenseDetailScreen').then((m) => ({ default: m.ExpenseDetailScreen }))
+);
+const CreateExpensePaymentScreen = lazyLoad(() =>
+  import('@/screens/Expenses/CreateExpensePaymentScreen').then((m) => ({
+    default: m.CreateExpensePaymentScreen,
+  }))
+);
+const ExpenseProjectsScreen = lazyLoad(() =>
+  import('@/screens/Expenses/ExpenseProjectsScreen').then((m) => ({
+    default: m.ExpenseProjectsScreen,
+  }))
+);
+const CreateExpenseProjectScreen = lazyLoad(() =>
+  import('@/screens/Expenses/CreateExpenseProjectScreen').then((m) => ({
+    default: m.CreateExpenseProjectScreen,
+  }))
+);
+const ExpenseProjectDetailScreen = lazyLoad(() =>
+  import('@/screens/Expenses/ExpenseProjectDetailScreen').then((m) => ({
+    default: m.ExpenseProjectDetailScreen,
+  }))
+);
+const ExpenseCategoriesScreen = lazyLoad(() =>
+  import('@/screens/Expenses/ExpenseCategoriesScreen').then((m) => ({
+    default: m.ExpenseCategoriesScreen,
+  }))
+);
+const ExpenseCategoryDetailScreen = lazyLoad(() =>
+  import('@/screens/Expenses/ExpenseCategoryDetailScreen').then((m) => ({
+    default: m.ExpenseCategoryDetailScreen,
+  }))
+);
+const CreateExpenseCategoryScreen = lazyLoad(
+  () => import('@/screens/Expenses/CreateExpenseCategoryScreen')
+);
+const ExpenseReportsScreen = lazyLoad(() =>
+  import('@/screens/Expenses/ExpenseReportsScreen').then((m) => ({
+    default: m.ExpenseReportsScreen,
+  }))
+);
+const ExpenseTemplatesScreen = lazyLoad(() =>
+  import('@/screens/Expenses/ExpenseTemplatesScreen').then((m) => ({
+    default: m.ExpenseTemplatesScreen,
+  }))
+);
+const CreateExpenseTemplateScreen = lazyLoad(() =>
+  import('@/screens/Expenses/CreateExpenseTemplateScreen').then((m) => ({
+    default: m.CreateExpenseTemplateScreen,
+  }))
+);
+const TemplateExpensesScreen = lazyLoad(() =>
+  import('@/screens/Expenses/TemplateExpensesScreen').then((m) => ({
+    default: m.TemplateExpensesScreen,
+  }))
+);
 
 // Campaigns Screens - Lazy Loaded
-const CampaignsScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CampaignsScreen })), 'Cargando campañas...');
-const CreateCampaignScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CreateCampaignScreen })));
-const CampaignDetailScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CampaignDetailScreen })));
-const AddParticipantScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.AddParticipantScreen })));
-const EditParticipantScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.EditParticipantScreen })));
-const AddProductScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.AddProductScreen })));
-const CampaignProductDetailScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CampaignProductDetailScreen })));
-const CampaignParticipantDetailScreen = lazyLoad(() => import('@/screens/Campaigns').then(m => ({ default: m.CampaignParticipantDetailScreen })));
+const CampaignsScreen = lazyLoad(
+  () => import('@/screens/Campaigns').then((m) => ({ default: m.CampaignsScreen })),
+  'Cargando campañas...'
+);
+const CreateCampaignScreen = lazyLoad(() =>
+  import('@/screens/Campaigns').then((m) => ({ default: m.CreateCampaignScreen }))
+);
+const CampaignDetailScreen = lazyLoad(() =>
+  import('@/screens/Campaigns').then((m) => ({ default: m.CampaignDetailScreen }))
+);
+const AddParticipantScreen = lazyLoad(() =>
+  import('@/screens/Campaigns').then((m) => ({ default: m.AddParticipantScreen }))
+);
+const EditParticipantScreen = lazyLoad(() =>
+  import('@/screens/Campaigns').then((m) => ({ default: m.EditParticipantScreen }))
+);
+const AddProductScreen = lazyLoad(() =>
+  import('@/screens/Campaigns').then((m) => ({ default: m.AddProductScreen }))
+);
+const CampaignProductDetailScreen = lazyLoad(() =>
+  import('@/screens/Campaigns').then((m) => ({ default: m.CampaignProductDetailScreen }))
+);
+const CampaignParticipantDetailScreen = lazyLoad(() =>
+  import('@/screens/Campaigns').then((m) => ({ default: m.CampaignParticipantDetailScreen }))
+);
 
 // Repartos Screens - Lazy Loaded
-const RepartosScreen = lazyLoad(() => import('@/screens/Repartos').then(m => ({ default: m.RepartosScreen })), 'Cargando repartos...');
-const RepartoDetailScreen = lazyLoad(() => import('@/screens/Repartos').then(m => ({ default: m.RepartoDetailScreen })));
-const RepartoCampaignDetailScreen = lazyLoad(() => import('@/screens/Repartos').then(m => ({ default: m.RepartoCampaignDetailScreen })));
-const RepartoParticipantDetailScreen = lazyLoad(() => import('@/screens/Repartos').then(m => ({ default: m.RepartoParticipantDetailScreen })));
+const RepartosScreen = lazyLoad(
+  () => import('@/screens/Repartos').then((m) => ({ default: m.RepartosScreen })),
+  'Cargando repartos...'
+);
+const RepartoDetailScreen = lazyLoad(() =>
+  import('@/screens/Repartos').then((m) => ({ default: m.RepartoDetailScreen }))
+);
+const RepartoCampaignDetailScreen = lazyLoad(() =>
+  import('@/screens/Repartos').then((m) => ({ default: m.RepartoCampaignDetailScreen }))
+);
+const RepartoParticipantDetailScreen = lazyLoad(() =>
+  import('@/screens/Repartos').then((m) => ({ default: m.RepartoParticipantDetailScreen }))
+);
 
 // Balances Screens - Lazy Loaded
-const BalancesScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.BalancesScreen })));
-const CreateBalanceScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.CreateBalanceScreen })));
-const BalanceDetailScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.BalanceDetailScreen })));
-const BalanceOperationsScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.BalanceOperationsScreen })));
-const AllBalanceOperationsScreen = lazyLoad(() => import('@/screens/Balances').then(m => ({ default: m.AllBalanceOperationsScreen })));
+const BalancesScreen = lazyLoad(() =>
+  import('@/screens/Balances').then((m) => ({ default: m.BalancesScreen }))
+);
+const CreateBalanceScreen = lazyLoad(() =>
+  import('@/screens/Balances').then((m) => ({ default: m.CreateBalanceScreen }))
+);
+const BalanceDetailScreen = lazyLoad(() =>
+  import('@/screens/Balances').then((m) => ({ default: m.BalanceDetailScreen }))
+);
+const BalanceOperationsScreen = lazyLoad(() =>
+  import('@/screens/Balances').then((m) => ({ default: m.BalanceOperationsScreen }))
+);
+const AllBalanceOperationsScreen = lazyLoad(() =>
+  import('@/screens/Balances').then((m) => ({ default: m.AllBalanceOperationsScreen }))
+);
 
 // Transmisiones Screens - Lazy Loaded
-const TransmisionesScreen = lazyLoad(() => import('@/screens/Transmisiones').then(m => ({ default: m.TransmisionesScreen })));
-const CreateTransmisionScreen = lazyLoad(() => import('@/screens/Transmisiones').then(m => ({ default: m.CreateTransmisionScreen })));
-const TransmisionDetailScreen = lazyLoad(() => import('@/screens/Transmisiones').then(m => ({ default: m.TransmisionDetailScreen })));
+const TransmisionesScreen = lazyLoad(() =>
+  import('@/screens/Transmisiones').then((m) => ({ default: m.TransmisionesScreen }))
+);
+const CreateTransmisionScreen = lazyLoad(() =>
+  import('@/screens/Transmisiones').then((m) => ({ default: m.CreateTransmisionScreen }))
+);
+const TransmisionDetailScreen = lazyLoad(() =>
+  import('@/screens/Transmisiones').then((m) => ({ default: m.TransmisionDetailScreen }))
+);
 
 // Face Recognition Screens - Lazy Loaded
-const FaceRecognitionMenuScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.FaceRecognitionMenuScreen })), 'Cargando reconocimiento facial...');
-const BiometricProfilesScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.BiometricProfilesScreen })), 'Cargando perfiles...');
-const RegisterFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.RegisterFaceScreen })));
-const VerifyFaceScreen = lazyLoad(() => import('@/screens/FaceRecognition').then(m => ({ default: m.VerifyFaceScreen })));
+const FaceRecognitionMenuScreen = lazyLoad(
+  () => import('@/screens/FaceRecognition').then((m) => ({ default: m.FaceRecognitionMenuScreen })),
+  'Cargando reconocimiento facial...'
+);
+const BiometricProfilesScreen = lazyLoad(
+  () => import('@/screens/FaceRecognition').then((m) => ({ default: m.BiometricProfilesScreen })),
+  'Cargando perfiles...'
+);
+const RegisterFaceScreen = lazyLoad(() =>
+  import('@/screens/FaceRecognition').then((m) => ({ default: m.RegisterFaceScreen }))
+);
+const VerifyFaceScreen = lazyLoad(() =>
+  import('@/screens/FaceRecognition').then((m) => ({ default: m.VerifyFaceScreen }))
+);
 
 // Organization Screens - Lazy Loaded
-const OrganizationChartScreen = lazyLoad(() => import('@/screens/Organization').then(m => ({ default: m.OrganizationChartScreen })), 'Cargando organigrama...');
+const OrganizationChartScreen = lazyLoad(
+  () => import('@/screens/Organization').then((m) => ({ default: m.OrganizationChartScreen })),
+  'Cargando organigrama...'
+);
 
 // Treasury Screens - Lazy Loaded
-const TreasuryUploadFilesScreen = lazyLoad(() => import('@/screens/Treasury').then(m => ({ default: m.TreasuryUploadFilesScreen })), 'Cargando tesorería...');
-const BankOperationsScreen = lazyLoad(() => import('@/screens/Treasury').then(m => ({ default: m.BankOperationsScreen })), 'Cargando operaciones bancarias...');
+const TreasuryUploadFilesScreen = lazyLoad(
+  () => import('@/screens/Treasury').then((m) => ({ default: m.TreasuryUploadFilesScreen })),
+  'Cargando tesorería...'
+);
+const BankOperationsScreen = lazyLoad(
+  () => import('@/screens/Treasury').then((m) => ({ default: m.BankOperationsScreen })),
+  'Cargando operaciones bancarias...'
+);
 
 // Bank Accounts Screens - Lazy Loaded
-const BankAccountsScreen = lazyLoad(() => import('@/screens/BankAccounts').then(m => ({ default: m.BankAccountsScreen })), 'Cargando cuentas bancarias...');
-const BankAccountFormScreen = lazyLoad(() => import('@/screens/BankAccounts').then(m => ({ default: m.BankAccountFormScreen })), 'Cargando formulario...');
+const BankAccountsScreen = lazyLoad(
+  () => import('@/screens/BankAccounts').then((m) => ({ default: m.BankAccountsScreen })),
+  'Cargando cuentas bancarias...'
+);
+const BankAccountFormScreen = lazyLoad(
+  () => import('@/screens/BankAccounts').then((m) => ({ default: m.BankAccountFormScreen })),
+  'Cargando formulario...'
+);
 
 // Cash Reconciliation Screens - Lazy Loaded
-const CashReconciliationMenuScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CashReconciliationMenuScreen })), 'Cargando cuadre de caja...');
-const UploadCashReconciliationFilesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadCashReconciliationFilesScreen })), 'Cargando subir archivos...');
-const UploadedFilesListScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.UploadedFilesListScreen })), 'Cargando archivos...');
-const SeriesConfigScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.SeriesConfigScreen })), 'Cargando configuración...');
-const ReviewDocumentsMenuScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewDocumentsMenuScreen })), 'Cargando revisar documentos...');
-const ReviewSalesScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewSalesScreen })), 'Cargando ventas...');
-const ReviewIzipayScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewIzipayScreen })), 'Cargando Izipay...');
-const ReviewProsegurScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.ReviewProsegurScreen })), 'Cargando Prosegur...');
-const RecaudoEfectivoScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.RecaudoEfectivoScreen })), 'Cargando recaudo efectivo...');
+const CashReconciliationMenuScreen = lazyLoad(
+  () =>
+    import('@/screens/CashReconciliation').then((m) => ({
+      default: m.CashReconciliationMenuScreen,
+    })),
+  'Cargando cuadre de caja...'
+);
+const UploadCashReconciliationFilesScreen = lazyLoad(
+  () =>
+    import('@/screens/CashReconciliation').then((m) => ({
+      default: m.UploadCashReconciliationFilesScreen,
+    })),
+  'Cargando subir archivos...'
+);
+const UploadedFilesListScreen = lazyLoad(
+  () =>
+    import('@/screens/CashReconciliation').then((m) => ({ default: m.UploadedFilesListScreen })),
+  'Cargando archivos...'
+);
+const SeriesConfigScreen = lazyLoad(
+  () => import('@/screens/CashReconciliation').then((m) => ({ default: m.SeriesConfigScreen })),
+  'Cargando configuración...'
+);
+const ReviewDocumentsMenuScreen = lazyLoad(
+  () =>
+    import('@/screens/CashReconciliation').then((m) => ({ default: m.ReviewDocumentsMenuScreen })),
+  'Cargando revisar documentos...'
+);
+const ReviewSalesScreen = lazyLoad(
+  () => import('@/screens/CashReconciliation').then((m) => ({ default: m.ReviewSalesScreen })),
+  'Cargando ventas...'
+);
+const ReviewIzipayScreen = lazyLoad(
+  () => import('@/screens/CashReconciliation').then((m) => ({ default: m.ReviewIzipayScreen })),
+  'Cargando Izipay...'
+);
+const ReviewProsegurScreen = lazyLoad(
+  () => import('@/screens/CashReconciliation').then((m) => ({ default: m.ReviewProsegurScreen })),
+  'Cargando Prosegur...'
+);
+const RecaudoEfectivoScreen = lazyLoad(
+  () => import('@/screens/CashReconciliation').then((m) => ({ default: m.RecaudoEfectivoScreen })),
+  'Cargando recaudo efectivo...'
+);
 // CuadreScreen is now eager loaded above to debug lazy loading issue
 // const CuadreScreen = lazyLoad(() => import('@/screens/CashReconciliation').then(m => ({ default: m.CuadreScreen })), 'Cargando cuadre...');
 
 // Emission Points Screens - Lazy Loaded
-const EmissionPointsScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointsScreen })), 'Cargando puntos de emisión...');
-const EmissionPointSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EmissionPointSeriesScreen })), 'Cargando series...');
-const CreateEmissionPointScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.CreateEmissionPointScreen })), 'Cargando formulario...');
-const EditEmissionPointScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EditEmissionPointScreen })), 'Cargando formulario...');
-const CreateSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.CreateSeriesScreen })), 'Cargando formulario...');
-const EditSeriesScreen = lazyLoad(() => import('@/screens/EmissionPoints').then(m => ({ default: m.EditSeriesScreen })), 'Cargando formulario...');
+const EmissionPointsScreen = lazyLoad(
+  () => import('@/screens/EmissionPoints').then((m) => ({ default: m.EmissionPointsScreen })),
+  'Cargando puntos de emisión...'
+);
+const EmissionPointSeriesScreen = lazyLoad(
+  () => import('@/screens/EmissionPoints').then((m) => ({ default: m.EmissionPointSeriesScreen })),
+  'Cargando series...'
+);
+const CreateEmissionPointScreen = lazyLoad(
+  () => import('@/screens/EmissionPoints').then((m) => ({ default: m.CreateEmissionPointScreen })),
+  'Cargando formulario...'
+);
+const EditEmissionPointScreen = lazyLoad(
+  () => import('@/screens/EmissionPoints').then((m) => ({ default: m.EditEmissionPointScreen })),
+  'Cargando formulario...'
+);
+const CreateSeriesScreen = lazyLoad(
+  () => import('@/screens/EmissionPoints').then((m) => ({ default: m.CreateSeriesScreen })),
+  'Cargando formulario...'
+);
+const EditSeriesScreen = lazyLoad(
+  () => import('@/screens/EmissionPoints').then((m) => ({ default: m.EditSeriesScreen })),
+  'Cargando formulario...'
+);
 
 // Cash Registers Screens - Lazy Loaded
-const CashRegistersScreen = lazyLoad(() => import('@/screens/CashRegisters').then(m => ({ default: m.CashRegistersScreen })), 'Cargando cajas registradoras...');
-const CreateCashRegisterScreen = lazyLoad(() => import('@/screens/CashRegisters').then(m => ({ default: m.CreateCashRegisterScreen })), 'Cargando formulario...');
-const EditCashRegisterScreen = lazyLoad(() => import('@/screens/CashRegisters').then(m => ({ default: m.EditCashRegisterScreen })), 'Cargando formulario...');
+const CashRegistersScreen = lazyLoad(
+  () => import('@/screens/CashRegisters').then((m) => ({ default: m.CashRegistersScreen })),
+  'Cargando cajas registradoras...'
+);
+const CreateCashRegisterScreen = lazyLoad(
+  () => import('@/screens/CashRegisters').then((m) => ({ default: m.CreateCashRegisterScreen })),
+  'Cargando formulario...'
+);
+const EditCashRegisterScreen = lazyLoad(
+  () => import('@/screens/CashRegisters').then((m) => ({ default: m.EditCashRegisterScreen })),
+  'Cargando formulario...'
+);
 
 // Bizlinks Screens - Lazy Loaded
-const BizlinksMenuScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksMenuScreen })), 'Cargando Bizlinks...');
-const BizlinksGenerateDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksGenerateDocumentsScreen })), 'Cargando generación de documentos...');
-const BizlinksConfigScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigScreen })), 'Cargando configuración Bizlinks...');
-const BizlinksConfigCreateScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigCreateScreen })), 'Cargando formulario...');
-const BizlinksConfigEditScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksConfigEditScreen })), 'Cargando formulario...');
-const BizlinksDocumentsScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksDocumentsScreen })), 'Cargando documentos...');
-const BizlinksDocumentDetailScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksDocumentDetailScreen })), 'Cargando detalle...');
-const BizlinksSelectSeriesScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksSelectSeriesScreen })), 'Cargando series...');
-const BizlinksEmitirFacturaScreen = lazyLoad(() => import('@/screens/Bizlinks').then(m => ({ default: m.BizlinksEmitirFacturaScreen })), 'Cargando formulario...');
+const BizlinksMenuScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksMenuScreen })),
+  'Cargando Bizlinks...'
+);
+const BizlinksGenerateDocumentsScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksGenerateDocumentsScreen })),
+  'Cargando generación de documentos...'
+);
+const BizlinksConfigScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksConfigScreen })),
+  'Cargando configuración Bizlinks...'
+);
+const BizlinksConfigCreateScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksConfigCreateScreen })),
+  'Cargando formulario...'
+);
+const BizlinksConfigEditScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksConfigEditScreen })),
+  'Cargando formulario...'
+);
+const BizlinksDocumentsScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksDocumentsScreen })),
+  'Cargando documentos...'
+);
+const BizlinksDocumentDetailScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksDocumentDetailScreen })),
+  'Cargando detalle...'
+);
+const BizlinksSelectSeriesScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksSelectSeriesScreen })),
+  'Cargando series...'
+);
+const BizlinksEmitirFacturaScreen = lazyLoad(
+  () => import('@/screens/Bizlinks').then((m) => ({ default: m.BizlinksEmitirFacturaScreen })),
+  'Cargando formulario...'
+);
 
 // Retenciones Screens - Lazy Loaded
-const RetencionesScreen = lazyLoad(() => import('@/screens/Retenciones').then(m => ({ default: m.RetencionesScreen })), 'Cargando retenciones...');
-const RetencionDetailScreen = lazyLoad(() => import('@/screens/Retenciones').then(m => ({ default: m.RetencionDetailScreen })), 'Cargando detalle...');
-const CreateRetencionScreen = lazyLoad(() => import('@/screens/Retenciones').then(m => ({ default: m.CreateRetencionScreen })), 'Cargando formulario...');
+const RetencionesScreen = lazyLoad(
+  () => import('@/screens/Retenciones').then((m) => ({ default: m.RetencionesScreen })),
+  'Cargando retenciones...'
+);
+const RetencionDetailScreen = lazyLoad(
+  () => import('@/screens/Retenciones').then((m) => ({ default: m.RetencionDetailScreen })),
+  'Cargando detalle...'
+);
+const CreateRetencionScreen = lazyLoad(
+  () => import('@/screens/Retenciones').then((m) => ({ default: m.CreateRetencionScreen })),
+  'Cargando formulario...'
+);
 
 // Transport Screens - Lazy Loaded
-const VehiclesScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.VehiclesScreen })), 'Cargando vehículos...');
-const DriversScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.DriversScreen })), 'Cargando conductores...');
-const VehicleDetailScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.VehicleDetailScreen })), 'Cargando detalle...');
-const DriverDetailScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.DriverDetailScreen })), 'Cargando detalle...');
-const TransportersScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.TransportersScreen })), 'Cargando transportistas...');
-const TransporterDetailScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.TransporterDetailScreen })), 'Cargando detalle...');
-const CreateTransporterScreen = lazyLoad(() => import('@/screens/Transport').then(m => ({ default: m.CreateTransporterScreen })), 'Cargando formulario...');
+const VehiclesScreen = lazyLoad(
+  () => import('@/screens/Transport').then((m) => ({ default: m.VehiclesScreen })),
+  'Cargando vehículos...'
+);
+const DriversScreen = lazyLoad(
+  () => import('@/screens/Transport').then((m) => ({ default: m.DriversScreen })),
+  'Cargando conductores...'
+);
+const VehicleDetailScreen = lazyLoad(
+  () => import('@/screens/Transport').then((m) => ({ default: m.VehicleDetailScreen })),
+  'Cargando detalle...'
+);
+const DriverDetailScreen = lazyLoad(
+  () => import('@/screens/Transport').then((m) => ({ default: m.DriverDetailScreen })),
+  'Cargando detalle...'
+);
+const TransportersScreen = lazyLoad(
+  () => import('@/screens/Transport').then((m) => ({ default: m.TransportersScreen })),
+  'Cargando transportistas...'
+);
+const TransporterDetailScreen = lazyLoad(
+  () => import('@/screens/Transport').then((m) => ({ default: m.TransporterDetailScreen })),
+  'Cargando detalle...'
+);
+const CreateTransporterScreen = lazyLoad(
+  () => import('@/screens/Transport').then((m) => ({ default: m.CreateTransporterScreen })),
+  'Cargando formulario...'
+);
 
 // RBAC Components
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -301,7 +630,10 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['users.read', 'users.create', 'users.update']} requireAll={false}>
+          <ProtectedRoute
+            requiredPermissions={['users.read', 'users.create', 'users.update']}
+            requireAll={false}
+          >
             <UsersScreen {...props} />
           </ProtectedRoute>
         )}
@@ -313,7 +645,10 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['roles.read', 'permissions.read']} requireAll={false}>
+          <ProtectedRoute
+            requiredPermissions={['roles.read', 'permissions.read']}
+            requireAll={false}
+          >
             <RolesPermissionsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -450,10 +785,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={[
-              'transfers.read',
-              'transfers.create',
-            ]}
+            requiredPermissions={['transfers.read', 'transfers.create']}
             requireAll={false}
           >
             <InternalTransfersScreen {...props} />
@@ -468,10 +800,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={[
-              'transfers.read',
-              'transfers.create',
-            ]}
+            requiredPermissions={['transfers.read', 'transfers.create']}
             requireAll={false}
           >
             <ExternalTransfersScreen {...props} />
@@ -486,11 +815,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={[
-              'transfers.receive',
-              'transfers.validate',
-              'transfers.complete',
-            ]}
+            requiredPermissions={['transfers.receive', 'transfers.validate', 'transfers.complete']}
             requireAll={false}
           >
             <ReceptionsScreen {...props} />
@@ -564,10 +889,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={[
-              'accounts-payable.read',
-              'accounts-payable.read-details',
-            ]}
+            requiredPermissions={['accounts-payable.read', 'accounts-payable.read-details']}
             requireAll={false}
           >
             <AccountPayableDetailScreen {...props} />
@@ -601,10 +923,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={[
-              'accounts-receivable.read',
-              'accounts-receivable.read-details',
-            ]}
+            requiredPermissions={['accounts-receivable.read', 'accounts-receivable.read-details']}
             requireAll={false}
           >
             <AccountReceivableDetailScreen {...props} />
@@ -619,11 +938,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={[
-              'customers.read',
-              'customers.create',
-              'customers.update',
-            ]}
+            requiredPermissions={['customers.read', 'customers.create', 'customers.update']}
           >
             <CustomersScreen {...props} />
           </ProtectedRoute>
@@ -643,13 +958,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={[
-              'sales.read',
-              'sales.create',
-              'sales.update',
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={['sales.read', 'sales.create', 'sales.update']}>
             <SalesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1182,11 +1491,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={[
-              'treasury.transactions.upload',
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={['treasury.transactions.upload']}>
             <TreasuryUploadFilesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1198,11 +1503,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={[
-              'treasury.transactions.read',
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={['treasury.transactions.read']}>
             <BankOperationsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1321,10 +1622,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute
-            requiredPermissions={[
-              'billing.emission-points.read',
-              'billing.series.read',
-            ]}
+            requiredPermissions={['billing.emission-points.read', 'billing.series.read']}
             requireAll={false}
           >
             <EmissionPointsScreen {...props} />
@@ -1338,9 +1636,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['billing.series.read']}
-          >
+          <ProtectedRoute requiredPermissions={['billing.series.read']}>
             <EmissionPointSeriesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1352,9 +1648,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['billing.emission-points.create']}
-          >
+          <ProtectedRoute requiredPermissions={['billing.emission-points.create']}>
             <CreateEmissionPointScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1366,9 +1660,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['billing.emission-points.update']}
-          >
+          <ProtectedRoute requiredPermissions={['billing.emission-points.update']}>
             <EditEmissionPointScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1380,9 +1672,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['billing.series.create']}
-          >
+          <ProtectedRoute requiredPermissions={['billing.series.create']}>
             <CreateSeriesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1394,9 +1684,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['billing.series.update']}
-          >
+          <ProtectedRoute requiredPermissions={['billing.series.update']}>
             <EditSeriesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1410,9 +1698,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['pos.cash-registers.read']}
-          >
+          <ProtectedRoute requiredPermissions={['pos.cash-registers.read']}>
             <CashRegistersScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1424,9 +1710,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['pos.cash-registers.create']}
-          >
+          <ProtectedRoute requiredPermissions={['pos.cash-registers.create']}>
             <CreateCashRegisterScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1438,9 +1722,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['pos.cash-registers.update']}
-          >
+          <ProtectedRoute requiredPermissions={['pos.cash-registers.update']}>
             <EditCashRegisterScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1454,9 +1736,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.view']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.view']}>
             <BizlinksMenuScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1468,9 +1748,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.send']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
             <BizlinksGenerateDocumentsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1483,9 +1761,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.config.view']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.config.view']}>
             <BizlinksConfigScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1497,9 +1773,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.config.view']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.config.view']}>
             <BizlinksConfigCreateScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1511,9 +1785,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.config.view']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.config.view']}>
             <BizlinksConfigEditScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1525,9 +1797,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.view']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.view']}>
             <BizlinksDocumentsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1539,9 +1809,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.view']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.view']}>
             <BizlinksDocumentDetailScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1553,9 +1821,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.send']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
             <BizlinksSelectSeriesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1567,9 +1833,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.send']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
             <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1581,9 +1845,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.send']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
             <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1595,9 +1857,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.send']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
             <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1609,9 +1869,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.send']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
             <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1623,9 +1881,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.documents.send']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
             <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1639,9 +1895,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.retenciones.read']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.retenciones.read']}>
             <RetencionesScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1653,9 +1907,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.retenciones.read']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.retenciones.read']}>
             <RetencionDetailScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1667,9 +1919,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={['bizlinks.retenciones.create']}
-          >
+          <ProtectedRoute requiredPermissions={['bizlinks.retenciones.create']}>
             <CreateRetencionScreen {...props} />
           </ProtectedRoute>
         )}
@@ -1789,6 +2039,15 @@ export const Navigation = () => {
   useEffect(() => {
     const restoreState = async () => {
       try {
+        // En web NO restauramos el estado de navegación: la URL del browser
+        // ya cumple ese rol, y restaurar un state stale (ej. LoginScreen
+        // persistido) pisa la redirección automática post-login y deja al
+        // usuario en pantalla en blanco.
+        if (Platform.OS === 'web') {
+          setIsReady(true);
+          return;
+        }
+
         const savedStateString = await AsyncStorage.getItem(NAVIGATION_PERSISTENCE_KEY);
         const state = savedStateString ? JSON.parse(savedStateString) : undefined;
 
@@ -1830,15 +2089,27 @@ export const Navigation = () => {
       });
     }
     // Si está completamente autenticado y tiene todo válido, navegar a la pantalla inicial correcta
-    else if (showMainStack && navigationRef.current.getCurrentRoute()?.name === AUTH_ROUTES.SITE_SELECTION) {
+    else if (
+      showMainStack &&
+      navigationRef.current.getCurrentRoute()?.name === AUTH_ROUTES.SITE_SELECTION
+    ) {
       const initialRoute = hasDashboardPermission ? MAIN_ROUTES.DASHBOARD : MAIN_ROUTES.HOME;
-      console.log(`🔄 Auto-navegando a ${initialRoute} (usuario tiene permiso de dashboard: ${hasDashboardPermission})`);
+      console.log(
+        `🔄 Auto-navegando a ${initialRoute} (usuario tiene permiso de dashboard: ${hasDashboardPermission})`
+      );
       navigationRef.current?.reset({
         index: 0,
         routes: [{ name: initialRoute }],
       });
     }
-  }, [isAuthenticated, hasValidCompany, hasValidSite, showMainStack, isReady, hasDashboardPermission]);
+  }, [
+    isAuthenticated,
+    hasValidCompany,
+    hasValidSite,
+    showMainStack,
+    isReady,
+    hasDashboardPermission,
+  ]);
 
   // Don't render until we've restored state
   if (!isReady) {
@@ -1850,9 +2121,46 @@ export const Navigation = () => {
       ref={navigationRef}
       initialState={initialState}
       onStateChange={(state) => {
-        // Save navigation state whenever it changes
-        AsyncStorage.setItem(NAVIGATION_PERSISTENCE_KEY, JSON.stringify(state));
+        // Save navigation state whenever it changes (solo en mobile: en web
+        // usamos la URL del browser vía `linking` como fuente de verdad).
+        if (Platform.OS !== 'web') {
+          AsyncStorage.setItem(NAVIGATION_PERSISTENCE_KEY, JSON.stringify(state));
+        }
       }}
+      linking={
+        Platform.OS === 'web'
+          ? {
+              prefixes: [
+                typeof window !== 'undefined' ? window.location.origin : 'https://app.gritlabs.app',
+              ],
+              config: {
+                screens: {
+                  // Auth
+                  Login: 'login',
+                  Register: 'register',
+                  CompanySelection: 'select-company',
+                  SiteSelection: 'select-site',
+                  // Main (rutas más usadas — el resto cae al fallback interno)
+                  Dashboard: 'dashboard',
+                  Home: 'home',
+                  Companies: 'empresas',
+                  Sites: 'sedes',
+                  Products: 'productos',
+                  Sales: 'ventas',
+                  Purchases: 'compras',
+                  Inventory: 'inventario',
+                  Users: 'usuarios',
+                  Reports: 'reportes',
+                  Campaigns: 'campañas',
+                  Repartos: 'repartos',
+                  Transfers: 'transferencias',
+                  Expenses: 'gastos',
+                  CashReconciliation: 'caja',
+                },
+              },
+            }
+          : undefined
+      }
     >
       <View style={{ flex: 1 }}>
         {showMainStack ? <MainStack /> : <AuthStack />}

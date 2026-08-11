@@ -88,7 +88,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
       console.log('✅ Login exitoso, limpiando contexto de tenant...');
       await clearTenantContext();
-      console.log('✅ Login completado - La navegación se manejará automáticamente');
+      console.log('✅ Login completado - navegando a CompanySelection');
+
+      // Navegación explícita post-login. Antes se dependía de un useEffect en
+      // Navigation que reaccionaba al cambio de auth state, pero en web ese
+      // efecto puede no correr a tiempo (por hidratación de zustand + state
+      // persistido de navegación), dejando al usuario "colgado" en Login.
+      // Reset explícito garantiza el mismo comportamiento en APK/Electron/Web.
+      try {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: AUTH_ROUTES.COMPANY_SELECTION }],
+        });
+      } catch (navError) {
+        console.warn(
+          '⚠️ No se pudo hacer reset explícito, se usará el flujo automático:',
+          navError
+        );
+      }
     } catch (error) {
       console.error('❌ Error en handleLogin:', error);
       Alert.alert('Error', 'No se pudo conectar al servidor');
