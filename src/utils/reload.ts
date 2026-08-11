@@ -1,14 +1,13 @@
 /**
  * Recarga la "pantalla actual" de forma cross-platform sin cambiar de ruta.
  *
- * Estrategia en tres pasos, tolerante a fallas:
- *   1) React Query: cancela requests en vuelo, invalida TODAS las queries y
- *      fuerza refetch inmediato de las activas (las montadas).
- *   2) Reload Bus: emite el evento para pantallas legacy que se apoyan en
- *      `useState + useEffect + apiClient` (pueden suscribirse con
+ * Estrategia:
+ *   1) React Query (fire-and-forget): invalida todas las queries y solicita
+ *      refetch de las activas. No se espera a la respuesta HTTP para no
+ *      bloquear al resto de listeners si la red va lenta.
+ *   2) Reload Bus: emite el evento (síncrono) para pantallas legacy que se
+ *      apoyan en `useState + useEffect + apiClient` (se suscriben con
  *      `useOnReload`).
- *   3) Log: registra cuántos listeners se dispararon (útil para diagnosticar
- *      pantallas que no reaccionan).
  *
  * Con esto:
  *   - Web, APK y Electron se comportan igual.
@@ -21,24 +20,23 @@ import { reloadBus } from '@/utils/reloadBus';
 import logger from '@/utils/logger';
 
 export async function reloadCurrentScreen(): Promise<void> {
-  // 1) React Query
+  // 1) React Query: fire-and-forget para no bloquear si la red va lenta.
   try {
-    // Cancela cualquier request en vuelo para arrancar limpio.
-    await queryClient.cancelQueries();
-    // Marca todas las queries como stale — las activas se refetch-ean.
-    await queryClient.invalidateQueries({ refetchType: 'active' });
-    // Fuerza refetch inmediato como segunda pasada por si alguna quedó fuera.
-    await queryClient.refetchQueries({ type: 'active' });
+    // `invalidateQueries` con `refetchType: 'active'` marca stale y dispara
+    // refetch de las queries montadas. No await: dejamos que las respuestas
+    // lleguen en background.
+    void queryClient.invalidateQueries({ refetchType: 'active' });
+    // Segunda pasada explícita: cubre observers que quedaron fuera por
+    // filtros/enabled dinámicos.
+    void queryClient.refetchQueries({ type: 'active' });
   } catch (e) {
     logger.error('reloadCurrentScreen: react-query step failed', e);
   }
 
   // 2) Reload bus (para pantallas sin React Query).
   try {
-    if (reloadBus.size > 0) {
-      logger.info(`reloadCurrentScreen: notificando ${reloadBus.size} listeners`);
-      await reloadBus.emit();
-    }
+    logger.info(`reloadCurrentScreen: notificando ${reloadBus.size} listeners`);
+    await reloadBus.emit();
   } catch (e) {
     logger.error('reloadCurrentScreen: bus step failed', e);
   }

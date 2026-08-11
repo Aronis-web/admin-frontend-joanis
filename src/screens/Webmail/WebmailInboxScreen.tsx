@@ -117,14 +117,12 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
 
   // Refresh manual desde el botón universal de recarga: refetch de la vista
   // actual (lista o búsqueda) + status/folders/quota. No cambiamos de página.
-  useOnReload(
-    useCallback(() => {
-      void status.refetch();
-      void folders.refetch();
-      void quota.refetch();
-      void activeQuery.refetch();
-    }, [status, folders, quota, activeQuery])
-  );
+  useOnReload(() => {
+    void status.refetch();
+    void folders.refetch();
+    void quota.refetch();
+    void activeQuery.refetch();
+  });
 
   // En web, cuando el drawer móvil está abierto, empujamos un estado al
   // historial del navegador para que el botón "atrás" cierre el drawer en

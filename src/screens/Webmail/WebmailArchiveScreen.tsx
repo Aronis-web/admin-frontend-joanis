@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -67,11 +67,9 @@ export const WebmailArchiveScreen: React.FC<Props> = ({ navigation }) => {
 
   const query = useWebmailArchive(params);
 
-  useOnReload(
-    useCallback(() => {
-      void query.refetch();
-    }, [query])
-  );
+  useOnReload(() => {
+    void query.refetch();
+  });
 
   const totalPages = useMemo(() => {
     if (!query.data) return 1;

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import {
   ActivityIndicator,
@@ -120,14 +120,11 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
   const inSpam = isSpam(folder, folders.data);
 
   // Recarga desde el botón universal: refetch del mensaje, hilo y catálogos.
-  useOnReload(
-    useCallback(() => {
-      void status.refetch();
-      void folders.refetch();
-      if (showThread) void thread.refetch();
-      // El detalle del mensaje se refetch-ea vía React Query invalidando.
-    }, [status, folders, thread, showThread])
-  );
+  useOnReload(() => {
+    void status.refetch();
+    void folders.refetch();
+    if (showThread) void thread.refetch();
+  });
 
   const updateFlags = useUpdateFlags();
   const archiveMsg = useArchiveMessage();
