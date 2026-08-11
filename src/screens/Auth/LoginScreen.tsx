@@ -40,6 +40,7 @@ import type { Theme } from '@/design-system/themes/defaultLight';
 import { version } from '../../../package.json';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 
 interface LoginScreenProps {
   navigation: any;
@@ -55,6 +56,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { clearTenantContext } = useTenantStore();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { canPrompt: canInstallPwa, isIOS: isIOSSafari, promptInstall } = usePwaInstall();
 
   const isTablet = width >= 768 || height >= 768;
   const isLandscape = width > height;
@@ -102,6 +104,26 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const containerMaxWidth = isTablet ? (isLandscape ? 480 : 440) : '100%';
 
+  const handleInstallPwa = async () => {
+    if (isIOSSafari) {
+      Alert.alert(
+        'Instalar en tu iPhone',
+        'Para instalar ERP-aio en tu pantalla de inicio:\n\n' +
+          '1. Toca el botón Compartir en la barra de Safari.\n' +
+          '2. Elige "Añadir a pantalla de inicio".\n' +
+          '3. Confirma con "Añadir".'
+      );
+      return;
+    }
+    const outcome = await promptInstall();
+    if (outcome === 'unavailable') {
+      Alert.alert(
+        'Instalación no disponible',
+        'Tu navegador no soporta la instalación automática. Probá desde Chrome o Edge en escritorio, o Chrome en Android.'
+      );
+    }
+  };
+
   return (
     <>
       <StatusBar
@@ -118,7 +140,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <View style={styles.brandingSection}>
               <View style={styles.logoContainer}>
                 <View style={styles.logo}>
-                  <Text variant="displayMedium" color={theme.color.text.onAction} style={styles.logoText}>
+                  <Text
+                    variant="displayMedium"
+                    color={theme.color.text.onAction}
+                    style={styles.logoText}
+                  >
                     ERP
                   </Text>
                 </View>
@@ -190,6 +216,24 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
             {/* Footer */}
             <View style={styles.footer}>
+              {canInstallPwa && (
+                <TouchableOpacity
+                  onPress={handleInstallPwa}
+                  activeOpacity={0.7}
+                  style={styles.installButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Instalar ERP-aio en el dispositivo"
+                >
+                  <Ionicons name="download-outline" size={18} color={theme.color.brand.primary} />
+                  <Body
+                    size="small"
+                    color={theme.color.brand.primary}
+                    style={styles.installButtonLabel}
+                  >
+                    {isIOSSafari ? 'Instalar en iPhone' : 'Instalar aplicación'}
+                  </Body>
+                </TouchableOpacity>
+              )}
               <Caption color="tertiary" align="center">
                 © 2024 ERP-aio • Versión {version}
               </Caption>
@@ -201,101 +245,119 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
 
-  keyboardView: {
-    flex: 1,
-  },
+    keyboardView: {
+      flex: 1,
+    },
 
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignSelf: 'center',
-    width: '100%',
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[6],
-  },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignSelf: 'center',
+      width: '100%',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[6],
+    },
 
-  // ============================================
-  // BRANDING SECTION
-  // ============================================
-  brandingSection: {
-    alignItems: 'center',
-    marginBottom: theme.space[8],
-  },
+    // ============================================
+    // BRANDING SECTION
+    // ============================================
+    brandingSection: {
+      alignItems: 'center',
+      marginBottom: theme.space[8],
+    },
 
-  logoContainer: {
-    marginBottom: theme.space[6],
-  },
+    logoContainer: {
+      marginBottom: theme.space[6],
+    },
 
-  logo: {
-    width: 88,
-    height: 88,
-    borderRadius: theme.radii.xl,
-    backgroundColor: theme.color.brand.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...theme.shadow.lg,
-  },
+    logo: {
+      width: 88,
+      height: 88,
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.brand.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...theme.shadow.lg,
+    },
 
-  logoText: {
-    letterSpacing: 2,
-  },
+    logoText: {
+      letterSpacing: 2,
+    },
 
-  titleContainer: {
-    alignItems: 'center',
-  },
+    titleContainer: {
+      alignItems: 'center',
+    },
 
-  subtitle: {
-    marginTop: theme.space[2],
-    maxWidth: 300,
-  },
+    subtitle: {
+      marginTop: theme.space[2],
+      maxWidth: 300,
+    },
 
-  // ============================================
-  // FORM
-  // ============================================
-  formCard: {
-    marginBottom: theme.space[6],
-  },
+    // ============================================
+    // FORM
+    // ============================================
+    formCard: {
+      marginBottom: theme.space[6],
+    },
 
-  rememberMeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.space[4],
-    marginTop: -theme.space[2],
-  },
+    rememberMeContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+      marginTop: -theme.space[2],
+    },
 
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: theme.radii.sm,
-    borderWidth: 2,
-    borderColor: theme.color.border.default,
-    backgroundColor: theme.color.surface.base,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.space[2],
-  },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderRadius: theme.radii.sm,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[2],
+    },
 
-  checkboxChecked: {
-    backgroundColor: theme.color.brand.primary,
-    borderColor: theme.color.brand.primary,
-  },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
 
-  submitButton: {
-    marginTop: theme.space[2],
-  },
+    submitButton: {
+      marginTop: theme.space[2],
+    },
 
-  // ============================================
-  // FOOTER
-  // ============================================
-  footer: {
-    alignItems: 'center',
-  },
-});
+    // ============================================
+    // FOOTER
+    // ============================================
+    footer: {
+      alignItems: 'center',
+    },
+
+    installButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      marginBottom: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.surface.base,
+    },
+
+    installButtonLabel: {
+      marginLeft: theme.space[2],
+      fontWeight: '600',
+    },
+  });
 
 export default LoginScreen;
