@@ -983,7 +983,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['sales.create']}>
-            <CreateSaleScreen {...props} />
+            <CreateSaleScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1002,7 +1002,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['sales.payment.register']}>
-            <RegisterSalePaymentScreen {...props} />
+            <RegisterSalePaymentScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1192,7 +1192,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['expenses.templates.read']}>
-            <ExpenseTemplatesScreen {...props} />
+            <ExpenseTemplatesScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1259,7 +1259,7 @@ const MainStack = React.memo(() => {
       />
       <MainStackNavigator.Screen
         name="EditCampaignParticipant"
-        component={EditParticipantScreen}
+        component={EditParticipantScreen as any}
         options={{
           title: 'Editar Participante',
         }}
@@ -1424,7 +1424,7 @@ const MainStack = React.memo(() => {
             requiredPermissions={['biometric.read', 'biometric.register', 'biometric.verify']}
             requireAll={false}
           >
-            <FaceRecognitionMenuScreen {...props} />
+            <FaceRecognitionMenuScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1436,7 +1436,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['biometric.read']}>
-            <BiometricProfilesScreen {...props} />
+            <BiometricProfilesScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1448,7 +1448,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['biometric.register']}>
-            <RegisterFaceScreen {...props} />
+            <RegisterFaceScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1460,7 +1460,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['biometric.verify']}>
-            <VerifyFaceScreen {...props} />
+            <VerifyFaceScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1478,7 +1478,7 @@ const MainStack = React.memo(() => {
             ]}
             requireAll={false}
           >
-            <OrganizationChartScreen {...props} />
+            <OrganizationChartScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1749,7 +1749,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksGenerateDocumentsScreen {...props} />
+            <BizlinksGenerateDocumentsScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1834,7 +1834,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...props} />
+            <BizlinksEmitirFacturaScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1846,7 +1846,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...props} />
+            <BizlinksEmitirFacturaScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1858,7 +1858,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...props} />
+            <BizlinksEmitirFacturaScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1870,7 +1870,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...props} />
+            <BizlinksEmitirFacturaScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1882,7 +1882,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...props} />
+            <BizlinksEmitirFacturaScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1927,7 +1927,7 @@ const MainStack = React.memo(() => {
 
       <MainStackNavigator.Screen
         name={AUTH_ROUTES.SITE_SELECTION}
-        component={SiteSelectionScreen}
+        component={SiteSelectionScreen as any}
         options={{
           title: 'Seleccionar Sede',
         }}
@@ -1978,7 +1978,7 @@ const MainStack = React.memo(() => {
             ]}
             requireAll={false}
           >
-            <TransportersScreen {...props} />
+            <TransportersScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1997,7 +1997,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['transport.transporters.create']}>
-            <CreateTransporterScreen {...props} />
+            <CreateTransporterScreen {...(props as any)} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
