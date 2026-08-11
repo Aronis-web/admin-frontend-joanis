@@ -1,0 +1,3 @@
+# SPA fallback para React Navigation en web
+# Todas las rutas caen a index.html (cliente decide el matching)
+/*    /index.html   200

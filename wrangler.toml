@@ -1,0 +1,15 @@
+# Configuración de Cloudflare Pages para ERP-aio (web).
+# Solo se usa para despliegue con `wrangler pages deploy` o el dashboard.
+# NO afecta a los builds de APK Android ni al .exe de Electron.
+
+name = "erp-aio"
+pages_build_output_dir = "web-build"
+compatibility_date = "2025-01-01"
+
+# Variables públicas por entorno.
+# Las secretas (si hubiera) se configuran desde el dashboard de Cloudflare.
+[env.production.vars]
+EXPO_PUBLIC_API_URL = "https://api.tu-dominio.com"
+
+[env.preview.vars]
+EXPO_PUBLIC_API_URL = "https://api-staging.tu-dominio.com"
