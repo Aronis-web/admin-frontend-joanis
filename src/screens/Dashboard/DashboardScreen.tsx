@@ -442,7 +442,15 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       // Derivamos los faltantes sumando los items disponibles para no crashear
       // el render (fix cross-platform, ya que afectaba también APK y Electron).
       const rawAny: any = data ?? {};
-      const detalle = rawAny.detalle_diario ?? rawAny.por_sede ?? [];
+      // OJO: `detalle_diario` (por día) y `por_sede` (por sede) son distintos.
+      // No mezclarlos, o el chart temporal calcula NaN. Si el backend no envía
+      // `detalle_diario`, dejamos el array vacío (el chart se auto-oculta) y
+      // derivamos totales desde `por_sede`.
+      const detalleDiarioRaw: any[] = Array.isArray(rawAny.detalle_diario)
+        ? rawAny.detalle_diario
+        : [];
+      const porSedeRaw: any[] = Array.isArray(rawAny.por_sede) ? rawAny.por_sede : [];
+      const fuenteTotales = detalleDiarioRaw.length > 0 ? detalleDiarioRaw : porSedeRaw;
       const zeroTotals = {
         ventas_total: 0,
         ventas_efectivo: 0,
@@ -464,20 +472,19 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       };
       const totales_periodo =
         rawAny.totales_periodo ??
-        (Array.isArray(detalle)
-          ? detalle.reduce(
-              (acc: any, item: any) => {
-                for (const key of Object.keys(zeroTotals)) {
-                  acc[key] = (acc[key] ?? 0) + (Number(item?.[key]) || 0);
-                }
-                return acc;
-              },
-              { ...zeroTotals }
-            )
-          : zeroTotals);
+        fuenteTotales.reduce(
+          (acc: any, item: any) => {
+            for (const key of Object.keys(zeroTotals)) {
+              acc[key] = (acc[key] ?? 0) + (Number(item?.[key]) || 0);
+            }
+            return acc;
+          },
+          { ...zeroTotals }
+        );
       const normalized = {
         ...rawAny,
-        detalle_diario: detalle,
+        detalle_diario: detalleDiarioRaw,
+        por_sede: porSedeRaw,
         totales_periodo,
       };
       setSalesSummary(normalized);
