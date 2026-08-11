@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import {
   ActivityIndicator,
   Modal,
@@ -27,12 +28,14 @@ import {
   useUpdateFlags,
   useWebmailFolders,
   useWebmailMessage,
+  useWebmailStatus,
   useWebmailThread,
+  webmailKeys,
 } from '@/hooks/api/useWebmail';
 import { webmailApi } from '@/services/api/webmail';
 import { saveAndShareFile } from '@/utils/fileDownload';
 import { MAIN_ROUTES } from '@/constants/routes';
-import type { MessageAttachment } from '@/types/webmail';
+import type { MessageAttachment, MessageDetail } from '@/types/webmail';
 import {
   folderLabel,
   formatMailDate,
@@ -52,12 +55,23 @@ const stripHtml = (html: string): string =>
         .trim()
     : '';
 
-/** Renderiza HTML sólo en web (React Native Web soporta `dangerouslySetInnerHTML` en `View`). */
-const WebHtml: React.FC<{ html: string }> = ({ html }) => {
-  return React.createElement(View as unknown as React.ComponentType<any>, {
+/**
+ * Renderiza HTML sólo en web usando un `<div>` nativo (no `View`) para no
+ * romper el layout HTML embebido con `display: flex` de React Native Web.
+ */
+const WebHtml: React.FC<{ html: string; theme: Theme }> = ({ html, theme }) => {
+  if (Platform.OS !== 'web') return null;
+  return React.createElement('div', {
     // eslint-disable-next-line react/no-danger
     dangerouslySetInnerHTML: { __html: html },
-    style: { color: 'inherit' },
+    style: {
+      color: theme.color.text.body,
+      fontSize: 14,
+      lineHeight: 1.6,
+      wordBreak: 'break-word',
+      overflowWrap: 'break-word',
+      maxWidth: '100%',
+    },
   });
 };
 
@@ -84,6 +98,22 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
   const { data, isLoading, error } = useWebmailMessage(uid, folder);
   const folders = useWebmailFolders(true);
   const thread = useWebmailThread(uid, folder, showThread);
+  const status = useWebmailStatus();
+  const myEmail = (status.data?.emailAddress ?? '').toLowerCase();
+
+  // Detalle de cada mensaje del hilo (para render tipo chat con burbujas).
+  const threadUids = useMemo(
+    () => (showThread && thread.data ? thread.data.messages.map((m) => m.uid) : []),
+    [showThread, thread.data]
+  );
+  const threadDetails = useQueries({
+    queries: threadUids.map((tuid) => ({
+      queryKey: webmailKeys.message(tuid, folder),
+      queryFn: () => webmailApi.getMessage(tuid, folder),
+      staleTime: 5 * 60 * 1000,
+      enabled: showThread,
+    })),
+  });
 
   const inTrash = isTrash(folder, folders.data);
   const inSpam = isSpam(folder, folders.data);
@@ -428,7 +458,7 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
 
           <View style={styles.body}>
             {Platform.OS === 'web' && data.html ? (
-              <WebHtml html={data.html} />
+              <WebHtml html={data.html} theme={theme} />
             ) : (
               <Text style={styles.bodyText}>{data.text || stripHtml(data.html) || ''}</Text>
             )}
@@ -437,38 +467,129 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
 
         {showThread ? (
           <View style={styles.threadCard}>
-            <Text style={styles.threadTitle}>Conversación</Text>
+            <View style={styles.threadHeader}>
+              <Ionicons name="chatbubbles-outline" size={18} color={theme.color.icon.accent} />
+              <Text style={styles.threadTitle}>
+                Conversación
+                {thread.data
+                  ? ` · ${thread.data.count} mensaje${thread.data.count === 1 ? '' : 's'}`
+                  : ''}
+              </Text>
+            </View>
+
             {thread.isLoading ? (
-              <ActivityIndicator size="small" color={theme.color.icon.accent} />
-            ) : thread.data && thread.data.messages.length > 0 ? (
-              thread.data.messages.map((m) => {
-                const s = parseSender(m.from);
-                const isCurrent = m.uid === data.uid;
-                return (
-                  <Pressable
-                    key={m.uid}
-                    onPress={() => {
-                      if (!isCurrent) {
-                        navigation.navigate(MAIN_ROUTES.WEBMAIL_MESSAGE, {
-                          uid: m.uid,
-                          folder,
-                        });
-                      }
-                    }}
-                    style={[styles.threadItem, isCurrent && styles.threadItemActive]}
-                  >
-                    <Text style={styles.threadFrom} numberOfLines={1}>
-                      {s.name || s.email}
-                    </Text>
-                    <Text style={styles.threadSubject} numberOfLines={1}>
-                      {m.subject}
-                    </Text>
-                    <Text style={styles.threadDate}>{formatMailDate(m.date)}</Text>
-                  </Pressable>
-                );
-              })
-            ) : (
+              <View style={styles.centered}>
+                <ActivityIndicator size="small" color={theme.color.icon.accent} />
+              </View>
+            ) : !thread.data || thread.data.messages.length === 0 ? (
               <Text style={styles.threadEmpty}>Sin hilo asociado.</Text>
+            ) : (
+              <View style={styles.chatColumn}>
+                {thread.data.messages.map((m, idx) => {
+                  const detailQuery = threadDetails[idx];
+                  const detail = detailQuery?.data as MessageDetail | undefined;
+                  const senderRaw = detail?.from ?? m.from;
+                  const s = parseSender(senderRaw);
+                  const isMine = s.email.toLowerCase() === myEmail && !!myEmail;
+                  const isCurrent = m.uid === data.uid;
+
+                  return (
+                    <View
+                      key={m.uid}
+                      style={[styles.chatRow, isMine ? styles.chatRowRight : styles.chatRowLeft]}
+                    >
+                      {!isMine ? (
+                        <View style={styles.chatAvatar}>
+                          <Text style={styles.chatAvatarText}>
+                            {(s.name || s.email || '?').slice(0, 1).toUpperCase()}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      <View style={styles.chatBubbleWrap}>
+                        <View style={styles.chatMeta}>
+                          <Text style={styles.chatSender} numberOfLines={1}>
+                            {isMine ? 'Tú' : s.name || s.email}
+                          </Text>
+                          <Text style={styles.chatDate}>{formatMailDate(m.date)}</Text>
+                        </View>
+
+                        <Pressable
+                          onPress={() => {
+                            if (!isCurrent) {
+                              navigation.navigate(MAIN_ROUTES.WEBMAIL_MESSAGE, {
+                                uid: m.uid,
+                                folder,
+                              });
+                            }
+                          }}
+                          style={[
+                            styles.chatBubble,
+                            isMine ? styles.chatBubbleMine : styles.chatBubbleOther,
+                            isCurrent && styles.chatBubbleCurrent,
+                          ]}
+                        >
+                          {detailQuery?.isLoading ? (
+                            <ActivityIndicator size="small" color={theme.color.icon.muted} />
+                          ) : detailQuery?.isError || !detail ? (
+                            <Text style={[styles.chatBody, isMine && styles.chatBodyMine]}>
+                              {m.subject}
+                            </Text>
+                          ) : (
+                            <>
+                              {m.subject && m.subject !== data.subject ? (
+                                <Text
+                                  style={[styles.chatSubject, isMine && styles.chatSubjectMine]}
+                                  numberOfLines={2}
+                                >
+                                  {m.subject}
+                                </Text>
+                              ) : null}
+
+                              {Platform.OS === 'web' && detail.html ? (
+                                <WebHtml html={detail.html} theme={theme} />
+                              ) : (
+                                <Text style={[styles.chatBody, isMine && styles.chatBodyMine]}>
+                                  {detail.text || stripHtml(detail.html) || '(sin contenido)'}
+                                </Text>
+                              )}
+
+                              {detail.attachments && detail.attachments.length > 0 ? (
+                                <View style={styles.chatAttachments}>
+                                  <Ionicons
+                                    name="attach"
+                                    size={14}
+                                    color={
+                                      isMine ? theme.color.text.onAction : theme.color.icon.muted
+                                    }
+                                  />
+                                  <Text
+                                    style={[
+                                      styles.chatAttachmentText,
+                                      isMine && { color: theme.color.text.onAction },
+                                    ]}
+                                  >
+                                    {detail.attachments.length} adjunto
+                                    {detail.attachments.length > 1 ? 's' : ''}
+                                  </Text>
+                                </View>
+                              ) : null}
+                            </>
+                          )}
+                        </Pressable>
+                      </View>
+
+                      {isMine ? (
+                        <View style={[styles.chatAvatar, styles.chatAvatarMine]}>
+                          <Text style={styles.chatAvatarText}>
+                            {(s.name || s.email || 'Y').slice(0, 1).toUpperCase()}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
             )}
           </View>
         ) : null}
@@ -699,40 +820,115 @@ const createStyles = (theme: Theme) =>
       padding: theme.space[4],
       gap: theme.space[2],
     },
+    threadHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: theme.space[2],
+    },
     threadTitle: {
       fontSize: 15,
       fontWeight: '700',
       color: theme.color.text.heading,
-      marginBottom: theme.space[2],
-    },
-    threadItem: {
-      padding: theme.space[3],
-      borderRadius: theme.radii.md,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-      backgroundColor: theme.color.surface.subtle,
-      gap: 4,
-    },
-    threadItemActive: {
-      borderColor: theme.color.brand.accent,
-      backgroundColor: theme.color.brand.accentSoft,
-    },
-    threadFrom: {
-      fontWeight: '600',
-      color: theme.color.text.body,
-      fontSize: 13,
-    },
-    threadSubject: {
-      color: theme.color.text.muted,
-      fontSize: 12,
-    },
-    threadDate: {
-      color: theme.color.text.subtle,
-      fontSize: 11,
     },
     threadEmpty: {
       color: theme.color.text.muted,
       fontSize: 13,
+    },
+    chatColumn: {
+      gap: theme.space[3],
+    },
+    chatRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: theme.space[2],
+    },
+    chatRowLeft: {
+      justifyContent: 'flex-start',
+    },
+    chatRowRight: {
+      justifyContent: 'flex-end',
+    },
+    chatAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chatAvatarMine: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    chatAvatarText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.onAction,
+    },
+    chatBubbleWrap: {
+      maxWidth: '78%',
+      minWidth: 0,
+      gap: 4,
+    },
+    chatMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: theme.space[2],
+    },
+    chatSender: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+    },
+    chatDate: {
+      fontSize: 10,
+      color: theme.color.text.subtle,
+    },
+    chatBubble: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.xl,
+      gap: 6,
+    },
+    chatBubbleOther: {
+      backgroundColor: theme.color.surface.subtle,
+      borderTopLeftRadius: 4,
+    },
+    chatBubbleMine: {
+      backgroundColor: theme.color.brand.accent,
+      borderTopRightRadius: 4,
+    },
+    chatBubbleCurrent: {
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+    },
+    chatSubject: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    chatSubjectMine: {
+      color: theme.color.text.onAction,
+    },
+    chatBody: {
+      fontSize: 13,
+      color: theme.color.text.body,
+      lineHeight: 20,
+    },
+    chatBodyMine: {
+      color: theme.color.text.onAction,
+    },
+    chatAttachments: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 4,
+    },
+    chatAttachmentText: {
+      fontSize: 11,
+      color: theme.color.text.muted,
     },
     centerModal: {
       flex: 1,
