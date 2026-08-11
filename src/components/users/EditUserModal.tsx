@@ -14,6 +14,7 @@ import type { Theme } from '@/design-system/themes';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { RoleSelector } from '@/components/users/RoleSelector';
 import { WorkerProfileFields } from '@/components/users/WorkerProfileFields';
+import { UserMailboxSection } from '@/components/users/UserMailboxSection';
 import { usersApi, User, UpdateUserRequest } from '@/services/api/users';
 import Alert from '@/utils/alert';
 
@@ -482,6 +483,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               errors={errors}
               disabled={loading}
             />
+
+            <UserMailboxSection userId={user.id} disabled={loading} />
 
             <View style={styles.userIdContainer}>
               <Text style={styles.userIdLabel}>ID del Usuario</Text>

@@ -673,6 +673,14 @@ export const PERMISSIONS = {
     ADMIN_FULL: 'accounts-receivable.admin-full',
     FULL_ACCESS: 'accounts-receivable.full-access',
   },
+
+  // ========== WEBMAIL / CORREO CORPORATIVO ==========
+  WEBMAIL: {
+    READ: 'webmail.read',
+    SEND: 'webmail.send',
+    MANAGE: 'webmail.manage',
+    ARCHIVE_READ: 'webmail.archive.read',
+  },
 } as const;
 
 /**

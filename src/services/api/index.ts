@@ -166,6 +166,37 @@ export type {
   TerminalAccessLog,
 } from '@/types/attendance';
 
+export { webmailApi, webmailAdminApi } from './webmail';
+export type {
+  MailboxStatus,
+  MessageListItem,
+  MessageDetail,
+  MessageAttachment,
+  ListMessagesParams,
+  ListMessagesResponse,
+  SendMailDto,
+  SendMailResponse,
+  SendAttachment,
+  AdminMailboxStatus,
+  ProvisionMailboxResponse,
+  BulkProvisionResult,
+  ArchiveItem,
+  ArchiveDirection,
+  ArchiveSource,
+  ArchiveListResponse,
+  ArchiveQueryParams,
+  MailFolder,
+  FolderSpecialUse,
+  MailboxQuota,
+  SearchParams,
+  SearchResponse,
+  ThreadMessage,
+  ThreadResponse,
+  UpdateFlagsDto,
+  MoveMessageDto,
+  MoveResult,
+} from '@/types/webmail';
+
 export { siteContactsApi } from './site-contacts';
 export type {
   SiteContact,

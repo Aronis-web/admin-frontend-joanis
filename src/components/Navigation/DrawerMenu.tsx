@@ -387,6 +387,36 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Correo
+  {
+    id: 'webmail',
+    title: 'Correo',
+    icon: 'mail-outline',
+    requiredPermissions: ['webmail.read', 'webmail.archive.read'],
+    items: [
+      {
+        id: 'webmail-inbox',
+        icon: 'file-tray-outline',
+        label: 'Bandeja',
+        route: MAIN_ROUTES.WEBMAIL_INBOX,
+        requiredPermissions: ['webmail.read'],
+      },
+      {
+        id: 'webmail-compose',
+        icon: 'create-outline',
+        label: 'Redactar',
+        route: MAIN_ROUTES.WEBMAIL_COMPOSE,
+        requiredPermissions: ['webmail.send'],
+      },
+      {
+        id: 'webmail-archive',
+        icon: 'file-tray-full-outline',
+        label: 'Archivo histórico',
+        route: MAIN_ROUTES.WEBMAIL_ARCHIVE,
+        requiredPermissions: ['webmail.archive.read'],
+      },
+    ],
+  },
   // Configuración
   {
     id: 'config',

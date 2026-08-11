@@ -530,6 +530,24 @@ const CreateRetencionScreen = lazyLoad(
   'Cargando formulario...'
 );
 
+// Webmail Screens - Lazy Loaded
+const WebmailInboxScreen = lazyLoad(
+  () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailInboxScreen })),
+  'Cargando bandeja...'
+);
+const WebmailMessageScreen = lazyLoad(
+  () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailMessageScreen })),
+  'Cargando mensaje...'
+);
+const WebmailComposeScreen = lazyLoad(
+  () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailComposeScreen })),
+  'Cargando redactor...'
+);
+const WebmailArchiveScreen = lazyLoad(
+  () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailArchiveScreen })),
+  'Cargando archivo...'
+);
+
 // Transport Screens - Lazy Loaded
 const VehiclesScreen = lazyLoad(
   () => import('@/screens/Transport').then((m) => ({ default: m.VehiclesScreen })),
@@ -2002,6 +2020,45 @@ const MainStack = React.memo(() => {
           title: 'Seleccionar Sede',
         }}
       />
+
+      {/* Webmail Screens */}
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.WEBMAIL_INBOX}
+        options={{ title: 'Bandeja de Correo' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.WEBMAIL.READ]}>
+            <WebmailInboxScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name={MAIN_ROUTES.WEBMAIL_MESSAGE} options={{ title: 'Mensaje' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.WEBMAIL.READ]}>
+            <WebmailMessageScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.WEBMAIL_COMPOSE}
+        options={{ title: 'Redactar Correo' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.WEBMAIL.SEND]}>
+            <WebmailComposeScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.WEBMAIL_ARCHIVE}
+        options={{ title: 'Archivo de Correos' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.WEBMAIL.ARCHIVE_READ]}>
+            <WebmailArchiveScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
 
       {/* Transport Screens */}
       <MainStackNavigator.Screen

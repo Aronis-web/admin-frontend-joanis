@@ -192,6 +192,12 @@ export const MAIN_ROUTES = {
   REVIEW_PROSEGUR: 'ReviewProsegur',
   CUADRE: 'Cuadre',
   RECAUDO_EFECTIVO: 'RecaudoEfectivo',
+
+  // Webmail / Correo corporativo
+  WEBMAIL_INBOX: 'WebmailInbox',
+  WEBMAIL_MESSAGE: 'WebmailMessage',
+  WEBMAIL_COMPOSE: 'WebmailCompose',
+  WEBMAIL_ARCHIVE: 'WebmailArchive',
 } as const;
 
 /**
@@ -236,6 +242,9 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
   presentaciones: 'PRESENTATIONS',
   'debug-permissions': 'PERMISSIONS_DEBUG',
   transmisiones: 'TRANSMISIONES',
+  'webmail-inbox': 'WEBMAIL_INBOX',
+  'webmail-compose': 'WEBMAIL_COMPOSE',
+  'webmail-archive': 'WEBMAIL_ARCHIVE',
 };
 
 /**
@@ -403,6 +412,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   REVIEW_PROSEGUR: 'cash_reconciliation.read',
   CUADRE: 'cash_reconciliation.read',
   RECAUDO_EFECTIVO: 'admin.collections.scan',
+
+  // Webmail
+  WEBMAIL_INBOX: 'webmail.read',
+  WEBMAIL_MESSAGE: 'webmail.read',
+  WEBMAIL_COMPOSE: 'webmail.send',
+  WEBMAIL_ARCHIVE: 'webmail.archive.read',
 };
 
 /**

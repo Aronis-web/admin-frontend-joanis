@@ -398,6 +398,24 @@ export type MainStackParamList = {
   AccountReceivableDetail: {
     accountReceivableId: string;
   };
+
+  // Webmail / Correo corporativo
+  WebmailInbox: undefined;
+  WebmailMessage: {
+    uid: number;
+    folder?: string;
+  };
+  WebmailCompose:
+    | undefined
+    | {
+        to?: string;
+        cc?: string;
+        subject?: string;
+        body?: string;
+        inReplyTo?: string;
+        references?: string[];
+      };
+  WebmailArchive: undefined;
 };
 
 /**
