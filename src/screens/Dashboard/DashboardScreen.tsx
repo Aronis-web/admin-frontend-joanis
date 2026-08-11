@@ -623,7 +623,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
       setCampaignsError(null);
       const data = await apiClient.get<CampaignSiteDistributionResponse>(
         '/admin/campaigns/dashboard/site-distribution',
-        { params: { limit: 5 } }
+        { params: { limit: 25 } }
       );
       setCampaignsDistribution(data);
     } catch (err: any) {
