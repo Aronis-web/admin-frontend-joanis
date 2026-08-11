@@ -645,6 +645,15 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
 
   const canOpenWebmail = hasPermission('webmail.read');
 
+  const handleDrive = () => {
+    onClose();
+    setTimeout(() => {
+      navigation.navigate(MAIN_ROUTES.DRIVE_HOME as never);
+    }, 300);
+  };
+
+  const canOpenDrive = hasPermission('drive.read');
+
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) => {
       const newSet = new Set(prev);
@@ -946,6 +955,27 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                   </Text>
                 </TouchableOpacity>
               )}
+              {canOpenDrive && (
+                <TouchableOpacity
+                  style={styles.driveButton}
+                  onPress={handleDrive}
+                  activeOpacity={activeOpacity.medium}
+                  accessibilityLabel="Abrir Drive"
+                >
+                  <Ionicons
+                    name="cloud-outline"
+                    size={iconSizes.lg}
+                    color={theme.color.brand.primary}
+                  />
+                  <Text
+                    variant="buttonMedium"
+                    color={theme.color.brand.primary}
+                    style={styles.driveText}
+                  >
+                    Drive
+                  </Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.logoutButton}
                 onPress={handleLogout}
@@ -1169,6 +1199,22 @@ const createStyles = (theme: Theme) =>
     },
 
     webmailText: {
+      marginLeft: theme.space[2],
+    },
+
+    driveButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+
+    driveText: {
       marginLeft: theme.space[2],
     },
 

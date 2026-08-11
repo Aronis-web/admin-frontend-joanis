@@ -416,6 +416,9 @@ export type MainStackParamList = {
         references?: string[];
       };
   WebmailArchive: undefined;
+
+  // Drive / Gestor de archivos
+  DriveHome: undefined;
 };
 
 /**

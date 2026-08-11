@@ -532,6 +532,12 @@ const CreateRetencionScreen = lazyLoad(
   'Cargando formulario...'
 );
 
+// Drive Screens - Lazy Loaded
+const DriveHomeScreen = lazyLoad(
+  () => import('@/screens/Drive').then((m) => ({ default: m.DriveHomeScreen })),
+  'Cargando Drive...'
+);
+
 // Webmail Screens - Lazy Loaded
 const WebmailInboxScreen = lazyLoad(
   () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailInboxScreen })),
@@ -2022,6 +2028,15 @@ const MainStack = React.memo(() => {
           title: 'Seleccionar Sede',
         }}
       />
+
+      {/* Drive Screens */}
+      <MainStackNavigator.Screen name={MAIN_ROUTES.DRIVE_HOME} options={{ title: 'Drive' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.DRIVE.READ]}>
+            <DriveHomeScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
 
       {/* Webmail Screens */}
       <MainStackNavigator.Screen
