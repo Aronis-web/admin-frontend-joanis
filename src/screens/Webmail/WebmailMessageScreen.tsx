@@ -96,7 +96,8 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
   const [showThread, setShowThread] = useState(false);
   const [showMove, setShowMove] = useState(false);
 
-  const { data, isLoading, error } = useWebmailMessage(uid, folder);
+  const messageQuery = useWebmailMessage(uid, folder);
+  const { data, isLoading, error } = messageQuery;
   const folders = useWebmailFolders(true);
   const thread = useWebmailThread(uid, folder, showThread);
   const status = useWebmailStatus();
@@ -119,11 +120,17 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
   const inTrash = isTrash(folder, folders.data);
   const inSpam = isSpam(folder, folders.data);
 
-  // Recarga desde el botón universal: refetch del mensaje, hilo y catálogos.
-  useOnReload(() => {
-    void status.refetch();
-    void folders.refetch();
-    if (showThread) void thread.refetch();
+  // Recarga desde el botón universal. El backend IMAP se bloquea con varias
+  // peticiones en paralelo, así que refrescamos SECUENCIALMENTE: primero el
+  // mensaje visible, luego el hilo (si está abierto) y catálogos ligeros.
+  useOnReload(async () => {
+    try {
+      await messageQuery.refetch();
+      if (showThread) await thread.refetch();
+      await folders.refetch();
+    } catch {
+      // ignore: el refetch expone su propio estado de error en la UI
+    }
   });
 
   const updateFlags = useUpdateFlags();
@@ -149,6 +156,24 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
       Alert.alert('Error', String(msg));
       return false;
     }
+  };
+
+  /** Pide confirmación antes de ejecutar una acción sobre el mensaje. */
+  const confirmAction = (
+    title: string,
+    message: string,
+    confirmLabel: string,
+    onConfirm: () => void,
+    destructive = false
+  ) => {
+    Alert.alert(title, message, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: confirmLabel,
+        style: destructive ? 'destructive' : 'default',
+        onPress: onConfirm,
+      },
+    ]);
   };
 
   const handleDownload = async (attachment: MessageAttachment) => {
@@ -227,18 +252,31 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const handleArchive = () => {
     if (!data) return;
-    runMutation(
-      () => archiveMsg.mutateAsync({ uid: data.uid, folder }),
-      'No se pudo archivar.',
-      true
+    confirmAction(
+      'Archivar mensaje',
+      '¿Mover este mensaje a la carpeta de archivados?',
+      'Archivar',
+      () =>
+        runMutation(
+          () => archiveMsg.mutateAsync({ uid: data.uid, folder }),
+          'No se pudo archivar.',
+          true
+        )
     );
   };
 
   const handleSpam = () => {
     if (!data) return;
-    runMutation(
-      () => markSpam.mutateAsync({ uid: data.uid, folder }),
-      'No se pudo marcar como no deseado.',
+    confirmAction(
+      'Marcar como no deseado',
+      '¿Marcar este mensaje como spam y moverlo a no deseados?',
+      'Marcar spam',
+      () =>
+        runMutation(
+          () => markSpam.mutateAsync({ uid: data.uid, folder }),
+          'No se pudo marcar como no deseado.',
+          true
+        ),
       true
     );
   };
@@ -254,9 +292,16 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const handleTrash = () => {
     if (!data) return;
-    runMutation(
-      () => trashMsg.mutateAsync({ uid: data.uid, folder }),
-      'No se pudo mover a la papelera.',
+    confirmAction(
+      'Mover a la papelera',
+      '¿Enviar este mensaje a la papelera?',
+      'Mover',
+      () =>
+        runMutation(
+          () => trashMsg.mutateAsync({ uid: data.uid, folder }),
+          'No se pudo mover a la papelera.',
+          true
+        ),
       true
     );
   };

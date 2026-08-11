@@ -3,8 +3,11 @@ import { webmailApi, webmailAdminApi } from '@/services/api/webmail';
 import type {
   ArchiveQueryParams,
   ListMessagesParams,
+  ListMessagesResponse,
   MailboxStatus,
+  MessageListItem,
   SearchParams,
+  SearchResponse,
   SendMailDto,
   UpdateFlagsDto,
 } from '@/types/webmail';
@@ -117,10 +120,88 @@ export const useWebmailSearch = (params: SearchParams, enabled = true) =>
 // Mutations — Usuario
 // ============================================================================
 
+type QueryClient = ReturnType<typeof useQueryClient>;
+type MessageListData = ListMessagesResponse | SearchResponse;
+type ListSnapshot = [readonly unknown[], MessageListData | undefined][];
+
 /** Invalida listas/detalles/carpetas/cuota tras una acción sobre un mensaje. */
-const invalidateMailboxData = (qc: ReturnType<typeof useQueryClient>) => {
+const invalidateMailboxData = (qc: QueryClient) => {
   void qc.invalidateQueries({ queryKey: webmailKeys.all });
 };
+
+/** ¿Es una query de listado (bandeja) o de búsqueda? Ambas comparten shape. */
+const isMessageListKey = (key: readonly unknown[]): boolean =>
+  key[0] === 'webmail' && (key[1] === 'messages' || key[1] === 'search');
+
+/** Toma una foto de todas las listas de mensajes/búsqueda en cache. */
+const snapshotMessageLists = (qc: QueryClient): ListSnapshot =>
+  qc
+    .getQueriesData<MessageListData>({ queryKey: webmailKeys.all })
+    .filter(([key]) => isMessageListKey(key));
+
+/** Restaura las listas a partir de una foto previa (rollback en onError). */
+const restoreMessageLists = (qc: QueryClient, snapshot?: ListSnapshot) => {
+  snapshot?.forEach(([key, data]) => {
+    qc.setQueryData(key, data);
+  });
+};
+
+/**
+ * Quita un mensaje (por uid) de todas las listas/búsquedas cacheadas y ajusta
+ * el total. Update optimista: la fila desaparece al instante sin esperar al
+ * refetch, evitando la sensación de que "no se actualiza" cuando el IMAP tarda.
+ */
+const optimisticallyRemoveMessage = (qc: QueryClient, uid: number): ListSnapshot => {
+  const snapshot = snapshotMessageLists(qc);
+  snapshot.forEach(([key, data]) => {
+    if (!data?.messages) return;
+    const messages = data.messages.filter((m) => m.uid !== uid);
+    if (messages.length === data.messages.length) return;
+    qc.setQueryData<MessageListData>(key, {
+      ...data,
+      messages,
+      total: Math.max(0, data.total - 1),
+    });
+  });
+  return snapshot;
+};
+
+/** Aplica un parche a un mensaje concreto en todas las listas cacheadas. */
+const optimisticallyPatchMessage = (
+  qc: QueryClient,
+  uid: number,
+  patch: Partial<MessageListItem>
+): ListSnapshot => {
+  const snapshot = snapshotMessageLists(qc);
+  snapshot.forEach(([key, data]) => {
+    if (!data?.messages) return;
+    let changed = false;
+    const messages = data.messages.map((m) => {
+      if (m.uid !== uid) return m;
+      changed = true;
+      return { ...m, ...patch };
+    });
+    if (changed) qc.setQueryData<MessageListData>(key, { ...data, messages });
+  });
+  return snapshot;
+};
+
+/**
+ * Callbacks compartidos para mutaciones que RETIRAN un mensaje de la carpeta
+ * actual (archivar, papelera, spam, mover, eliminar). Aplica update optimista,
+ * hace rollback si falla e invalida al terminar.
+ */
+const removalMutationCallbacks = <TVars extends { uid: number }>(qc: QueryClient) => ({
+  onMutate: async (vars: TVars): Promise<{ snapshot: ListSnapshot }> => {
+    await qc.cancelQueries({ queryKey: webmailKeys.all });
+    const snapshot = optimisticallyRemoveMessage(qc, vars.uid);
+    return { snapshot };
+  },
+  onError: (_error: unknown, _vars: TVars, ctx?: { snapshot: ListSnapshot }) => {
+    restoreMessageLists(qc, ctx?.snapshot);
+  },
+  onSettled: () => invalidateMailboxData(qc),
+});
 
 export const useSendMail = () => {
   const qc = useQueryClient();
@@ -138,10 +219,19 @@ export const useUpdateFlags = () => {
   return useMutation({
     mutationFn: ({ uid, folder, dto }: { uid: number; folder: string; dto: UpdateFlagsDto }) =>
       webmailApi.updateFlags(uid, dto, folder),
-    onSuccess: () => invalidateMailboxData(qc),
-    onError: (error) => {
+    onMutate: async ({ uid, dto }) => {
+      await qc.cancelQueries({ queryKey: webmailKeys.all });
+      const patch: Partial<MessageListItem> = {};
+      if (dto.seen !== undefined) patch.seen = dto.seen;
+      if (dto.flagged !== undefined) patch.flagged = dto.flagged;
+      const snapshot = optimisticallyPatchMessage(qc, uid, patch);
+      return { snapshot };
+    },
+    onError: (error, _vars, ctx) => {
+      restoreMessageLists(qc, ctx?.snapshot);
       logger.error('Error actualizando flags:', error);
     },
+    onSettled: () => invalidateMailboxData(qc),
   });
 };
 
@@ -150,8 +240,9 @@ export const useMoveMessage = () => {
   return useMutation({
     mutationFn: ({ uid, folder, toFolder }: { uid: number; folder: string; toFolder: string }) =>
       webmailApi.moveMessage(uid, toFolder, folder),
-    onSuccess: () => invalidateMailboxData(qc),
-    onError: (error) => {
+    ...removalMutationCallbacks<{ uid: number; folder: string; toFolder: string }>(qc),
+    onError: (error, vars, ctx) => {
+      restoreMessageLists(qc, ctx?.snapshot);
       logger.error('Error moviendo mensaje:', error);
     },
   });
@@ -162,8 +253,9 @@ export const useArchiveMessage = () => {
   return useMutation({
     mutationFn: ({ uid, folder }: { uid: number; folder: string }) =>
       webmailApi.archiveMessage(uid, folder),
-    onSuccess: () => invalidateMailboxData(qc),
-    onError: (error) => {
+    ...removalMutationCallbacks<{ uid: number; folder: string }>(qc),
+    onError: (error, vars, ctx) => {
+      restoreMessageLists(qc, ctx?.snapshot);
       logger.error('Error archivando mensaje:', error);
     },
   });
@@ -174,8 +266,9 @@ export const useMarkSpam = () => {
   return useMutation({
     mutationFn: ({ uid, folder }: { uid: number; folder: string }) =>
       webmailApi.markSpam(uid, folder),
-    onSuccess: () => invalidateMailboxData(qc),
-    onError: (error) => {
+    ...removalMutationCallbacks<{ uid: number; folder: string }>(qc),
+    onError: (error, vars, ctx) => {
+      restoreMessageLists(qc, ctx?.snapshot);
       logger.error('Error marcando como spam:', error);
     },
   });
@@ -186,8 +279,9 @@ export const useMarkNotSpam = () => {
   return useMutation({
     mutationFn: ({ uid, folder }: { uid: number; folder: string }) =>
       webmailApi.markNotSpam(uid, folder),
-    onSuccess: () => invalidateMailboxData(qc),
-    onError: (error) => {
+    ...removalMutationCallbacks<{ uid: number; folder: string }>(qc),
+    onError: (error, vars, ctx) => {
+      restoreMessageLists(qc, ctx?.snapshot);
       logger.error('Error restaurando de spam:', error);
     },
   });
@@ -198,8 +292,9 @@ export const useTrashMessage = () => {
   return useMutation({
     mutationFn: ({ uid, folder }: { uid: number; folder: string }) =>
       webmailApi.trashMessage(uid, folder),
-    onSuccess: () => invalidateMailboxData(qc),
-    onError: (error) => {
+    ...removalMutationCallbacks<{ uid: number; folder: string }>(qc),
+    onError: (error, vars, ctx) => {
+      restoreMessageLists(qc, ctx?.snapshot);
       logger.error('Error enviando a papelera:', error);
     },
   });
@@ -210,8 +305,9 @@ export const useDeleteMessage = () => {
   return useMutation({
     mutationFn: ({ uid, folder }: { uid: number; folder: string }) =>
       webmailApi.deleteMessage(uid, folder),
-    onSuccess: () => invalidateMailboxData(qc),
-    onError: (error) => {
+    ...removalMutationCallbacks<{ uid: number; folder: string }>(qc),
+    onError: (error, vars, ctx) => {
+      restoreMessageLists(qc, ctx?.snapshot);
       logger.error('Error eliminando mensaje:', error);
     },
   });

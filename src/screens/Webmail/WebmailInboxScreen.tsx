@@ -124,13 +124,47 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
   const inTrash = isTrash(currentFolder, folders.data);
   const inSpam = isSpam(currentFolder, folders.data);
 
-  // Refresh manual desde el botón universal de recarga: refetch de la vista
-  // actual (lista o búsqueda) + status/folders/quota. No cambiamos de página.
-  useOnReload(() => {
-    void status.refetch();
-    void folders.refetch();
-    void quota.refetch();
-    void activeQuery.refetch();
+  // Refresh manual desde el botón universal de recarga. Invalidamos TODA la
+  // familia `webmail` (mismo patrón que Drive) y forzamos el refetch de la
+  // vista activa, para garantizar que la lista/búsqueda se actualice aunque el
+  // IMAP tarde en reflejar cambios. No cambiamos de página ni de filtros.
+  // Recarga desde el botón universal. El backend IMAP se bloquea si recibe
+  // varias peticiones en paralelo, así que refrescamos SECUENCIALMENTE y solo
+  // lo esencial (una petición IMAP a la vez): primero la lista visible, luego
+  // catálogos ligeros. Nada de invalidar toda la familia (evita disparar un
+  // refetch por cada mensaje/hilo abierto en cache y saturar el IMAP).
+  useOnReload(async () => {
+    try {
+      const beforeData = activeQuery.data;
+      const before = (beforeData?.messages ?? []).map((m) => m.uid);
+      // eslint-disable-next-line no-console
+      console.log(
+        '📧 [webmail] ANTES uids=',
+        JSON.stringify(before),
+        'total=',
+        beforeData?.total,
+        'searching=',
+        isSearching
+      );
+      const res = await activeQuery.refetch();
+      const after = (res.data?.messages ?? []).map((m) => m.uid);
+      // eslint-disable-next-line no-console
+      console.log(
+        '📧 [webmail] DESPUES uids=',
+        JSON.stringify(after),
+        'total=',
+        res.data?.total,
+        'status=',
+        res.status,
+        'mismaRef=',
+        res.data === beforeData
+      );
+      await folders.refetch();
+      await quota.refetch();
+      await status.refetch();
+    } catch (e) {
+      logger.error('No se pudo recargar el correo.', e);
+    }
   });
 
   // En web, cuando el drawer móvil está abierto, empujamos un estado al
@@ -209,6 +243,24 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  /** Pide confirmación antes de ejecutar una acción sobre el mensaje. */
+  const confirmAction = (
+    title: string,
+    message: string,
+    confirmLabel: string,
+    onConfirm: () => void,
+    destructive = false
+  ) => {
+    Alert.alert(title, message, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: confirmLabel,
+        style: destructive ? 'destructive' : 'default',
+        onPress: onConfirm,
+      },
+    ]);
+  };
+
   const handleToggleRead = (item: MessageListItem) =>
     runMutation(
       () =>
@@ -232,21 +284,41 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
     );
 
   const handleArchive = (item: MessageListItem) =>
-    runMutation(
-      () => archiveMsg.mutateAsync({ uid: item.uid, folder: currentFolder }),
-      'No se pudo archivar el mensaje.'
+    confirmAction(
+      'Archivar mensaje',
+      '¿Mover este mensaje a la carpeta de archivados?',
+      'Archivar',
+      () =>
+        runMutation(
+          () => archiveMsg.mutateAsync({ uid: item.uid, folder: currentFolder }),
+          'No se pudo archivar el mensaje.'
+        )
     );
 
   const handleTrash = (item: MessageListItem) =>
-    runMutation(
-      () => trashMsg.mutateAsync({ uid: item.uid, folder: currentFolder }),
-      'No se pudo mover a la papelera.'
+    confirmAction(
+      'Mover a la papelera',
+      '¿Enviar este mensaje a la papelera?',
+      'Mover',
+      () =>
+        runMutation(
+          () => trashMsg.mutateAsync({ uid: item.uid, folder: currentFolder }),
+          'No se pudo mover a la papelera.'
+        ),
+      true
     );
 
   const handleSpam = (item: MessageListItem) =>
-    runMutation(
-      () => markSpam.mutateAsync({ uid: item.uid, folder: currentFolder }),
-      'No se pudo marcar como no deseado.'
+    confirmAction(
+      'Marcar como no deseado',
+      '¿Marcar este mensaje como spam y moverlo a no deseados?',
+      'Marcar spam',
+      () =>
+        runMutation(
+          () => markSpam.mutateAsync({ uid: item.uid, folder: currentFolder }),
+          'No se pudo marcar como no deseado.'
+        ),
+      true
     );
 
   const handleNotSpam = (item: MessageListItem) =>
