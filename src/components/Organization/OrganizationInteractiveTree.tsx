@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { PositionTreeNode } from '@/types/organization';
 
 interface OrganizationInteractiveTreeProps {
@@ -31,6 +32,8 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
   onDeletePress,
   onCreateChild,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
 
   const toggleNode = (nodeId: string) => {
@@ -180,7 +183,7 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
                 y1={parentBottomY}
                 x2={parentCenterX}
                 y2={midY}
-                stroke={colors.neutral[400]}
+                stroke={theme.color.border.strong}
                 strokeWidth="2"
               />
             );
@@ -193,7 +196,7 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
                 y1={midY}
                 x2={childCenterX}
                 y2={midY}
-                stroke={colors.neutral[400]}
+                stroke={theme.color.border.strong}
                 strokeWidth="2"
               />
             );
@@ -206,7 +209,7 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
                 y1={midY}
                 x2={childCenterX}
                 y2={childTopY}
-                stroke={colors.neutral[400]}
+                stroke={theme.color.border.strong}
                 strokeWidth="2"
               />
             );
@@ -232,7 +235,13 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
 
     // Determine card color based on level
     const getCardColor = (level: number) => {
-      const levelColors = [colors.primary[500], colors.success[500], '#8B5CF6', colors.warning[500], colors.danger[500]];
+      const levelColors = [
+        theme.color.icon.accent,
+        theme.color.icon.success,
+        '#8B5CF6',
+        theme.color.icon.warning,
+        theme.color.icon.danger,
+      ];
       return levelColors[(level - 1) % levelColors.length];
     };
 
@@ -394,115 +403,116 @@ export const OrganizationInteractiveTree: React.FC<OrganizationInteractiveTreePr
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  nodeCard: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: borderRadius.full,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-    overflow: 'visible',
-  },
-  nodeCardInactive: {
-    opacity: 0.5,
-  },
-  nodeContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-  },
-  avatarContainer: {
-    marginRight: spacing[3],
-  },
-  avatar: {
-    width: 45,
-    height: 45,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2.5,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  avatarText: {
-    fontSize: 20,
-  },
-  textContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  nodeName: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-    marginBottom: spacing[0.5],
-    lineHeight: 15,
-  },
-  nodeCode: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.85)',
-  },
-  collapseButtonInline: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: spacing[2],
-  },
-  collapseIconInline: {
-    fontSize: 10,
-    color: colors.neutral[0],
-    fontWeight: 'bold',
-  },
-  inactiveBadgeOverlay: {
-    position: 'absolute',
-    top: 5,
-    right: 10,
-    backgroundColor: colors.danger[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.xl,
-  },
-  inactiveBadgeText: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: colors.danger[600],
-  },
-  floatingActions: {
-    position: 'absolute',
-    top: -12,
-    right: -12,
-    flexDirection: 'row',
-    gap: spacing[1],
-    opacity: 0.9,
-  },
-  floatingActionBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[0],
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  floatingActionIcon: {
-    fontSize: 12,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    nodeCard: {
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+      borderRadius: theme.radii.full,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 5,
+      overflow: 'visible',
+    },
+    nodeCardInactive: {
+      opacity: 0.5,
+    },
+    nodeContent: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+    },
+    avatarContainer: {
+      marginRight: theme.space[3],
+    },
+    avatar: {
+      width: 45,
+      height: 45,
+      borderRadius: theme.radii.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2.5,
+      borderColor: 'rgba(255, 255, 255, 0.5)',
+    },
+    avatarText: {
+      fontSize: 20,
+    },
+    textContent: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    nodeName: {
+      fontSize: 13,
+      fontWeight: 'bold',
+      color: theme.color.text.onAction,
+      marginBottom: theme.space[0.5],
+      lineHeight: 15,
+    },
+    nodeCode: {
+      fontSize: 10,
+      color: 'rgba(255, 255, 255, 0.85)',
+    },
+    collapseButtonInline: {
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.full,
+      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: theme.space[2],
+    },
+    collapseIconInline: {
+      fontSize: 10,
+      color: theme.color.text.onAction,
+      fontWeight: 'bold',
+    },
+    inactiveBadgeOverlay: {
+      position: 'absolute',
+      top: 5,
+      right: 10,
+      backgroundColor: theme.color.state.danger.background,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[0.5],
+      borderRadius: theme.radii.xl,
+    },
+    inactiveBadgeText: {
+      fontSize: 9,
+      fontWeight: 'bold',
+      color: theme.color.state.danger.text,
+    },
+    floatingActions: {
+      position: 'absolute',
+      top: -12,
+      right: -12,
+      flexDirection: 'row',
+      gap: theme.space[1],
+      opacity: 0.9,
+    },
+    floatingActionBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.base,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    floatingActionIcon: {
+      fontSize: 12,
+    },
+  });
 
 export default OrganizationInteractiveTree;

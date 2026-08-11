@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
@@ -25,10 +24,15 @@ import { DebtTransactionFormModal } from '@/components/Suppliers';
 import { DebtTransactionCard } from '@/components/Suppliers';
 import { DebtSummaryCard } from '@/components/Suppliers';
 import { AssignCompanyModal } from '@/components/Suppliers';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 type TabType = 'all' | 'unassigned' | 'summary';
 
 export const SupplierDebtsScreen = ({ navigation, route }: any) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const initialSupplierId = route?.params?.supplierId;
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -226,7 +230,7 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
     if (txns.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <Ionicons name="document-text-outline" size={64} color="#bdc3c7" />
+          <Ionicons name="document-text-outline" size={64} color={theme.color.icon.disabled} />
           <Text style={styles.emptyText}>No hay transacciones</Text>
         </View>
       );
@@ -257,7 +261,7 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3498db" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>
             {selectedSupplierId ? 'Cargando deudas...' : 'Cargando proveedores...'}
           </Text>
@@ -273,7 +277,7 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#2c3e50" />
+            <Ionicons name="arrow-back" size={24} color={theme.color.text.body} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>Deudas de Proveedores</Text>
@@ -283,17 +287,17 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#7f8c8d" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={theme.color.text.muted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar por nombre o RUC..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholderTextColor="#95a5a6"
+            placeholderTextColor={theme.color.text.placeholder}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#95a5a6" />
+              <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
             </TouchableOpacity>
           )}
         </View>
@@ -308,19 +312,19 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
               onPress={() => setSelectedSupplierId(item.id)}
             >
               <View style={styles.supplierIconContainer}>
-                <Ionicons name="business" size={24} color="#3498db" />
+                <Ionicons name="business" size={24} color={theme.color.brand.accent} />
               </View>
               <View style={styles.supplierInfo}>
                 <Text style={styles.supplierName}>{item.commercialName}</Text>
                 {item.ruc && <Text style={styles.supplierRuc}>RUC: {item.ruc}</Text>}
               </View>
-              <Ionicons name="chevron-forward" size={24} color="#bdc3c7" />
+              <Ionicons name="chevron-forward" size={24} color={theme.color.icon.disabled} />
             </TouchableOpacity>
           )}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="business-outline" size={64} color="#bdc3c7" />
+              <Ionicons name="business-outline" size={64} color={theme.color.icon.disabled} />
               <Text style={styles.emptyText}>
                 {searchQuery ? 'No se encontraron proveedores' : 'No hay proveedores registrados'}
               </Text>
@@ -339,14 +343,14 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
           onPress={() => setSelectedSupplierId(null)}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color="#2c3e50" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.text.body} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Deudas - {supplier?.commercialName}</Text>
           <Text style={styles.headerSubtitle}>Gestión de transacciones</Text>
         </View>
         <TouchableOpacity onPress={handleCreateTransaction} style={styles.addButton}>
-          <Ionicons name="add-circle" size={32} color="#3498db" />
+          <Ionicons name="add-circle" size={32} color={theme.color.brand.accent} />
         </TouchableOpacity>
       </View>
 
@@ -422,10 +426,10 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6fa',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -433,61 +437,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: theme.space[4],
     fontSize: 16,
-    color: '#7f8c8d',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
-    padding: 8,
+    padding: theme.space[2],
   },
   headerTitleContainer: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: theme.space[3],
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   addButton: {
-    padding: 8,
+    padding: theme.space[2],
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
+    borderBottomColor: theme.color.border.subtle,
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: theme.space[4],
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: '#3498db',
+    borderBottomColor: theme.color.brand.accent,
   },
   tabText: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   activeTabText: {
-    color: '#3498db',
+    color: theme.color.brand.accent,
     fontWeight: 'bold',
   },
   content: {
@@ -500,57 +504,53 @@ const styles = StyleSheet.create({
     paddingVertical: 64,
   },
   emptyText: {
-    marginTop: 16,
+    marginTop: theme.space[4],
     fontSize: 16,
-    color: '#95a5a6',
+    color: theme.color.text.subtle,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: '#ecf0f1',
+    borderColor: theme.color.border.subtle,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: theme.space[2],
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: theme.space[3],
     fontSize: 15,
-    color: '#2c3e50',
+    color: theme.color.text.body,
   },
   clearButton: {
-    padding: 4,
+    padding: theme.space[1],
   },
   supplierCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginBottom: theme.space[3],
+    padding: theme.space[4],
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: '#ecf0f1',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   supplierIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#ebf5fb',
+    backgroundColor: theme.color.brand.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: theme.space[3],
   },
   supplierInfo: {
     flex: 1,
@@ -558,12 +558,12 @@ const styles = StyleSheet.create({
   supplierName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   supplierRuc: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: theme.color.text.muted,
   },
 });
 

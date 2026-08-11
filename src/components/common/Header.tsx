@@ -4,14 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Design System
 import {
-  colors,
-  spacing,
-  shadows,
-} from '@/design-system/tokens';
-import {
   Title,
   Caption,
 } from '@/design-system/components';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface HeaderProps {
   title: string;
@@ -32,9 +29,14 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle,
   transparent = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.surface.primary} />
+      <StatusBar
+        barStyle={theme.scheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.color.surface.base}
+      />
       <SafeAreaView style={[styles.safeArea, transparent && styles.transparent]}>
         <View style={styles.container}>
           <View style={styles.leftContainer}>
@@ -71,10 +73,10 @@ export const Header: React.FC<HeaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.surface.primary,
-    ...shadows.xs,
+    backgroundColor: theme.color.surface.base,
+    ...theme.shadow.xs,
   },
   transparent: {
     backgroundColor: 'transparent',
@@ -85,8 +87,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     minHeight: 56,
   },
   leftContainer: {
@@ -97,14 +99,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: theme.space[2],
   },
   rightContainer: {
     width: 40,
     alignItems: 'flex-end',
   },
   iconButton: {
-    padding: spacing[1],
+    padding: theme.space[1],
     alignItems: 'center',
     justifyContent: 'center',
   },

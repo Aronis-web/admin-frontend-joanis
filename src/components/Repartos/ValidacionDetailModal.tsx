@@ -2,6 +2,8 @@
  * ValidacionDetailModal - Modal de detalles de validación
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -11,7 +13,6 @@ import {
   Image,
   useWindowDimensions,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
 } from 'react-native';
 import { ValidacionSalida } from '@/types/repartos';
@@ -19,16 +20,13 @@ import { repartosService, productsApi } from '@/services/api';
 import { Product } from '@/services/api/products';
 import logger from '@/utils/logger';
 import { ImageViewerModal } from '@/components/Expenses/ImageViewerModal';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
-  Card,
   Button,
   IconButton,
 } from '@/design-system';
@@ -46,6 +44,8 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
   validacion: validacionProp,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
   const [validacion, setValidacion] = useState<ValidacionSalida | null>(validacionProp || null);
@@ -192,8 +192,8 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
           {/* Loading State */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.accent[500]} />
-              <Body color="secondary" style={{ marginTop: spacing[3] }}>
+              <ActivityIndicator size="large" color={theme.color.brand.accent} />
+              <Body color="secondary" style={{ marginTop: theme.space[3] }}>
                 Cargando validación...
               </Body>
             </View>
@@ -203,7 +203,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
               <ScrollView style={styles.modalBody}>
                 {/* Validation Info */}
                 <View style={styles.section}>
-                  <Label style={{ marginBottom: spacing[3] }}>
+                  <Label style={{ marginBottom: theme.space[3] }}>
                     Información de Validación
                   </Label>
 
@@ -215,7 +215,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                         <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                           Cantidad en Presentación:
                         </Caption>
-                        <Body style={{ flex: 1, color: colors.success[600] }}>
+                        <Body style={{ flex: 1, color: theme.color.text.success }}>
                           {validacion.validatedPresentationQuantity}{' '}
                           {validacion.presentationInfo?.largestPresentation?.name || 'presentaciones'}
                         </Body>
@@ -263,7 +263,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                       <Caption style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
                         Cantidad Validada:
                       </Caption>
-                      <Body style={{ flex: 1, color: colors.success[600] }}>
+                      <Body style={{ flex: 1, color: theme.color.text.success }}>
                         {validacion.validatedQuantity || validacion.validatedQuantityBase} unidades
                       </Body>
                     </View>
@@ -305,7 +305,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                 {/* Product Photo */}
                 {productPhotos.length > 0 && (
                   <View style={styles.section}>
-                    <Label style={{ marginBottom: spacing[3] }}>
+                    <Label style={{ marginBottom: theme.space[3] }}>
                       Foto del Producto
                     </Label>
                     <TouchableOpacity
@@ -331,7 +331,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                 {/* Photo */}
                 {validacion.photoUrl && (
                   <View style={styles.section}>
-                    <Label style={{ marginBottom: spacing[3] }}>
+                    <Label style={{ marginBottom: theme.space[3] }}>
                       Foto de Validación
                     </Label>
                     <TouchableOpacity
@@ -357,7 +357,7 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
                 {/* Signature */}
                 {validacion.signatureUrl && (
                   <View style={styles.section}>
-                    <Label style={{ marginBottom: spacing[3] }}>
+                    <Label style={{ marginBottom: theme.space[3] }}>
                       Firma de Validación
                     </Label>
                     <TouchableOpacity
@@ -408,82 +408,83 @@ export const ValidacionDetailModal: React.FC<ValidacionDetailModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[10],
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  modalContent: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    width: '90%',
-    maxHeight: '85%',
-    ...shadows.lg,
-  },
-  modalContentTablet: {
-    width: '70%',
-    maxWidth: 800,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  modalBody: {
-    padding: spacing[5],
-  },
-  section: {
-    marginBottom: spacing[6],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing[2.5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.secondary,
-  },
-  infoLabel: {
-    width: 150,
-  },
-  infoLabelTablet: {
-    width: 180,
-  },
-  imageContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  image: {
-    width: '100%',
-    height: 300,
-    borderRadius: borderRadius.lg,
-  },
-  signatureImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: borderRadius.lg,
-  },
-  modalFooter: {
-    padding: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[10],
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '90%',
+      maxHeight: '85%',
+      ...theme.shadow.lg,
+    },
+    modalContentTablet: {
+      width: '70%',
+      maxWidth: 800,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalBody: {
+      padding: theme.space[5],
+    },
+    section: {
+      marginBottom: theme.space[6],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      paddingVertical: theme.space[2.5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.background.subtle,
+    },
+    infoLabel: {
+      width: 150,
+    },
+    infoLabelTablet: {
+      width: 180,
+    },
+    imageContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    image: {
+      width: '100%',
+      height: 300,
+      borderRadius: theme.radii.lg,
+    },
+    signatureImage: {
+      width: '100%',
+      height: 200,
+      borderRadius: theme.radii.lg,
+    },
+    modalFooter: {
+      padding: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+  });

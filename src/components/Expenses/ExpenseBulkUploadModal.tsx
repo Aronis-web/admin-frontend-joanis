@@ -6,15 +6,15 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
-
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getDocumentAsync, DocumentPickerAsset } from '@/utils/filePicker';
 import { expensesService } from '@/services/api/expenses';
 import { useAuthStore } from '@/store/auth';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { saveAndShareExcel } from '@/utils/fileDownload';
+import Alert from '@/utils/alert';
 
 interface ExpenseBulkUploadModalProps {
   visible: boolean;
@@ -27,6 +27,8 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentCompany } = useAuthStore();
   const [downloading, setDownloading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -162,7 +164,7 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.title}>Carga Masiva de Gastos</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.neutral[500]} />
+              <Ionicons name="close" size={24} color={theme.color.icon.subtle} />
             </TouchableOpacity>
           </View>
 
@@ -185,10 +187,10 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
                 disabled={downloading}
               >
                 {downloading ? (
-                  <ActivityIndicator size="small" color={colors.neutral[0]} />
+                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
                 ) : (
                   <>
-                    <Ionicons name="download-outline" size={20} color={colors.neutral[0]} />
+                    <Ionicons name="download-outline" size={20} color={theme.color.text.inverse} />
                     <Text style={styles.downloadButtonText}>Descargar Formato</Text>
                   </>
                 )}
@@ -226,7 +228,7 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
                 onPress={handleSelectFile}
                 disabled={uploading}
               >
-                <Ionicons name="document-outline" size={20} color={colors.accent[500]} />
+                <Ionicons name="document-outline" size={20} color={theme.color.brand.accent} />
                 <Text style={styles.selectFileButtonText}>
                   {selectedFile ? selectedFile.name : 'Seleccionar Archivo'}
                 </Text>
@@ -240,10 +242,10 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
                   disabled={uploading}
                 >
                   {uploading ? (
-                    <ActivityIndicator size="small" color={colors.neutral[0]} />
+                    <ActivityIndicator size="small" color={theme.color.text.inverse} />
                   ) : (
                     <>
-                      <Ionicons name="cloud-upload-outline" size={20} color={colors.neutral[0]} />
+                      <Ionicons name="cloud-upload-outline" size={20} color={theme.color.text.inverse} />
                       <Text style={styles.uploadButtonText}>Subir Archivo</Text>
                     </>
                   )}
@@ -264,145 +266,146 @@ export const ExpenseBulkUploadModal: React.FC<ExpenseBulkUploadModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    width: '100%',
-    maxWidth: 500,
-    maxHeight: '90%',
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    padding: spacing[1],
-  },
-  content: {
-    padding: spacing[5],
-    gap: spacing[6],
-  },
-  step: {
-    gap: spacing[3],
-  },
-  stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.accent[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepNumberText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  stepDescription: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginLeft: 44,
-  },
-  downloadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-    backgroundColor: colors.success[500],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[5],
-    borderRadius: borderRadius.lg,
-    marginLeft: 44,
-    marginTop: spacing[2],
-  },
-  downloadButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  selectFileButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: colors.neutral[100],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    marginLeft: 44,
-    marginTop: spacing[2],
-  },
-  selectFileButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.neutral[600],
-    flex: 1,
-  },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[5],
-    borderRadius: borderRadius.lg,
-    marginLeft: 44,
-    marginTop: spacing[2],
-  },
-  uploadButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  footer: {
-    padding: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  cancelButton: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      width: '100%',
+      maxWidth: 500,
+      maxHeight: '90%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      padding: theme.space[1],
+    },
+    content: {
+      padding: theme.space[5],
+      gap: theme.space[6],
+    },
+    step: {
+      gap: theme.space[3],
+    },
+    stepHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    stepNumber: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    stepNumberText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    stepTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    stepDescription: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginLeft: 44,
+    },
+    downloadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+      backgroundColor: theme.color.action.success.background,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[5],
+      borderRadius: theme.radii.lg,
+      marginLeft: 44,
+      marginTop: theme.space[2],
+    },
+    downloadButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    selectFileButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      marginLeft: 44,
+      marginTop: theme.space[2],
+    },
+    selectFileButtonText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+      flex: 1,
+    },
+    uploadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[5],
+      borderRadius: theme.radii.lg,
+      marginLeft: 44,
+      marginTop: theme.space[2],
+    },
+    uploadButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    footer: {
+      padding: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    cancelButton: {
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[5],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+  });

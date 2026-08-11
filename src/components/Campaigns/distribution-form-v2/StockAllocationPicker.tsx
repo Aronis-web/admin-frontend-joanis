@@ -6,7 +6,8 @@
  */
 import React from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { StockBucket } from './types';
 
 interface StockAllocationPickerProps {
@@ -26,6 +27,7 @@ export const StockAllocationPicker: React.FC<StockAllocationPickerProps> = ({
   total,
   siteName,
 }) => {
+  const styles = useThemedStyles(createStyles);
   if (buckets.length === 0) {
     return (
       <View style={styles.container}>
@@ -109,129 +111,130 @@ export const StockAllocationPicker: React.FC<StockAllocationPickerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    gap: spacing[2],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-  },
-  card: {
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    padding: spacing[2],
-    backgroundColor: colors.surface.secondary,
-  },
-  cardSelected: {
-    borderColor: colors.primary[900],
-    backgroundColor: colors.surface.primary,
-  },
-  cardDisabled: {
-    opacity: 0.5,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  checkbox: {
-    fontSize: 18,
-    color: colors.primary[900],
-  },
-  cardHeaderText: {
-    flex: 1,
-  },
-  warehouse: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  area: {
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  availability: {
-    alignItems: 'flex-end',
-  },
-  availableLabel: {
-    fontSize: 11,
-    color: colors.text.tertiary,
-  },
-  availableValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.success[700],
-  },
-  allocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    marginTop: spacing[2],
-  },
-  allocLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  allocInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing[2],
-    paddingVertical: 6,
-    color: colors.text.primary,
-    backgroundColor: colors.surface.primary,
-  },
-  allocMax: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-  },
-  totalBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  totalLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.primary[900],
-  },
-  warningBox: {
-    backgroundColor: colors.warning[50],
-    borderColor: colors.warning[400],
-    borderWidth: 1,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    gap: 4,
-  },
-  warningTitle: {
-    fontWeight: '700',
-    color: colors.warning[800],
-  },
-  warningText: {
-    color: colors.warning[800],
-    fontSize: 12,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      gap: theme.space[2],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    card: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2],
+      backgroundColor: theme.color.surface.subtle,
+    },
+    cardSelected: {
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.surface.base,
+    },
+    cardDisabled: {
+      opacity: 0.5,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    checkbox: {
+      fontSize: 18,
+      color: theme.color.brand.primary,
+    },
+    cardHeaderText: {
+      flex: 1,
+    },
+    warehouse: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    area: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    availability: {
+      alignItems: 'flex-end',
+    },
+    availableLabel: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+    },
+    availableValue: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.success,
+    },
+    allocationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      marginTop: theme.space[2],
+    },
+    allocLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    allocInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.sm,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: 6,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    allocMax: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    totalBox: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    totalLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    totalValue: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    warningBox: {
+      backgroundColor: theme.color.state.warning.background,
+      borderColor: theme.color.state.warning.border,
+      borderWidth: 1,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      gap: 4,
+    },
+    warningTitle: {
+      fontWeight: '700',
+      color: theme.color.state.warning.text,
+    },
+    warningText: {
+      color: theme.color.state.warning.text,
+      fontSize: 12,
+    },
+  });

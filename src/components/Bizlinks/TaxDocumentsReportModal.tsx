@@ -18,7 +18,8 @@ import * as Sharing from 'expo-sharing';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { config } from '@/utils/config';
 import { apiClient } from '@/services/api/client';
 import logger from '@/utils/logger';
@@ -64,6 +65,8 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
   visible,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const authStore = useAuthStore();
   const tenantStore = useTenantStore();
 
@@ -286,7 +289,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                 style={styles.headerButton}
                 disabled={downloading}
               >
-                <Ionicons name="close" size={24} color={colors.neutral[500]} />
+                <Ionicons name="close" size={24} color={theme.color.text.muted} />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>Reporte de Documentos Tributarios</Text>
               <View style={styles.headerButton} />
@@ -295,7 +298,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
               <View style={styles.heroCard}>
                 <View style={styles.heroIcon}>
-                  <Ionicons name="document-text-outline" size={28} color={colors.accent[600]} />
+                  <Ionicons name="document-text-outline" size={28} color={theme.color.brand.accent} />
                 </View>
                 <View style={styles.heroTextContainer}>
                   <Text style={styles.heroTitle}>Reporte tributario en Excel</Text>
@@ -314,32 +317,32 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                   disabled={downloading}
                 >
                   <View style={styles.dateRangeLeft}>
-                    <Ionicons name="calendar-outline" size={22} color={colors.primary[600]} />
+                    <Ionicons name="calendar-outline" size={22} color={theme.color.brand.primary} />
                     <View>
                       <Text style={styles.dateRangeLabel}>Periodo del reporte</Text>
                       <Text style={styles.dateRangeValue}>{selectedRangeLabel}</Text>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="chevron-forward" size={20} color={theme.color.text.placeholder} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Comprobante específico (opcional)</Text>
                 <View style={styles.inputContainer}>
-                  <Ionicons name="receipt-outline" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="receipt-outline" size={20} color={theme.color.text.placeholder} />
                   <TextInput
                     style={styles.input}
                     value={correlative}
                     onChangeText={setCorrelative}
                     placeholder="Ej: F001-00000001"
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={theme.color.text.placeholder}
                     autoCapitalize="characters"
                     editable={!downloading}
                   />
                   {correlative.length > 0 && (
                     <TouchableOpacity onPress={() => setCorrelative('')} disabled={downloading}>
-                      <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                      <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -353,7 +356,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                   disabled={downloading}
                 >
                   <View style={styles.collapsibleHeaderLeft}>
-                    <Ionicons name="layers-outline" size={20} color={colors.primary[600]} />
+                    <Ionicons name="layers-outline" size={20} color={theme.color.brand.primary} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.sectionTitle}>Filtrar por series (opcional)</Text>
                       <Text style={styles.collapsibleSubtitle}>
@@ -366,7 +369,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                   <Ionicons
                     name={seriesExpanded ? 'chevron-up' : 'chevron-down'}
                     size={20}
-                    color={colors.neutral[400]}
+                    color={theme.color.text.placeholder}
                   />
                 </TouchableOpacity>
 
@@ -374,7 +377,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                   <View style={styles.seriesPanel}>
                     {loadingSeries ? (
                       <View style={styles.seriesLoading}>
-                        <ActivityIndicator size="small" color={colors.primary[600]} />
+                        <ActivityIndicator size="small" color={theme.color.brand.primary} />
                         <Text style={styles.seriesLoadingText}>Cargando series...</Text>
                       </View>
                     ) : seriesError ? (
@@ -422,7 +425,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                                       <Ionicons
                                         name="checkmark"
                                         size={14}
-                                        color={colors.neutral[0]}
+                                        color={theme.color.text.inverse}
                                       />
                                     )}
                                   </View>
@@ -442,7 +445,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
               </View>
 
               <View style={styles.infoBox}>
-                <Ionicons name="information-circle-outline" size={20} color={colors.info[600]} />
+                <Ionicons name="information-circle-outline" size={20} color={theme.color.state.info.text} />
                 <Text style={styles.infoText}>
                   Si tu sesión tiene sede seleccionada, el reporte se restringirá a esa sede
                   automáticamente.
@@ -464,9 +467,9 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                 disabled={downloading}
               >
                 {downloading ? (
-                  <ActivityIndicator size="small" color={colors.neutral[0]} />
+                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
                 ) : (
-                  <Ionicons name="download-outline" size={20} color={colors.neutral[0]} />
+                  <Ionicons name="download-outline" size={20} color={theme.color.text.inverse} />
                 )}
                 <Text style={styles.downloadButtonText}>
                   {downloading ? 'Descargando...' : 'Descargar Excel'}
@@ -493,305 +496,306 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  container: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '88%',
-    minHeight: 420,
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.neutral[900],
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-    gap: spacing[4],
-  },
-  heroCard: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.accent[50],
-    borderWidth: 1,
-    borderColor: colors.accent[100],
-  },
-  heroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[0],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroTextContainer: {
-    flex: 1,
-  },
-  heroTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
-  },
-  heroSubtitle: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.neutral[600],
-  },
-  section: {
-    gap: spacing[2],
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  dateRangeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.neutral[50],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  dateRangeLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    flex: 1,
-  },
-  dateRangeLabel: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[0.5],
-  },
-  dateRangeValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.neutral[900],
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.neutral[50],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  input: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    fontSize: 15,
-    color: colors.neutral[900],
-    fontWeight: '600',
-  },
-  collapsibleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing[3],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.neutral[50],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  collapsibleHeaderLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  collapsibleSubtitle: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
-  },
-  seriesPanel: {
-    marginTop: spacing[2],
-    padding: spacing[3],
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.neutral[0],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    gap: spacing[2],
-  },
-  seriesLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[3],
-    justifyContent: 'center',
-  },
-  seriesLoadingText: {
-    fontSize: 13,
-    color: colors.neutral[600],
-  },
-  seriesEmpty: {
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    gap: spacing[2],
-  },
-  seriesEmptyText: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  retryButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[50],
-  },
-  retryButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary[700],
-  },
-  seriesActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    paddingBottom: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  seriesActionText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary[600],
-  },
-  seriesActionSeparator: {
-    fontSize: 12,
-    color: colors.neutral[300],
-  },
-  seriesGroup: {
-    gap: spacing[1],
-  },
-  seriesGroupTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.neutral[600],
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginTop: spacing[1],
-  },
-  seriesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[2],
-    borderRadius: borderRadius.md,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: borderRadius.sm,
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.neutral[0],
-  },
-  checkboxSelected: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
-  },
-  seriesRowLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[900],
-  },
-  seriesRowCount: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  infoBox: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.info[50],
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 18,
-    color: colors.info[700],
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    padding: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    backgroundColor: colors.surface.primary,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.neutral[700],
-  },
-  downloadButton: {
-    flex: 1.4,
-    flexDirection: 'row',
-    gap: spacing[2],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.accent[600],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  downloadButtonDisabled: {
-    opacity: 0.7,
-  },
-  downloadButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.strong,
+      justifyContent: 'flex-end',
+    },
+    container: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '88%',
+      minHeight: 420,
+      overflow: 'hidden',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerButton: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerTitle: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: theme.space[4],
+      gap: theme.space[4],
+    },
+    heroCard: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      padding: theme.space[4],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    heroIcon: {
+      width: 52,
+      height: 52,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    heroTextContainer: {
+      flex: 1,
+    },
+    heroTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    heroSubtitle: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: theme.color.text.body,
+    },
+    section: {
+      gap: theme.space[2],
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    dateRangeButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: theme.space[4],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    dateRangeLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+      flex: 1,
+    },
+    dateRangeLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: 2,
+    },
+    dateRangeValue: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    input: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      fontSize: 15,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+    },
+    collapsibleHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: theme.space[3],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    collapsibleHeaderLeft: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    collapsibleSubtitle: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    seriesPanel: {
+      marginTop: theme.space[2],
+      padding: theme.space[3],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      gap: theme.space[2],
+    },
+    seriesLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      paddingVertical: theme.space[3],
+      justifyContent: 'center',
+    },
+    seriesLoadingText: {
+      fontSize: 13,
+      color: theme.color.text.body,
+    },
+    seriesEmpty: {
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      gap: theme.space[2],
+    },
+    seriesEmptyText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    retryButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.state.info.background,
+    },
+    retryButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+    },
+    seriesActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      paddingBottom: theme.space[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    seriesActionText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.brand.primary,
+    },
+    seriesActionSeparator: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+    },
+    seriesGroup: {
+      gap: theme.space[1],
+    },
+    seriesGroupTitle: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.body,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+      marginTop: theme.space[1],
+    },
+    seriesRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[2],
+      borderRadius: theme.radii.md,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: theme.radii.sm,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.base,
+    },
+    checkboxSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    seriesRowLabel: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    seriesRowCount: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    infoBox: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.state.info.background,
+    },
+    infoText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 18,
+      color: theme.color.state.info.text,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      padding: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.body,
+    },
+    downloadButton: {
+      flex: 1.4,
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    downloadButtonDisabled: {
+      opacity: 0.7,
+    },
+    downloadButtonText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+  });
 
 export default TaxDocumentsReportModal;

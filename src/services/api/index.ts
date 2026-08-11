@@ -26,7 +26,38 @@ export * from './repartos';
 export * from './transport';
 export * from './users';
 export { salesApi } from './sales';
+export { externalSalesApi } from './external-sales';
+export { izipayReportSyncApi } from './izipay-report-sync';
+export type {
+  IzipayRun,
+  IzipayRunStatus,
+  IzipaySyncBody,
+  IzipaySyncResponse,
+  IzipayActiveResponse,
+  IzipayActiveRunConflict,
+  IzipayRunsList,
+} from './izipay-report-sync';
+export type {
+  ExternalSalesInvoiceType,
+  ExternalSalesRunStatus,
+  ExternalSalesPerSiteResult,
+  ExternalSalesRun,
+  ExternalSalesSource,
+  ExternalSalesSyncBody,
+  ExternalSalesSyncResponse,
+  ExternalSalesActiveResponse,
+  ExternalSalesRunsList,
+  UpsertExternalSalesSourceDto,
+} from './external-sales';
 export { posSessionsApi } from './pos-sessions';
+export { reportsApi } from './reports';
+export type {
+  SalesProfitReport,
+  SalesProfitRow,
+  SalesProfitTotals,
+  SalesProfitGroupBy,
+  GetSalesProfitParams,
+} from './reports';
 export { photoCampaignsApi } from './photo-campaigns';
 export type {
   PhotoCampaign,
@@ -60,7 +91,7 @@ export type {
   AssignUserRoleDto,
   UpdateUserRoleDto,
   ScopesResponse,
-  PermissionsResponse as AppsPermissionsResponse
+  PermissionsResponse as AppsPermissionsResponse,
 } from './apps';
 
 // Export scopes API (avoid conflicts with apps)
@@ -71,7 +102,12 @@ export * from './price-profiles';
 
 // Export presentations API (avoid Presentation conflict with products)
 export { presentationsApi } from './presentations';
-export type { PresentationsResponse, CreatePresentationDto, UpdatePresentationDto, GetPresentationsParams } from './presentations';
+export type {
+  PresentationsResponse,
+  CreatePresentationDto,
+  UpdatePresentationDto,
+  GetPresentationsParams,
+} from './presentations';
 
 export * from './billing';
 export * from './bizlinks';
@@ -97,10 +133,7 @@ export type {
 } from './locations';
 
 export { geminiImageEditorApi } from './gemini-image-editor';
-export type {
-  GeminiEditImageRequest,
-  GeminiEditImageResponse,
-} from './gemini-image-editor';
+export type { GeminiEditImageRequest, GeminiEditImageResponse } from './gemini-image-editor';
 
 export { accountsPayableService } from './accounts-payable';
 export type {
@@ -119,6 +152,50 @@ export type {
   CreateAccountReceivableRequest,
   UpdateAccountReceivableRequest,
 } from '@/types/accounts-receivable';
+
+export { attendanceTerminalsApi } from './attendance';
+export type {
+  AttendanceTerminal,
+  TerminalStatus,
+  QueryTerminalsParams,
+  CreateTerminalRequest,
+  UpdateTerminalRequest,
+  GenerateTerminalTokenRequest,
+  GenerateTerminalTokenResult,
+  TerminalTokenInfo,
+  TerminalAccessLog,
+} from '@/types/attendance';
+
+export { webmailApi, webmailAdminApi } from './webmail';
+export type {
+  MailboxStatus,
+  MessageListItem,
+  MessageDetail,
+  MessageAttachment,
+  ListMessagesParams,
+  ListMessagesResponse,
+  SendMailDto,
+  SendMailResponse,
+  SendAttachment,
+  AdminMailboxStatus,
+  ProvisionMailboxResponse,
+  BulkProvisionResult,
+  ArchiveItem,
+  ArchiveDirection,
+  ArchiveSource,
+  ArchiveListResponse,
+  ArchiveQueryParams,
+  MailFolder,
+  FolderSpecialUse,
+  MailboxQuota,
+  SearchParams,
+  SearchResponse,
+  ThreadMessage,
+  ThreadResponse,
+  UpdateFlagsDto,
+  MoveMessageDto,
+  MoveResult,
+} from '@/types/webmail';
 
 export { siteContactsApi } from './site-contacts';
 export type {

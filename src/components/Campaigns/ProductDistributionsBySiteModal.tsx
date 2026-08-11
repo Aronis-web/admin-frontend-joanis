@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -9,17 +9,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
-import { repartosService } from '@/services/api/repartos';
-import { Reparto } from '@/types/repartos';
-import logger from '@/utils/logger';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import { useCampaignProductFull } from '@/hooks/api/useCampaigns';
+import type { CampaignProductFullParticipantDistribution } from '@/types/campaigns';
 
 type ParticipantKind = 'INTERNAL_SITE' | 'EXTERNAL_COMPANY' | 'UNKNOWN';
 
 interface ProductDistributionsBySiteModalProps {
   visible: boolean;
   campaignId: string;
-  /** Product UUID (NOT campaign-product id). Used to filter repartos.productos. */
+  /** Product UUID (NOT campaign-product id). Used by the `/full` endpoint. */
   productId: string;
   productTitle?: string;
   productSku?: string;
@@ -29,18 +29,15 @@ interface ProductDistributionsBySiteModalProps {
   onClose: () => void;
 }
 
-interface AggregatedRow {
-  key: string;
-  participantType: ParticipantKind;
-  name: string;
-  subtitle?: string;
-  quantityBase: number;
-  validatedBase: number;
-  repartosCount: number;
-}
-
 const formatNumber = (value: number): string =>
   Number.isFinite(value) ? Math.floor(value).toLocaleString('es-PE') : '—';
+
+const toKind = (type: string): ParticipantKind =>
+  type === 'INTERNAL_SITE'
+    ? 'INTERNAL_SITE'
+    : type === 'EXTERNAL_COMPANY'
+      ? 'EXTERNAL_COMPANY'
+      : 'UNKNOWN';
 
 export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySiteModalProps> = ({
   visible,
@@ -52,143 +49,48 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
   distributedQuantityBase,
   onClose,
 }) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [repartos, setRepartos] = useState<Reparto[]>([]);
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
-  useEffect(() => {
-    if (!visible || !campaignId || !productId) {
-      return;
-    }
-    let cancelled = false;
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        // El endpoint list (/repartos/campaign/:id) no incluye productos.
-        // Traemos la lista y luego en paralelo cada reparto con su include
-        // completo (mismo patrón que RepartoParticipantDetailScreen).
-        const list = await repartosService.getRepartosByCampaign(campaignId);
-        const ids = (Array.isArray(list) ? list : []).map((r) => r.id);
-        const full = await Promise.all(
-          ids.map((id) =>
-            repartosService.getReparto(id).catch((err) => {
-              logger.warn(`No se pudo cargar reparto ${id}`, err);
-              return null;
-            })
-          )
-        );
-        if (!cancelled) {
-          setRepartos(full.filter((r): r is Reparto => !!r));
-        }
-      } catch (err: any) {
-        logger.error('Error cargando repartos por sede:', err);
-        if (!cancelled) {
-          setError(
-            err?.response?.data?.message ||
-              err?.message ||
-              'No se pudieron cargar las cantidades por sede'
-          );
-          setRepartos([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, campaignId, productId]);
+  const {
+    data: fullData,
+    isLoading: loading,
+    isError,
+    error,
+  } = useCampaignProductFull(campaignId, productId, visible && !!campaignId && !!productId);
 
-  // Agrupar todas las cantidades del producto seleccionado por participante
-  // (sede / empresa) sumando lo de todos los repartos de la campaña.
-  const rows = useMemo<AggregatedRow[]>(() => {
-    const acc = new Map<string, AggregatedRow>();
-
-    repartos.forEach((reparto) => {
-      reparto.participantes?.forEach((participante) => {
-        const matchingProductos = (participante.productos || []).filter(
-          (p) => p.productId === productId
-        );
-        if (matchingProductos.length === 0) return;
-
-        const cp = participante.campaignParticipant;
-        const type: ParticipantKind =
-          cp?.participantType === 'INTERNAL_SITE'
-            ? 'INTERNAL_SITE'
-            : cp?.participantType === 'EXTERNAL_COMPANY'
-              ? 'EXTERNAL_COMPANY'
-              : 'UNKNOWN';
-
-        const key = cp?.siteId || cp?.companyId || cp?.id || participante.id || `pa-${reparto.id}`;
-
-        const name =
-          cp?.site?.name ||
-          cp?.company?.name ||
-          participante.user?.name ||
-          participante.user?.email ||
-          `Participante ${String(key).slice(0, 8)}`;
-
-        const subtitle =
-          type === 'INTERNAL_SITE'
-            ? cp?.site?.code
-              ? `Sede · ${cp.site.code}`
-              : 'Sede interna'
-            : type === 'EXTERNAL_COMPANY'
-              ? cp?.company?.ruc
-                ? `Empresa · RUC ${cp.company.ruc}`
-                : 'Empresa externa'
-              : 'Sin participante asignado';
-
-        const qty = matchingProductos.reduce(
-          (sum, p) => sum + (Number(p.quantityAssigned) || 0),
-          0
-        );
-        const validated = matchingProductos.reduce(
-          (sum, p) => sum + (Number(p.quantityValidated) || 0),
-          0
-        );
-
-        const existing = acc.get(key);
-        if (existing) {
-          existing.quantityBase += qty;
-          existing.validatedBase += validated;
-          existing.repartosCount += 1;
-        } else {
-          acc.set(key, {
-            key,
-            participantType: type,
-            name,
-            subtitle,
-            quantityBase: qty,
-            validatedBase: validated,
-            repartosCount: 1,
-          });
-        }
-      });
-    });
-
-    // Orden requerido: primero sedes internas, luego empresas externas,
-    // y dentro de cada grupo por cantidad descendente.
+  // Repartos agrupados por participante tal como los entrega el endpoint
+  // `/full`. Orden: primero sedes internas, luego empresas externas, y
+  // dentro de cada grupo por cantidad descendente.
+  const rows = useMemo<CampaignProductFullParticipantDistribution[]>(() => {
+    const items = fullData?.distributionByParticipant ?? [];
     const groupOrder: Record<ParticipantKind, number> = {
       INTERNAL_SITE: 0,
       EXTERNAL_COMPANY: 1,
       UNKNOWN: 2,
     };
-    return Array.from(acc.values()).sort((a, b) => {
-      const diff = groupOrder[a.participantType] - groupOrder[b.participantType];
+    return [...items].sort((a, b) => {
+      const diff = groupOrder[toKind(a.participantType)] - groupOrder[toKind(b.participantType)];
       if (diff !== 0) return diff;
-      return b.quantityBase - a.quantityBase;
+      return parseFloat(b.totalQuantityBase || '0') - parseFloat(a.totalQuantityBase || '0');
     });
-  }, [repartos, productId]);
+  }, [fullData]);
 
-  const totalDistributed = useMemo(() => rows.reduce((sum, r) => sum + r.quantityBase, 0), [rows]);
+  const totalDistributed = useMemo(
+    () => rows.reduce((sum, r) => sum + (parseFloat(r.totalQuantityBase || '0') || 0), 0),
+    [rows]
+  );
 
-  const sitesCount = rows.filter((r) => r.participantType === 'INTERNAL_SITE').length;
-  const companiesCount = rows.filter((r) => r.participantType === 'EXTERNAL_COMPANY').length;
+  const sitesCount = rows.filter((r) => toKind(r.participantType) === 'INTERNAL_SITE').length;
+  const companiesCount = rows.filter(
+    (r) => toKind(r.participantType) === 'EXTERNAL_COMPANY'
+  ).length;
+
+  const errorMessage = isError
+    ? (error as any)?.response?.data?.message ||
+      (error as any)?.message ||
+      'No se pudieron cargar los repartos'
+    : null;
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -251,13 +153,13 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
         {/* Body */}
         {loading ? (
           <View style={styles.centeredState}>
-            <ActivityIndicator size="large" color={colors.primary[500]} />
+            <ActivityIndicator size="large" color={theme.color.brand.primary} />
             <Text style={styles.centeredStateText}>Cargando repartos…</Text>
           </View>
-        ) : error ? (
+        ) : errorMessage ? (
           <View style={styles.centeredState}>
             <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         ) : rows.length === 0 ? (
           <View style={styles.centeredState}>
@@ -271,45 +173,72 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
             showsVerticalScrollIndicator
           >
             {rows.map((row) => {
-              const isInternal = row.participantType === 'INTERNAL_SITE';
-              const percent =
-                totalDistributed > 0 ? (row.quantityBase / totalDistributed) * 100 : 0;
-              const hasValidation = row.validatedBase > 0;
+              const kind = toKind(row.participantType);
+              const isInternal = kind === 'INTERNAL_SITE';
+              const qty = parseFloat(row.totalQuantityBase || '0') || 0;
+              const percent = totalDistributed > 0 ? (qty / totalDistributed) * 100 : 0;
               return (
                 <View
-                  key={row.key}
+                  key={row.campaignParticipantId}
                   style={[styles.row, isInternal ? styles.rowInternal : styles.rowExternal]}
                 >
-                  <View style={styles.rowIconWrap}>
-                    <Text style={styles.rowIcon}>{isInternal ? '🏠' : '🏢'}</Text>
-                  </View>
-                  <View style={styles.rowMain}>
-                    <Text style={styles.rowName} numberOfLines={1}>
-                      {row.name}
-                    </Text>
-                    {row.subtitle && (
-                      <Text style={styles.rowSubtitle} numberOfLines={1}>
-                        {row.subtitle}
-                        {row.repartosCount > 1 ? ` · ${row.repartosCount} repartos` : ''}
+                  <View style={styles.rowTop}>
+                    <View style={styles.rowIconWrap}>
+                      <Text style={styles.rowIcon}>{isInternal ? '🏠' : '🏢'}</Text>
+                    </View>
+                    <View style={styles.rowMain}>
+                      <Text style={styles.rowName} numberOfLines={1}>
+                        {row.participantName}
                       </Text>
-                    )}
-                    <View style={styles.progressTrack}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          isInternal ? styles.progressFillInternal : styles.progressFillExternal,
-                          { width: `${Math.min(percent, 100)}%` },
-                        ]}
-                      />
+                      <Text style={styles.rowSubtitle} numberOfLines={1}>
+                        {isInternal ? 'Sede interna' : 'Empresa externa'}
+                        {row.repartos.length > 0
+                          ? ` · ${row.repartos.length} reparto${row.repartos.length !== 1 ? 's' : ''}`
+                          : ''}
+                      </Text>
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            isInternal ? styles.progressFillInternal : styles.progressFillExternal,
+                            { width: `${Math.min(percent, 100)}%` },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                    <View style={styles.rowQtyWrap}>
+                      <Text style={styles.rowQty}>{formatNumber(qty)}</Text>
+                      <Text style={styles.rowPercent}>{percent.toFixed(1)}%</Text>
                     </View>
                   </View>
-                  <View style={styles.rowQtyWrap}>
-                    <Text style={styles.rowQty}>{formatNumber(row.quantityBase)}</Text>
-                    <Text style={styles.rowPercent}>{percent.toFixed(1)}%</Text>
-                    {hasValidation && (
-                      <Text style={styles.rowValidated}>✓ {formatNumber(row.validatedBase)}</Text>
-                    )}
-                  </View>
+
+                  {/* Repartos individuales del participante */}
+                  {row.repartos.length > 0 && (
+                    <View style={styles.repartoList}>
+                      {row.repartos.map((reparto) => (
+                        <View key={reparto.repartoId} style={styles.repartoItem}>
+                          <View style={styles.repartoInfo}>
+                            <Text style={styles.repartoCode} numberOfLines={1}>
+                              {reparto.repartoCode}
+                            </Text>
+                            {!!reparto.repartoName && (
+                              <Text style={styles.repartoName} numberOfLines={1}>
+                                {reparto.repartoName}
+                              </Text>
+                            )}
+                          </View>
+                          <View style={styles.repartoRight}>
+                            <Text style={styles.repartoQty}>
+                              {formatNumber(parseFloat(reparto.quantityBase || '0'))}
+                            </Text>
+                            <Text style={styles.repartoStatus} numberOfLines={1}>
+                              {reparto.status || reparto.repartoStatus}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               );
             })}
@@ -320,222 +249,267 @@ export const ProductDistributionsBySiteModal: React.FC<ProductDistributionsBySit
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-    backgroundColor: colors.surface.primary,
-  },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.background.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonSpacer: {
-    width: 36,
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[600],
-    fontWeight: '600',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: spacing[2],
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.neutral[800],
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginTop: 2,
-  },
-  summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    margin: spacing[4],
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  summaryBlock: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: colors.border.default,
-    marginHorizontal: spacing[2],
-  },
-  summaryLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.neutral[500],
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  summaryValueCampaign: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.warning[500],
-  },
-  summaryValueRepartido: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.success[500],
-  },
-  summaryValueDestinations: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.primary[500],
-    textAlign: 'center',
-  },
-  summaryValueBreakdown: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[6],
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    marginBottom: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    gap: spacing[3],
-  },
-  rowInternal: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary[500],
-  },
-  rowExternal: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.warning[500],
-  },
-  rowIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.background.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rowIcon: {
-    fontSize: 18,
-  },
-  rowMain: {
-    flex: 1,
-    minWidth: 0,
-  },
-  rowName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  rowSubtitle: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: colors.neutral[500],
-    marginTop: 1,
-  },
-  progressTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.neutral[100],
-    marginTop: spacing[2],
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 4,
-    borderRadius: 2,
-  },
-  progressFillInternal: {
-    backgroundColor: colors.primary[500],
-  },
-  progressFillExternal: {
-    backgroundColor: colors.warning[500],
-  },
-  rowQtyWrap: {
-    alignItems: 'flex-end',
-    minWidth: 72,
-  },
-  rowQty: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.neutral[800],
-  },
-  rowPercent: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginTop: 1,
-  },
-  rowValidated: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.success[500],
-    marginTop: 2,
-  },
-  centeredState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-  },
-  centeredStateText: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: spacing[3],
-    fontWeight: '600',
-  },
-  errorIcon: {
-    fontSize: 36,
-    marginBottom: spacing[2],
-  },
-  errorText: {
-    fontSize: 13,
-    color: colors.danger[500],
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing[2],
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    closeButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.color.background.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonSpacer: {
+      width: 36,
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    headerCenter: {
+      flex: 1,
+      alignItems: 'center',
+      paddingHorizontal: theme.space[2],
+    },
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginTop: 2,
+    },
+    summaryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      margin: theme.space[4],
+      padding: theme.space[4],
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    summaryBlock: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    summaryDivider: {
+      width: 1,
+      height: 40,
+      backgroundColor: theme.color.border.default,
+      marginHorizontal: theme.space[2],
+    },
+    summaryLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.subtle,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    summaryValueCampaign: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.color.text.warning,
+    },
+    summaryValueRepartido: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    summaryValueDestinations: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+      textAlign: 'center',
+    },
+    summaryValueBreakdown: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    list: {
+      flex: 1,
+    },
+    listContent: {
+      paddingHorizontal: theme.space[4],
+      paddingBottom: theme.space[6],
+    },
+    row: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      marginBottom: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    rowTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    rowInternal: {
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.brand.primary,
+    },
+    rowExternal: {
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    rowIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.color.background.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    rowIcon: {
+      fontSize: 18,
+    },
+    rowMain: {
+      flex: 1,
+      minWidth: 0,
+    },
+    rowName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    rowSubtitle: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: theme.color.text.subtle,
+      marginTop: 1,
+    },
+    progressTrack: {
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: theme.color.background.muted,
+      marginTop: theme.space[2],
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: 4,
+      borderRadius: 2,
+    },
+    progressFillInternal: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    progressFillExternal: {
+      backgroundColor: theme.color.icon.warning,
+    },
+    rowQtyWrap: {
+      alignItems: 'flex-end',
+      minWidth: 72,
+    },
+    rowQty: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    rowPercent: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginTop: 1,
+    },
+    repartoList: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+      gap: theme.space[2],
+    },
+    repartoItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.md,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+    },
+    repartoInfo: {
+      flex: 1,
+      minWidth: 0,
+      marginRight: theme.space[2],
+    },
+    repartoCode: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    repartoName: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: theme.color.text.subtle,
+      marginTop: 1,
+    },
+    repartoRight: {
+      alignItems: 'flex-end',
+    },
+    repartoQty: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    repartoStatus: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+      marginTop: 1,
+    },
+    centeredState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+    },
+    centeredStateText: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[3],
+      fontWeight: '600',
+    },
+    errorIcon: {
+      fontSize: 36,
+      marginBottom: theme.space[2],
+    },
+    errorText: {
+      fontSize: 13,
+      color: theme.color.text.danger,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+    emptyIcon: {
+      fontSize: 48,
+      marginBottom: theme.space[2],
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+      fontWeight: '600',
+    },
+  });

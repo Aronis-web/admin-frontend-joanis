@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   RefreshControl,
   ScrollView,
@@ -12,11 +11,16 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Alert from '@/utils/alert';
 
-import { activeOpacity, borderRadius, colors, shadows, spacing } from '@/design-system/tokens';
+import { activeOpacity } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { photoCampaignsApi } from '@/services/api';
 import { PhotoCampaign, PhotoCampaignStatus } from '@/types/photo-campaigns';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface PhotosScreenProps {
   navigation: any;
@@ -29,6 +33,8 @@ const statusLabel: Record<PhotoCampaignStatus, string> = {
 };
 
 export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -108,7 +114,7 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={theme.color.icon.accent} />
           <Text style={styles.loaderText}>Cargando campañas de fotos...</Text>
         </View>
       </SafeAreaView>
@@ -130,7 +136,7 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
           value={search}
           onChangeText={setSearch}
           placeholder="Buscar por código, nombre o descripción..."
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
 
         <ScrollView
@@ -170,15 +176,16 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
         </ScrollView>
       </View>
 
-      <View style={styles.floatingActionsContainer} pointerEvents="box-none">
-        <TouchableOpacity
-          style={styles.floatingCreateButton}
-          onPress={() => setCreateModalVisible(true)}
-          activeOpacity={activeOpacity.medium}
-        >
-          <Text style={styles.floatingCreateButtonText}>+ Campaña</Text>
-        </TouchableOpacity>
-      </View>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'camera-outline',
+            label: 'Crear Campaña',
+            onPress: () => setCreateModalVisible(true),
+            requiredPermissions: [PERMISSIONS.PHOTO_CAMPAIGNS.CREATE],
+          },
+        ]}
+      />
 
       <Modal visible={createModalVisible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
@@ -191,7 +198,7 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
               value={newCampaignName}
               onChangeText={setNewCampaignName}
               placeholder="Nombre *"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <Text style={styles.inputLabel}>Descripción</Text>
@@ -201,7 +208,7 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
               value={newCampaignDescription}
               onChangeText={setNewCampaignDescription}
               placeholder="Descripción"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <View style={styles.modalActions}>
@@ -234,41 +241,41 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   backText: {
     fontSize: 22,
-    color: colors.text.primary,
+    color: theme.color.text.heading,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.text.primary,
+    color: theme.color.text.heading,
   },
   content: {
     flex: 1,
-    padding: spacing[3],
+    padding: theme.space[3],
   },
   floatingActionsContainer: {
     position: 'absolute',
@@ -278,46 +285,46 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   floatingCreateButton: {
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3.5],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[900],
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[3.5],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.primary,
     minWidth: 120,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.md,
+    ...theme.shadow.md,
   },
   floatingCreateButtonText: {
-    color: colors.text.inverse,
+    color: theme.color.text.inverse,
     fontWeight: '700',
     fontSize: 12,
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: colors.border.medium,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
-    color: colors.text.primary,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-    marginBottom: spacing[3],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.base,
+    color: theme.color.text.body,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2.5],
+    marginBottom: theme.space[3],
   },
   inputLabel: {
-    marginTop: spacing[0.5],
-    marginBottom: spacing[1.5],
-    color: colors.text.secondary,
+    marginTop: theme.space[0.5],
+    marginBottom: theme.space[1.5],
+    color: theme.color.text.muted,
     fontSize: 12,
     fontWeight: '600',
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border.medium,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
-    color: colors.text.primary,
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[2],
-    marginBottom: spacing[2],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.base,
+    color: theme.color.text.body,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[2],
+    marginBottom: theme.space[2],
   },
   multiline: {
     minHeight: 74,
@@ -328,108 +335,108 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
-    padding: spacing[3],
-    marginBottom: spacing[2.5],
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.base,
+    padding: theme.space[3],
+    marginBottom: theme.space[2.5],
+    ...theme.shadow.sm,
   },
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[1.5],
+    marginBottom: theme.space[1.5],
   },
   code: {
     fontSize: 12,
-    color: colors.text.secondary,
+    color: theme.color.text.muted,
     fontWeight: '700',
   },
   status: {
     fontSize: 12,
-    color: colors.primary[900],
+    color: theme.color.brand.primary,
     fontWeight: '700',
   },
   name: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text.primary,
+    color: theme.color.text.heading,
   },
   description: {
-    marginTop: spacing[1],
+    marginTop: theme.space[1],
     fontSize: 12,
-    color: colors.text.secondary,
+    color: theme.color.text.muted,
   },
   manageButton: {
-    marginTop: spacing[3],
-    backgroundColor: colors.primary[900],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[2.25],
+    marginTop: theme.space[3],
+    backgroundColor: theme.color.brand.primary,
+    borderRadius: theme.radii.md,
+    paddingVertical: theme.space[2.5],
     alignItems: 'center',
   },
   manageButtonText: {
-    color: colors.text.inverse,
+    color: theme.color.text.inverse,
     fontWeight: '700',
     fontSize: 12,
   },
   emptyText: {
-    marginTop: spacing[6],
+    marginTop: theme.space[6],
     textAlign: 'center',
-    color: colors.text.tertiary,
+    color: theme.color.text.placeholder,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.45)',
+    backgroundColor: theme.color.overlay.medium,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   modalCard: {
     width: '100%',
     maxWidth: 560,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
-    padding: spacing[3.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.base,
+    padding: theme.space[3.5],
     borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.md,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.md,
   },
   modalTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[2.5],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2.5],
   },
   modalActions: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   primaryButton: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[900],
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.brand.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonText: {
-    color: colors.text.inverse,
+    color: theme.color.text.inverse,
     fontWeight: '700',
     fontSize: 12,
   },
   secondaryButton: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: colors.text.primary,
+    color: theme.color.text.heading,
     fontWeight: '700',
     fontSize: 12,
   },
@@ -439,7 +446,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loaderText: {
-    marginTop: spacing[3],
-    color: colors.text.secondary,
+    marginTop: theme.space[3],
+    color: theme.color.text.muted,
   },
 });

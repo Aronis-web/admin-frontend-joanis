@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,6 +26,8 @@ import {
 } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface AddProductScreenProps {
   navigation: any;
@@ -37,6 +39,8 @@ interface AddProductScreenProps {
 }
 
 export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { campaignId } = route.params;
   const [sourceType, setSourceType] = useState<ProductSourceType>(ProductSourceType.INVENTORY);
   const [products, setProducts] = useState<any[]>([]);
@@ -677,7 +681,10 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
       // If product is preliminary, use preliminaryStock
       if (product.status === 'preliminary' && typeof product.preliminaryStock === 'number') {
-        console.log('✅ Using preliminaryStock for preliminary product:', product.preliminaryStock);
+        console.log(
+          '✅ Using preliminaryStock for preliminary product:',
+          product.preliminaryStock
+        );
         return product.preliminaryStock;
       }
     }
@@ -846,7 +853,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     if (loadingData) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando productos...</Text>
         </View>
       );
@@ -871,7 +878,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               }
             }}
             placeholder="Buscar por #correlativo, SKU, nombre o descripción..."
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
           />
 
           {/* Loading indicator */}
@@ -880,7 +887,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
               style={[styles.suggestionsContainer, isTablet && styles.suggestionsContainerTablet]}
             >
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#6366F1" />
+                <ActivityIndicator size="small" color={theme.color.brand.primary} />
                 <Text style={styles.loadingText}>Buscando productos...</Text>
               </View>
             </View>
@@ -1039,7 +1046,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             value={totalQuantity}
             onChangeText={setTotalQuantity}
             placeholder="Ej: 1000"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="decimal-pad"
           />
         </View>
@@ -1071,7 +1078,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
         {/* Distribution Type */}
         <View style={styles.formGroup}>
-          <Text style={[styles.label, isTablet && styles.labelTablet]}>Tipo de Distribución *</Text>
+          <Text style={[styles.label, isTablet && styles.labelTablet]}>
+            Tipo de Distribución *
+          </Text>
           <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
             <Picker
               selectedValue={distributionType}
@@ -1145,7 +1154,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         renderPurchaseProducts()
                       ) : (
                         <View style={styles.emptyContainer}>
-                          <ActivityIndicator size="small" color="#6366F1" />
+                          <ActivityIndicator size="small" color={theme.color.brand.primary} />
                           <Text style={styles.emptyText}>Cargando productos de la compra...</Text>
                         </View>
                       )}
@@ -1270,7 +1279,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                         renderPurchaseProducts()
                       ) : (
                         <View style={styles.emptyContainer}>
-                          <ActivityIndicator size="small" color="#6366F1" />
+                          <ActivityIndicator size="small" color={theme.color.brand.primary} />
                           <Text style={styles.emptyText}>
                             Cargando productos de la recepción...
                           </Text>
@@ -1489,7 +1498,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
 
             {loadingData ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#6366F1" />
+                <ActivityIndicator size="small" color={theme.color.brand.primary} />
                 <Text style={styles.loadingText}>Cargando...</Text>
               </View>
             ) : (
@@ -1532,7 +1541,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             disabled={loading || loadingData}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={theme.color.text.onAction} />
             ) : (
               <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
                 Agregar Producto{sourceType !== ProductSourceType.INVENTORY && 's'}
@@ -1564,509 +1573,510 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  scrollContentTablet: {
-    padding: 32,
-  },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  formCardTablet: {
-    padding: 24,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  pickerContainerTablet: {
-    borderRadius: 10,
-  },
-  picker: {
-    height: 50,
-    color: '#1F2937',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
-  },
-  inputTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 18,
-  },
-  smallInput: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
-    marginTop: 8,
-  },
-  smallInputTablet: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  hint: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 4,
-  },
-  hintTablet: {
-    fontSize: 14,
-  },
-  stockInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    padding: 10,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 6,
-    gap: 8,
-  },
-  stockInfoTablet: {
-    padding: 12,
-  },
-  stockLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  stockLabelTablet: {
-    fontSize: 16,
-  },
-  stockValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  stockValueTablet: {
-    fontSize: 16,
-  },
-  stockAvailable: {
-    color: '#10B981',
-  },
-  stockUnavailable: {
-    color: '#EF4444',
-  },
-  statusDisplay: {
-    padding: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  statusDisplayTablet: {
-    padding: 16,
-  },
-  statusDisplayPreliminary: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  statusText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  statusTextTablet: {
-    fontSize: 18,
-  },
-  suggestionsContainer: {
-    maxHeight: 300,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    marginTop: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  suggestionsContainerTablet: {
-    maxHeight: 400,
-  },
-  suggestionsList: {
-    maxHeight: 300,
-  },
-  suggestionItemWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  suggestionItem: {
-    flex: 1,
-    flexDirection: 'row', // ✅ Para alinear imagen y contenido
-    padding: 12,
-    alignItems: 'center',
-  },
-  suggestionItemTablet: {
-    padding: 16,
-  },
-  suggestionItemPreliminary: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  suggestionItemDisabled: {
-    backgroundColor: '#F1F5F9',
-    opacity: 0.6,
-  },
-  bannerButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginRight: 8,
-    minWidth: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bannerButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  suggestionContent: {
-    flex: 1,
-  },
-  suggestionImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  suggestionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  suggestionTitleTablet: {
-    fontSize: 16,
-  },
-  suggestionTitleDisabled: {
-    color: '#94A3B8',
-  },
-  suggestionMeta: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  suggestionStock: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  suggestionStockTablet: {
-    fontSize: 14,
-  },
-  suggestionStatus: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  suggestionStatusTablet: {
-    fontSize: 14,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  infoContainer: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#92400E',
-    textAlign: 'center',
-  },
-  selectAllProductsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-    backgroundColor: '#EEF2FF',
-  },
-  selectAllProductsText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#3730A3',
-    marginBottom: 2,
-  },
-  selectAllProductsHint: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  productItem: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  productItemPreliminary: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  productItemDisabled: {
-    backgroundColor: '#F1F5F9',
-    opacity: 0.6,
-  },
-  productCheckbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  checkboxDisabled: {
-    backgroundColor: '#E2E8F0',
-    borderColor: '#CBD5E1',
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  productNameDisabled: {
-    color: '#94A3B8',
-  },
-  productDetails: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  warningText: {
-    fontSize: 12,
-    color: '#F59E0B',
-    fontWeight: '600',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  warningTextTablet: {
-    fontSize: 14,
-  },
-  productConfig: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  purchaseCard: {
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  purchaseHeader: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  purchaseHeaderSelected: {
-    backgroundColor: '#EEF2FF',
-    borderBottomColor: '#6366F1',
-  },
-  purchaseHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  purchaseHeaderIcon: {
-    fontSize: 14,
-    color: '#64748B',
-    width: 20,
-  },
-  purchaseHeaderInfo: {
-    flex: 1,
-  },
-  purchaseHeaderTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  purchaseHeaderBadge: {
-    fontSize: 12,
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  purchaseProductsContainer: {
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  footerTablet: {
-    padding: 24,
-    gap: 16,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonTablet: {
-    paddingVertical: 16,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  cancelButtonTextTablet: {
-    fontSize: 18,
-  },
-  addButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonTablet: {
-    paddingVertical: 16,
-  },
-  addButtonDisabled: {
-    opacity: 0.6,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  addButtonTextTablet: {
-    fontSize: 18,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: 32,
+      paddingVertical: 24,
+    },
+    backButton: {
+      marginBottom: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    backButtonTextTablet: {
+      fontSize: 18,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    scrollContentTablet: {
+      padding: 32,
+    },
+    formCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    formCardTablet: {
+      padding: 24,
+    },
+    formGroup: {
+      marginBottom: 20,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    labelTablet: {
+      fontSize: 16,
+    },
+    pickerContainer: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.base,
+    },
+    pickerContainerTablet: {
+      borderRadius: 10,
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    inputTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 18,
+    },
+    smallInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+      marginTop: 8,
+    },
+    smallInputTablet: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.disabled,
+      marginTop: 4,
+    },
+    hintTablet: {
+      fontSize: 14,
+    },
+    stockInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+      padding: 10,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 6,
+      gap: 8,
+    },
+    stockInfoTablet: {
+      padding: 12,
+    },
+    stockLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    stockLabelTablet: {
+      fontSize: 16,
+    },
+    stockValue: {
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    stockValueTablet: {
+      fontSize: 16,
+    },
+    stockAvailable: {
+      color: theme.color.action.success.background,
+    },
+    stockUnavailable: {
+      color: theme.color.border.error,
+    },
+    statusDisplay: {
+      padding: 12,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    statusDisplayTablet: {
+      padding: 16,
+    },
+    statusDisplayPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    statusText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    statusTextTablet: {
+      fontSize: 18,
+    },
+    suggestionsContainer: {
+      maxHeight: 300,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      marginTop: 4,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    suggestionsContainerTablet: {
+      maxHeight: 400,
+    },
+    suggestionsList: {
+      maxHeight: 300,
+    },
+    suggestionItemWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    suggestionItem: {
+      flex: 1,
+      flexDirection: 'row', // ✅ Para alinear imagen y contenido
+      padding: 12,
+      alignItems: 'center',
+    },
+    suggestionItemTablet: {
+      padding: 16,
+    },
+    suggestionItemPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    suggestionItemDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      opacity: 0.6,
+    },
+    bannerButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      marginRight: 8,
+      minWidth: 80,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bannerButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    suggestionContent: {
+      flex: 1,
+    },
+    suggestionImage: {
+      width: 50,
+      height: 50,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+    },
+    suggestionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    suggestionTitleTablet: {
+      fontSize: 16,
+    },
+    suggestionTitleDisabled: {
+      color: theme.color.text.disabled,
+    },
+    suggestionMeta: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+    },
+    suggestionStock: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    suggestionStockTablet: {
+      fontSize: 14,
+    },
+    suggestionStatus: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    suggestionStatusTablet: {
+      fontSize: 14,
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+      gap: 12,
+    },
+    loadingText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 40,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+    },
+    infoContainer: {
+      marginTop: 8,
+      padding: 12,
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: 8,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    infoText: {
+      fontSize: 14,
+      color: theme.color.state.warning.text,
+      textAlign: 'center',
+    },
+    selectAllProductsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 10,
+      backgroundColor: theme.color.state.info.background,
+    },
+    selectAllProductsText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.brand.primary,
+      marginBottom: 2,
+    },
+    selectAllProductsHint: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    productItem: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 8,
+    },
+    productItemPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    productItemDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      opacity: 0.6,
+    },
+    productCheckbox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      borderRadius: 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxDisabled: {
+      backgroundColor: theme.color.border.subtle,
+      borderColor: theme.color.border.default,
+    },
+    checkmark: {
+      color: theme.color.surface.base,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    productInfo: {
+      flex: 1,
+    },
+    productName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    productNameDisabled: {
+      color: theme.color.text.disabled,
+    },
+    productDetails: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    warningText: {
+      fontSize: 12,
+      color: theme.color.icon.warning,
+      fontWeight: '600',
+      marginTop: 4,
+      marginBottom: 4,
+    },
+    warningTextTablet: {
+      fontSize: 14,
+    },
+    productConfig: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    purchaseCard: {
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    purchaseHeader: {
+      backgroundColor: theme.color.background.subtle,
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    purchaseHeaderSelected: {
+      backgroundColor: theme.color.state.info.background,
+      borderBottomColor: theme.color.brand.primary,
+    },
+    purchaseHeaderContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    purchaseHeaderIcon: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      width: 20,
+    },
+    purchaseHeaderInfo: {
+      flex: 1,
+    },
+    purchaseHeaderTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    purchaseHeaderBadge: {
+      fontSize: 12,
+      color: theme.color.action.success.background,
+      fontWeight: '600',
+    },
+    purchaseProductsContainer: {
+      padding: 12,
+      backgroundColor: theme.color.surface.base,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: 12,
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    footerTablet: {
+      padding: 24,
+      gap: 16,
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButtonTablet: {
+      paddingVertical: 16,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    cancelButtonTextTablet: {
+      fontSize: 18,
+    },
+    addButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addButtonTablet: {
+      paddingVertical: 16,
+    },
+    addButtonDisabled: {
+      opacity: 0.6,
+    },
+    addButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    addButtonTextTablet: {
+      fontSize: 18,
+    },
+  });

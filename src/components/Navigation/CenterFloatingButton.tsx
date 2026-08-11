@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated, Dimensions } from 'react-native';
-import { colors, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CenterFloatingButtonProps {
   onPress: () => void;
@@ -13,6 +14,7 @@ export const CenterFloatingButton: React.FC<CenterFloatingButtonProps> = ({
   onPress,
   isVisible,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const slideAnim = React.useRef(new Animated.Value(100)).current;
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
@@ -84,35 +86,36 @@ export const CenterFloatingButton: React.FC<CenterFloatingButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 90, // Posición sobre la barra de navegación inferior
-    left: screenWidth / 2 - 28, // Centrado horizontalmente
-    zIndex: 999,
-  },
-  button: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[600],
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.primary[600],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: colors.neutral[0],
-  },
-  buttonText: {
-    fontSize: 28,
-    color: colors.neutral[0],
-    fontWeight: '300',
-    textAlign: 'center',
-    lineHeight: 32,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      position: 'absolute',
+      bottom: 90,
+      left: screenWidth / 2 - 28,
+      zIndex: 999,
+    },
+    button: {
+      width: 56,
+      height: 56,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.action.primary.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.action.primary.background,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+      borderWidth: 3,
+      borderColor: theme.color.surface.base,
+    },
+    buttonText: {
+      fontSize: 28,
+      color: theme.color.action.primary.text,
+      fontWeight: '300',
+      textAlign: 'center',
+      lineHeight: 32,
+    },
+  });
 
 export default CenterFloatingButton;

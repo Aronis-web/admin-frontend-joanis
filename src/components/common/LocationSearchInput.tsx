@@ -7,12 +7,13 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Alert,
   Keyboard,
   Platform,
 } from 'react-native';
 import { locationsApi, LocationDetails, LocationSuggestion } from '@/services/api';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 // Conditional import for react-native-maps (only on native platforms)
 let MapView: any = null;
@@ -65,6 +66,8 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   country = 'pe',
   language = 'es',
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [searchText, setSearchText] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -312,7 +315,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
         <TextInput
           style={[styles.input, disabled && styles.inputDisabled]}
           placeholder={placeholder}
-          placeholderTextColor={colors.neutral[400]}
+          placeholderTextColor={theme.color.text.placeholder}
           value={searchText}
           onChangeText={setSearchText}
           onFocus={() => {
@@ -326,7 +329,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
         />
         {loading && (
           <View style={styles.loadingIcon}>
-            <ActivityIndicator size="small" color={colors.primary[500]} />
+            <ActivityIndicator size="small" color={theme.color.brand.primary} />
           </View>
         )}
         {!loading && searchText.length > 0 && (
@@ -338,7 +341,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
 
       {loadingDetails && (
         <View style={styles.loadingDetailsContainer}>
-          <ActivityIndicator size="small" color={colors.primary[500]} />
+          <ActivityIndicator size="small" color={theme.color.brand.primary} />
           <Text style={styles.loadingDetailsText}>Obteniendo detalles de la ubicación...</Text>
         </View>
       )}
@@ -386,7 +389,7 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
                 longitude: selectedCoordinates.longitude,
               }}
               title="Ubicación seleccionada"
-              pinColor={colors.primary[500]}
+              pinColor={theme.color.brand.primary}
             />
           </MapView>
           <View style={styles.mapInfo}>
@@ -418,23 +421,23 @@ export const LocationSearchInput: React.FC<LocationSearchInputProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
     zIndex: 1000,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[3],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[3],
     height: 48,
   },
   searchIcon: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   searchIconText: {
     fontSize: 16,
@@ -442,75 +445,75 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     paddingVertical: 0,
   },
   inputDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.disabled,
   },
   loadingIcon: {
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
   clearButton: {
     width: 24,
     height: 24,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[200],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.action.secondary.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
   clearButtonText: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   loadingDetailsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[2],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
+    backgroundColor: theme.color.brand.accentSoft,
+    borderRadius: theme.radii.lg,
+    marginTop: theme.space[2],
   },
   loadingDetailsText: {
     fontSize: 13,
-    color: colors.primary[500],
-    marginLeft: spacing[2],
+    color: theme.color.brand.primary,
+    marginLeft: theme.space[2],
     fontWeight: '500',
   },
   suggestionsContainer: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    marginTop: spacing[2],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    marginTop: theme.space[2],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     maxHeight: 300,
-    shadowColor: colors.neutral[950],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   suggestionsList: {
-    borderRadius: borderRadius.xl,
+    borderRadius: theme.radii.xl,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
     minHeight: 56,
   },
   suggestionIcon: {
     width: 32,
     height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.accent[50],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   suggestionIconText: {
     fontSize: 16,
@@ -521,33 +524,33 @@ const styles = StyleSheet.create({
   suggestionValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   suggestionSubtext: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   suggestionSeparator: {
     height: 1,
-    backgroundColor: colors.neutral[100],
-    marginHorizontal: spacing[3],
+    backgroundColor: theme.color.border.subtle,
+    marginHorizontal: theme.space[3],
   },
   hintText: {
     fontSize: 12,
-    color: colors.neutral[400],
+    color: theme.color.text.subtle,
     marginTop: 6,
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
     fontStyle: 'italic',
   },
   mapContainer: {
-    marginTop: spacing[4],
-    borderRadius: borderRadius.xl,
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    backgroundColor: theme.color.surface.base,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -556,44 +559,44 @@ const styles = StyleSheet.create({
   mapTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[800],
-    paddingHorizontal: spacing[3],
+    color: theme.color.text.heading,
+    paddingHorizontal: theme.space[3],
     paddingVertical: 10,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   map: {
     width: '100%',
     height: 200,
   },
   mapInfo: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.background.secondary,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    backgroundColor: theme.color.background.subtle,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   mapInfoText: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   webCoordinatesContainer: {
-    padding: spacing[4],
-    backgroundColor: colors.background.secondary,
+    padding: theme.space[4],
+    backgroundColor: theme.color.background.subtle,
   },
   webCoordinatesText: {
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     fontWeight: '500',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   webCoordinatesHint: {
     fontSize: 12,
-    color: colors.neutral[400],
+    color: theme.color.text.subtle,
     fontStyle: 'italic',
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
 });
 

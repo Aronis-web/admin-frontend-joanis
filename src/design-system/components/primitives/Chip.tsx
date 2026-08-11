@@ -13,9 +13,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
-import { colors } from '../../tokens/colors';
-import { spacing, borderRadius, iconSizes } from '../../tokens/spacing';
+import { iconSizes } from '../../tokens/spacing';
 import { activeOpacity } from '../../tokens/animations';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export type ChipVariant = 'filled' | 'outlined';
 export type ChipSize = 'small' | 'medium';
@@ -81,9 +82,12 @@ export const Chip: React.FC<ChipProps> = ({
   size = 'medium',
   icon,
   disabled = false,
-  selectedColor = colors.primary[900],
+  selectedColor,
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const accent = selectedColor ?? theme.color.brand.primary;
   const isInteractive = !!onPress && !disabled;
 
   const containerStyles = [
@@ -91,22 +95,22 @@ export const Chip: React.FC<ChipProps> = ({
     styles[`size_${size}`],
     variant === 'filled' && styles.filled,
     variant === 'outlined' && styles.outlined,
-    selected && variant === 'filled' && { backgroundColor: selectedColor },
-    selected && variant === 'outlined' && { borderColor: selectedColor },
+    selected && variant === 'filled' && { backgroundColor: accent },
+    selected && variant === 'outlined' && { borderColor: accent },
     disabled && styles.disabled,
     style,
   ];
 
   const getTextColor = (): string => {
-    if (disabled) return colors.text.disabled;
-    if (selected) return variant === 'filled' ? colors.text.inverse : selectedColor;
-    return colors.text.secondary;
+    if (disabled) return theme.color.text.disabled;
+    if (selected) return variant === 'filled' ? theme.color.text.onAction : accent;
+    return theme.color.text.muted;
   };
 
   const getIconColor = (): string => {
-    if (disabled) return colors.icon.disabled;
-    if (selected) return variant === 'filled' ? colors.icon.inverse : selectedColor;
-    return colors.icon.tertiary;
+    if (disabled) return theme.color.icon.disabled;
+    if (selected) return variant === 'filled' ? theme.color.icon.inverse : accent;
+    return theme.color.icon.subtle;
   };
 
   const getIconSize = (): number => {
@@ -212,6 +216,7 @@ export const ChipGroup: React.FC<ChipGroupProps> = ({
   size = 'medium',
   style,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const handlePress = (value: string) => {
     if (multiple) {
       if (selected.includes(value)) {
@@ -242,7 +247,7 @@ export const ChipGroup: React.FC<ChipGroupProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   // ============================================
   // BASE STYLES
   // ============================================
@@ -250,7 +255,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.full,
+    borderRadius: theme.radii.full,
     alignSelf: 'flex-start',
   },
 
@@ -262,14 +267,14 @@ const styles = StyleSheet.create({
   // SIZE STYLES
   // ============================================
   size_small: {
-    paddingVertical: spacing[1],
-    paddingHorizontal: spacing[2],
+    paddingVertical: theme.space[1],
+    paddingHorizontal: theme.space[2],
     minHeight: 28,
   },
 
   size_medium: {
-    paddingVertical: spacing[1.5],
-    paddingHorizontal: spacing[3],
+    paddingVertical: theme.space[1.5],
+    paddingHorizontal: theme.space[3],
     minHeight: 36,
   },
 
@@ -277,26 +282,26 @@ const styles = StyleSheet.create({
   // VARIANT STYLES
   // ============================================
   filled: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
   },
 
   outlined: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: colors.border.default,
+    borderColor: theme.color.border.default,
   },
 
   // ============================================
   // ELEMENT STYLES
   // ============================================
   leftIcon: {
-    marginRight: spacing[1],
+    marginRight: theme.space[1],
   },
 
   closeButton: {
-    marginLeft: spacing[1],
-    padding: spacing[0.5],
-    marginRight: -spacing[1],
+    marginLeft: theme.space[1],
+    padding: theme.space[0.5],
+    marginRight: -theme.space[1],
   },
 
   textSmall: {
@@ -310,7 +315,7 @@ const styles = StyleSheet.create({
   group: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
 
   groupChip: {

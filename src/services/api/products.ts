@@ -107,6 +107,17 @@ export interface Product {
     reserved: number;
     total: number;
   };
+  // ✅ Nuevo (v2 search): desglose de stock por sede del tenant. Cuando está
+  // presente, la UI debe filtrar por la sede actualmente seleccionada en el
+  // login (useTenantStore().selectedSite) en vez de mostrar el consolidado.
+  stockBySite?: Array<{
+    siteId: string;
+    siteCode?: string;
+    siteName?: string;
+    available: number;
+    reserved: number;
+    total: number;
+  }>;
 }
 
 // Product entity for detail endpoint (simplified)
@@ -440,9 +451,13 @@ export const productsApi = {
     total: number;
     cached?: boolean;
   }> => {
-    return apiClient.post('/admin/products/v2/batch', { ids }, {
-      params: { includePhotos }
-    });
+    return apiClient.post(
+      '/admin/products/v2/batch',
+      { ids },
+      {
+        params: { includePhotos },
+      }
+    );
   },
 
   /**
@@ -619,6 +634,24 @@ export const productsApi = {
     return apiClient.post('/admin/products/bulk/download-update-format', filters, {
       responseType: 'blob',
     });
+  },
+
+  // Send bulk update format via WhatsApp - POST /admin/products/bulk/download-update-format/send
+  sendBulkUpdateFormat: async (payload: {
+    siteContactId: string;
+    siteId?: string;
+    fromCorrelative?: number;
+    toCorrelative?: number;
+    correlatives?: number[];
+    fromDate?: string;
+    toDate?: string;
+    caption?: string;
+  }): Promise<{
+    jobId: string;
+    contactName: string;
+    message: string;
+  }> => {
+    return apiClient.post('/admin/products/bulk/download-update-format/send', payload);
   },
 
   // Upload bulk update file - POST /admin/products/bulk/update

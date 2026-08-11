@@ -21,6 +21,14 @@ import { treasuryApi } from '@/services/api/treasury';
 import { PhotoCapture as RepartoPhotoCapture } from '@/components/Repartos/PhotoCapture';
 import { SignatureCapture as RepartoSignatureCapture } from '@/components/Repartos/SignatureCapture';
 import { CashCollectionScanResponse, CashClosureScanResponse } from '@/types/treasury';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
+
+// Module brand: emerald action color para recaudo
+const MODULE_EMERALD = '#10B981';
+// Overlay translucido para CTA dentro del scanner (sobre cámara)
+const SCANNER_CTA_BG = 'rgba(255,255,255,0.2)';
 
 type Props = NativeStackScreenProps<any, 'RecaudoEfectivo'>;
 
@@ -33,6 +41,8 @@ type ScannedBarCodeEvent = {
 
 export const RecaudoEfectivoScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [showForm, setShowForm] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
@@ -393,7 +403,7 @@ export const RecaudoEfectivoScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.scannerOverlay}>
             <Text style={styles.scannerTitle}>Escanea el QR de la caja</Text>
             <Text style={styles.scannerSubtitle}>Apunta al código para cargar la solicitud pendiente</Text>
-            {isScanning && <ActivityIndicator color="#fff" style={styles.scannerLoading} />}
+            {isScanning && <ActivityIndicator color={theme.color.text.inverse} style={styles.scannerLoading} />}
             <TouchableOpacity
               style={styles.scannerCancelButton}
               onPress={() => {
@@ -505,7 +515,7 @@ export const RecaudoEfectivoScreen: React.FC<Props> = ({ navigation }) => {
 
             <TouchableOpacity style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} onPress={handleSubmitCollection} disabled={isSubmitting}>
               {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.submitButtonText}>
                   {flowMode === 'closure' ? 'Enviar recaudación final y cierre' : 'Enviar formulario de recaudo'}
@@ -552,10 +562,10 @@ export const RecaudoEfectivoScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -563,27 +573,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 24,
-    color: '#374151',
+    color: theme.color.text.body,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   placeholder: {
     width: 40,
@@ -599,11 +609,11 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 140,
     borderRadius: 20,
-    backgroundColor: '#10B981',
+    backgroundColor: MODULE_EMERALD,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.16,
     shadowRadius: 10,
@@ -612,40 +622,40 @@ const styles = StyleSheet.create({
   mainButtonText: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     textAlign: 'center',
   },
   cashInfoCard: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     paddingVertical: 20,
     paddingHorizontal: 16,
     alignItems: 'center',
   },
   cashInfoLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 8,
   },
   cashInfoValue: {
     fontSize: 34,
     fontWeight: '800',
-    color: '#111827',
+    color: theme.color.text.heading,
   },
 
   formContainer: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   formHeader: {
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -653,10 +663,10 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: theme.color.text.heading,
   },
   formClose: {
-    color: '#2563EB',
+    color: theme.color.text.link,
     fontWeight: '600',
   },
   formBody: {
@@ -667,23 +677,23 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#374151',
+    color: theme.color.text.body,
     marginTop: 2,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#111827',
+    color: theme.color.text.heading,
   },
   scanInfoCard: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: theme.color.state.paid.background,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: theme.color.state.paid.border,
     borderRadius: 12,
     padding: 12,
     gap: 3,
@@ -691,36 +701,36 @@ const styles = StyleSheet.create({
   scanInfoTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#065F46',
+    color: theme.color.state.paid.text,
     marginBottom: 4,
   },
   scanInfoText: {
     fontSize: 13,
-    color: '#065F46',
+    color: theme.color.state.paid.text,
   },
   evidenceCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 12,
     padding: 10,
     gap: 8,
   },
   evidencePlaceholder: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   evidencePreview: {
     width: '100%',
     height: 180,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
   },
   signaturePreview: {
     width: '100%',
     height: 120,
     borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   evidenceActions: {
     flexDirection: 'row',
@@ -728,13 +738,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   secondaryButton: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.state.info.background,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   secondaryButtonText: {
-    color: '#3730A3',
+    color: theme.color.state.info.text,
     fontWeight: '600',
     fontSize: 12,
   },
@@ -743,12 +753,12 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   inputDisabled: {
-    backgroundColor: '#F3F4F6',
-    color: '#6B7280',
+    backgroundColor: theme.color.surface.muted,
+    color: theme.color.text.muted,
   },
   submitButton: {
     marginTop: 12,
-    backgroundColor: '#10B981',
+    backgroundColor: MODULE_EMERALD,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
@@ -757,29 +767,29 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontWeight: '800',
     fontSize: 15,
   },
 
   scannerContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: theme.color.background.inverse,
   },
   scannerOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
     padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: theme.color.overlay.subtle,
     gap: 8,
   },
   scannerTitle: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 22,
     fontWeight: '800',
   },
   scannerSubtitle: {
-    color: '#E5E7EB',
+    color: theme.color.border.subtle,
     fontSize: 14,
   },
   scannerLoading: {
@@ -789,13 +799,13 @@ const styles = StyleSheet.create({
   scannerCancelButton: {
     marginTop: 8,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: SCANNER_CTA_BG,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   scannerCancelText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontWeight: '700',
   },
 });

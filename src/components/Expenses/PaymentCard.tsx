@@ -14,7 +14,8 @@ import { ImageViewerModal } from './ImageViewerModal';
 import { filesApi } from '@/services/api';
 
 // Design System
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface PaymentCardProps {
   payment: ExpensePayment;
@@ -23,6 +24,8 @@ interface PaymentCardProps {
 }
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onViewAttachment }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ fileId: string; fileName: string } | null>(null);
   console.log('💳 PaymentCard rendering with payment:', {
@@ -270,7 +273,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
                       handleViewAttachment(attachment);
                     }}
                   >
-                    <Ionicons name={getFileIcon(attachment) as any} size={20} color={colors.accent[500]} />
+                    <Ionicons name={getFileIcon(attachment) as any} size={20} color={theme.color.brand.accent} />
                     <View style={styles.attachmentInfo}>
                       <Text style={styles.attachmentButtonText}>
                         {getFileTypeLabel(attachment)}
@@ -284,7 +287,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
                         </Text>
                       )}
                     </View>
-                    <Ionicons name="open-outline" size={16} color={colors.accent[500]} />
+                    <Ionicons name="open-outline" size={16} color={theme.color.brand.accent} />
                   </TouchableOpacity>
                 );
               })}
@@ -305,13 +308,13 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
                 })
               }
             >
-              <Ionicons name="document-attach" size={20} color={colors.accent[500]} />
+              <Ionicons name="document-attach" size={20} color={theme.color.brand.accent} />
               <Text style={styles.attachmentButtonText}>Ver archivo adjunto</Text>
-              <Ionicons name="open-outline" size={16} color={colors.accent[500]} />
+              <Ionicons name="open-outline" size={16} color={theme.color.brand.accent} />
             </TouchableOpacity>
           ) : (
             <View style={styles.noAttachmentContainer}>
-              <Ionicons name="document-outline" size={16} color={colors.neutral[400]} />
+              <Ionicons name="document-outline" size={16} color={theme.color.text.placeholder} />
               <Text style={styles.noAttachmentText}>Sin archivos adjuntos</Text>
             </View>
           )}
@@ -348,177 +351,178 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onPress, onVi
   }
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    marginBottom: spacing[2.5],
-    ...shadows.sm,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  paymentCode: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.accent[500],
-    marginBottom: spacing[0.5],
-  },
-  paymentMethod: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.light,
-    marginBottom: spacing[2],
-  },
-  content: {
-    gap: spacing[2],
-  },
-  amountContainer: {
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[2.5],
-    alignItems: 'center',
-  },
-  amountLabel: {
-    fontSize: 10,
-    color: colors.success[700],
-    fontWeight: '600',
-    marginBottom: spacing[0.5],
-  },
-  amountValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.success[800],
-  },
-  detailsContainer: {
-    gap: spacing[1.5],
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  detailValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.primary,
-    flex: 1,
-    textAlign: 'right',
-    marginLeft: spacing[2],
-  },
-  notesContainer: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.sm,
-    padding: spacing[2.5],
-    marginTop: spacing[1],
-  },
-  notesLabel: {
-    fontSize: 10,
-    color: colors.text.tertiary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  notesText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    lineHeight: 16,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: colors.surface.secondary,
-  },
-  footerLabel: {
-    fontSize: 10,
-    color: colors.text.tertiary,
-  },
-  footerValue: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  attachmentsContainer: {
-    marginTop: spacing[2],
-    gap: spacing[1.5],
-  },
-  attachmentsTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text.secondary,
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  attachmentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.accent[500],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    gap: spacing[2],
-  },
-  attachmentInfo: {
-    flex: 1,
-    gap: spacing[0.5],
-  },
-  attachmentButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  attachmentFileName: {
-    fontSize: 11,
-    color: colors.accent[500],
-    opacity: 0.8,
-  },
-  attachmentDescription: {
-    fontSize: 10,
-    color: colors.accent[500],
-    opacity: 0.6,
-    fontStyle: 'italic',
-  },
-  noAttachmentContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderStyle: 'dashed',
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    gap: spacing[1.5],
-    marginTop: spacing[1],
-  },
-  noAttachmentText: {
-    fontSize: 12,
-    color: colors.text.tertiary,
-    fontStyle: 'italic',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      marginBottom: theme.space[2.5],
+      ...theme.shadow.sm,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    paymentCode: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+      marginBottom: theme.space[0.5],
+    },
+    paymentMethod: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.color.border.subtle,
+      marginBottom: theme.space[2],
+    },
+    content: {
+      gap: theme.space[2],
+    },
+    amountContainer: {
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2.5],
+      alignItems: 'center',
+    },
+    amountLabel: {
+      fontSize: 10,
+      color: theme.color.state.success.text,
+      fontWeight: '600',
+      marginBottom: theme.space[0.5],
+    },
+    amountValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.state.success.text,
+    },
+    detailsContainer: {
+      gap: theme.space[1.5],
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    detailLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    detailValue: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      flex: 1,
+      textAlign: 'right',
+      marginLeft: theme.space[2],
+    },
+    notesContainer: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.sm,
+      padding: theme.space[2.5],
+      marginTop: theme.space[1],
+    },
+    notesLabel: {
+      fontSize: 10,
+      color: theme.color.text.subtle,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    notesText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      lineHeight: 16,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.surface.subtle,
+    },
+    footerLabel: {
+      fontSize: 10,
+      color: theme.color.text.subtle,
+    },
+    footerValue: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    attachmentsContainer: {
+      marginTop: theme.space[2],
+      gap: theme.space[1.5],
+    },
+    attachmentsTitle: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    attachmentButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.accentSoft,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[3],
+      gap: theme.space[2],
+    },
+    attachmentInfo: {
+      flex: 1,
+      gap: theme.space[0.5],
+    },
+    attachmentButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    attachmentFileName: {
+      fontSize: 11,
+      color: theme.color.brand.accent,
+      opacity: 0.8,
+    },
+    attachmentDescription: {
+      fontSize: 10,
+      color: theme.color.brand.accent,
+      opacity: 0.6,
+      fontStyle: 'italic',
+    },
+    noAttachmentContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderStyle: 'dashed',
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      gap: theme.space[1.5],
+      marginTop: theme.space[1],
+    },
+    noAttachmentText: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      fontStyle: 'italic',
+    },
+  });
 
 export default PaymentCard;

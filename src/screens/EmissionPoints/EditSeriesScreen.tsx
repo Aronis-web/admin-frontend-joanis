@@ -6,14 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { emissionPointsApi, DocumentSeries, UpdateSeriesDto } from '@/services/api/emission-points';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
+import Alert from '@/utils/alert';
 
 interface EditSeriesScreenProps {
   navigation: any;
@@ -31,6 +33,8 @@ export const EditSeriesScreen: React.FC<EditSeriesScreenProps> = ({
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { seriesId, emissionPointName, emissionPointCode } = route.params;
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -156,7 +160,7 @@ export const EditSeriesScreen: React.FC<EditSeriesScreenProps> = ({
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando serie...</Text>
           </View>
         </SafeAreaView>
@@ -314,7 +318,7 @@ export const EditSeriesScreen: React.FC<EditSeriesScreenProps> = ({
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={theme.color.text.inverse} />
                 ) : (
                   <Text style={styles.submitButtonText}>Guardar Cambios</Text>
                 )}
@@ -336,212 +340,213 @@ export const EditSeriesScreen: React.FC<EditSeriesScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  header: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTablet: {
-    padding: 24,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  headerTitleTablet: {
-    fontSize: 32,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  headerSubtitleTablet: {
-    fontSize: 16,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  form: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  formTablet: {
-    padding: 24,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  halfWidth: {
-    flex: 1,
-  },
-  readOnlyField: {
-    padding: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  readOnlyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  readOnlySubtext: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-  },
-  switchInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  switchHint: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  switch: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#D1D5DB',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  switchActive: {
-    backgroundColor: '#6366F1',
-  },
-  switchThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  switchThumbActive: {
-    alignSelf: 'flex-end',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  cancelButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: '#6366F1',
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    marginTop: 16,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-  },
-  deleteButtonText: {
-    color: '#DC2626',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      padding: 24,
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    headerTitleTablet: {
+      fontSize: 32,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    headerSubtitleTablet: {
+      fontSize: 16,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    form: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    formTablet: {
+      padding: 24,
+    },
+    formGroup: {
+      marginBottom: 20,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    halfWidth: {
+      flex: 1,
+    },
+    readOnlyField: {
+      padding: 12,
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    readOnlyText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    readOnlySubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: 8,
+    },
+    switchInfo: {
+      flex: 1,
+      marginRight: 12,
+    },
+    switchLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    switchHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    switch: {
+      width: 48,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: theme.color.border.default,
+      padding: 2,
+      justifyContent: 'center',
+    },
+    switchActive: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    switchThumb: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: theme.color.surface.base,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    switchThumbActive: {
+      alignSelf: 'flex-end',
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 24,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    cancelButtonText: {
+      color: theme.color.text.body,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    submitButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    deleteButton: {
+      marginTop: 16,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.state.danger.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+    },
+    deleteButtonText: {
+      color: theme.color.text.danger,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });

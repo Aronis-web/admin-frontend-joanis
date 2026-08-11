@@ -5,12 +5,16 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BizlinksConfigForm } from '../../components/Bizlinks';
 import { BizlinksConfig } from '../../types/bizlinks';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfigEdit'>;
 
 export const BizlinksConfigEditScreen: React.FC<Props> = ({ navigation, route }) => {
   const params = route.params as { config?: BizlinksConfig; configId?: string };
   const { getConfigById } = useBizlinksConfig();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [config, setConfig] = useState<BizlinksConfig | null>(params.config || null);
   const [loading, setLoading] = useState(!params.config && !!params.configId);
 
@@ -45,7 +49,7 @@ export const BizlinksConfigEditScreen: React.FC<Props> = ({ navigation, route })
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007bff" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando configuración...</Text>
         </View>
       </SafeAreaView>
@@ -77,10 +81,10 @@ export const BizlinksConfigEditScreen: React.FC<Props> = ({ navigation, route })
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: theme.color.background.subtle,
   },
   content: {
     flex: 1,
@@ -93,6 +97,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: theme.color.text.muted,
   },
 });

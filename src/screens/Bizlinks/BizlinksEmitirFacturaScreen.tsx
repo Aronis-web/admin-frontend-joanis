@@ -4,12 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { EmitirFacturaForm } from '../../components/Bizlinks';
 import { useAuthStore } from '../../store/auth';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
-type Props = NativeStackScreenProps<any, 'BizlinksEmitirFactura'>;
+type Props = NativeStackScreenProps<any, any>;
 
 export const BizlinksEmitirFacturaScreen: React.FC<Props> = ({ navigation, route }) => {
   const { currentCompany, currentSite } = useAuthStore();
   const { seriesId, series, documentType } = route.params || {};
+  const styles = useThemedStyles(createStyles);
 
   const handleSuccess = (documentId: string) => {
     navigation.navigate('BizlinksDocumentDetail', { documentId });
@@ -34,9 +37,9 @@ export const BizlinksEmitirFacturaScreen: React.FC<Props> = ({ navigation, route
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: theme.color.background.subtle,
   },
 });

@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ExpenseTemplate, TemplateFrequencyLabels } from '@/types/expenses';
 import { CategoryBadge } from './CategoryBadge';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface TemplateCardProps {
   template: ExpenseTemplate;
@@ -21,6 +22,8 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const formatDate = (dateString?: string) => {
     if (!dateString) {
       return '-';
@@ -61,7 +64,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         <View
           style={[
             styles.statusIndicator,
-            { backgroundColor: template.isActive ? colors.success[500] : colors.neutral[400] },
+            { backgroundColor: template.isActive ? theme.color.icon.success : theme.color.border.strong },
           ]}
         />
       </View>
@@ -115,7 +118,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         {/* Site Info */}
         {template.site && (
           <View style={styles.siteContainer}>
-            <Ionicons name="business" size={14} color={colors.primary[500]} />
+            <Ionicons name="business" size={14} color={theme.color.icon.accent} />
             <Text style={styles.siteText} numberOfLines={1}>
               {template.site.name}
             </Text>
@@ -154,7 +157,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
                 requiredPermissions={['expenses.templates.update']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="create-outline" size={18} color={colors.primary[500]} />
+                <Ionicons name="create-outline" size={18} color={theme.color.icon.accent} />
                 <Text style={styles.actionButtonText}>Editar</Text>
               </ProtectedTouchableOpacity>
             )}
@@ -168,7 +171,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
                 requiredPermissions={['expenses.templates.delete']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="trash-outline" size={18} color={colors.danger[500]} />
+                <Ionicons name="trash-outline" size={18} color={theme.color.icon.danger} />
                 <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</Text>
               </ProtectedTouchableOpacity>
             )}
@@ -183,7 +186,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
               onGenerate(template);
             }}
           >
-            <Ionicons name="flash-outline" size={18} color={colors.neutral[0]} />
+            <Ionicons name="flash-outline" size={18} color={theme.color.text.onAction} />
             <Text style={styles.generateButtonText}>Generar Gasto</Text>
           </TouchableOpacity>
         )}
@@ -192,171 +195,172 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing[3],
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  nameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  templateName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    flex: 1,
-  },
-  inactiveBadge: {
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.sm,
-  },
-  inactiveBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  description: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-  },
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: borderRadius.full,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.default,
-    marginBottom: spacing[3],
-  },
-  content: {
-    gap: spacing[3],
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  infoItem: {
-    flex: 1,
-  },
-  label: {
-    fontSize: 10,
-    color: colors.neutral[400],
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  value: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[700],
-  },
-  amountValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  siteContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.md,
-    gap: spacing[1.5],
-  },
-  siteText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    flex: 1,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-  },
-  footerItem: {
-    flex: 1,
-  },
-  footerLabel: {
-    fontSize: 11,
-    color: colors.neutral[400],
-  },
-  footerValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-  generateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    gap: spacing[2],
-    marginTop: spacing[1],
-  },
-  generateButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[1],
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    gap: spacing[1.5],
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  deleteButton: {
-    backgroundColor: colors.danger[50],
-  },
-  deleteButtonText: {
-    color: colors.danger[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[3],
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    nameContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    templateName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    inactiveBadge: {
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[0.5],
+      borderRadius: theme.radii.sm,
+    },
+    inactiveBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    description: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[1],
+    },
+    statusIndicator: {
+      width: 8,
+      height: 8,
+      borderRadius: theme.radii.full,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.color.border.default,
+      marginBottom: theme.space[3],
+    },
+    content: {
+      gap: theme.space[3],
+    },
+    row: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    infoItem: {
+      flex: 1,
+    },
+    label: {
+      fontSize: 10,
+      color: theme.color.text.placeholder,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    value: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    amountValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    siteContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.md,
+      gap: theme.space[1.5],
+    },
+    siteText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      flex: 1,
+    },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.surface.muted,
+    },
+    footerItem: {
+      flex: 1,
+    },
+    footerLabel: {
+      fontSize: 11,
+      color: theme.color.text.placeholder,
+    },
+    footerValue: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    generateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      gap: theme.space[2],
+      marginTop: theme.space[1],
+    },
+    generateButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      marginTop: theme.space[1],
+    },
+    actionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.lg,
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[3],
+      gap: theme.space[1.5],
+    },
+    actionButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.icon.accent,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    deleteButtonText: {
+      color: theme.color.text.danger,
+    },
+  });
 
 export default TemplateCard;

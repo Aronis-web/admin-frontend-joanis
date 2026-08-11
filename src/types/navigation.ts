@@ -34,6 +34,8 @@ export type MainStackParamList = {
   Products: undefined;
   Stock: undefined;
   Photos: undefined;
+  Etiquetas: undefined;
+  ShiftTickets: undefined;
   PhotoCampaignManagement: {
     campaignId?: string;
   };
@@ -184,6 +186,7 @@ export type MainStackParamList = {
   Users: undefined;
   RolesPermissions: undefined;
   PermissionsDebug: undefined;
+  ThemePlayground: undefined;
 
   // Company & Sites
   Companies: undefined;
@@ -223,6 +226,8 @@ export type MainStackParamList = {
   AppVersions: undefined;
   PriceProfiles: undefined;
   Presentations: undefined;
+  AttendanceTerminals: undefined;
+  Attendance: undefined;
 
   // Emission Points & Series Configuration
   EmissionPoints: undefined;
@@ -393,6 +398,24 @@ export type MainStackParamList = {
   AccountReceivableDetail: {
     accountReceivableId: string;
   };
+
+  // Webmail / Correo corporativo
+  WebmailInbox: undefined;
+  WebmailMessage: {
+    uid: number;
+    folder?: string;
+  };
+  WebmailCompose:
+    | undefined
+    | {
+        to?: string;
+        cc?: string;
+        subject?: string;
+        body?: string;
+        inReplyTo?: string;
+        references?: string[];
+      };
+  WebmailArchive: undefined;
 };
 
 /**

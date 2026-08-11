@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useAuthStore } from '@/store/auth';
 
 interface ProtectedRouteProps {
@@ -20,6 +21,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   fallback,
   loadingComponent,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const {
     isAuthenticated,
     isLoading,
@@ -50,7 +53,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.primary[600]} />
+        <ActivityIndicator size="large" color={theme.color.brand.accent} />
         <Text style={styles.loadingText}>Verificando permisos...</Text>
       </View>
     );
@@ -253,37 +256,37 @@ export const useCommonPermissions = () => {
   };
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[5],
-    backgroundColor: colors.background.secondary,
+    padding: theme.space[5],
+    backgroundColor: theme.color.background.subtle,
   },
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   deniedTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.danger[500],
-    marginBottom: spacing[3],
+    color: theme.color.text.danger,
+    marginBottom: theme.space[3],
     textAlign: 'center',
   },
   deniedMessage: {
     fontSize: 16,
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     textAlign: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
     lineHeight: 24,
   },
   deniedHint: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
     fontStyle: 'italic',
   },

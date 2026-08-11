@@ -16,9 +16,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, Title } from '../primitives/Text';
 import { IconButton } from '../primitives/IconButton';
-import { colors } from '../../tokens/colors';
-import { spacing, iconSizes, zIndex } from '../../tokens/spacing';
-import { shadows } from '../../tokens/shadows';
+import { iconSizes } from '../../tokens/spacing';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 import { activeOpacity } from '../../tokens/animations';
 
 export interface ScreenHeaderAction {
@@ -98,6 +98,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   backgroundColor,
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
 
   const containerStyles = [
@@ -106,17 +108,17 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       paddingTop: insets.top,
       backgroundColor: transparent
         ? 'transparent'
-        : backgroundColor || colors.surface.primary,
+        : backgroundColor || theme.color.surface.base,
     },
-    elevated && !transparent && shadows.xs,
+    elevated && !transparent && theme.shadow.xs,
     style,
   ];
 
   return (
     <>
       <StatusBar
-        barStyle="dark-content"
-        backgroundColor={transparent ? 'transparent' : colors.surface.primary}
+        barStyle={theme.scheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={transparent ? 'transparent' : theme.color.surface.base}
         translucent={transparent}
       />
       <View style={containerStyles}>
@@ -133,7 +135,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 <Ionicons
                   name="chevron-back"
                   size={iconSizes.lg}
-                  color={colors.icon.primary}
+                  color={theme.color.icon.default}
                 />
               </TouchableOpacity>
             )}
@@ -147,7 +149,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 <Ionicons
                   name="menu"
                   size={iconSizes.lg}
-                  color={colors.icon.primary}
+                  color={theme.color.icon.default}
                 />
               </TouchableOpacity>
             )}
@@ -184,7 +186,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
                 />
                 {action.badge !== undefined && action.badge > 0 && (
                   <View style={styles.badge}>
-                    <Text variant="labelSmall" color={colors.text.inverse}>
+                    <Text variant="labelSmall" color={theme.color.text.inverse}>
                       {action.badge > 99 ? '99+' : action.badge}
                     </Text>
                   </View>
@@ -218,6 +220,8 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
   children,
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
 
   return (
@@ -238,7 +242,7 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
             <Ionicons
               name="menu"
               size={iconSizes.lg}
-              color={colors.icon.primary}
+              color={theme.color.icon.default}
             />
           </TouchableOpacity>
         )}
@@ -273,20 +277,20 @@ export const LargeHeader: React.FC<LargeHeaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   // ============================================
   // STANDARD HEADER
   // ============================================
   container: {
-    backgroundColor: colors.surface.primary,
-    zIndex: zIndex.base, // Bajo para que FAB quede por encima
+    backgroundColor: theme.color.surface.base,
+    zIndex: theme.zIndex.base, // Bajo para que FAB quede por encima
   },
 
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 56,
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: theme.space[2],
   },
 
   leftSection: {
@@ -296,18 +300,18 @@ const styles = StyleSheet.create({
   },
 
   backButton: {
-    padding: spacing[2],
-    marginLeft: -spacing[2],
+    padding: theme.space[2],
+    marginLeft: -theme.space[2],
   },
 
   menuButton: {
-    padding: spacing[2],
-    marginLeft: -spacing[2],
+    padding: theme.space[2],
+    marginLeft: -theme.space[2],
   },
 
   titleSection: {
     flex: 1,
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: theme.space[2],
   },
 
   titleCentered: {
@@ -315,7 +319,7 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    marginTop: spacing[0.5],
+    marginTop: theme.space[0.5],
   },
 
   rightSection: {
@@ -333,22 +337,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: colors.danger[600],
+    backgroundColor: theme.color.text.danger,
     borderRadius: 10,
     minWidth: 18,
     height: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing[1],
+    paddingHorizontal: theme.space[1],
   },
 
   // ============================================
   // LARGE HEADER
   // ============================================
   largeContainer: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingBottom: theme.space[4],
   },
 
   largeTopRow: {
@@ -356,7 +360,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 48,
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 
   largeActions: {
@@ -366,11 +370,11 @@ const styles = StyleSheet.create({
   },
 
   largeTitleSection: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 
   largeSubtitle: {
-    marginTop: spacing[1],
+    marginTop: theme.space[1],
   },
 });
 

@@ -20,7 +20,11 @@ import {
   PosSessionSaleDetail,
 } from '@/types/pos-sessions';
 import { Badge, Button, Card, Text } from '@/design-system/components';
-import { activeOpacity, borderRadius, colors, shadows, spacing } from '@/design-system/tokens';
+import { Pagination } from '@/design-system';
+import { activeOpacity } from '@/design-system/tokens';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 
 interface SessionsManagementScreenProps {
   navigation: any;
@@ -62,45 +66,47 @@ const getDifferenceTypeVariant = (type: string): 'success' | 'warning' | 'danger
   return 'warning';
 };
 
-const getManualDifferenceColor = (differenceCents: number): string => {
-  if (differenceCents > 0) return colors.info[700];
-  if (differenceCents < 0) return colors.danger[700];
-  return colors.success[700];
-};
-
-const DetailKeyValue = ({ label, value }: { label: string; value: string }) => (
-  <View style={styles.kvItem}>
-    <Text variant="caption" color="tertiary">{label}</Text>
-    <Text variant="bodySmall" color="primary">{value || '-'}</Text>
-  </View>
-);
-
-const FinancialMetric = ({
-  label,
-  value,
-  highlight = false,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-  valueColor?: string;
-}) => (
-  <View style={[styles.financialMetricBox, highlight && styles.financialMetricBoxHighlight]}>
-    <Text variant="caption" color="tertiary" align="center">{label}</Text>
-    <Text
-      variant="labelMedium"
-      color={valueColor || (highlight ? colors.primary[900] : 'primary')}
-      align="center"
-      style={styles.financialMetricValue}
-    >
-      {value}
-    </Text>
-  </View>
-);
-
 export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+
+  const getManualDifferenceColor = (differenceCents: number): string => {
+    if (differenceCents > 0) return theme.color.state.info.text;
+    if (differenceCents < 0) return theme.color.state.danger.text;
+    return theme.color.state.success.text;
+  };
+
+  const DetailKeyValue = ({ label, value }: { label: string; value: string }) => (
+    <View style={styles.kvItem}>
+      <Text variant="caption" color="tertiary">{label}</Text>
+      <Text variant="bodySmall" color="primary">{value || '-'}</Text>
+    </View>
+  );
+
+  const FinancialMetric = ({
+    label,
+    value,
+    highlight = false,
+    valueColor,
+  }: {
+    label: string;
+    value: string;
+    highlight?: boolean;
+    valueColor?: string;
+  }) => (
+    <View style={[styles.financialMetricBox, highlight && styles.financialMetricBoxHighlight]}>
+      <Text variant="caption" color="tertiary" align="center">{label}</Text>
+      <Text
+        variant="labelMedium"
+        color={valueColor || (highlight ? theme.color.text.heading : 'primary')}
+        align="center"
+        style={styles.financialMetricValue}
+      >
+        {value}
+      </Text>
+    </View>
+  );
 
   const [sessions, setSessions] = useState<PosSessionManagementItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -222,7 +228,7 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <ActivityIndicator size="large" color={theme.color.icon.default} />
           <Text variant="bodyMedium" color="tertiary" style={styles.loadingText}>Cargando sesiones...</Text>
         </View>
       ) : (
@@ -237,7 +243,7 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor={colors.primary[900]}
+                tintColor={theme.color.icon.default}
               />
             }
           >
@@ -287,31 +293,12 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
             )}
           </ScrollView>
 
-          <View style={styles.paginationFixedContainer}>
-            <View style={[styles.paginationContainer, { paddingBottom: Math.max(insets.bottom, spacing[2]) }]}>
-              <View style={styles.paginationButtonsRow}>
-                <Button
-                  title="Anterior"
-                  variant="secondary"
-                  onPress={handlePrevPage}
-                  disabled={page <= 1}
-                  style={styles.paginationButton}
-                />
-
-                <Button
-                  title="Siguiente"
-                  variant="secondary"
-                  onPress={handleNextPage}
-                  disabled={page >= totalPages}
-                  style={styles.paginationButton}
-                />
-              </View>
-
-              <Text variant="caption" color="secondary" align="center" style={styles.paginationInfo}>
-                Página {page} de {Math.max(totalPages, 1)} • Total: {total}
-              </Text>
-            </View>
-          </View>
+          <Pagination
+            currentPage={page}
+            totalPages={Math.max(totalPages, 1)}
+            totalItems={total}
+            onPageChange={setPage}
+          />
         </View>
       )}
 
@@ -486,7 +473,7 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
                       <Ionicons
                         name={isRequestsExpanded ? 'chevron-up' : 'chevron-down'}
                         size={20}
-                        color={colors.primary[900]}
+                        color={theme.color.icon.default}
                       />
                     </View>
                   </TouchableOpacity>
@@ -526,7 +513,7 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
                       <Ionicons
                         name={isSalesExpanded ? 'chevron-up' : 'chevron-down'}
                         size={20}
-                        color={colors.primary[900]}
+                        color={theme.color.icon.default}
                       />
                     </View>
                   </TouchableOpacity>
@@ -570,33 +557,33 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: spacing[2],
+    paddingHorizontal: theme.space[2],
   },
   headerSpacer: {
     width: 40,
@@ -608,7 +595,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
   contentWrapper: {
     flex: 1,
@@ -617,38 +604,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[3],
+    padding: theme.space[3],
   },
   emptySubtitle: {
-    marginTop: spacing[1],
+    marginTop: theme.space[1],
   },
   card: {
-    marginBottom: spacing[2.5],
+    marginBottom: theme.space[2.5],
   },
   rowBetween: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   cardTitle: {
     flex: 1,
   },
   summaryRow: {
     flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[2],
+    gap: theme.space[2],
+    marginTop: theme.space[2],
   },
   summaryBox: {
     flex: 1,
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[2],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[2],
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
   detailButton: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
   },
   paginationFixedContainer: {
     position: 'absolute',
@@ -658,148 +645,148 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
   paginationContainer: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    paddingHorizontal: spacing[3],
-    paddingTop: spacing[2],
-    ...shadows.sm,
+    borderTopColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[3],
+    paddingTop: theme.space[2],
+    ...theme.shadow.sm,
   },
   paginationButtonsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   paginationButton: {
     minWidth: 120,
   },
   paginationInfo: {
-    marginTop: spacing[1.5],
+    marginTop: theme.space[1.5],
   },
 
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   modalContent: {
-    padding: spacing[3],
-    paddingBottom: spacing[6],
+    padding: theme.space[3],
+    paddingBottom: theme.space[6],
   },
   modalSection: {
-    marginBottom: spacing[2.5],
+    marginBottom: theme.space[2.5],
   },
   sectionTitle: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   collapsibleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing[1.5],
+    marginBottom: theme.space[1.5],
   },
   expandIconContainer: {
     width: 28,
     height: 28,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[50],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.background.subtle,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.primary[200],
+    borderColor: theme.color.border.subtle,
   },
   kvItem: {
-    marginTop: spacing[1.5],
+    marginTop: theme.space[1.5],
   },
   gridTwoColumns: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   financialGroup: {
-    marginTop: spacing[1],
-    marginBottom: spacing[2],
+    marginTop: theme.space[1],
+    marginBottom: theme.space[2],
   },
   financialGroupTitle: {
-    marginBottom: spacing[1.5],
+    marginBottom: theme.space[1.5],
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   financialRow: {
     flexDirection: 'row',
-    gap: spacing[1.5],
-    marginBottom: spacing[1.5],
+    gap: theme.space[1.5],
+    marginBottom: theme.space[1.5],
   },
   financialMetricBox: {
     flex: 1,
     minHeight: 64,
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.border.light,
-    paddingHorizontal: spacing[1.5],
-    paddingVertical: spacing[1.5],
+    borderColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[1.5],
+    paddingVertical: theme.space[1.5],
     justifyContent: 'center',
   },
   financialMetricBoxHighlight: {
-    borderColor: colors.primary[300],
-    backgroundColor: colors.primary[50],
+    borderColor: theme.color.border.default,
+    backgroundColor: theme.color.background.muted,
   },
   financialMetricValue: {
-    marginTop: spacing[0.5],
+    marginTop: theme.space[0.5],
   },
   listItem: {
-    marginTop: spacing[1.5],
+    marginTop: theme.space[1.5],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: spacing[1.5],
+    paddingBottom: theme.space[1.5],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   listItemColumn: {
-    marginTop: spacing[2],
-    padding: spacing[2],
+    marginTop: theme.space[2],
+    padding: theme.space[2],
     borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.subtle,
   },
   saleCard: {
-    marginTop: spacing[2],
-    padding: spacing[2],
+    marginTop: theme.space[2],
+    padding: theme.space[2],
     borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.subtle,
   },
   inlineSectionLabel: {
-    marginTop: spacing[1.5],
-    marginBottom: spacing[1],
+    marginTop: theme.space[1.5],
+    marginBottom: theme.space[1],
   },
   paymentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing[0.75],
+    paddingVertical: theme.space[1],
   },
   modalFooter: {
-    paddingHorizontal: spacing[3],
-    paddingBottom: spacing[3],
-    paddingTop: spacing[1],
+    paddingHorizontal: theme.space[3],
+    paddingBottom: theme.space[3],
+    paddingTop: theme.space[1],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    backgroundColor: colors.surface.primary,
+    borderTopColor: theme.color.border.subtle,
+    backgroundColor: theme.color.surface.base,
   },
 });
 

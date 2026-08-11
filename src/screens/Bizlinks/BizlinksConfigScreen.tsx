@@ -6,18 +6,22 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
 import { BizlinksConfig } from '../../types/bizlinks';
 import { useAuthStore } from '../../store/auth';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfig'>;
 
 export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
   const { currentCompany } = useAuthStore();
   const { getConfigs, deleteConfig, loading } = useBizlinksConfig();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [configs, setConfigs] = useState<BizlinksConfig[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -158,8 +162,8 @@ export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
     console.log('⏳ Mostrando indicador de carga');
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={{ marginTop: 16, color: '#666' }}>Cargando configuraciones...</Text>
+        <ActivityIndicator size="large" color={theme.color.brand.accent} />
+        <Text style={{ marginTop: 16, color: theme.color.text.muted }}>Cargando configuraciones...</Text>
       </View>
     );
   }
@@ -202,10 +206,10 @@ export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
   },
   centerContainer: {
     flex: 1,
@@ -217,23 +221,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.color.border.subtle,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   addButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: theme.color.action.success.background,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#fff',
+    color: theme.color.action.success.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -241,10 +245,10 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -256,7 +260,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.color.border.subtle,
   },
   cardHeaderLeft: {
     flex: 1,
@@ -264,12 +268,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   badge: {
     paddingHorizontal: 12,
@@ -277,13 +281,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeActive: {
-    backgroundColor: '#28a745',
+    backgroundColor: theme.color.state.active.background,
   },
   badgeInactive: {
-    backgroundColor: '#6c757d',
+    backgroundColor: theme.color.state.draft.background,
   },
   badgeText: {
-    color: '#fff',
+    color: theme.color.text.inverse,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -296,13 +300,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     fontWeight: '600',
     width: 80,
   },
   infoValue: {
     fontSize: 14,
-    color: '#333',
+    color: theme.color.text.body,
     flex: 1,
   },
   cardActions: {
@@ -310,20 +314,20 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: theme.color.border.subtle,
   },
   actionButton: {
     flex: 1,
     padding: 12,
-    backgroundColor: '#007bff',
+    backgroundColor: theme.color.brand.accent,
     borderRadius: 8,
     alignItems: 'center',
   },
   actionButtonDanger: {
-    backgroundColor: '#dc3545',
+    backgroundColor: theme.color.action.danger.background,
   },
   actionButtonText: {
-    color: '#fff',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -334,17 +338,17 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.color.text.muted,
     marginBottom: 16,
   },
   emptyButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: theme.color.action.success.background,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   emptyButtonText: {
-    color: '#fff',
+    color: theme.color.action.success.text,
     fontSize: 14,
     fontWeight: 'bold',
   },

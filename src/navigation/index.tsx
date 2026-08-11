@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Platform } from 'react-native';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -69,6 +69,14 @@ const AppVersionsScreen = lazyLoad(
   () => import('@/screens/AppVersions').then((m) => ({ default: m.AppVersionsScreen })),
   'Cargando versiones...'
 );
+const AttendanceTerminalsScreen = lazyLoad(
+  () => import('@/screens/Attendance').then((m) => ({ default: m.AttendanceTerminalsScreen })),
+  'Cargando terminales...'
+);
+const AttendanceScreen = lazyLoad(
+  () => import('@/screens/Attendance').then((m) => ({ default: m.AttendanceScreen })),
+  'Cargando asistencia...'
+);
 const SitesScreen = lazyLoad(() =>
   import('@/screens/Sites/SitesScreen').then((m) => ({ default: m.SitesScreen }))
 );
@@ -83,6 +91,11 @@ const PermissionsDebugScreen = lazyLoad(() =>
     default: m.PermissionsDebugScreen,
   }))
 );
+const ThemePlaygroundScreen = lazyLoad(() =>
+  import('@/screens/Debug/ThemePlaygroundScreen').then((m) => ({
+    default: m.ThemePlaygroundScreen,
+  }))
+);
 const ProductsScreen = lazyLoad(
   () => import('@/screens/Inventory/ProductsScreen').then((m) => ({ default: m.ProductsScreen })),
   'Cargando productos...'
@@ -94,6 +107,17 @@ const StockScreen = lazyLoad(
 const PhotosScreen = lazyLoad(
   () => import('@/screens/Photos').then((m) => ({ default: m.PhotosScreen })),
   'Cargando campañas de fotos...'
+);
+const EtiquetasScreen = lazyLoad(
+  () => import('@/screens/Inventory/EtiquetasScreen').then((m) => ({ default: m.EtiquetasScreen })),
+  'Cargando etiquetas...'
+);
+const ShiftTicketsScreen = lazyLoad(
+  () =>
+    import('@/screens/ShiftTickets/ShiftTicketsScreen').then((m) => ({
+      default: m.ShiftTicketsScreen,
+    })),
+  'Cargando tickets de turno...'
 );
 const PhotoCampaignManagementScreen = lazyLoad(
   () => import('@/screens/Photos').then((m) => ({ default: m.PhotoCampaignManagementScreen })),
@@ -506,6 +530,24 @@ const CreateRetencionScreen = lazyLoad(
   'Cargando formulario...'
 );
 
+// Webmail Screens - Lazy Loaded
+const WebmailInboxScreen = lazyLoad(
+  () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailInboxScreen })),
+  'Cargando bandeja...'
+);
+const WebmailMessageScreen = lazyLoad(
+  () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailMessageScreen })),
+  'Cargando mensaje...'
+);
+const WebmailComposeScreen = lazyLoad(
+  () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailComposeScreen })),
+  'Cargando redactor...'
+);
+const WebmailArchiveScreen = lazyLoad(
+  () => import('@/screens/Webmail').then((m) => ({ default: m.WebmailArchiveScreen })),
+  'Cargando archivo...'
+);
+
 // Transport Screens - Lazy Loaded
 const VehiclesScreen = lazyLoad(
   () => import('@/screens/Transport').then((m) => ({ default: m.VehiclesScreen })),
@@ -678,6 +720,33 @@ const MainStack = React.memo(() => {
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ATTENDANCE_TERMINALS}
+        options={{
+          title: 'Terminales de Asistencia',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['attendance.terminals.read']}>
+            <AttendanceTerminalsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ATTENDANCE}
+        options={{
+          title: 'Asistencia',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={['attendance.read.all', 'attendance.read.own']}
+            requireAll={false}
+          >
+            <AttendanceScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
         name={MAIN_ROUTES.PERMISSIONS_DEBUG}
         options={{
           title: 'Debug de Permisos',
@@ -689,6 +758,13 @@ const MainStack = React.memo(() => {
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.THEME_PLAYGROUND}
+        component={ThemePlaygroundScreen}
+        options={{
+          title: 'Theme Playground',
+        }}
+      />
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PRODUCTS}
         options={{
@@ -714,6 +790,18 @@ const MainStack = React.memo(() => {
             <StockScreen {...props} />
           </ProtectedRoute>
         )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ETIQUETAS}
+        options={{ title: 'Etiquetas Electrónicas' }}
+      >
+        {(props) => <EtiquetasScreen {...props} />}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.SHIFT_TICKETS}
+        options={{ title: 'Tickets de Turno' }}
+      >
+        {(props) => <ShiftTicketsScreen {...props} />}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.PHOTOS}
@@ -981,9 +1069,9 @@ const MainStack = React.memo(() => {
           title: 'Nueva Venta',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['sales.create']}>
-            <CreateSaleScreen {...(props as any)} />
+            <CreateSaleScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1000,9 +1088,9 @@ const MainStack = React.memo(() => {
           title: 'Registrar Pago',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['sales.payment.register']}>
-            <RegisterSalePaymentScreen {...(props as any)} />
+            <RegisterSalePaymentScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1190,9 +1278,9 @@ const MainStack = React.memo(() => {
           title: 'Gastos Recurrentes',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['expenses.templates.read']}>
-            <ExpenseTemplatesScreen {...(props as any)} />
+            <ExpenseTemplatesScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1259,7 +1347,7 @@ const MainStack = React.memo(() => {
       />
       <MainStackNavigator.Screen
         name="EditCampaignParticipant"
-        component={EditParticipantScreen as any}
+        component={EditParticipantScreen}
         options={{
           title: 'Editar Participante',
         }}
@@ -1419,12 +1507,12 @@ const MainStack = React.memo(() => {
           title: 'Reconocimiento Facial',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute
             requiredPermissions={['biometric.read', 'biometric.register', 'biometric.verify']}
             requireAll={false}
           >
-            <FaceRecognitionMenuScreen {...(props as any)} />
+            <FaceRecognitionMenuScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1434,9 +1522,9 @@ const MainStack = React.memo(() => {
           title: 'Perfiles Biométricos',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['biometric.read']}>
-            <BiometricProfilesScreen {...(props as any)} />
+            <BiometricProfilesScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1446,9 +1534,9 @@ const MainStack = React.memo(() => {
           title: 'Registrar Rostro',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['biometric.register']}>
-            <RegisterFaceScreen {...(props as any)} />
+            <RegisterFaceScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1458,9 +1546,9 @@ const MainStack = React.memo(() => {
           title: 'Verificar Rostro',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['biometric.verify']}>
-            <VerifyFaceScreen {...(props as any)} />
+            <VerifyFaceScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1470,7 +1558,7 @@ const MainStack = React.memo(() => {
           title: 'Organigrama',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute
             requiredPermissions={[
               'organization.positions.company.read',
@@ -1478,7 +1566,7 @@ const MainStack = React.memo(() => {
             ]}
             requireAll={false}
           >
-            <OrganizationChartScreen {...(props as any)} />
+            <OrganizationChartScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1747,9 +1835,9 @@ const MainStack = React.memo(() => {
           title: 'Generar Documentos',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksGenerateDocumentsScreen {...(props as any)} />
+            <BizlinksGenerateDocumentsScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1834,7 +1922,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...(props as any)} />
+            <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1846,7 +1934,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...(props as any)} />
+            <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1858,7 +1946,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...(props as any)} />
+            <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1870,7 +1958,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...(props as any)} />
+            <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1882,7 +1970,7 @@ const MainStack = React.memo(() => {
       >
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.documents.send']}>
-            <BizlinksEmitirFacturaScreen {...(props as any)} />
+            <BizlinksEmitirFacturaScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1927,11 +2015,50 @@ const MainStack = React.memo(() => {
 
       <MainStackNavigator.Screen
         name={AUTH_ROUTES.SITE_SELECTION}
-        component={SiteSelectionScreen as any}
+        component={SiteSelectionScreen}
         options={{
           title: 'Seleccionar Sede',
         }}
       />
+
+      {/* Webmail Screens */}
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.WEBMAIL_INBOX}
+        options={{ title: 'Bandeja de Correo' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.WEBMAIL.READ]}>
+            <WebmailInboxScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name={MAIN_ROUTES.WEBMAIL_MESSAGE} options={{ title: 'Mensaje' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.WEBMAIL.READ]}>
+            <WebmailMessageScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.WEBMAIL_COMPOSE}
+        options={{ title: 'Redactar Correo' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.WEBMAIL.SEND]}>
+            <WebmailComposeScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.WEBMAIL_ARCHIVE}
+        options={{ title: 'Archivo de Correos' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={[PERMISSIONS.WEBMAIL.ARCHIVE_READ]}>
+            <WebmailArchiveScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
 
       {/* Transport Screens */}
       <MainStackNavigator.Screen
@@ -1968,7 +2095,7 @@ const MainStack = React.memo(() => {
           title: 'Transportistas',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute
             requiredPermissions={[
               'transport.transporters.read',
@@ -1978,7 +2105,7 @@ const MainStack = React.memo(() => {
             ]}
             requireAll={false}
           >
-            <TransportersScreen {...(props as any)} />
+            <TransportersScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -1995,9 +2122,9 @@ const MainStack = React.memo(() => {
           title: 'Crear Transportista',
         }}
       >
-        {(props) => (
+        {() => (
           <ProtectedRoute requiredPermissions={['transport.transporters.create']}>
-            <CreateTransporterScreen {...(props as any)} />
+            <CreateTransporterScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
@@ -2039,15 +2166,6 @@ export const Navigation = () => {
   useEffect(() => {
     const restoreState = async () => {
       try {
-        // En web NO restauramos el estado de navegación: la URL del browser
-        // ya cumple ese rol, y restaurar un state stale (ej. LoginScreen
-        // persistido) pisa la redirección automática post-login y deja al
-        // usuario en pantalla en blanco.
-        if (Platform.OS === 'web') {
-          setIsReady(true);
-          return;
-        }
-
         const savedStateString = await AsyncStorage.getItem(NAVIGATION_PERSISTENCE_KEY);
         const state = savedStateString ? JSON.parse(savedStateString) : undefined;
 
@@ -2121,46 +2239,9 @@ export const Navigation = () => {
       ref={navigationRef}
       initialState={initialState}
       onStateChange={(state) => {
-        // Save navigation state whenever it changes (solo en mobile: en web
-        // usamos la URL del browser vía `linking` como fuente de verdad).
-        if (Platform.OS !== 'web') {
-          AsyncStorage.setItem(NAVIGATION_PERSISTENCE_KEY, JSON.stringify(state));
-        }
+        // Save navigation state whenever it changes
+        AsyncStorage.setItem(NAVIGATION_PERSISTENCE_KEY, JSON.stringify(state));
       }}
-      linking={
-        Platform.OS === 'web'
-          ? {
-              prefixes: [
-                typeof window !== 'undefined' ? window.location.origin : 'https://app.gritlabs.app',
-              ],
-              config: {
-                screens: {
-                  // Auth
-                  Login: 'login',
-                  Register: 'register',
-                  CompanySelection: 'select-company',
-                  SiteSelection: 'select-site',
-                  // Main (rutas más usadas — el resto cae al fallback interno)
-                  Dashboard: 'dashboard',
-                  Home: 'home',
-                  Companies: 'empresas',
-                  Sites: 'sedes',
-                  Products: 'productos',
-                  Sales: 'ventas',
-                  Purchases: 'compras',
-                  Inventory: 'inventario',
-                  Users: 'usuarios',
-                  Reports: 'reportes',
-                  Campaigns: 'campañas',
-                  Repartos: 'repartos',
-                  Transfers: 'transferencias',
-                  Expenses: 'gastos',
-                  CashReconciliation: 'caja',
-                },
-              },
-            }
-          : undefined
-      }
     >
       <View style={{ flex: 1 }}>
         {showMainStack ? <MainStack /> : <AuthStack />}

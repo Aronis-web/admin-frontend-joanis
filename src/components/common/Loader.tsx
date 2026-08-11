@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ViewStyle, Animated, Easing } from 'react-native';
 import { Svg, Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { SplashScreen } from './SplashScreen';
 
 interface LoaderProps {
@@ -23,8 +24,10 @@ const sizeConfig = {
 // Modern Spinner Component
 const ModernSpinner: React.FC<{ size: 'small' | 'medium' | 'large'; color?: string }> = ({
   size,
-  color = colors.primary[900]
+  color: colorProp,
 }) => {
+  const theme = useTheme();
+  const color = colorProp ?? theme.color.brand.primary;
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const config = sizeConfig[size];
   const radius = (config.spinner - config.strokeWidth * 2) / 2;
@@ -72,8 +75,11 @@ const ModernSpinner: React.FC<{ size: 'small' | 'medium' | 'large'; color?: stri
 // Animated Dots Component
 const AnimatedDots: React.FC<{ size: 'small' | 'medium' | 'large'; color?: string }> = ({
   size,
-  color = colors.primary[900]
+  color: colorProp,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const color = colorProp ?? theme.color.brand.primary;
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
   const dot3 = useRef(new Animated.Value(0.3)).current;
@@ -145,8 +151,11 @@ const AnimatedDots: React.FC<{ size: 'small' | 'medium' | 'large'; color?: strin
 // Pulse Loader Component
 const PulseLoader: React.FC<{ size: 'small' | 'medium' | 'large'; color?: string }> = ({
   size,
-  color = colors.primary[900]
+  color: colorProp,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const color = colorProp ?? theme.color.brand.primary;
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const config = sizeConfig[size];
   const baseSize = config.spinner * 0.6;
@@ -212,12 +221,16 @@ const PulseLoader: React.FC<{ size: 'small' | 'medium' | 'large'; color?: string
 
 export const Loader: React.FC<LoaderProps> = ({
   size = 'large',
-  color = colors.primary[900],
+  color: colorProp,
   text,
   fullScreen = false,
   style,
   variant = 'spinner',
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const color = colorProp ?? theme.color.brand.primary;
+
   // Use the modern splash screen for full-screen loading
   if (fullScreen) {
     return <SplashScreen text={text} />;
@@ -247,15 +260,15 @@ export const Loader: React.FC<LoaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
-    padding: spacing[6],
+    padding: theme.space[6],
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
-    marginTop: spacing[4],
-    color: colors.text.secondary,
+    marginTop: theme.space[4],
+    color: theme.color.text.muted,
     textAlign: 'center',
     fontWeight: '500',
     letterSpacing: 0.3,

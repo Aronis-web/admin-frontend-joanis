@@ -2,13 +2,14 @@
  * PurchaseDetailScreen - Detalle de Compra
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
@@ -40,10 +41,6 @@ import { ScreenProps } from '@/types/navigation';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
@@ -56,6 +53,8 @@ import {
   SearchBar,
   Input,
 } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type PurchaseDetailScreenProps = ScreenProps<'PurchaseDetail'>;
 
@@ -63,6 +62,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { purchaseId } = route.params;
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [products, setProducts] = useState<PurchaseProduct[]>([]);
@@ -701,7 +702,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                     handleDeleteProduct(product);
                   }}
                 >
-                  <Ionicons name="trash-outline" size={18} color={colors.danger[500]} />
+                  <Ionicons name="trash-outline" size={18} color={theme.color.icon.danger} />
                 </TouchableOpacity>
               )}
             </View>
@@ -720,13 +721,13 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
             {product.validatedStock !== undefined && (
               <View style={styles.productRow}>
                 <Label color="secondary">Stock Validado:</Label>
-                <Body color={colors.success[600]}>{product.validatedStock}</Body>
+                <Body color={theme.color.text.success}>{product.validatedStock}</Body>
               </View>
             )}
             {product.resolutionAction && (
               <View style={styles.productRow}>
                 <Label color="secondary">Resolución:</Label>
-                <Body color={colors.primary[600]}>
+                <Body color={theme.color.text.subtle}>
                   {product.resolutionAction === 'MERGE' ? 'Fusionado' : 'Nuevo producto'}
                 </Body>
               </View>
@@ -750,8 +751,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
           {product.rejectionReason && (
             <View style={styles.rejectionContainer}>
-              <Label color={colors.danger[600]}>Razón de Rechazo:</Label>
-              <Caption color={colors.danger[600]}>{product.rejectionReason}</Caption>
+              <Label color={theme.color.text.danger}>Razón de Rechazo:</Label>
+              <Caption color={theme.color.text.danger}>{product.rejectionReason}</Caption>
             </View>
           )}
 
@@ -823,7 +824,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <ActivityIndicator size="large" color={theme.color.text.heading} />
           <Body color="secondary" style={styles.loadingText}>
             Cargando compra...
           </Body>
@@ -841,7 +842,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={colors.icon.primary} />
+          <Ionicons name="chevron-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={styles.headerTitleRow}>
@@ -862,7 +863,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[colors.primary[900]]}
+            colors={[theme.color.text.heading]}
           />
         }
       >
@@ -883,7 +884,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                   style={styles.editSupplierButton}
                   onPress={handleOpenEditSupplierModal}
                 >
-                  <Caption color={colors.primary[600]}>✏️ Editar</Caption>
+                  <Caption color={theme.color.text.subtle}>✏️ Editar</Caption>
                 </TouchableOpacity>
               )}
             </View>
@@ -932,31 +933,31 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
           </Title>
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.text.primary}>
+              <Title size="medium" color={theme.color.text.heading}>
                 {stats.total}
               </Title>
               <Caption color="secondary">Total</Caption>
             </View>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.neutral[500]}>
+              <Title size="medium" color={theme.color.text.subtle}>
                 {stats.preliminary}
               </Title>
               <Caption color="secondary">Preliminar</Caption>
             </View>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.warning[500]}>
+              <Title size="medium" color={theme.color.icon.warning}>
                 {stats.inValidation}
               </Title>
               <Caption color="secondary">En Validación</Caption>
             </View>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.success[500]}>
+              <Title size="medium" color={theme.color.icon.success}>
                 {stats.validated}
               </Title>
               <Caption color="secondary">Validados</Caption>
             </View>
             <View style={styles.statItem}>
-              <Title size="medium" color={colors.danger[500]}>
+              <Title size="medium" color={theme.color.icon.danger}>
                 {stats.rejected}
               </Title>
               <Caption color="secondary">Rechazados</Caption>
@@ -974,7 +975,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
               <View style={styles.totalSumRow}>
                 <View style={styles.totalSumItem}>
                   <Caption color="secondary">Total Sin Validar</Caption>
-                  <Title size="medium" color={colors.neutral[600]}>
+                  <Title size="medium" color={theme.color.text.muted}>
                     {formatCurrency(totalSum.totalUnvalidatedCents)}
                   </Title>
                   <Caption color="tertiary">
@@ -983,7 +984,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                 </View>
                 <View style={styles.totalSumItem}>
                   <Caption color="secondary">Total Validado</Caption>
-                  <Title size="medium" color={colors.success[600]}>
+                  <Title size="medium" color={theme.color.text.success}>
                     {formatCurrency(totalSum.totalValidatedCents)}
                   </Title>
                   <Caption color="tertiary">
@@ -1002,12 +1003,12 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                   ]}
                 >
                   <Caption
-                    color={totalSum.differenceCents > 0 ? colors.success[700] : colors.danger[700]}
+                    color={totalSum.differenceCents > 0 ? theme.color.text.success : theme.color.text.danger}
                   >
                     Diferencia:
                   </Caption>
                   <Body
-                    color={totalSum.differenceCents > 0 ? colors.success[700] : colors.danger[700]}
+                    color={totalSum.differenceCents > 0 ? theme.color.text.success : theme.color.text.danger}
                   >
                     {totalSum.differenceCents > 0 ? '+' : ''}
                     {formatCurrency(totalSum.differenceCents)}
@@ -1045,8 +1046,8 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                 requiredPermissions={['purchases.ocr.scan']}
                 hideIfNoPermission={true}
               >
-                <Ionicons name="camera" size={16} color={colors.text.inverse} />
-                <Caption color={colors.text.inverse}>Escáner OCR</Caption>
+                <Ionicons name="camera" size={16} color={theme.color.text.inverse} />
+                <Caption color={theme.color.text.inverse}>Escáner OCR</Caption>
               </ProtectedTouchableOpacity>
               <Button title="+ Agregar" onPress={handleAddProduct} variant="primary" size="small" />
             </View>
@@ -1200,6 +1201,8 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
   onClose,
   productPhotos,
 }) => {
+  const theme = useTheme();
+  const modalStyles = useThemedStyles(createModalStyles);
   const formatCurrency = (cents: number) => `S/ ${(cents / 100).toFixed(2)}`;
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -1293,7 +1296,7 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                 padding="medium"
                 style={{ ...modalStyles.section, ...modalStyles.validatedCard }}
               >
-                <Label color={colors.success[700]} style={modalStyles.sectionTitle}>
+                <Label color={theme.color.text.success} style={modalStyles.sectionTitle}>
                   ✅ Datos Validados
                 </Label>
                 {product.validatedStock !== undefined && (
@@ -1427,16 +1430,20 @@ const InfoRow: React.FC<{ label: string; value: string; highlight?: boolean }> =
   label,
   value,
   highlight,
-}) => (
-  <View style={modalStyles.infoRow}>
-    <Label color="secondary" style={modalStyles.infoLabel}>
-      {label}:
-    </Label>
-    <Body color={highlight ? colors.success[700] : 'primary'} style={modalStyles.infoValue}>
-      {value}
-    </Body>
-  </View>
-);
+}) => {
+  const theme = useTheme();
+  const modalStyles = useThemedStyles(createModalStyles);
+  return (
+    <View style={modalStyles.infoRow}>
+      <Label color="secondary" style={modalStyles.infoLabel}>
+        {label}:
+      </Label>
+      <Body color={highlight ? theme.color.text.success : 'primary'} style={modalStyles.infoValue}>
+        {value}
+      </Body>
+    </View>
+  );
+};
 
 // ============================================
 // Entries Management Modal Component
@@ -1470,6 +1477,8 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
   onCloseMultiValidation,
   onDeleteProductValidations,
 }) => {
+  const theme = useTheme();
+  const modalStyles = useThemedStyles(createModalStyles);
   const [selectedValidationDetail, setSelectedValidationDetail] =
     useState<PurchaseProductValidationEntry | null>(null);
   const [reverseTarget, setReverseTarget] = useState<PurchaseProductValidationEntry | null>(null);
@@ -1866,7 +1875,7 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
                   </View>
 
                   <View style={modalStyles.content}>
-                    <Body color="secondary" style={{ marginBottom: spacing[3] }}>
+                    <Body color="secondary" style={{ marginBottom: theme.space[3] }}>
                       Ingrese el motivo de la anulación. Esta acción revertirá el ingreso de stock.
                     </Body>
                     <Input
@@ -1927,6 +1936,8 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
   onUpdate,
   updating,
 }) => {
+  const theme = useTheme();
+  const modalStyles = useThemedStyles(createModalStyles);
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={modalStyles.overlay}>
@@ -1979,10 +1990,10 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
 // ============================================
 // STYLES
 // ============================================
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -1990,23 +2001,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    gap: spacing[3],
+    borderBottomColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2016,29 +2027,29 @@ const styles = StyleSheet.create({
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   contentContainerTablet: {
-    padding: spacing[6],
+    padding: theme.space[6],
     maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
   },
   infoCard: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   sectionTitle: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   infoLabel: {
     width: 120,
@@ -2050,108 +2061,108 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   editSupplierButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.primary[50],
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.primary[200],
+    borderColor: theme.color.border.subtle,
   },
   notesContainer: {
-    marginTop: spacing[2],
-    paddingTop: spacing[3],
+    marginTop: theme.space[2],
+    paddingTop: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[1],
+    borderTopColor: theme.color.border.subtle,
+    gap: theme.space[1],
   },
   statsCard: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   statItem: {
     alignItems: 'center',
     minWidth: 70,
   },
   totalSumCard: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   totalSumGrid: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   totalSumRow: {
     flexDirection: 'row',
-    gap: spacing[4],
+    gap: theme.space[4],
   },
   totalSumItem: {
     flex: 1,
     alignItems: 'center',
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   totalSumDifference: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[2],
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
+    marginTop: theme.space[2],
   },
   differencePositive: {
-    backgroundColor: colors.success[50],
+    backgroundColor: theme.color.state.success.background,
   },
   differenceNegative: {
-    backgroundColor: colors.danger[50],
+    backgroundColor: theme.color.state.danger.background,
   },
   productsSection: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   searchBar: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   headerActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: spacing[3],
-    marginBottom: spacing[4],
+    gap: theme.space[3],
+    marginBottom: theme.space[4],
   },
   ocrButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.accent[600],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
+    backgroundColor: theme.color.brand.accent,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.md,
+    gap: theme.space[2],
   },
   productCard: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   productHeaderLeft: {
     flex: 1,
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   productHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   deleteButton: {
-    padding: spacing[2],
+    padding: theme.space[2],
   },
   productBody: {
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   productRow: {
     flexDirection: 'row',
@@ -2159,30 +2170,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rejectionContainer: {
-    marginTop: spacing[3],
-    padding: spacing[3],
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.md,
-    gap: spacing[1],
+    marginTop: theme.space[3],
+    padding: theme.space[3],
+    backgroundColor: theme.color.state.danger.background,
+    borderRadius: theme.radii.md,
+    gap: theme.space[1],
   },
   actionHint: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
     textAlign: 'center',
   },
   productActionButton: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
   },
   bottomSpacer: {
-    height: spacing[20],
+    height: theme.space[20],
   },
   footer: {
     flexDirection: 'row',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   footerButton: {
     flex: 1,
@@ -2190,59 +2201,59 @@ const styles = StyleSheet.create({
 });
 
 // Modal Styles
-const modalStyles = StyleSheet.create({
+const createModalStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   container: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
     width: '100%',
     maxWidth: 700,
     maxHeight: '90%',
-    ...shadows.xl,
+    ...theme.shadow.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTitleContainer: {
     flex: 1,
-    paddingRight: spacing[3],
+    paddingRight: theme.space[3],
   },
   content: {
-    padding: spacing[5],
+    padding: theme.space[5],
     maxHeight: 500,
   },
   section: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   sectionTitle: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   validatedCard: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[200],
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
   },
   warningCard: {
-    backgroundColor: colors.warning[50],
-    borderColor: colors.warning[200],
-    gap: spacing[2],
+    backgroundColor: theme.color.state.warning.background,
+    borderColor: theme.color.state.warning.border,
+    gap: theme.space[2],
   },
   entryActionButton: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
   },
   infoRow: {
     flexDirection: 'row',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   infoLabel: {
     width: 140,
@@ -2251,29 +2262,29 @@ const modalStyles = StyleSheet.create({
     flex: 1,
   },
   photoSection: {
-    marginTop: spacing[4],
-    gap: spacing[2],
+    marginTop: theme.space[4],
+    gap: theme.space[2],
   },
   photosScroll: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
   photo: {
     width: 120,
     height: 120,
-    borderRadius: borderRadius.md,
-    marginRight: spacing[3],
+    borderRadius: theme.radii.md,
+    marginRight: theme.space[3],
   },
   validationItem: {
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    gap: spacing[2],
+    borderBottomColor: theme.color.border.subtle,
+    gap: theme.space[2],
   },
   validationItemReversed: {
-    backgroundColor: colors.danger[50],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    marginBottom: spacing[2],
+    backgroundColor: theme.color.state.danger.background,
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
+    marginBottom: theme.space[2],
   },
   validationHeaderRow: {
     flexDirection: 'row',
@@ -2283,25 +2294,25 @@ const modalStyles = StyleSheet.create({
   validationPhoto: {
     width: '100%',
     height: 200,
-    borderRadius: borderRadius.md,
-    marginTop: spacing[2],
+    borderRadius: theme.radii.md,
+    marginTop: theme.space[2],
   },
   signaturePhoto: {
     width: '100%',
     height: 100,
-    borderRadius: borderRadius.md,
-    marginTop: spacing[2],
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.md,
+    marginTop: theme.space[2],
+    backgroundColor: theme.color.surface.subtle,
   },
   infoText: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
   },
   footer: {
     flexDirection: 'row',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   modalButton: {
     flex: 1,

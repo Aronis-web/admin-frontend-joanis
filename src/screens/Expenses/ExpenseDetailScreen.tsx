@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +15,9 @@ import { Expense } from '@/types/expenses';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { ExpenseStatusBadge } from '@/components/Expenses/ExpenseStatusBadge';
 import { PaymentCard } from '@/components/Expenses/PaymentCard';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ExpenseDetailScreenProps {
   navigation: any;
@@ -28,6 +30,8 @@ interface ExpenseDetailScreenProps {
 }
 
 export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { expenseId, action } = route.params;
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
@@ -210,13 +214,13 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalle de Gasto</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando...</Text>
         </View>
       </SafeAreaView>
@@ -228,7 +232,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalle de Gasto</Text>
           <View style={styles.headerRight} />
@@ -261,7 +265,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{expense.code}</Text>
         <View style={styles.headerRight} />
@@ -322,7 +326,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
               <View style={styles.detailItem}>
                 <Text style={styles.detailLabel}>Sede</Text>
                 <View style={styles.detailValueRow}>
-                  <Ionicons name="business" size={16} color="#6366F1" />
+                  <Ionicons name="business" size={16} color={theme.color.brand.accent} />
                   <Text style={styles.detailValue}>{expense.site.name}</Text>
                 </View>
               </View>
@@ -350,7 +354,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
               <View style={styles.detailItem}>
                 <Text style={styles.detailLabel}>Proyecto</Text>
                 <View style={styles.detailValueRow}>
-                  <Ionicons name="folder-open" size={16} color="#10B981" />
+                  <Ionicons name="folder-open" size={16} color={theme.color.state.success.border} />
                   <Text style={styles.detailValue}>{expense.project.name}</Text>
                 </View>
               </View>
@@ -435,7 +439,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
                       );
                     }}
                   >
-                    <Ionicons name="eye-outline" size={18} color="#6366F1" />
+                    <Ionicons name="eye-outline" size={18} color={theme.color.brand.accent} />
                     <Text style={styles.viewAllPaymentsText}>Ver Todo</Text>
                   </TouchableOpacity>
                 </View>
@@ -464,7 +468,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
                   <Ionicons
                     name={loadingPayments ? 'hourglass-outline' : 'refresh-outline'}
                     size={18}
-                    color="#6366F1"
+                    color={theme.color.brand.accent}
                   />
                   <Text style={styles.viewAllPaymentsText}>
                     {loadingPayments ? 'Cargando...' : 'Cargar Pagos'}
@@ -472,7 +476,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
                 </TouchableOpacity>
               </View>
               <View style={styles.paymentSummaryBox}>
-                <Ionicons name="information-circle" size={24} color="#6366F1" />
+                <Ionicons name="information-circle" size={24} color={theme.color.brand.accent} />
                 <View style={styles.paymentSummaryContent}>
                   <Text style={styles.paymentSummaryTitle}>
                     {isPaid ? 'Gasto Pagado' : 'Pagos Registrados'}
@@ -496,7 +500,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
         <View style={styles.actionsContainer}>
           {expense.status === 'ACTIVE' && (
             <TouchableOpacity style={styles.primaryButton} onPress={handleAddPayment}>
-              <Ionicons name="cash" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Ionicons name="cash" size={20} color={theme.color.text.inverse} style={{ marginRight: 8 }} />
               <Text style={styles.primaryButtonText}>Registrar Pago</Text>
             </TouchableOpacity>
           )}
@@ -531,10 +535,10 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   header: {
     flexDirection: 'row',
@@ -542,9 +546,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -552,7 +556,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -561,7 +565,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   content: {
     padding: 16,
@@ -574,18 +578,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   errorText: {
     fontSize: 16,
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -601,18 +605,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginRight: 12,
   },
   description: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     lineHeight: 20,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   sectionHeader: {
@@ -627,30 +631,30 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.border.subtle,
   },
   viewAllPaymentsText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
   emptyPaymentsText: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'center',
     paddingVertical: 16,
   },
   paymentSummaryBox: {
     flexDirection: 'row',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderRadius: 8,
     padding: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.border.subtle,
   },
   paymentSummaryContent: {
     flex: 1,
@@ -659,22 +663,22 @@ const styles = StyleSheet.create({
   paymentSummaryTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   paymentSummaryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   paymentSummaryHint: {
     fontSize: 12,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     marginTop: 4,
     fontStyle: 'italic',
   },
   amountContainer: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     padding: 12,
     gap: 8,
@@ -687,37 +691,37 @@ const styles = StyleSheet.create({
   amountLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   amountValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   amountLabelSecondary: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   amountValuePaid: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   amountValuePending: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: theme.color.text.warning,
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
     borderRadius: 4,
     overflow: 'hidden',
     marginTop: 4,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#10B981',
+    backgroundColor: theme.color.state.success.border,
     borderRadius: 4,
   },
   detailsGrid: {
@@ -725,12 +729,12 @@ const styles = StyleSheet.create({
   },
   detailItem: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: theme.color.border.subtle,
     paddingBottom: 8,
   },
   detailLabel: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     fontWeight: '600',
     textTransform: 'uppercase',
     marginBottom: 4,
@@ -738,7 +742,7 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.color.text.body,
   },
   detailValueRow: {
     flexDirection: 'row',
@@ -753,16 +757,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: theme.color.border.subtle,
   },
   paymentInfoLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   paymentInfoValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: theme.color.text.body,
     textAlign: 'right',
     flex: 1,
     marginLeft: 12,
@@ -772,7 +776,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   primaryButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -782,33 +786,33 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   secondaryButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   dangerButton: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: theme.color.state.danger.border,
   },
   dangerButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#DC2626',
+    color: theme.color.state.danger.text,
   },
 });
 

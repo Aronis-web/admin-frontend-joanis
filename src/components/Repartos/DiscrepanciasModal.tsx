@@ -2,6 +2,8 @@
  * DiscrepanciasModal - Modal de reporte de discrepancias
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,7 +11,6 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,19 +22,15 @@ import {
   DiscrepancyStatusColors,
 } from '@/types/consolidated-reports';
 import logger from '@/utils/logger';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
-  Card,
   Button,
   IconButton,
-  Badge,
   EmptyState,
 } from '@/design-system';
 
@@ -50,6 +47,8 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
   onClose,
   onManageNotes,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<ConsolidatedTransferReport | null>(null);
   const { width, height } = useWindowDimensions();
@@ -93,7 +92,7 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Title size="small" style={{ marginBottom: spacing[1] }}>
+            <Title size="small" style={{ marginBottom: theme.space[1] }}>
               {discrepancy.productName}
             </Title>
             <Caption color="secondary">
@@ -118,7 +117,7 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
 
         {/* Reparto Info */}
         <View style={styles.repartoInfo}>
-          <Caption color="secondary" style={{ marginBottom: spacing[1] }}>
+          <Caption color="secondary" style={{ marginBottom: theme.space[1] }}>
             Reparto:
           </Caption>
           <Body style={{ fontWeight: '600' }}>
@@ -134,7 +133,7 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
           </View>
           <View style={styles.quantityRow}>
             <Caption color="secondary">Validado:</Caption>
-            <Body style={{ fontWeight: '600', color: colors.success[600] }}>
+            <Body style={{ fontWeight: '600', color: theme.color.text.success }}>
               {discrepancy.quantityValidated} unidades
             </Body>
           </View>
@@ -144,7 +143,7 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
               <Body
                 style={{
                   fontWeight: '700',
-                  color: isNegative ? colors.danger[600] : colors.warning[600],
+                  color: isNegative ? theme.color.text.danger : theme.color.text.warning,
                 }}
               >
                 {isNegative ? '' : '+'}
@@ -157,7 +156,7 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
         {/* Validation Info */}
         {discrepancy.validatedByName && (
           <View style={styles.validationInfo}>
-            <Caption style={{ color: colors.accent[600], marginBottom: spacing[1] }}>
+            <Caption style={{ color: theme.color.brand.accent, marginBottom: theme.space[1] }}>
               Validado por: {discrepancy.validatedByName}
             </Caption>
             {discrepancy.validationNotes && (
@@ -171,7 +170,7 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
         {/* Notes Count */}
         {discrepancy.notesCount !== undefined && discrepancy.notesCount > 0 && (
           <View style={styles.notesCountContainer}>
-            <Caption style={{ fontWeight: '600', color: colors.warning[700] }}>
+            <Caption style={{ fontWeight: '600', color: theme.color.text.warning }}>
               📝 {discrepancy.notesCount} nota{discrepancy.notesCount !== 1 ? 's' : ''} explicativa
               {discrepancy.notesCount !== 1 ? 's' : ''}
             </Caption>
@@ -207,8 +206,8 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.accent[500]} />
-            <Body color="secondary" style={{ marginTop: spacing[3] }}>
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
+            <Body color="secondary" style={{ marginTop: theme.space[3] }}>
               Cargando reporte...
             </Body>
           </View>
@@ -216,7 +215,7 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
             {/* Summary */}
             <View style={[styles.summaryCard, isTablet ? styles.summaryCardTablet : undefined]}>
-              <Label style={{ marginBottom: spacing[3] }}>
+              <Label style={{ marginBottom: theme.space[3] }}>
                 Resumen del Reporte
               </Label>
               <View style={styles.summaryRow}>
@@ -229,20 +228,20 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
               </View>
               <View style={styles.summaryRow}>
                 <Caption color="secondary">Total validado:</Caption>
-                <Body style={{ fontWeight: '600', color: colors.success[600] }}>
+                <Body style={{ fontWeight: '600', color: theme.color.text.success }}>
                   {report.totalQuantityValidated} unidades
                 </Body>
               </View>
               <View style={styles.summaryRow}>
                 <Caption color="secondary">Diferencia total:</Caption>
-                <Body style={{ fontWeight: '700', color: colors.danger[600] }}>
+                <Body style={{ fontWeight: '700', color: theme.color.text.danger }}>
                   {report.totalQuantityDifference} unidades
                 </Body>
               </View>
             </View>
 
             {/* Discrepancies List */}
-            <Label style={{ marginBottom: spacing[4] }}>
+            <Label style={{ marginBottom: theme.space[4] }}>
               Discrepancias por Producto
             </Label>
             {report.discrepancies && report.discrepancies.length > 0 ? (
@@ -267,113 +266,114 @@ export const DiscrepanciasModal: React.FC<DiscrepanciasModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  headerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[6],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-  },
-  summaryCard: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[6],
-    ...shadows.md,
-  },
-  summaryCardTablet: {
-    padding: spacing[6],
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[2],
-  },
-  card: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    ...shadows.md,
-  },
-  cardTablet: {
-    padding: spacing[6],
-    marginBottom: spacing[4],
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing[3],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
-  },
-  repartoInfo: {
-    marginBottom: spacing[3],
-  },
-  quantitiesContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-  },
-  quantityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[1],
-  },
-  validationInfo: {
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-  },
-  notesCountContainer: {
-    backgroundColor: colors.warning[100],
-    borderRadius: borderRadius.lg,
-    padding: spacing[2],
-    marginBottom: spacing[3],
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing[12],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: theme.space[8],
+      paddingVertical: theme.space[6],
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: theme.space[4],
+    },
+    summaryCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[6],
+      ...theme.shadow.md,
+    },
+    summaryCardTablet: {
+      padding: theme.space[6],
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[2],
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      ...theme.shadow.md,
+    },
+    cardTablet: {
+      padding: theme.space[6],
+      marginBottom: theme.space[4],
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[3],
+      paddingBottom: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    statusBadge: {
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.full,
+      borderWidth: 1,
+    },
+    statusBadgeTablet: {
+      paddingHorizontal: theme.space[3.5],
+      paddingVertical: theme.space[1.5],
+    },
+    repartoInfo: {
+      marginBottom: theme.space[3],
+    },
+    quantitiesContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    quantityRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[1],
+    },
+    validationInfo: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    notesCountContainer: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: theme.space[12],
+    },
+  });

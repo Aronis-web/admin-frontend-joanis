@@ -29,6 +29,8 @@ export const campaignKeys = {
   totals: (campaignId: string) => [...campaignKeys.all, 'totals', campaignId] as const,
   productsDetail: (campaignId: string) =>
     [...campaignKeys.all, 'products-detail', campaignId] as const,
+  productFull: (campaignId: string, productId: string) =>
+    [...campaignKeys.all, 'product-full', campaignId, productId] as const,
 };
 
 /**
@@ -66,6 +68,30 @@ export const useCampaignProductsDetail = (campaignId: string, enabled = true) =>
     enabled: enabled && !!campaignId,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
+  });
+};
+
+/**
+ * Hook para obtener el detalle completo de un producto de campaña usando el
+ * endpoint rico `/admin/campaigns/:campaignId/products/:productId/full`.
+ *
+ * `productId` es el `product_id` del catálogo, no el `campaignProduct.id`.
+ * Trae precios, proveedor, fotos, stock por sede, ingresos y reparto por
+ * participante en un solo request.
+ */
+export const useCampaignProductFull = (campaignId: string, productId: string, enabled = true) => {
+  return useQuery({
+    queryKey: campaignKeys.productFull(campaignId, productId),
+    queryFn: () => campaignsService.getProductFull(campaignId, productId),
+    enabled: enabled && !!campaignId && !!productId,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    // El banner de "recomendaciones" del buscador global llama a este hook
+    // aunque el producto todavía NO está en la campaña; en ese caso el
+    // backend devuelve 404. Sin este `retry: false` React Query reintenta
+    // 3 veces manteniendo `isLoading = true`, lo que congela el spinner
+    // de "Cargando imagen..." y bloquea que se muestren los fallbacks.
+    retry: false,
   });
 };
 

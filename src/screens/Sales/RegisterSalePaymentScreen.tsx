@@ -5,6 +5,8 @@
  * Rediseñada con el sistema de diseño global.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -13,7 +15,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Animated,
   KeyboardAvoidingView,
@@ -29,11 +30,10 @@ import { PaymentMethod } from '@/types/companies';
 import logger from '@/utils/logger';
 
 // Design System Imports
-import { colors } from '@/design-system/tokens/colors';
-import { spacing, borderRadius } from '@/design-system/tokens/spacing';
-import { shadows } from '@/design-system/tokens/shadows';
-import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
 import { durations } from '@/design-system/tokens/animations';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 
 type RegisterSalePaymentRouteProp = RouteProp<
   { RegisterSalePayment: { saleId: string; pendingAmount?: number; saleName?: string } },
@@ -41,7 +41,7 @@ type RegisterSalePaymentRouteProp = RouteProp<
 >;
 
 // ============================================================================
-// Animated Components
+// Animated Components (no theme dependency)
 // ============================================================================
 
 interface AnimatedCardProps {
@@ -79,90 +79,89 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, delay = 0, style 
 };
 
 // ============================================================================
-// Payment Method Chip Component
+// Main Component
 // ============================================================================
 
-interface PaymentMethodChipProps {
-  method: PaymentMethod;
-  isSelected: boolean;
-  onPress: () => void;
-}
+export const RegisterSalePaymentScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const route = useRoute<RegisterSalePaymentRouteProp>();
+  const { saleId, pendingAmount, saleName } = route.params;
+  const { currentCompany } = useAuthStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
-const PaymentMethodChip: React.FC<PaymentMethodChipProps> = ({ method, isSelected, onPress }) => {
-  const scale = useRef(new Animated.Value(1)).current;
+  // ============================================================================
+  // Payment Method Chip (nested, theme-dependent)
+  // ============================================================================
 
-  const handlePressIn = () => {
-    Animated.spring(scale, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start();
-  };
+  const PaymentMethodChip: React.FC<{
+    method: PaymentMethod;
+    isSelected: boolean;
+    onPress: () => void;
+  }> = ({ method, isSelected, onPress }) => {
+    const scale = useRef(new Animated.Value(1)).current;
 
-  const handlePressOut = () => {
-    Animated.spring(scale, {
-      toValue: 1,
-      friction: 3,
-      useNativeDriver: true,
-    }).start();
-  };
+    const handlePressIn = () => {
+      Animated.spring(scale, { toValue: 0.95, useNativeDriver: true }).start();
+    };
 
-  // Get icon based on payment method name
-  const getPaymentIcon = (name: string): keyof typeof Ionicons.glyphMap => {
-    const lowerName = name.toLowerCase();
-    if (lowerName.includes('efectivo') || lowerName.includes('cash')) return 'cash-outline';
-    if (lowerName.includes('tarjeta') || lowerName.includes('card')) return 'card-outline';
-    if (lowerName.includes('transfer') || lowerName.includes('banco')) return 'swap-horizontal-outline';
-    if (lowerName.includes('yape') || lowerName.includes('plin')) return 'phone-portrait-outline';
-    if (lowerName.includes('cheque')) return 'document-text-outline';
-    return 'wallet-outline';
-  };
+    const handlePressOut = () => {
+      Animated.spring(scale, { toValue: 1, friction: 3, useNativeDriver: true }).start();
+    };
 
-  return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      <Animated.View
-        style={[
-          styles.paymentChip,
-          isSelected && styles.paymentChipSelected,
-          { transform: [{ scale }] },
-        ]}
+    const getPaymentIcon = (name: string): keyof typeof Ionicons.glyphMap => {
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes('efectivo') || lowerName.includes('cash')) return 'cash-outline';
+      if (lowerName.includes('tarjeta') || lowerName.includes('card')) return 'card-outline';
+      if (lowerName.includes('transfer') || lowerName.includes('banco')) return 'swap-horizontal-outline';
+      if (lowerName.includes('yape') || lowerName.includes('plin')) return 'phone-portrait-outline';
+      if (lowerName.includes('cheque')) return 'document-text-outline';
+      return 'wallet-outline';
+    };
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
       >
-        <View style={[styles.paymentChipIcon, isSelected && styles.paymentChipIconSelected]}>
-          <Ionicons
-            name={getPaymentIcon(method.name)}
-            size={20}
-            color={isSelected ? colors.primary[600] : colors.neutral[500]}
-          />
-        </View>
-        <Text style={[styles.paymentChipText, isSelected && styles.paymentChipTextSelected]}>
-          {method.name}
-        </Text>
-        {isSelected && (
-          <View style={styles.paymentChipCheck}>
-            <Ionicons name="checkmark-circle" size={18} color={colors.primary[600]} />
+        <Animated.View
+          style={[
+            styles.paymentChip,
+            isSelected && styles.paymentChipSelected,
+            { transform: [{ scale }] },
+          ]}
+        >
+          <View style={[styles.paymentChipIcon, isSelected && styles.paymentChipIconSelected]}>
+            <Ionicons
+              name={getPaymentIcon(method.name)}
+              size={20}
+              color={isSelected ? theme.color.icon.muted : theme.color.text.subtle}
+            />
           </View>
-        )}
-      </Animated.View>
-    </TouchableOpacity>
-  );
-};
+          <Text style={[styles.paymentChipText, isSelected && styles.paymentChipTextSelected]}>
+            {method.name}
+          </Text>
+          {isSelected && (
+            <View style={styles.paymentChipCheck}>
+              <Ionicons name="checkmark-circle" size={18} color={theme.color.icon.muted} />
+            </View>
+          )}
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
 
-// ============================================================================
-// Quick Amount Button Component
-// ============================================================================
+  // ============================================================================
+  // Quick Amount Button (nested, theme-dependent)
+  // ============================================================================
 
-interface QuickAmountButtonProps {
-  amount: number;
-  onPress: () => void;
-  isSelected: boolean;
-}
-
-const QuickAmountButton: React.FC<QuickAmountButtonProps> = ({ amount, onPress, isSelected }) => {
-  return (
+  const QuickAmountButton: React.FC<{
+    amount: number;
+    onPress: () => void;
+    isSelected: boolean;
+  }> = ({ amount, onPress, isSelected }) => (
     <TouchableOpacity
       style={[styles.quickAmountButton, isSelected && styles.quickAmountButtonSelected]}
       onPress={onPress}
@@ -173,17 +172,6 @@ const QuickAmountButton: React.FC<QuickAmountButtonProps> = ({ amount, onPress, 
       </Text>
     </TouchableOpacity>
   );
-};
-
-// ============================================================================
-// Main Component
-// ============================================================================
-
-export const RegisterSalePaymentScreen: React.FC = () => {
-  const navigation = useNavigation();
-  const route = useRoute<RegisterSalePaymentRouteProp>();
-  const { saleId, pendingAmount, saleName } = route.params;
-  const { currentCompany } = useAuthStore();
 
   // Refs
   const amountInputRef = useRef<TextInput>(null);
@@ -378,7 +366,7 @@ export const RegisterSalePaymentScreen: React.FC = () => {
         >
           <View style={styles.headerIconContainer}>
             <View style={styles.headerIconBg}>
-              <Ionicons name="wallet" size={32} color={colors.success[600]} />
+              <Ionicons name="wallet" size={32} color={theme.color.text.success} />
             </View>
           </View>
           <Text style={styles.headerTitle}>Registrar Pago</Text>
@@ -396,7 +384,7 @@ export const RegisterSalePaymentScreen: React.FC = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.cardIconWrapper}>
-                <Ionicons name="calculator-outline" size={20} color={colors.primary[600]} />
+                <Ionicons name="calculator-outline" size={20} color={theme.color.icon.muted} />
               </View>
               <Text style={styles.cardTitle}>Monto del Pago</Text>
             </View>
@@ -410,7 +398,7 @@ export const RegisterSalePaymentScreen: React.FC = () => {
                 onChangeText={handleAmountChange}
                 placeholder="0.00"
                 keyboardType="decimal-pad"
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
                 onFocus={() => setIsAmountFocused(true)}
                 onBlur={() => setIsAmountFocused(false)}
               />
@@ -440,7 +428,7 @@ export const RegisterSalePaymentScreen: React.FC = () => {
                 onPress={handlePayFullAmount}
                 activeOpacity={0.7}
               >
-                <Ionicons name="checkmark-done-outline" size={18} color={colors.success[600]} />
+                <Ionicons name="checkmark-done-outline" size={18} color={theme.color.text.success} />
                 <Text style={styles.payFullButtonText}>Pagar monto completo</Text>
               </TouchableOpacity>
             )}
@@ -468,7 +456,7 @@ export const RegisterSalePaymentScreen: React.FC = () => {
                 </View>
                 {remainingAfterPayment <= 0 && (
                   <View style={styles.paidInFullBadge}>
-                    <Ionicons name="checkmark-circle" size={14} color={colors.success[600]} />
+                    <Ionicons name="checkmark-circle" size={14} color={theme.color.text.success} />
                     <Text style={styles.paidInFullText}>Quedará pagado en su totalidad</Text>
                   </View>
                 )}
@@ -482,19 +470,19 @@ export const RegisterSalePaymentScreen: React.FC = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.cardIconWrapper}>
-                <Ionicons name="card-outline" size={20} color={colors.primary[600]} />
+                <Ionicons name="card-outline" size={20} color={theme.color.icon.muted} />
               </View>
               <Text style={styles.cardTitle}>Método de Pago</Text>
             </View>
 
             {loadingPaymentMethods ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={colors.primary[600]} />
+                <ActivityIndicator size="small" color={theme.color.icon.muted} />
                 <Text style={styles.loadingText}>Cargando métodos de pago...</Text>
               </View>
             ) : paymentMethods.length === 0 ? (
               <View style={styles.emptyPaymentMethods}>
-                <Ionicons name="alert-circle-outline" size={40} color={colors.warning[500]} />
+                <Ionicons name="alert-circle-outline" size={40} color={theme.color.icon.warning} />
                 <Text style={styles.emptyPaymentMethodsText}>
                   No hay métodos de pago configurados
                 </Text>
@@ -522,7 +510,7 @@ export const RegisterSalePaymentScreen: React.FC = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.cardIconWrapper}>
-                <Ionicons name="document-text-outline" size={20} color={colors.primary[600]} />
+                <Ionicons name="document-text-outline" size={20} color={theme.color.icon.muted} />
               </View>
               <Text style={styles.cardTitle}>Notas</Text>
               <Text style={styles.cardOptional}>(Opcional)</Text>
@@ -537,7 +525,7 @@ export const RegisterSalePaymentScreen: React.FC = () => {
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
                 onFocus={() => setIsNotesFocused(true)}
                 onBlur={() => setIsNotesFocused(false)}
               />
@@ -565,10 +553,10 @@ export const RegisterSalePaymentScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={colors.neutral[0]} />
+            <ActivityIndicator size="small" color={theme.color.action.success.text} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={22} color={colors.neutral[0]} />
+              <Ionicons name="checkmark-circle" size={22} color={theme.color.action.success.text} />
               <Text style={styles.submitButtonText}>Registrar Pago</Text>
             </>
           )}
@@ -582,169 +570,169 @@ export const RegisterSalePaymentScreen: React.FC = () => {
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
 
   // Header Card
   headerCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    padding: spacing[6],
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[6],
+    marginBottom: theme.space[4],
     alignItems: 'center',
-    ...shadows.md,
+    ...theme.shadow.md,
   },
   headerIconContainer: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   headerIconBg: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.success[50],
+    backgroundColor: theme.color.state.success.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
   },
   headerSubtitle: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[600],
-    marginBottom: spacing[4],
+    fontSize: 14,
+    color: theme.color.text.muted,
+    marginBottom: theme.space[4],
   },
   pendingAmountContainer: {
-    backgroundColor: colors.warning[50],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.warning.background,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.warning[200],
+    borderColor: theme.color.state.warning.border,
   },
   pendingAmountLabel: {
-    fontSize: fontSizes.xs,
-    color: colors.warning[700],
-    fontWeight: fontWeights.medium,
+    fontSize: 12,
+    color: theme.color.state.warning.text,
+    fontWeight: '500',
     marginBottom: 2,
   },
   pendingAmountValue: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.warning[700],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.state.warning.text,
   },
 
   // Card Styles
   card: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    padding: spacing[5],
-    marginBottom: spacing[4],
-    ...shadows.sm,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[5],
+    marginBottom: theme.space[4],
+    ...theme.shadow.sm,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   cardIconWrapper: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.primary[50],
+    backgroundColor: theme.color.background.subtle,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   cardTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.heading,
     flex: 1,
   },
   cardOptional: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[400],
+    fontSize: 14,
+    color: theme.color.text.placeholder,
   },
 
   // Amount Input
   amountInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
     borderWidth: 2,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   amountInputContainerFocused: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.neutral[0],
+    borderColor: theme.color.border.focus,
+    backgroundColor: theme.color.surface.base,
   },
   currencySymbol: {
-    fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[500],
-    marginRight: spacing[3],
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.color.text.subtle,
+    marginRight: theme.space[3],
   },
   amountInput: {
     flex: 1,
-    fontSize: fontSizes['3xl'],
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 28,
+    fontWeight: '700',
+    color: theme.color.text.heading,
     padding: 0,
   },
 
   // Quick Amounts
   quickAmountsContainer: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
   quickAmountsLabel: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
+    fontSize: 14,
+    color: theme.color.text.subtle,
+    marginBottom: theme.space[3],
   },
   quickAmountsScroll: {
-    marginHorizontal: -spacing[3],
+    marginHorizontal: -theme.space[3],
   },
   quickAmountsRow: {
     flexDirection: 'row',
-    paddingHorizontal: spacing[3],
-    gap: spacing[3],
+    paddingHorizontal: theme.space[3],
+    gap: theme.space[3],
   },
   quickAmountButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.md,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.background.muted,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   quickAmountButtonSelected: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
+    backgroundColor: theme.color.background.subtle,
+    borderColor: theme.color.border.focus,
   },
   quickAmountText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[600],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.muted,
   },
   quickAmountTextSelected: {
-    color: colors.primary[700],
-    fontWeight: fontWeights.semibold,
+    color: theme.color.text.body,
+    fontWeight: '600',
   },
 
   // Pay Full Button
@@ -752,24 +740,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[1],
+    marginTop: theme.space[4],
+    paddingVertical: theme.space[3],
+    gap: theme.space[1],
   },
   payFullButtonText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.success[600],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.success,
   },
 
   // Remaining Preview
   remainingPreview: {
-    marginTop: spacing[4],
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
+    marginTop: theme.space[4],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   remainingRow: {
     flexDirection: 'row',
@@ -777,36 +765,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   remainingLabel: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[600],
+    fontSize: 14,
+    color: theme.color.text.muted,
   },
   remainingValue: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.color.text.heading,
   },
   remainingValuePaid: {
-    color: colors.success[600],
+    color: theme.color.text.success,
   },
   remainingValuePending: {
-    color: colors.warning[600],
+    color: theme.color.text.warning,
   },
   remainingDivider: {
     height: 1,
-    backgroundColor: colors.neutral[200],
-    marginVertical: spacing[3],
+    backgroundColor: theme.color.border.subtle,
+    marginVertical: theme.space[3],
   },
   paidInFullBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing[3],
-    gap: spacing[1],
+    marginTop: theme.space[3],
+    gap: theme.space[1],
   },
   paidInFullText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
-    color: colors.success[600],
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.color.text.success,
   },
 
   // Payment Methods
@@ -814,89 +802,89 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[5],
-    gap: spacing[3],
+    paddingVertical: theme.space[5],
+    gap: theme.space[3],
   },
   loadingText: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    fontSize: 14,
+    color: theme.color.text.subtle,
   },
   emptyPaymentMethods: {
     alignItems: 'center',
-    paddingVertical: spacing[6],
+    paddingVertical: theme.space[6],
   },
   emptyPaymentMethodsText: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[700],
-    marginTop: spacing[4],
-    marginBottom: spacing[1],
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.color.text.body,
+    marginTop: theme.space[4],
+    marginBottom: theme.space[1],
   },
   emptyPaymentMethodsHint: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    fontSize: 14,
+    color: theme.color.text.subtle,
     textAlign: 'center',
   },
   paymentMethodsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   paymentChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.background.subtle,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
-    gap: spacing[3],
+    borderColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   paymentChipSelected: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
+    backgroundColor: theme.color.background.subtle,
+    borderColor: theme.color.border.focus,
   },
   paymentChipIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   paymentChipIconSelected: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: theme.color.brand.primarySoft,
   },
   paymentChipText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[700],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.text.body,
   },
   paymentChipTextSelected: {
-    color: colors.primary[700],
-    fontWeight: fontWeights.semibold,
+    color: theme.color.text.body,
+    fontWeight: '600',
   },
   paymentChipCheck: {
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
   },
 
   // Notes Input
   notesInputContainer: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     overflow: 'hidden',
   },
   notesInputContainerFocused: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.neutral[0],
+    borderColor: theme.color.border.focus,
+    backgroundColor: theme.color.surface.base,
   },
   notesInput: {
-    fontSize: fontSizes.base,
-    color: colors.neutral[900],
-    padding: spacing[4],
+    fontSize: 16,
+    color: theme.color.text.heading,
+    padding: theme.space[4],
     minHeight: 100,
   },
 
@@ -909,46 +897,45 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    paddingBottom: spacing[6],
-    ...shadows.lg,
+    borderTopColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    paddingBottom: theme.space[6],
+    ...theme.shadow.lg,
   },
   footerSummary: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   footerSummaryLabel: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[600],
+    fontSize: 14,
+    color: theme.color.text.muted,
   },
   footerSummaryValue: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.success[600],
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.md,
-    gap: spacing[3],
-    ...shadows.md,
+    backgroundColor: theme.color.action.success.background,
+    paddingVertical: theme.space[4],
+    borderRadius: theme.radii.md,
+    gap: theme.space[3],
+    ...theme.shadow.md,
   },
   submitButtonDisabled: {
-    backgroundColor: colors.neutral[300],
-    ...shadows.none,
+    backgroundColor: theme.color.action.success.backgroundDisabled,
   },
   submitButtonText: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.action.success.text,
   },
 });

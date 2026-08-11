@@ -6,20 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   Modal,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { warehouseAreasApi } from '@/services/api';
 import {
   WarehouseArea,
   CreateWarehouseAreaRequest,
   UpdateWarehouseAreaRequest,
 } from '@/types/warehouses';
-import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import Alert from '@/utils/alert';
 
 interface WarehouseAreasScreenProps {
   navigation: any;
@@ -51,6 +52,8 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
     warehouseName,
     warehouseCode,
   } = route.params;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [areas, setAreas] = useState<WarehouseArea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +243,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[500]} />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando áreas...</Text>
         </View>
       </SafeAreaView>
@@ -258,14 +261,9 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
           <Text style={styles.headerTitle}>Áreas</Text>
           <Text style={styles.headerSubtitle}>📦 {warehouseName}</Text>
         </View>
-        <ProtectedElement
-          requiredPermissions={['areas.create']}
-          fallback={<View style={styles.placeholder} />}
-        >
-          <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
-        </ProtectedElement>
+        <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
@@ -275,7 +273,7 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
           placeholder="Buscar áreas..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor={colors.neutral[400]}
+          placeholderTextColor={theme.color.text.placeholder}
           keyboardType="default"
         />
       </View>
@@ -403,306 +401,308 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
         </View>
       </Modal>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => setShowCreateModal(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.floatingButtonIcon}>+</Text>
-      </TouchableOpacity>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'grid-outline',
+            label: 'Crear \u00c1rea',
+            onPress: () => setShowCreateModal(true),
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: 2,
-  },
-  placeholder: {
-    width: 40,
-    height: 40,
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 24,
-    color: colors.neutral[0],
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  searchContainer: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  searchInput: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  areasList: {
-    flex: 1,
-    paddingHorizontal: spacing[5],
-  },
-  areaCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginTop: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  areaHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  areaIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.warning[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  iconText: {
-    fontSize: 24,
-  },
-  areaInfo: {
-    flex: 1,
-  },
-  areaCode: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  areaName: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  areaActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  editButton: {
-    backgroundColor: colors.warning[500],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  editButtonText: {
-    color: colors.neutral[0],
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    backgroundColor: colors.danger[500],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  deleteButtonText: {
-    color: colors.neutral[0],
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    marginBottom: spacing[2],
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.neutral[400],
-    textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  statsFooter: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  statsText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[6],
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[5],
-    textAlign: 'center',
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
-  },
-  input: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 24,
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: colors.neutral[100],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: colors.neutral[500],
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  floatingButton: {
-    position: 'absolute',
-    right: spacing[5],
-    bottom: 90,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.primary[500],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  floatingButtonIcon: {
-    fontSize: 32,
-    fontWeight: '600',
-    color: colors.neutral[0],
-    lineHeight: 32,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    headerTitleContainer: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    placeholder: {
+      width: 40,
+      height: 40,
+    },
+    addButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    addButtonText: {
+      fontSize: 24,
+      color: theme.color.text.onAction,
+      fontWeight: '600',
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 10,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    searchContainer: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    searchInput: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    areasList: {
+      flex: 1,
+      paddingHorizontal: theme.space[5],
+    },
+    areaCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginTop: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    areaHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    areaIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.color.state.warning.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    iconText: {
+      fontSize: 24,
+    },
+    areaInfo: {
+      flex: 1,
+    },
+    areaCode: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    areaName: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    areaActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: theme.space[2],
+    },
+    editButton: {
+      backgroundColor: theme.color.state.warning.border,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    editButtonText: {
+      color: theme.color.text.onAction,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    deleteButton: {
+      backgroundColor: theme.color.action.danger.background,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    deleteButtonText: {
+      color: theme.color.text.onAction,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: theme.space[4],
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginBottom: theme.space[2],
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.placeholder,
+      textAlign: 'center',
+      paddingHorizontal: 40,
+    },
+    statsFooter: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    statsText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.elevated,
+      borderRadius: theme.radii['2xl'],
+      padding: theme.space[6],
+      width: '90%',
+      maxWidth: 400,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[5],
+      textAlign: 'center',
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+    },
+    input: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: theme.space[6],
+      gap: theme.space[3],
+    },
+    cancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      color: theme.color.text.muted,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    saveButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    saveButtonText: {
+      color: theme.color.text.onAction,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    floatingButton: {
+      position: 'absolute',
+      right: theme.space[5],
+      bottom: 90,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.brand.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    floatingButtonIcon: {
+      fontSize: 32,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+      lineHeight: 32,
+    },
+  });
 
 export default WarehouseAreasScreen;

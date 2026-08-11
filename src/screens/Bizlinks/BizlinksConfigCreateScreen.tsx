@@ -4,11 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BizlinksConfigForm } from '../../components/Bizlinks';
 import { useAuthStore } from '../../store/auth';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfigCreate'>;
 
 export const BizlinksConfigCreateScreen: React.FC<Props> = ({ navigation }) => {
   const { currentCompany, currentSite } = useAuthStore();
+  const styles = useThemedStyles(createStyles);
 
   const handleSuccess = () => {
     navigation.goBack();
@@ -32,10 +35,10 @@ export const BizlinksConfigCreateScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: theme.color.background.subtle,
   },
   content: {
     flex: 1,

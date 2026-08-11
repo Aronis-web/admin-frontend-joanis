@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
@@ -17,6 +16,9 @@ import { expensesService } from '@/services/api';
 import { ExpenseCategory, CreateExpenseCategoryRequest } from '@/types/expenses';
 import { usePermissionError } from '@/hooks/usePermissionError';
 import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface CreateExpenseCategoryScreenProps {
   navigation: any;
@@ -32,6 +34,8 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [loadingCategory, setLoadingCategory] = useState(false);
   const [mainCategories, setMainCategories] = useState<ExpenseCategory[]>([]);
@@ -168,7 +172,7 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando categoría...</Text>
         </View>
       </SafeAreaView>
@@ -179,7 +183,7 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isEditing
@@ -196,11 +200,11 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
           <View style={styles.section}>
             <Text style={styles.label}>Categoría Principal</Text>
             <View style={styles.parentCategoryCard}>
-              <View style={[styles.parentIconContainer, { backgroundColor: parentCategory.color || '#6366F1' }]}>
+              <View style={[styles.parentIconContainer, { backgroundColor: parentCategory.color || theme.color.brand.accent }]}>
                 <Ionicons
                   name={getSafeIconName(parentCategory.icon, getCategoryFallbackIcon(parentCategory.name)) as any}
                   size={24}
-                  color="#FFFFFF"
+                  color={theme.color.text.inverse}
                 />
               </View>
               <View style={styles.parentCategoryInfo}>
@@ -272,8 +276,8 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
             <Switch
               value={isActive}
               onValueChange={setIsActive}
-              trackColor={{ false: '#CBD5E1', true: '#A5B4FC' }}
-              thumbColor={isActive ? '#6366F1' : '#F1F5F9'}
+              trackColor={{ false: theme.color.border.default, true: theme.color.brand.primarySoft }}
+              thumbColor={isActive ? theme.color.brand.accent : theme.color.surface.subtle}
             />
           </View>
         </View>
@@ -294,7 +298,7 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={theme.color.text.inverse} />
             ) : (
               <Text style={styles.submitButtonText}>
                 {isEditing ? 'Actualizar' : 'Crear'}
@@ -309,10 +313,10 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   centerContainer: {
     flex: 1,
@@ -323,7 +327,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
@@ -331,9 +335,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -341,7 +345,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -350,7 +354,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   scrollContent: {
     padding: 16,
@@ -361,23 +365,23 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   required: {
-    color: '#DC2626',
+    color: theme.color.state.danger.text,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: theme.color.border.default,
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
+    color: theme.color.text.heading,
+    backgroundColor: theme.color.surface.base,
   },
   inputError: {
-    borderColor: '#DC2626',
+    borderColor: theme.color.state.danger.border,
   },
   textArea: {
     minHeight: 80,
@@ -385,34 +389,34 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: theme.color.border.default,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   errorText: {
     fontSize: 12,
-    color: '#DC2626',
+    color: theme.color.state.danger.text,
     marginTop: 4,
   },
   helpText: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 4,
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   switchLabel: {
     flex: 1,
@@ -421,11 +425,11 @@ const styles = StyleSheet.create({
   parentCategoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   parentIconContainer: {
     width: 48,
@@ -441,12 +445,12 @@ const styles = StyleSheet.create({
   parentCategoryName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   parentCategoryCode: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   iconInput: {
     flex: 1,
@@ -461,20 +465,20 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: theme.color.border.default,
+    backgroundColor: theme.color.surface.base,
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   submitButton: {
     flex: 1,
     padding: 16,
     borderRadius: 8,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     alignItems: 'center',
   },
   submitButtonDisabled: {
@@ -483,7 +487,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   bottomSpacer: {
     height: 40,

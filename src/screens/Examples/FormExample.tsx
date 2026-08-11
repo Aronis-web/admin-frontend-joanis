@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm } from '@/hooks/useForm';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 /**
  * Example screen demonstrating the use of the useForm hook
@@ -25,6 +27,8 @@ interface FormData {
 }
 
 export const FormExample: React.FC = () => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const {
     values,
     errors,
@@ -100,7 +104,7 @@ export const FormExample: React.FC = () => {
             onChangeText={(text) => handleChange('name', text)}
             onBlur={() => handleBlur('name')}
             placeholder="Ingrese su nombre"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.color.text.placeholder}
           />
           {touched.name && errors.name && (
             <Text style={styles.errorText}>{errors.name}</Text>
@@ -121,7 +125,7 @@ export const FormExample: React.FC = () => {
             onChangeText={(text) => handleChange('email', text)}
             onBlur={() => handleBlur('email')}
             placeholder="correo@ejemplo.com"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -142,7 +146,7 @@ export const FormExample: React.FC = () => {
             onChangeText={(text) => handleChange('phone', text)}
             onBlur={() => handleBlur('phone')}
             placeholder="1234567890"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="phone-pad"
           />
           {touched.phone && errors.phone && (
@@ -164,7 +168,7 @@ export const FormExample: React.FC = () => {
             onChangeText={(text) => handleChange('amount', parseFloat(text) || 0)}
             onBlur={() => handleBlur('amount')}
             placeholder="0.00"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="decimal-pad"
           />
           {touched.amount && errors.amount && (
@@ -185,7 +189,7 @@ export const FormExample: React.FC = () => {
             onChangeText={(text) => handleChange('description', text)}
             onBlur={() => handleBlur('description')}
             placeholder="Descripción opcional..."
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.color.text.placeholder}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -205,7 +209,7 @@ export const FormExample: React.FC = () => {
           disabled={!isValid || isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.color.text.onAction} />
           ) : (
             <Text style={styles.submitButtonText}>Enviar Formulario</Text>
           )}
@@ -238,106 +242,106 @@ export const FormExample: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: theme.space[5],
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   subtitle: {
     fontSize: 16,
-    color: '#64748B',
-    marginBottom: 32,
+    color: theme.color.text.muted,
+    marginBottom: theme.space[8],
   },
   fieldContainer: {
-    marginBottom: 20,
+    marginBottom: theme.space[5],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   required: {
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     fontSize: 16,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: theme.color.border.error,
   },
   textArea: {
     minHeight: 100,
-    paddingTop: 12,
+    paddingTop: theme.space[3],
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
+    color: theme.color.text.danger,
+    marginTop: theme.space[1],
   },
   submitButton: {
-    backgroundColor: '#6366F1',
-    borderRadius: 8,
-    paddingVertical: 16,
+    backgroundColor: theme.color.brand.primary,
+    borderRadius: theme.radii.md,
+    paddingVertical: theme.space[4],
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: theme.space[3],
   },
   submitButtonDisabled: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: theme.color.action.primary.backgroundDisabled,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   resetButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingVertical: 16,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    paddingVertical: theme.space[4],
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: theme.space[3],
   },
   resetButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   debugContainer: {
-    marginTop: 32,
-    padding: 16,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
+    marginTop: theme.space[8],
+    padding: theme.space[4],
+    backgroundColor: theme.color.surface.muted,
+    borderRadius: theme.radii.md,
   },
   debugTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   debugText: {
     fontSize: 12,
-    color: '#64748B',
-    marginBottom: 4,
+    color: theme.color.text.muted,
+    marginBottom: theme.space[1],
   },
 });

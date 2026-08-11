@@ -7,4 +7,6 @@ export { useActionPermissions, useModulePermissions } from './useActionPermissio
 export { usePagination } from './usePagination';
 export { useDebounce, useDebouncedCallback } from './useDebounce';
 export { useForm } from './useForm';
+export { useBarcodeScanner } from './useBarcodeScanner';
+export type { UseBarcodeScannerOptions } from './useBarcodeScanner';
 export { useScreenTracking, useInteractionTracking, useErrorTracking } from './useScreenTracking';

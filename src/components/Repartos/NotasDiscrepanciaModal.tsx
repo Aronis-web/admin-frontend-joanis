@@ -2,6 +2,8 @@
  * NotasDiscrepanciaModal - Modal de notas de discrepancia
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,7 +12,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,16 +29,13 @@ import {
 } from '@/types/consolidated-reports';
 import { useAuthStore } from '@/store/auth';
 import logger from '@/utils/logger';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
-  Card,
   Button,
   Input,
   IconButton,
@@ -59,6 +57,8 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
   onClose,
   onNotesUpdated,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState<DiscrepancyNote[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -260,7 +260,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
         {/* Header */}
         <View style={styles.noteHeader}>
           <View style={{ flex: 1 }}>
-            <Title size="small" style={{ marginBottom: spacing[2] }}>
+            <Title size="small" style={{ marginBottom: theme.space[2] }}>
               {note.title}
             </Title>
             <View style={styles.noteMetaRow}>
@@ -294,17 +294,17 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
         </View>
 
         {/* Description */}
-        <Body style={{ marginBottom: spacing[3] }}>
+        <Body style={{ marginBottom: theme.space[3] }}>
           {note.description}
         </Body>
 
         {/* Action Taken */}
         {note.actionTaken && (
           <View style={styles.actionTakenContainer}>
-            <Label style={{ color: colors.success[700], marginBottom: spacing[1] }}>
+            <Label style={{ color: theme.color.text.success, marginBottom: theme.space[1] }}>
               Acción tomada:
             </Label>
-            <Caption style={{ color: colors.success[700] }}>
+            <Caption style={{ color: theme.color.text.success }}>
               {note.actionTaken}
             </Caption>
           </View>
@@ -313,7 +313,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
         {/* Requires Action */}
         {note.requiresAction && (
           <View style={styles.requiresActionContainer}>
-            <Caption style={{ fontWeight: '600', color: colors.warning[700] }}>
+            <Caption style={{ fontWeight: '600', color: theme.color.text.warning }}>
               ⚠️ Requiere acción
             </Caption>
           </View>
@@ -364,7 +364,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
           <View style={{ flex: 1 }}>
             <Title>Notas de Discrepancia</Title>
             {discrepancy && (
-              <Caption color="secondary" style={{ marginTop: spacing[1] }}>
+              <Caption color="secondary" style={{ marginTop: theme.space[1] }}>
                 {discrepancy.productName}
               </Caption>
             )}
@@ -379,14 +379,14 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
 
         {loading && !showCreateForm ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.accent[500]} />
-            <Body color="secondary" style={{ marginTop: spacing[3] }}>
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
+            <Body color="secondary" style={{ marginTop: theme.space[3] }}>
               Cargando notas...
             </Body>
           </View>
         ) : showCreateForm ? (
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-            <Label style={{ marginBottom: spacing[5] }}>
+            <Label style={{ marginBottom: theme.space[5] }}>
               {editingNote ? 'Editar Nota' : 'Nueva Nota Explicativa'}
             </Label>
 
@@ -394,7 +394,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
               <>
                 {/* Note Type */}
                 <View style={styles.formGroup}>
-                  <Label style={{ marginBottom: spacing[2] }}>
+                  <Label style={{ marginBottom: theme.space[2] }}>
                     Tipo de Nota *
                   </Label>
                   <View style={styles.pickerContainer}>
@@ -416,7 +416,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
 
                 {/* Title */}
                 <View style={styles.formGroup}>
-                  <Label style={{ marginBottom: spacing[2] }}>Título *</Label>
+                  <Label style={{ marginBottom: theme.space[2] }}>Título *</Label>
                   <Input
                     value={title}
                     onChangeText={setTitle}
@@ -426,7 +426,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
 
                 {/* Severity */}
                 <View style={styles.formGroup}>
-                  <Label style={{ marginBottom: spacing[2] }}>Severidad *</Label>
+                  <Label style={{ marginBottom: theme.space[2] }}>Severidad *</Label>
                   <View style={styles.pickerContainer}>
                     <Picker
                       selectedValue={severity}
@@ -448,7 +448,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
 
             {/* Description */}
             <View style={styles.formGroup}>
-              <Label style={{ marginBottom: spacing[2] }}>Descripción *</Label>
+              <Label style={{ marginBottom: theme.space[2] }}>Descripción *</Label>
               <Input
                 value={description}
                 onChangeText={setDescription}
@@ -461,7 +461,7 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
             {/* Action Taken (only for editing) */}
             {editingNote && (
               <View style={styles.formGroup}>
-                <Label style={{ marginBottom: spacing[2] }}>
+                <Label style={{ marginBottom: theme.space[2] }}>
                   Acción Tomada
                 </Label>
                 <Input
@@ -536,165 +536,166 @@ export const NotasDiscrepanciaModal: React.FC<NotasDiscrepanciaModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  headerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[6],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-  },
-  noteCard: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    ...shadows.md,
-  },
-  noteCardTablet: {
-    padding: spacing[6],
-    marginBottom: spacing[4],
-  },
-  noteHeader: {
-    marginBottom: spacing[3],
-  },
-  noteMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  typeBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-  },
-  severityBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-  },
-  closedBadge: {
-    backgroundColor: colors.border.light,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-  },
-  actionTakenContainer: {
-    backgroundColor: colors.status.active + '15',
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-  },
-  requiresActionContainer: {
-    backgroundColor: colors.status.pending + '20',
-    borderRadius: borderRadius.lg,
-    padding: spacing[2],
-    marginBottom: spacing[3],
-  },
-  noteFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  noteActions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[3],
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  editButton: {
-    backgroundColor: colors.primary.lighter,
-  },
-  closeNoteButton: {
-    backgroundColor: colors.status.active + '20',
-  },
-  deleteButton: {
-    backgroundColor: colors.status.cancelled + '20',
-  },
-  addButtonContainer: {
-    padding: spacing[4],
-    backgroundColor: colors.background.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-  textArea: {
-    minHeight: 100,
-  },
-  textAreaTablet: {
-    minHeight: 120,
-  },
-  pickerContainer: {
-    backgroundColor: colors.background.primary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    color: colors.text.primary,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[5],
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 2,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    marginRight: spacing[3],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary.main,
-    borderColor: colors.primary.main,
-  },
-  checkboxCheck: {
-    color: colors.text.inverse,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  formButtons: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[2],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: theme.space[8],
+      paddingVertical: theme.space[6],
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: theme.space[4],
+    },
+    noteCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      ...theme.shadow.md,
+    },
+    noteCardTablet: {
+      padding: theme.space[6],
+      marginBottom: theme.space[4],
+    },
+    noteHeader: {
+      marginBottom: theme.space[3],
+    },
+    noteMetaRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    typeBadge: {
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.lg,
+    },
+    severityBadge: {
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.lg,
+    },
+    closedBadge: {
+      backgroundColor: theme.color.border.subtle,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.lg,
+    },
+    actionTakenContainer: {
+      backgroundColor: theme.color.state.active.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    requiresActionContainer: {
+      backgroundColor: theme.color.state.pending.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    noteFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    noteActions: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      marginTop: theme.space[3],
+    },
+    actionButton: {
+      flex: 1,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    editButton: {
+      backgroundColor: theme.color.surface.muted,
+    },
+    closeNoteButton: {
+      backgroundColor: theme.color.state.active.background,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    addButtonContainer: {
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    textArea: {
+      minHeight: 100,
+    },
+    textAreaTablet: {
+      minHeight: 120,
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.body,
+    },
+    checkboxContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[5],
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      marginRight: theme.space[3],
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxCheck: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    formButtons: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginTop: theme.space[2],
+    },
+  });

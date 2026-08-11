@@ -11,6 +11,8 @@
  * - Web: Link a GitHub releases
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -21,7 +23,6 @@ import {
   Switch,
   ActivityIndicator,
   Platform,
-  Alert,
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,13 +38,10 @@ import packageJson from '../../../package.json';
 // API de actualizaciones
 import { appUpdatesApi, CheckUpdateResponse } from '@/services/api/app-updates';
 import { config } from '@/utils/config';
+import logger from '@/utils/logger';
 
 // Design System
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   activeOpacity,
   iconSizes,
 } from '@/design-system/tokens';
@@ -57,6 +55,8 @@ import {
 
 // Store
 import { useThemeStore } from '@/store/theme';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 // Configuración de GitHub para actualizaciones
 const GITHUB_OWNER = 'Aronis-web';
@@ -98,16 +98,6 @@ interface DownloadProgress {
 // HELPER FUNCTIONS
 // ============================================
 
-/**
- * Corrige la URL de descarga removiendo /api del path si existe
- * El endpoint de descarga de actualizaciones NO usa el prefijo /api
- */
-const fixDownloadUrl = (url: string | undefined): string | undefined => {
-  if (!url) return url;
-  // Reemplazar /api/app-updates/ con /app-updates/
-  return url.replace('/api/app-updates/', '/app-updates/');
-};
-
 const isElectron = (): boolean => {
   return typeof window !== 'undefined' && !!(window as any).electronAPI;
 };
@@ -142,11 +132,20 @@ interface SettingsCardProps {
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({ title, icon, children }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.color.surface.subtle, borderColor: theme.color.border.subtle },
+      ]}
+    >
       <View style={styles.cardHeader}>
-        <View style={styles.cardIconContainer}>
-          <Ionicons name={icon} size={iconSizes.md} color={colors.primary[900]} />
+        <View
+          style={[styles.cardIconContainer, { backgroundColor: theme.color.surface.base }]}
+        >
+          <Ionicons name={icon} size={iconSizes.md} color={theme.color.icon.default} />
         </View>
         <Text variant="titleSmall" color="primary">
           {title}
@@ -178,6 +177,8 @@ const compareVersions = (v1: string, v2: string): number => {
 // ============================================
 export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { isDarkMode, toggleMode } = useThemeStore();
 
   // Obtener versión directamente de package.json (siempre disponible)
@@ -274,7 +275,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         releaseDate: release.published_at,
       };
     } catch (error: any) {
-      console.error('Error checking GitHub releases:', error);
+      logger.error('Error checking GitHub releases:', error);
       return {
         updateAvailable: false,
         currentVersion: appVersion,
@@ -285,10 +286,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
   // Verificar actualizaciones via Backend (para Android)
   const checkForUpdatesViaBackend = useCallback(async (): Promise<UpdateInfo> => {
-    console.log('🔍 [BACKEND_CHECK] Iniciando verificación de actualizaciones...');
-    console.log('🔍 [BACKEND_CHECK] App ID: erp-aio');
-    console.log('🔍 [BACKEND_CHECK] Platform: android');
-    console.log('🔍 [BACKEND_CHECK] Current Version:', appVersion);
+    logger.debug('[BACKEND_CHECK] Verificando actualizaciones', { appId: 'erp-aio', platform: 'android', currentVersion: appVersion });
 
     try {
       const response: CheckUpdateResponse = await appUpdatesApi.checkForUpdates(
@@ -297,33 +295,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         appVersion
       );
 
-      console.log('✅ [BACKEND_CHECK] Respuesta del servidor:', JSON.stringify(response, null, 2));
-      console.log('✅ [BACKEND_CHECK] updateAvailable:', response.updateAvailable);
-      console.log('✅ [BACKEND_CHECK] latestVersion:', response.latestVersion);
-      console.log('✅ [BACKEND_CHECK] downloadUrl:', response.downloadUrl);
-      console.log('✅ [BACKEND_CHECK] fileName:', response.fileName);
-      console.log('✅ [BACKEND_CHECK] fileSize:', response.fileSize);
-
-      const updateInfo: UpdateInfo = {
+      return {
         updateAvailable: response.updateAvailable,
         currentVersion: appVersion,
         latestVersion: response.latestVersion,
         releaseDate: response.releaseDate,
         message: response.message,
-        // Datos adicionales para Android
-        // Nota: fixDownloadUrl remueve /api del path ya que el endpoint de descarga no lo usa
-        downloadUrl: fixDownloadUrl(response.downloadUrl),
+        downloadUrl: response.downloadUrl,
         fileName: response.fileName,
         fileSize: response.fileSize,
         changelog: response.changelog,
         isMandatory: response.isMandatory,
       };
-
-      console.log('📦 [BACKEND_CHECK] UpdateInfo construido:', JSON.stringify(updateInfo, null, 2));
-      return updateInfo;
     } catch (error: any) {
-      console.error('❌ [BACKEND_CHECK] Error:', error.message);
-      console.error('❌ [BACKEND_CHECK] Error completo:', error);
+      logger.error('[BACKEND_CHECK] Error verificando actualizaciones:', error?.message || error);
       return {
         updateAvailable: false,
         currentVersion: appVersion,
@@ -347,7 +332,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
         // Si Electron está en modo desarrollo, usar GitHub API como fallback
         if (result.message && result.message.includes('modo desarrollo')) {
-          console.log('Electron en modo desarrollo, usando GitHub API...');
+          logger.debug('Electron en modo desarrollo, usando GitHub API...');
           const githubResult = await checkForUpdatesViaGitHub();
           setUpdateInfo(githubResult);
         } else {
@@ -355,7 +340,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         }
       } else if (isAndroid()) {
         // En Android, usar el backend propio
-        console.log('📱 Android: Verificando actualizaciones via backend...');
+        logger.debug('Android: Verificando actualizaciones via backend...');
         const backendResult = await checkForUpdatesViaBackend();
         setUpdateInfo(backendResult);
       } else {
@@ -365,7 +350,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       }
     } catch (error: any) {
       // Si hay error, intentar con GitHub como fallback
-      console.log('Error verificando actualizaciones, intentando con GitHub API...', error);
+      logger.warn('Error verificando actualizaciones, intentando con GitHub API...', error?.message || error);
       try {
         const githubResult = await checkForUpdatesViaGitHub();
         setUpdateInfo(githubResult);
@@ -392,7 +377,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     try {
       await electronAPI.downloadUpdate();
     } catch (error) {
-      console.error('Error downloading update:', error);
+      logger.error('Error downloading update:', error);
       setIsDownloading(false);
     }
   }, []);
@@ -405,21 +390,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     try {
       await electronAPI.installUpdate();
     } catch (error) {
-      console.error('Error installing update:', error);
+      logger.error('Error installing update:', error);
     }
   }, []);
 
   // Descargar e instalar APK (Android)
   const downloadAndInstallApk = useCallback(async () => {
-    console.log('🚀 [APK_UPDATE] Iniciando proceso de actualización...');
-    console.log('🔍 [APK_UPDATE] updateInfo completo:', JSON.stringify(updateInfo, null, 2));
-
     if (!updateInfo?.downloadUrl || !updateInfo?.latestVersion) {
-      console.error('❌ [APK_UPDATE] Faltan datos:', {
-        downloadUrl: updateInfo?.downloadUrl,
-        latestVersion: updateInfo?.latestVersion,
+      logger.error('[APK_UPDATE] Faltan datos de descarga', {
+        hasDownloadUrl: !!updateInfo?.downloadUrl,
+        hasLatestVersion: !!updateInfo?.latestVersion,
       });
-      Alert.alert('Error', `No hay información de descarga disponible.\n\nDetalles:\n- URL: ${updateInfo?.downloadUrl || 'NO DISPONIBLE'}\n- Versión: ${updateInfo?.latestVersion || 'NO DISPONIBLE'}`);
+      Alert.alert(
+        'Error',
+        'No hay información de descarga disponible. Vuelve a verificar actualizaciones.'
+      );
       return;
     }
 
@@ -430,11 +415,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       const fileName = updateInfo.fileName || `erp-aio-v${updateInfo.latestVersion}.apk`;
       const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
 
-      console.log('📥 [APK_UPDATE] Iniciando descarga del APK...');
-      console.log('📥 [APK_UPDATE] URL:', updateInfo.downloadUrl);
-      console.log('📁 [APK_UPDATE] Destino:', fileUri);
-      console.log('📁 [APK_UPDATE] Cache Directory:', FileSystem.cacheDirectory);
-      console.log('📦 [APK_UPDATE] Tamaño esperado:', updateInfo.fileSize, 'bytes');
+      logger.debug('[APK_UPDATE] Descargando APK', {
+        url: updateInfo.downloadUrl,
+        fileUri,
+        fileSize: updateInfo.fileSize,
+      });
 
       // Configurar headers requeridos por el backend
       const downloadHeaders: Record<string, string> = {
@@ -443,17 +428,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         'X-App-Version': config.APP_VERSION || appVersion,
       };
 
-      console.log('📋 [APK_UPDATE] Headers para descarga:', JSON.stringify(downloadHeaders, null, 2));
-
       // Descargar el archivo con progreso
-      console.log('⏳ [APK_UPDATE] Creando downloadResumable...');
       const downloadResumable = FileSystem.createDownloadResumable(
         updateInfo.downloadUrl,
         fileUri,
         { headers: downloadHeaders },
         (progress) => {
           const percent = (progress.totalBytesWritten / progress.totalBytesExpectedToWrite) * 100;
-          console.log(`📊 [APK_UPDATE] Progreso: ${percent.toFixed(1)}% (${progress.totalBytesWritten}/${progress.totalBytesExpectedToWrite})`);
           setDownloadProgress({
             percent,
             bytesPerSecond: 0,
@@ -463,68 +444,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         }
       );
 
-      console.log('⏳ [APK_UPDATE] Iniciando downloadAsync...');
       const result = await downloadResumable.downloadAsync();
-      console.log('📦 [APK_UPDATE] Resultado descarga:', JSON.stringify(result, null, 2));
 
       if (!result?.uri) {
-        console.error('❌ [APK_UPDATE] Descarga falló - result.uri es null/undefined');
         throw new Error('La descarga no se completó correctamente - URI vacío');
       }
 
-      console.log('✅ [APK_UPDATE] APK descargado exitosamente:', result.uri);
-      console.log('✅ [APK_UPDATE] Status HTTP:', result.status);
-      console.log('✅ [APK_UPDATE] Headers:', JSON.stringify(result.headers, null, 2));
+      logger.debug('[APK_UPDATE] APK descargado', { uri: result.uri, status: result.status });
       setDownloadProgress((prev) => prev ? { ...prev, percent: 100 } : null);
 
       // Intentar abrir el APK para instalación
       try {
-        console.log('🔄 [APK_UPDATE] Obteniendo content URI...');
         const contentUri = await FileSystem.getContentUriAsync(result.uri);
-        console.log('📁 [APK_UPDATE] Content URI obtenido:', contentUri);
 
-        // Método 1: Usar IntentLauncher para abrir el instalador de Android
-        console.log('🚀 [APK_UPDATE] Abriendo con IntentLauncher...');
+        // Método 1: IntentLauncher para abrir el instalador de Android
         await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
           data: contentUri,
           flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
           type: 'application/vnd.android.package-archive',
         });
-        console.log('📲 [APK_UPDATE] Instalador de APK abierto exitosamente');
       } catch (intentError: any) {
-        console.log('⚠️ [APK_UPDATE] Error con IntentLauncher:', intentError.message);
-        console.log('⚠️ [APK_UPDATE] Stack:', intentError.stack);
+        logger.warn('[APK_UPDATE] IntentLauncher falló, probando Linking', intentError?.message);
 
-        // Método 2: Intentar con Linking como fallback
+        // Método 2: Linking como fallback
         try {
-          console.log('🔗 [APK_UPDATE] Intentando con Linking...');
           const contentUri = await FileSystem.getContentUriAsync(result.uri);
           const canOpen = await Linking.canOpenURL(contentUri);
-          console.log('🔗 [APK_UPDATE] canOpenURL resultado:', canOpen);
 
           if (canOpen) {
             await Linking.openURL(contentUri);
-            console.log('📲 [APK_UPDATE] APK abierto con Linking');
           } else {
             throw new Error('canOpenURL retornó false');
           }
         } catch (linkingError: any) {
-          console.log('⚠️ [APK_UPDATE] Error con Linking:', linkingError.message);
-          console.log('🔄 [APK_UPDATE] Intentando con Sharing...');
+          logger.warn('[APK_UPDATE] Linking falló, probando Sharing', linkingError?.message);
 
-          // Método 3: Usar Sharing como último recurso
+          // Método 3: Sharing como último recurso
           const isAvailable = await Sharing.isAvailableAsync();
-          console.log('📤 [APK_UPDATE] Sharing disponible:', isAvailable);
 
           if (isAvailable) {
-            console.log('📤 [APK_UPDATE] Compartiendo APK...');
             await Sharing.shareAsync(result.uri, {
               mimeType: 'application/vnd.android.package-archive',
               dialogTitle: 'Instalar actualización ERP-aio',
             });
-            console.log('📲 [APK_UPDATE] APK compartido para instalación');
           } else {
-            console.log('❌ [APK_UPDATE] Sharing no disponible, mostrando instrucciones manuales');
             Alert.alert(
               '📥 Descarga completada',
               `El APK v${updateInfo.latestVersion} se ha descargado.\n\nPara instalar:\n1. Abre el administrador de archivos\n2. Ve a la carpeta de descargas\n3. Toca el archivo ${fileName}`,
@@ -534,29 +497,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         }
       }
 
-      // Marcar como descargado
-      console.log('✅ [APK_UPDATE] Proceso completado, marcando como descargado');
       setUpdateInfo((prev) => prev ? { ...prev, updateDownloaded: true } : null);
     } catch (error: any) {
-      console.error('❌ [APK_UPDATE] ERROR GENERAL:', error.message);
-      console.error('❌ [APK_UPDATE] Error completo:', error);
-      console.error('❌ [APK_UPDATE] Stack:', error.stack);
+      logger.error('[APK_UPDATE] Error descargando/instalando APK', error?.message || error);
       Alert.alert(
         'Error de descarga',
         `${error.message || 'Error desconocido'}\n\nRevisa los logs para más detalles.`,
         [{ text: 'OK' }]
       );
     } finally {
-      console.log('🏁 [APK_UPDATE] Finalizando proceso (finally)');
       setIsDownloading(false);
     }
-  }, [updateInfo]);
+  }, [updateInfo, appVersion]);
 
   // Abrir página de releases en GitHub
   const openGitHubRelease = useCallback(() => {
     const url = latestReleaseUrl || `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
     Linking.openURL(url).catch((err) => {
-      console.error('Error opening URL:', err);
+      logger.error('Error opening URL:', err);
       Alert.alert('Error', 'No se pudo abrir el enlace');
     });
   }, [latestReleaseUrl]);
@@ -575,21 +533,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
+      <View style={[styles.modalContainer, { backgroundColor: theme.color.overlay.medium }]}>
         <View
           style={[
             styles.modalContent,
+            { backgroundColor: theme.color.surface.elevated },
             {
-              paddingTop: insets.top + spacing[4],
-              paddingBottom: insets.bottom + spacing[4],
+              paddingTop: insets.top + theme.space[4],
+              paddingBottom: insets.bottom + theme.space[4],
             },
           ]}
         >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <View style={styles.headerIconContainer}>
-                <Ionicons name="settings" size={iconSizes.lg} color={colors.primary[900]} />
+              <View
+                style={[styles.headerIconContainer, { backgroundColor: theme.color.brand.accentSoft }]}
+              >
+                <Ionicons name="settings" size={iconSizes.lg} color={theme.color.icon.default} />
               </View>
               <Title size="large">Configuración</Title>
             </View>
@@ -608,11 +569,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
             <SettingsCard title="Apariencia" icon="color-palette-outline">
               <View style={styles.settingRow}>
                 <View style={styles.settingInfo}>
-                  <View style={styles.settingIconSmall}>
+                  <View
+                    style={[styles.settingIconSmall, { backgroundColor: theme.color.surface.base }]}
+                  >
                     <Ionicons
                       name={isDarkMode ? 'moon' : 'sunny'}
                       size={iconSizes.sm}
-                      color={isDarkMode ? colors.accent[500] : colors.warning[500]}
+                      color={isDarkMode ? theme.color.brand.accent : theme.color.icon.warning}
                     />
                   </View>
                   <View style={styles.settingText}>
@@ -627,8 +590,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 <Switch
                   value={isDarkMode}
                   onValueChange={handleToggleDarkMode}
-                  trackColor={{ false: colors.neutral[200], true: colors.primary[500] }}
-                  thumbColor={isDarkMode ? colors.neutral[0] : colors.neutral[400]}
+                  trackColor={{ false: theme.color.border.subtle, true: theme.color.action.primary.background }}
+                  thumbColor={isDarkMode ? theme.color.surface.base : theme.color.text.disabled}
                 />
               </View>
               <Caption color="tertiary" style={styles.settingHint}>
@@ -674,11 +637,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 activeOpacity={activeOpacity.medium}
               >
                 {isCheckingUpdate ? (
-                  <ActivityIndicator size="small" color={colors.neutral[0]} />
+                  <ActivityIndicator size="small" color={theme.color.action.primary.text} />
                 ) : (
-                  <Ionicons name="cloud-download-outline" size={iconSizes.md} color={colors.neutral[0]} />
+                  <Ionicons name="cloud-download-outline" size={iconSizes.md} color={theme.color.action.primary.text} />
                 )}
-                <Text variant="buttonMedium" color={colors.neutral[0]} style={styles.updateButtonText}>
+                <Text variant="buttonMedium" color={theme.color.action.primary.text} style={styles.updateButtonText}>
                   {isCheckingUpdate ? 'Verificando...' : 'Buscar Actualizaciones'}
                 </Text>
               </TouchableOpacity>
@@ -688,14 +651,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 <View style={styles.updateInfoContainer}>
                   {updateInfo.error ? (
                     <View style={styles.updateError}>
-                      <Ionicons name="warning-outline" size={iconSizes.md} color={colors.danger[500]} />
-                      <Text variant="bodySmall" color={colors.danger[600]} style={styles.updateInfoText}>
+                      <Ionicons name="warning-outline" size={iconSizes.md} color={theme.color.icon.danger} />
+                      <Text variant="bodySmall" color={theme.color.text.danger} style={styles.updateInfoText}>
                         {updateInfo.error}
                       </Text>
                     </View>
                   ) : updateInfo.message ? (
                     <View style={styles.updateMessage}>
-                      <Ionicons name="information-circle-outline" size={iconSizes.md} color={colors.info[500]} />
+                      <Ionicons name="information-circle-outline" size={iconSizes.md} color={theme.color.state.info.border} />
                       <Text variant="bodySmall" color="secondary" style={styles.updateInfoText}>
                         {updateInfo.message}
                       </Text>
@@ -703,7 +666,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                   ) : updateInfo.updateAvailable ? (
                     <View style={styles.updateAvailable}>
                       <View style={styles.updateAvailableHeader}>
-                        <Ionicons name="arrow-up-circle" size={iconSizes.lg} color={colors.success[500]} />
+                        <Ionicons name="arrow-up-circle" size={iconSizes.lg} color={theme.color.icon.success} />
                         <View style={styles.updateAvailableText}>
                           <Text variant="titleSmall" color="primary">
                             ¡Nueva versión disponible!
@@ -759,11 +722,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                             activeOpacity={activeOpacity.medium}
                           >
                             {isDownloading ? (
-                              <ActivityIndicator size="small" color={colors.neutral[0]} />
+                              <ActivityIndicator size="small" color={theme.color.action.success.text} />
                             ) : (
-                              <Ionicons name="download-outline" size={iconSizes.sm} color={colors.neutral[0]} />
+                              <Ionicons name="download-outline" size={iconSizes.sm} color={theme.color.action.success.text} />
                             )}
-                            <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                            <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
                               {isDownloading ? 'Descargando...' : 'Descargar Actualización'}
                             </Text>
                           </TouchableOpacity>
@@ -773,8 +736,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                             onPress={installUpdate}
                             activeOpacity={activeOpacity.medium}
                           >
-                            <Ionicons name="rocket-outline" size={iconSizes.sm} color={colors.neutral[0]} />
-                            <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                            <Ionicons name="rocket-outline" size={iconSizes.sm} color={theme.color.action.primary.text} />
+                            <Text variant="buttonSmall" color={theme.color.action.primary.text} style={styles.downloadButtonText}>
                               Instalar y Reiniciar
                             </Text>
                           </TouchableOpacity>
@@ -790,11 +753,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                               activeOpacity={activeOpacity.medium}
                             >
                               {isDownloading ? (
-                                <ActivityIndicator size="small" color={colors.neutral[0]} />
+                                <ActivityIndicator size="small" color={theme.color.action.success.text} />
                               ) : (
-                                <Ionicons name="download-outline" size={iconSizes.sm} color={colors.neutral[0]} />
+                                <Ionicons name="download-outline" size={iconSizes.sm} color={theme.color.action.success.text} />
                               )}
-                              <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                              <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
                                 {isDownloading ? 'Descargando APK...' : 'Descargar e Instalar'}
                               </Text>
                             </TouchableOpacity>
@@ -806,7 +769,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                           </View>
                         ) : (
                           <View style={styles.downloadedContainer}>
-                            <Ionicons name="checkmark-circle" size={iconSizes.md} color={colors.success[500]} />
+                            <Ionicons name="checkmark-circle" size={iconSizes.md} color={theme.color.icon.success} />
                             <Text variant="bodySmall" color="success" style={styles.downloadedText}>
                               APK descargado. El instalador debería abrirse automáticamente.
                             </Text>
@@ -815,8 +778,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                               onPress={downloadAndInstallApk}
                               activeOpacity={activeOpacity.medium}
                             >
-                              <Ionicons name="refresh-outline" size={iconSizes.sm} color={colors.primary[600]} />
-                              <Text variant="buttonSmall" color={colors.primary[600]} style={styles.retryButtonText}>
+                              <Ionicons name="refresh-outline" size={iconSizes.sm} color={theme.color.brand.primary} />
+                              <Text variant="buttonSmall" color={theme.color.brand.primary} style={styles.retryButtonText}>
                                 Descargar de nuevo
                               </Text>
                             </TouchableOpacity>
@@ -829,8 +792,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                           onPress={openGitHubRelease}
                           activeOpacity={activeOpacity.medium}
                         >
-                          <Ionicons name="logo-github" size={iconSizes.sm} color={colors.neutral[0]} />
-                          <Text variant="buttonSmall" color={colors.neutral[0]} style={styles.downloadButtonText}>
+                          <Ionicons name="logo-github" size={iconSizes.sm} color={theme.color.action.success.text} />
+                          <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
                             Ver en GitHub
                           </Text>
                         </TouchableOpacity>
@@ -838,7 +801,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                     </View>
                   ) : (
                     <View style={styles.upToDate}>
-                      <Ionicons name="checkmark-circle" size={iconSizes.lg} color={colors.success[500]} />
+                      <Ionicons name="checkmark-circle" size={iconSizes.lg} color={theme.color.icon.success} />
                       <Text variant="bodyMedium" color="primary" style={styles.updateInfoText}>
                         ¡Estás al día!
                       </Text>
@@ -852,7 +815,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
               {/* Info adicional */}
               <View style={styles.webNotice}>
-                <Ionicons name="information-circle-outline" size={iconSizes.sm} color={colors.info[500]} />
+                <Ionicons name="information-circle-outline" size={iconSizes.sm} color={theme.color.state.info.border} />
                 <Caption color="secondary" style={styles.webNoticeText}>
                   {isElectron()
                     ? 'Las actualizaciones se descargan e instalan automáticamente.'
@@ -884,10 +847,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 // ============================================
 // STYLES
 // ============================================
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -897,9 +860,9 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     maxHeight: '90%',
     minHeight: Platform.OS === 'android' ? '70%' : undefined,
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    ...shadows.xl,
+    backgroundColor: theme.color.surface.elevated,
+    borderRadius: theme.radii.xl,
+    ...theme.shadow.xl,
   },
 
   // Header
@@ -907,8 +870,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
+    paddingHorizontal: theme.space[4],
+    paddingBottom: theme.space[3],
   },
 
   headerLeft: {
@@ -919,11 +882,11 @@ const styles = StyleSheet.create({
   headerIconContainer: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[50],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
 
   // Scroll
@@ -932,34 +895,34 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    padding: spacing[4],
-    paddingTop: spacing[2],
+    padding: theme.space[4],
+    paddingTop: theme.space[2],
   },
 
   // Card
   card: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    marginBottom: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
 
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
 
   cardIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.base,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
 
   cardContent: {},
@@ -980,11 +943,11 @@ const styles = StyleSheet.create({
   settingIconSmall: {
     width: 32,
     height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.primary,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.base,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
 
   settingText: {
@@ -992,13 +955,13 @@ const styles = StyleSheet.create({
   },
 
   settingHint: {
-    marginTop: spacing[3],
-    paddingLeft: spacing[11],
+    marginTop: theme.space[3],
+    paddingLeft: theme.space[11],
   },
 
   // Version
   versionContainer: {
-    gap: spacing[2],
+    gap: theme.space[2],
   },
 
   versionRow: {
@@ -1008,10 +971,10 @@ const styles = StyleSheet.create({
   },
 
   versionBadge: {
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.color.brand.primarySoft,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.full,
   },
 
   // Update Button
@@ -1019,87 +982,87 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary[900],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[3],
-    gap: spacing[2],
+    backgroundColor: theme.color.action.primary.background,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.lg,
+    marginTop: theme.space[3],
+    gap: theme.space[2],
   },
 
   updateButtonDisabled: {
-    backgroundColor: colors.neutral[400],
+    backgroundColor: theme.color.action.primary.backgroundDisabled,
   },
 
   updateButtonText: {
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 
   // Update Info
   updateInfoContainer: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
 
   updateError: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.danger[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.danger.background,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.danger[200],
+    borderColor: theme.color.state.danger.border,
   },
 
   updateMessage: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.info[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.info.background,
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.info[200],
+    borderColor: theme.color.state.info.border,
   },
 
   updateInfoText: {
     flex: 1,
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 
   updateAvailable: {
-    backgroundColor: colors.success[50],
-    padding: spacing[4],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.success.background,
+    padding: theme.space[4],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.success[200],
+    borderColor: theme.color.state.success.border,
   },
 
   updateAvailableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   updateAvailableText: {
-    marginLeft: spacing[3],
+    marginLeft: theme.space[3],
   },
 
   // Download Progress
   downloadProgress: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   progressBarContainer: {
     height: 8,
-    backgroundColor: colors.neutral[200],
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.color.border.subtle,
+    borderRadius: theme.radii.full,
     overflow: 'hidden',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 
   progressBar: {
     height: '100%',
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.color.action.success.background,
+    borderRadius: theme.radii.full,
   },
 
   progressInfo: {
@@ -1112,52 +1075,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.success[600],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
+    backgroundColor: theme.color.action.success.background,
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.md,
+    gap: theme.space[2],
   },
 
   downloadButtonDisabled: {
-    backgroundColor: colors.neutral[400],
+    backgroundColor: theme.color.action.success.backgroundDisabled,
   },
 
   downloadButtonText: {
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
   },
 
   installButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent[600],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
+    backgroundColor: theme.color.brand.accent,
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[4],
+    borderRadius: theme.radii.md,
+    gap: theme.space[2],
   },
 
   // Up to date
   upToDate: {
     alignItems: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.md,
+    padding: theme.space[4],
+    backgroundColor: theme.color.state.success.background,
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.success[200],
+    borderColor: theme.color.state.success.border,
   },
 
   // Changelog
   changelogContainer: {
-    marginBottom: spacing[3],
-    paddingTop: spacing[2],
+    marginBottom: theme.space[3],
+    paddingTop: theme.space[2],
     borderTopWidth: 1,
-    borderTopColor: colors.success[200],
+    borderTopColor: theme.color.state.success.border,
   },
 
   changelogTitle: {
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
 
   changelogText: {
@@ -1167,13 +1130,13 @@ const styles = StyleSheet.create({
   // File size text
   fileSizeText: {
     textAlign: 'center',
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
 
   // Downloaded container
   downloadedContainer: {
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
 
   downloadedText: {
@@ -1185,32 +1148,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.primary[300],
-    marginTop: spacing[2],
-    gap: spacing[1],
+    borderColor: theme.color.border.default,
+    marginTop: theme.space[2],
+    gap: theme.space[1],
   },
 
   retryButtonText: {
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
   },
 
   // Web Notice
   webNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing[4],
-    padding: spacing[3],
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.md,
+    marginTop: theme.space[4],
+    padding: theme.space[3],
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.md,
   },
 
   webNoticeText: {
     flex: 1,
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 
   // Info
@@ -1218,7 +1181,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing[2],
+    paddingVertical: theme.space[2],
   },
 });
 

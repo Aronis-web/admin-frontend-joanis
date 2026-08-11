@@ -1,0 +1,1820 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import { photoCampaignsApi, productsApi } from '@/services/api';
+import { filesApi } from '@/services/api/files';
+import priceProfilesApi from '@/services/api/price-profiles';
+import { AdDesignTemplate, PhotoGroup, PhotoType } from '@/types/photo-campaigns';
+import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
+import {
+  launchCameraAsync,
+  launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
+  requestMediaLibraryPermissionsAsync,
+  MediaTypeOptions,
+} from '@/utils/filePicker';
+import { uploadFileFromUrl } from '@/utils/imageFile';
+import { usePhotoGenerationStore } from '@/store/photoGeneration';
+import Alert from '@/utils/alert';
+import ImageCropModal from './ImageCropModal';
+
+interface ProductPhotoManagerModalProps {
+  visible: boolean;
+  onClose: () => void;
+  productId: string;
+  productTitle?: string;
+  productSku?: string;
+  /** URL de la foto de catálogo del producto (fallback cuando no hay referencia/diseño). */
+  catalogPhotoUrl?: string;
+  /** Último recurso: foto que ya se muestra del producto, por si no hay catálogo resoluble. */
+  fallbackImageUrl?: string;
+  /**
+   * Fotos de referencia que ya existen para el producto (p. ej. las fotos de
+   * validación de la compra) pero que todavía NO son assets de la campaña de
+   * fotos. Se muestran para que el usuario las adopte como referencia con un
+   * toque. Esto evita el caso confuso en que el badge dice que hay fotos pero
+   * el modal aparece vacío.
+   */
+  existingReferenceUrls?: string[];
+  /** Optional: associate uploaded photos to a photo campaign. */
+  photoCampaignId?: string;
+  /** Called whenever a photo is successfully uploaded/replaced. */
+  onPhotosChanged?: () => void;
+}
+
+const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
+  reference: 'Referencia',
+  design: 'Diseño',
+  price: 'Con precio',
+};
+
+// Instrucción común: la referencia suele ser una foto de tienda/almacén con
+// varias unidades, plástico, códigos de barras y manos. Hay que aislar UNA
+// unidad como protagonista y conservar intacta la marca y la etiqueta.
+const PRESERVE_PRODUCT_BLOCK = `IMPORTANTE — La imagen de referencia puede mostrar varias unidades del producto, empaques amontonados, envoltura plástica, códigos de barras, etiquetas de precio, manos o iluminación de tienda. Debes:
+
+* Seleccionar UNA sola unidad del producto y convertirla en el protagonista absoluto.
+* Eliminar por completo el desorden: otras unidades, envoltorios, cajas de fondo, manos, etiquetas de precio, códigos de barras, reflejos y ruido de tienda.
+* Conservar EXACTAMENTE el producto: forma, proporciones, materiales, texturas y colores reales.
+* Mantener la marca, logotipos y todos los textos de la etiqueta perfectamente legibles, nítidos y sin inventar ni alterar palabras (respeta el nombre de marca y la descripción del empaque tal cual).`;
+
+// Regla de tamaño enfática. Se coloca al inicio del prompt para que el modelo la
+// priorice: los resultados anteriores mostraban el producto demasiado pequeño.
+const HERO_SIZE_RULE = `⚠️ REGLA DE TAMAÑO (OBLIGATORIA E INNEGOCIABLE): el producto debe estar en PRIMER PLANO y LLENAR el encuadre, ocupando entre el 60% y el 80% del área total de la imagen. Es un hero shot / plano macro: acerca la cámara al producto hasta que domine por completo la composición y casi toque los bordes (sin recortarse). NUNCA lo muestres pequeño, lejano, centrado en un espacio vacío ni perdido en la escena. Si el producto ocupa menos del 60% de la imagen, el resultado es INCORRECTO y debe rehacerse mucho más cerca.`;
+
+const LIFESTYLE_SIZE_RULE = `⚠️ REGLA DE TAMAÑO (OBLIGATORIA): el producto debe estar en primer plano y ocupar entre el 40% y el 60% del área total de la imagen, claramente cercano y protagonista. Puede haber ambientación alrededor, pero el producto NUNCA debe verse pequeño ni lejano. Si ocupa menos del 40% de la imagen, el resultado es INCORRECTO y debe rehacerse más cerca.`;
+
+const DEFAULT_DESIGN_PROMPT = `Genera una fotografía de producto premium de nivel comercial y publicitario a partir de la imagen de referencia.
+
+${HERO_SIZE_RULE}
+
+${PRESERVE_PRODUCT_BLOCK}
+
+Composición:
+
+* Producto en primer plano llenando el encuadre, ocupando entre el 60% y el 80% del área de la imagen, grande y protagonista, sin recortarse.
+* Acércate mucho al producto (plano cerrado tipo hero shot); nunca debe verse pequeño ni lejano.
+* Encuadre limpio y equilibrado, perspectiva profesional tipo e-commerce / catálogo premium.
+* Enfoque extremadamente nítido en todo el producto, con la etiqueta perfectamente legible.
+
+Iluminación:
+
+* Luz de estudio suave y uniforme.
+* Sombras sutiles y realistas que aporten volumen.
+* Realces delicados que resalten el material (plástico, metal, brillo del empaque) y separen el producto del fondo.
+
+Escenario y fondo:
+
+* Genera un fondo ambientado según la identidad y el uso del producto (no un color plano): una escena o superficie premium coherente con la categoría (p. ej. tocador/mármol/tela para cosmética, materiales y props sutiles del rubro).
+* El fondo debe ser elegante, minimalista y ligeramente desenfocado, aportando contexto sin competir con el producto.
+* Paleta y ambientación armónicas con la marca; el producto siempre debe destacar claramente sobre el fondo.
+
+Salida final:
+
+* Resolución 1800x1800 px, formato cuadrado.
+* Máxima nitidez y calidad premium, optimizada para Instagram, e-commerce y publicidad digital.`;
+
+const LIFESTYLE_DESIGN_PROMPT = `Genera una fotografía lifestyle de producto para redes sociales comerciales a partir de la imagen de referencia.
+
+${LIFESTYLE_SIZE_RULE}
+
+${PRESERVE_PRODUCT_BLOCK}
+
+Composición:
+
+* El producto aislado es el protagonista claro, en primer plano y bien enfocado; debe ocupar entre el 40% y el 60% del área de la imagen y notarse cercano (nunca pequeño ni perdido en la escena).
+* Ambientación real de uso cotidiano acorde al producto (tocador, vanity, baño, superficie con accesorios de belleza).
+* Props sutiles y coherentes (flores, telas, espejo, cosméticos desenfocados) que acompañen sin robar protagonismo ni tapar el producto.
+* Encuadre atractivo con espacio negativo para texto/overlay.
+
+Iluminación:
+
+* Luz natural cálida tipo luz de ventana o golden hour.
+* Sombras suaves y naturales, atmósfera acogedora y aspiracional.
+
+Escenario y fondo:
+
+* Escena aspiracional y femenina acorde al público de belleza, con fondo desenfocado que resalte el producto.
+* Paleta armónica y moderna (tonos pastel o rosados si combinan con la marca).
+
+Salida final:
+
+* Resolución 1800x1800 px, formato cuadrado.
+* Estética editorial optimizada para Instagram y Facebook, con el producto claramente resaltado.`;
+
+const PROMO_DESIGN_PROMPT = `Genera una fotografía publicitaria de alto impacto para promociones en redes sociales a partir de la imagen de referencia.
+
+${HERO_SIZE_RULE}
+
+${PRESERVE_PRODUCT_BLOCK}
+
+Composición:
+
+* Producto centrado, en primer plano, grande y dominante, ocupando entre el 60% y el 80% del área de la imagen; que detenga el scroll y nunca se vea pequeño.
+* Composición dinámica y llamativa, con espacio limpio alrededor para precios, ofertas o llamados a la acción.
+
+Iluminación:
+
+* Iluminación de estudio dramática y vibrante.
+* Realces y brillos que resalten texturas, volumen y el brillo del empaque.
+* Alto contraste controlado, manteniendo los colores reales del producto.
+
+Escenario y fondo:
+
+* Genera un fondo ambientado según la identidad y el uso del producto (no un color plano): una escena publicitaria temática de la categoría con props, texturas y elementos gráficos modernos coherentes con la marca.
+* Puede ser vibrante y llamativo, pero manteniendo un espacio limpio alrededor del producto para precios, ofertas o llamados a la acción.
+* Estética energética, comercial y moderna tipo campaña de ofertas de belleza; el producto siempre dominante sobre el fondo.
+
+Salida final:
+
+* Resolución 1800x1800 px, formato cuadrado.
+* Máxima nitidez, look publicitario optimizado para historias, reels y anuncios, con el producto totalmente resaltado.`;
+
+const DESIGN_PROMPT_TEMPLATES: Array<{ key: string; label: string; prompt: string }> = [
+  { key: 'premium', label: 'Premium', prompt: DEFAULT_DESIGN_PROMPT },
+  { key: 'lifestyle', label: 'Lifestyle', prompt: LIFESTYLE_DESIGN_PROMPT },
+  { key: 'promo', label: 'Promo', prompt: PROMO_DESIGN_PROMPT },
+];
+
+type PricePhotoFormState = {
+  name: string;
+  sku: string;
+  price: string;
+  template: AdDesignTemplate;
+  profileId: string;
+};
+
+const defaultPricePhotoForm: PricePhotoFormState = {
+  name: '',
+  sku: '',
+  price: '',
+  template: 'premium',
+  profileId: '',
+};
+
+/** Fotos ordenadas de un grupo para el visor (referencia → diseño → precio). */
+type ViewerPhoto = { uri: string; title: string };
+
+/**
+ * Extrae la URL de la foto de catálogo de un producto. Las fotos pueden venir
+ * como strings o como objetos `{ type, url }`. Prioriza el tipo `catalog`, luego
+ * cualquier foto disponible, luego `imageUrl`/`imageUrls`.
+ */
+const extractCatalogUrl = (product: any): string | undefined => {
+  if (!product) return undefined;
+  const photos = product.photos;
+  if (Array.isArray(photos)) {
+    const catalogObj = photos.find(
+      (p: any) =>
+        p &&
+        typeof p === 'object' &&
+        typeof p.type === 'string' &&
+        p.type.toLowerCase() === 'catalog' &&
+        typeof p.url === 'string'
+    );
+    if (catalogObj?.url) return catalogObj.url;
+    const firstObj = photos.find(
+      (p: any) => p && typeof p === 'object' && typeof p.url === 'string'
+    );
+    if (firstObj?.url) return firstObj.url;
+    const firstStr = photos.find((p: any) => typeof p === 'string' && p);
+    if (firstStr) return firstStr;
+  }
+  if (typeof product.imageUrl === 'string' && product.imageUrl) return product.imageUrl;
+  if (Array.isArray(product.imageUrls) && typeof product.imageUrls[0] === 'string') {
+    return product.imageUrls[0];
+  }
+  return undefined;
+};
+
+/** Llave de subida por grupo para mostrar spinners aislados. */
+const groupPhotoKey = (parentId: string | null, photoType: PhotoType): string =>
+  `${parentId || 'new'}:${photoType}`;
+
+export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> = ({
+  visible,
+  onClose,
+  productId,
+  productTitle,
+  productSku,
+  catalogPhotoUrl,
+  fallbackImageUrl,
+  existingReferenceUrls,
+  photoCampaignId,
+  onPhotosChanged,
+}) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+
+  const [groups, setGroups] = useState<PhotoGroup[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [photoUploadingKey, setPhotoUploadingKey] = useState<string | null>(null);
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  // Foto de catálogo: la que pasa el padre o, si no, la resolvemos vía API.
+  const [fetchedCatalogUrl, setFetchedCatalogUrl] = useState<string | undefined>(undefined);
+  const effectiveCatalogUrl = catalogPhotoUrl || fetchedCatalogUrl || fallbackImageUrl;
+
+  // Generación en segundo plano (store global, persiste aunque cierres el modal)
+  const generateDesign = usePhotoGenerationStore((s) => s.generateDesign);
+  const generatePrice = usePhotoGenerationStore((s) => s.generatePrice);
+  const generatingMap = usePhotoGenerationStore((s) => s.generating);
+  const completedVersion = usePhotoGenerationStore((s) => s.completedVersion[productId] || 0);
+
+  // ¿Está generando design/price un grupo concreto? Las flags se llavean por
+  // grupo (`${productId}::${parentAssetId}`) en el store.
+  const isGroupGenerating = useCallback(
+    (parentId: string | null | undefined, kind: 'design' | 'price') =>
+      Boolean(generatingMap[`${productId}::${parentId || 'default'}`]?.[kind]),
+    [generatingMap, productId]
+  );
+
+  // Grupo activo (reference.id) sobre el que actúan los modales de diseño/precio.
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+
+  // Design (Gemini) prompt modal state
+  const [designModalVisible, setDesignModalVisible] = useState(false);
+  const [designPrompt, setDesignPrompt] = useState(DEFAULT_DESIGN_PROMPT);
+  const [designTemplateKey, setDesignTemplateKey] = useState(DESIGN_PROMPT_TEMPLATES[0].key);
+
+  // Price photo (ad-design) modal state
+  const [pricePhotoModalVisible, setPricePhotoModalVisible] = useState(false);
+  const [pricePhotoForm, setPricePhotoForm] = useState<PricePhotoFormState>(defaultPricePhotoForm);
+  const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
+  const [priceSalePrices, setPriceSalePrices] = useState<ProductSalePrice[]>([]);
+  const [priceProfilesLoading, setPriceProfilesLoading] = useState(false);
+
+  // Fuente pendiente de recorte antes de subir una nueva referencia (grupo).
+  const [cropState, setCropState] = useState<{
+    uri: string;
+    fileName: string;
+    mimeType: string;
+    /** Reference existente a reemplazar (se elimina antes de subir la nueva). */
+    replaceRefId?: string | null;
+    /** Fotos huérfanas del grupo por defecto a eliminar antes de subir. */
+    cleanupAssetIds?: string[];
+    /** Llave para el spinner de subida (por grupo). */
+    uploadKey: string;
+  } | null>(null);
+
+  // Image viewer state (pager por grupo)
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [viewerPhotos, setViewerPhotos] = useState<ViewerPhoto[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const imageViewerScale = useSharedValue(1);
+  const imageViewerSavedScale = useSharedValue(1);
+  const imageViewerTranslateX = useSharedValue(0);
+  const imageViewerTranslateY = useSharedValue(0);
+  const imageViewerSavedTranslateX = useSharedValue(0);
+  const imageViewerSavedTranslateY = useSharedValue(0);
+  const imageViewerFocalX = useSharedValue(0);
+  const imageViewerFocalY = useSharedValue(0);
+
+  const loadPhotos = useCallback(async () => {
+    if (!productId) {
+      return;
+    }
+    try {
+      setPhotosLoading(true);
+      const result = await photoCampaignsApi.getProductPhotoGroups(productId);
+      const sorted = [...result].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      setGroups(sorted);
+    } catch {
+      setGroups([]);
+    } finally {
+      setPhotosLoading(false);
+    }
+  }, [productId]);
+
+  const notifyChanged = useCallback(async () => {
+    await loadPhotos();
+    onPhotosChanged?.();
+  }, [loadPhotos, onPhotosChanged]);
+
+  useEffect(() => {
+    if (visible) {
+      void loadPhotos();
+    }
+  }, [visible, loadPhotos]);
+
+  // Resuelve la foto de catálogo real del producto si el padre no la proporcionó.
+  useEffect(() => {
+    if (!visible || !productId || catalogPhotoUrl) {
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      // Fuente principal: imágenes de catálogo del producto (GET
+      // /files/products/:id/images). Coincide con las fotos guardadas en
+      // catalog/productos/imagenes/...
+      try {
+        const res = await filesApi.getProductImages(productId);
+        const url = res?.images?.find((img) => !!img?.url)?.url;
+        if (url) {
+          if (!cancelled) setFetchedCatalogUrl(url);
+          return;
+        }
+      } catch {
+        // Ignoramos y probamos el fallback del detalle del producto.
+      }
+      // Fallback: detalle del producto (imageUrl / photos).
+      try {
+        const product = await productsApi.getProductById(productId);
+        if (!cancelled) {
+          setFetchedCatalogUrl(extractCatalogUrl(product));
+        }
+      } catch {
+        if (!cancelled) {
+          setFetchedCatalogUrl(undefined);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, productId, catalogPhotoUrl]);
+
+  // Recarga las miniaturas cuando una generación en segundo plano finaliza.
+  useEffect(() => {
+    if (visible && completedVersion > 0) {
+      void notifyChanged();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completedVersion]);
+
+  // Destino de una referencia a subir: grupo nuevo o reemplazo de uno existente.
+  // El backend auto-asigna el orden, así que no enviamos sortOrder.
+  type ReferenceTarget = {
+    replaceRefId?: string | null;
+    // Fotos huérfanas del grupo por defecto (design/price sin reference) que se
+    // eliminan al subir la referencia, para que no quede un grupo fantasma.
+    cleanupAssetIds?: string[];
+    uploadKey: string;
+  };
+
+  // Sube una referencia (crea o reemplaza un grupo). La imagen ya viene recortada 1:1.
+  const uploadReference = useCallback(
+    async (
+      asset: { uri: string; mimeType?: string; fileName?: string },
+      target: ReferenceTarget
+    ) => {
+      const mimeType = asset.mimeType || 'image/jpeg';
+      const fileName = asset.fileName || `reference-${Date.now()}.jpg`;
+
+      try {
+        setPhotoUploadingKey(target.uploadKey);
+        // Reemplazo: eliminamos la referencia previa (y su diseño/precio en cascada).
+        if (target.replaceRefId) {
+          await photoCampaignsApi.deleteProductPhoto(productId, target.replaceRefId);
+        }
+        // Grupo por defecto: eliminamos sus fotos huérfanas para que la nueva
+        // referencia sea el único grupo y no aparezca un grupo duplicado.
+        if (target.cleanupAssetIds?.length) {
+          for (const assetId of target.cleanupAssetIds) {
+            await photoCampaignsApi.deleteProductPhoto(productId, assetId);
+          }
+        }
+        const filePayload = await uploadFileFromUrl(asset.uri, fileName, mimeType);
+        await photoCampaignsApi.uploadProductPhoto(productId, {
+          photoType: 'reference',
+          file: filePayload,
+          photoCampaignId,
+        });
+        await notifyChanged();
+      } catch (error: any) {
+        Alert.alert('Error', error?.message || 'No se pudo subir la referencia');
+      } finally {
+        setPhotoUploadingKey(null);
+      }
+    },
+    [productId, photoCampaignId, notifyChanged]
+  );
+
+  // Abre la galería / selector de archivos para una referencia.
+  const pickFromLibrary = useCallback(async (target: ReferenceTarget) => {
+    const permission = await requestMediaLibraryPermissionsAsync();
+    if (permission.status !== 'granted') {
+      Alert.alert('Permiso requerido', 'Se necesita permiso para acceder a las fotos');
+      return;
+    }
+    const result = await launchImageLibraryAsync({
+      mediaTypes: MediaTypeOptions.Images,
+      quality: 1,
+    });
+    if (result.canceled || !result.assets?.[0]) {
+      return;
+    }
+    const asset = result.assets[0];
+    setCropState({
+      uri: asset.uri,
+      fileName: asset.fileName || `reference-${Date.now()}.jpg`,
+      mimeType: asset.mimeType || 'image/jpeg',
+      ...target,
+    });
+  }, []);
+
+  // Abre la cámara para tomar una referencia.
+  const takeFromCamera = useCallback(async (target: ReferenceTarget) => {
+    const permission = await requestCameraPermissionsAsync();
+    if (permission.status !== 'granted') {
+      Alert.alert('Permiso requerido', 'Se necesita permiso para acceder a la cámara');
+      return;
+    }
+    const result = await launchCameraAsync({
+      mediaTypes: MediaTypeOptions.Images,
+      quality: 1,
+    });
+    if (result.canceled || !result.assets?.[0]) {
+      return;
+    }
+    const asset = result.assets[0];
+    setCropState({
+      uri: asset.uri,
+      fileName: asset.fileName || `reference-${Date.now()}.jpg`,
+      mimeType: asset.mimeType || 'image/jpeg',
+      ...target,
+    });
+  }, []);
+
+  // Muestra un selector para tomar o subir una referencia hacia el destino dado.
+  const openReferencePicker = useCallback(
+    (target: ReferenceTarget) => {
+      Alert.alert('Foto de referencia', '¿Cómo quieres agregar la foto?', [
+        { text: 'Tomar foto', onPress: () => void takeFromCamera(target) },
+        {
+          text: Platform.OS === 'web' ? 'Subir archivo' : 'Elegir de galería',
+          onPress: () => void pickFromLibrary(target),
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
+    },
+    [takeFromCamera, pickFromLibrary]
+  );
+
+  // Usa la foto de catálogo del producto como referencia del destino dado: abre
+  // el recorte manual para que el usuario encuadre el producto (1:1).
+  const useCatalogForTarget = useCallback(
+    (target: ReferenceTarget) => {
+      if (!effectiveCatalogUrl) {
+        return;
+      }
+      setCropState({
+        uri: effectiveCatalogUrl,
+        fileName: `catalog-reference-${productId}.jpg`,
+        mimeType: 'image/jpeg',
+        ...target,
+      });
+    },
+    [effectiveCatalogUrl, productId]
+  );
+
+  // Adopta una URL de referencia ya existente (típicamente una foto de
+  // validación de la compra) como referencia de la campaña de fotos: abre el
+  // recorte 1:1 y luego la sube como asset. Así el producto que "ya tiene
+  // fotos" deja de verse vacío en el modal.
+  const useUrlAsReference = useCallback(
+    (url: string, target: ReferenceTarget) => {
+      if (!url) {
+        return;
+      }
+      setCropState({
+        uri: url,
+        fileName: `reference-${productId}-${Date.now()}.jpg`,
+        mimeType: 'image/jpeg',
+        ...target,
+      });
+    },
+    [productId]
+  );
+
+  // Al confirmar el recorte manual, subimos la referencia ya encuadrada.
+  const handleCropConfirm = useCallback(
+    async (croppedUri: string) => {
+      const source = cropState;
+      setCropState(null);
+      if (!source) {
+        return;
+      }
+      await uploadReference(
+        {
+          uri: croppedUri,
+          mimeType: source.mimeType,
+          fileName: source.fileName,
+        },
+        {
+          replaceRefId: source.replaceRefId,
+          cleanupAssetIds: source.cleanupAssetIds,
+          uploadKey: source.uploadKey,
+        }
+      );
+    },
+    [cropState, uploadReference]
+  );
+
+  // Elimina un grupo completo (referencia + diseño + precio en cascada).
+  const handleDeleteGroup = useCallback(
+    (group: PhotoGroup) => {
+      const assetId = group.reference?.id;
+      if (!assetId) {
+        return;
+      }
+      Alert.alert(
+        'Eliminar grupo',
+        'Se eliminará la referencia junto con su diseño y foto con precio. ¿Continuar?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setDeletingGroupId(assetId);
+                await photoCampaignsApi.deleteProductPhoto(productId, assetId);
+                await notifyChanged();
+              } catch (error: any) {
+                Alert.alert('Error', error?.message || 'No se pudo eliminar el grupo');
+              } finally {
+                setDeletingGroupId(null);
+              }
+            },
+          },
+        ]
+      );
+    },
+    [productId, notifyChanged]
+  );
+
+  // ============================================
+  // Design (Gemini) flow — modal para prompt + generación en segundo plano
+  // ============================================
+  const openDesignModal = useCallback((group: PhotoGroup) => {
+    if (!group.reference?.fileUrl || !group.reference.id) {
+      Alert.alert('Referencia requerida', 'Este grupo no tiene una foto de referencia.');
+      return;
+    }
+    setActiveGroupId(group.reference.id);
+    setDesignTemplateKey(DESIGN_PROMPT_TEMPLATES[0].key);
+    setDesignPrompt(DESIGN_PROMPT_TEMPLATES[0].prompt);
+    setDesignModalVisible(true);
+  }, []);
+
+  const handleGenerateDesignInBackground = useCallback(
+    (prompt: string) => {
+      const group = groups.find((g) => g.reference?.id === activeGroupId);
+      const referenceUrl = group?.reference?.fileUrl;
+      if (!group?.reference?.id || !referenceUrl) {
+        Alert.alert('Referencia requerida', 'No se encontró la referencia del grupo.');
+        return;
+      }
+
+      // Se ejecuta en el store global: continúa aunque se cierre el modal.
+      void generateDesign({
+        productId,
+        photoCampaignId,
+        referenceUrl,
+        prompt: prompt.trim() || DEFAULT_DESIGN_PROMPT,
+        parentAssetId: group.reference.id,
+      });
+    },
+    [groups, activeGroupId, productId, photoCampaignId, generateDesign]
+  );
+
+  // ============================================
+  // Price photo (ad-design) flow
+  // ============================================
+  const openPricePhotoModal = useCallback(
+    async (group: PhotoGroup) => {
+      if (!group.reference?.id) {
+        return;
+      }
+      if (!group.design?.fileUrl) {
+        Alert.alert(
+          'Diseño requerido',
+          'Primero debes generar la foto de diseño de este grupo para agregarle precio.'
+        );
+        return;
+      }
+
+      setActiveGroupId(group.reference.id);
+
+      try {
+        setPriceProfilesLoading(true);
+        const [profilesResponse, salePricesResponse] = await Promise.all([
+          priceProfilesApi.getActivePriceProfiles(),
+          priceProfilesApi.getProductSalePrices(productId),
+        ]);
+
+        const salePricesArray =
+          (salePricesResponse as any).salePrices || (salePricesResponse as any).data || [];
+
+        const defaultProfile =
+          profilesResponse.find((p) => p.name?.toLowerCase().includes('socia')) ||
+          profilesResponse[0] ||
+          null;
+
+        const defaultSalePrice = defaultProfile
+          ? salePricesArray.find(
+              (sp: ProductSalePrice) =>
+                sp.profileId === defaultProfile.id && sp.presentationId === null
+            )
+          : null;
+
+        const defaultPrice = defaultSalePrice ? (defaultSalePrice.priceCents / 100).toFixed(2) : '';
+
+        setPriceProfiles(profilesResponse);
+        setPriceSalePrices(salePricesArray);
+        setPricePhotoForm({
+          name: productTitle || '',
+          sku: productSku || '',
+          price: defaultPrice,
+          template: 'premium',
+          profileId: defaultProfile?.id || '',
+        });
+        setPricePhotoModalVisible(true);
+      } catch (error: any) {
+        Alert.alert(
+          'Error',
+          error?.message || 'No se pudo preparar la foto para diseño con precio.'
+        );
+      } finally {
+        setPriceProfilesLoading(false);
+      }
+    },
+    [productId, productTitle, productSku]
+  );
+
+  const resetPriceState = useCallback(() => {
+    setPricePhotoModalVisible(false);
+    setPricePhotoForm(defaultPricePhotoForm);
+    setPriceProfiles([]);
+    setPriceSalePrices([]);
+  }, []);
+
+  const handleGeneratePriceInBackground = useCallback(() => {
+    const group = groups.find((g) => g.reference?.id === activeGroupId);
+    const designPhoto = group?.design;
+    if (!group?.reference?.id || !designPhoto?.fileUrl) {
+      Alert.alert('Error', 'No se encontró la imagen base para generar el diseño.');
+      return;
+    }
+    if (!pricePhotoForm.name.trim() || !pricePhotoForm.sku.trim() || !pricePhotoForm.price.trim()) {
+      Alert.alert('Validación', 'Nombre, SKU y precio son obligatorios.');
+      return;
+    }
+
+    const form = pricePhotoForm;
+    // Cerramos el modal; el trabajo continúa en el store aunque se cierre.
+    setPricePhotoModalVisible(false);
+
+    void generatePrice({
+      productId,
+      photoCampaignId,
+      designUrl: designPhoto.fileUrl,
+      designMimeType: designPhoto.mimeType,
+      name: form.name.trim(),
+      sku: form.sku.trim(),
+      price: form.price.trim(),
+      template: form.template,
+      parentAssetId: group.reference.id,
+    });
+  }, [groups, activeGroupId, pricePhotoForm, productId, photoCampaignId, generatePrice]);
+
+  // ============================================
+  // Image viewer (pager)
+  // ============================================
+  const resetImageViewerTransform = useCallback(() => {
+    imageViewerScale.value = 1;
+    imageViewerSavedScale.value = 1;
+    imageViewerTranslateX.value = 0;
+    imageViewerTranslateY.value = 0;
+    imageViewerSavedTranslateX.value = 0;
+    imageViewerSavedTranslateY.value = 0;
+    imageViewerFocalX.value = 0;
+    imageViewerFocalY.value = 0;
+  }, [
+    imageViewerScale,
+    imageViewerSavedScale,
+    imageViewerTranslateX,
+    imageViewerTranslateY,
+    imageViewerSavedTranslateX,
+    imageViewerSavedTranslateY,
+    imageViewerFocalX,
+    imageViewerFocalY,
+  ]);
+
+  const pinchGesture = Gesture.Pinch()
+    .onStart((event) => {
+      imageViewerFocalX.value = event.focalX;
+      imageViewerFocalY.value = event.focalY;
+    })
+    .onUpdate((event) => {
+      imageViewerFocalX.value = event.focalX;
+      imageViewerFocalY.value = event.focalY;
+      const nextScale = imageViewerSavedScale.value * event.scale;
+      imageViewerScale.value = Math.max(1, Math.min(nextScale, 6));
+    })
+    .onEnd(() => {
+      imageViewerSavedScale.value = imageViewerScale.value;
+      if (imageViewerScale.value <= 1) {
+        imageViewerTranslateX.value = 0;
+        imageViewerTranslateY.value = 0;
+        imageViewerSavedTranslateX.value = 0;
+        imageViewerSavedTranslateY.value = 0;
+      }
+    });
+
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      imageViewerSavedTranslateX.value = imageViewerTranslateX.value;
+      imageViewerSavedTranslateY.value = imageViewerTranslateY.value;
+    })
+    .onUpdate((event) => {
+      if (imageViewerScale.value <= 1) {
+        return;
+      }
+      imageViewerTranslateX.value = imageViewerSavedTranslateX.value + event.translationX;
+      imageViewerTranslateY.value = imageViewerSavedTranslateY.value + event.translationY;
+    })
+    .onEnd(() => {
+      imageViewerSavedTranslateX.value = imageViewerTranslateX.value;
+      imageViewerSavedTranslateY.value = imageViewerTranslateY.value;
+    });
+
+  const imageViewerGesture = Gesture.Simultaneous(pinchGesture, panGesture);
+
+  const imageViewerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: imageViewerTranslateX.value },
+      { translateY: imageViewerTranslateY.value },
+      { translateX: imageViewerFocalX.value },
+      { translateY: imageViewerFocalY.value },
+      { scale: imageViewerScale.value },
+      { translateX: -imageViewerFocalX.value },
+      { translateY: -imageViewerFocalY.value },
+    ],
+  }));
+
+  // Abre el visor sobre las fotos de un grupo, posicionado en la foto tocada.
+  const openGroupViewer = useCallback(
+    (group: PhotoGroup, startType: PhotoType) => {
+      const items: ViewerPhoto[] = [];
+      if (group.reference?.fileUrl) {
+        items.push({ uri: group.reference.fileUrl, title: PHOTO_TYPE_LABELS.reference });
+      }
+      if (group.design?.fileUrl) {
+        items.push({ uri: group.design.fileUrl, title: PHOTO_TYPE_LABELS.design });
+      }
+      if (group.price?.fileUrl) {
+        items.push({ uri: group.price.fileUrl, title: PHOTO_TYPE_LABELS.price });
+      }
+      if (items.length === 0) {
+        return;
+      }
+      const startTitle = PHOTO_TYPE_LABELS[startType];
+      const idx = Math.max(
+        0,
+        items.findIndex((i) => i.title === startTitle)
+      );
+      resetImageViewerTransform();
+      setViewerPhotos(items);
+      setViewerIndex(idx);
+      setImageViewerVisible(true);
+    },
+    [resetImageViewerTransform]
+  );
+
+  const goToViewerIndex = useCallback(
+    (nextIndex: number) => {
+      if (nextIndex < 0 || nextIndex >= viewerPhotos.length) {
+        return;
+      }
+      resetImageViewerTransform();
+      setViewerIndex(nextIndex);
+    },
+    [viewerPhotos.length, resetImageViewerTransform]
+  );
+
+  const currentViewerPhoto = viewerPhotos[viewerIndex];
+
+  const renderPhotoCard = (group: PhotoGroup, photoType: PhotoType) => {
+    const parentId = group.reference?.id ?? null;
+    const photo = group[photoType];
+    const label = PHOTO_TYPE_LABELS[photoType];
+    const designGenerating = isGroupGenerating(parentId, 'design');
+    const priceGenerating = isGroupGenerating(parentId, 'price');
+
+    // Destino y estado de subida para las acciones de la card de referencia.
+    const referenceUploadKey = groupPhotoKey(parentId, 'reference');
+    const referenceUploading = photoUploadingKey === referenceUploadKey;
+    const hasDerived = !!group.design || !!group.price;
+    // Grupo por defecto (sin reference): su design/price están huérfanos. Al subir
+    // una referencia los limpiamos para que no quede un grupo duplicado.
+    const isDefaultGroup = !parentId;
+    const cleanupAssetIds = isDefaultGroup
+      ? [group.design?.id, group.price?.id].filter((id): id is string => !!id)
+      : undefined;
+    const referenceTarget: ReferenceTarget = {
+      replaceRefId: parentId,
+      cleanupAssetIds,
+      uploadKey: referenceUploadKey,
+    };
+    // Confirmamos cuando la subida vaya a eliminar diseño/precio existentes
+    // (reemplazo de una referencia o limpieza del grupo por defecto).
+    const willRemoveDerived = isDefaultGroup ? hasDerived : !!photo && hasDerived;
+    const withReplaceWarning = (action: () => void) => {
+      if (willRemoveDerived) {
+        Alert.alert(
+          'Reemplazar referencia',
+          'Se eliminarán el diseño y la foto con precio de este grupo. ¿Continuar?',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Continuar', onPress: action },
+          ]
+        );
+      } else {
+        action();
+      }
+    };
+
+    return (
+      <View style={styles.photoTypeCard} key={photoType}>
+        <Text style={styles.photoTypeLabel}>{label}</Text>
+        {photo?.fileUrl ? (
+          <TouchableOpacity
+            onPress={() => openGroupViewer(group, photoType)}
+            activeOpacity={0.9}
+            style={styles.photoTouchArea}
+          >
+            <Image source={{ uri: photo.fileUrl }} style={styles.photoThumb} resizeMode="cover" />
+          </TouchableOpacity>
+        ) : (photoType === 'design' && designGenerating) ||
+          (photoType === 'price' && priceGenerating) ? (
+          <View style={styles.photoMissingBox}>
+            <ActivityIndicator size="small" color={theme.color.brand.accent} />
+            <Text style={styles.photoMissingText}>Generando…</Text>
+          </View>
+        ) : (
+          <View style={styles.photoMissingBox}>
+            <Text style={styles.photoMissingText}>Sin foto</Text>
+          </View>
+        )}
+
+        {photoType === 'reference' && (
+          <>
+            <TouchableOpacity
+              onPress={() => withReplaceWarning(() => openReferencePicker(referenceTarget))}
+              disabled={referenceUploading}
+            >
+              {referenceUploading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={theme.color.brand.accent}
+                  style={styles.photoActionIndicator}
+                />
+              ) : (
+                <Text style={styles.photoActionText}>
+                  {photo ? 'Reemplazar' : 'Tomar / Subir foto'}
+                </Text>
+              )}
+            </TouchableOpacity>
+            {!!effectiveCatalogUrl && !referenceUploading && (
+              <TouchableOpacity
+                onPress={() => withReplaceWarning(() => useCatalogForTarget(referenceTarget))}
+              >
+                <Text style={styles.photoActionTextSecondary}>Usar catálogo</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+        {photoType === 'design' &&
+          (designGenerating ? (
+            <View style={styles.photoActionInline}>
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
+              <Text style={styles.photoActionTextMuted}>Generando…</Text>
+            </View>
+          ) : (
+            <Text style={styles.photoActionTextMuted}>Se genera desde referencia</Text>
+          ))}
+        {photoType === 'price' &&
+          (priceGenerating ? (
+            <View style={styles.photoActionInline}>
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
+              <Text style={styles.photoActionTextMuted}>Generando…</Text>
+            </View>
+          ) : (
+            <Text style={styles.photoActionTextMuted}>Se llena en flujo específico</Text>
+          ))}
+      </View>
+    );
+  };
+
+  const renderGroup = (group: PhotoGroup, index: number) => {
+    const parentId = group.reference?.id ?? null;
+    const designGenerating = isGroupGenerating(parentId, 'design');
+    const priceGenerating = isGroupGenerating(parentId, 'price');
+    const deleting = !!parentId && deletingGroupId === parentId;
+    const hasReference = !!group.reference?.fileUrl;
+
+    return (
+      <View style={styles.groupCard} key={parentId || `default-${index}`}>
+        <View style={styles.groupHeader}>
+          <Text style={styles.groupTitle}>Grupo {index + 1}</Text>
+          {hasReference &&
+            (deleting ? (
+              <ActivityIndicator size="small" color={theme.color.text.danger} />
+            ) : (
+              <TouchableOpacity onPress={() => handleDeleteGroup(group)}>
+                <Text style={styles.groupDeleteText}>Eliminar</Text>
+              </TouchableOpacity>
+            ))}
+        </View>
+
+        <View style={styles.referenceDesignHeaderRow}>
+          <TouchableOpacity
+            style={[styles.geminiGenerateButton, designGenerating && styles.buttonDisabled]}
+            onPress={() => openDesignModal(group)}
+            disabled={designGenerating || !hasReference}
+          >
+            <Text style={styles.geminiGenerateButtonText}>
+              {designGenerating ? 'Generando diseño…' : 'Generar diseño'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.priceDesignButton, priceGenerating && styles.buttonDisabled]}
+            onPress={() => void openPricePhotoModal(group)}
+            disabled={priceGenerating || !hasReference}
+          >
+            <Text style={styles.priceDesignButtonText}>
+              {priceGenerating ? 'Generando datos…' : 'Agregar datos'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.photoTypesRow}>
+          {(['reference', 'design', 'price'] as PhotoType[]).map((photoType) =>
+            renderPhotoCard(group, photoType)
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const addingReference = photoUploadingKey === groupPhotoKey(null, 'reference');
+
+  return (
+    <>
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.managerCard]}>
+            <View style={styles.managerHeader}>
+              <View style={styles.managerHeaderMain}>
+                <Text style={styles.modalTitle} numberOfLines={1}>
+                  {productTitle || 'Producto'}
+                </Text>
+                <Text style={styles.managerSubtitle}>
+                  SKU: {productSku || '-'} · Grupos: {groups.length}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
+                <Text style={styles.secondaryButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.managerScroll}
+              contentContainerStyle={styles.managerScrollContent}
+              showsVerticalScrollIndicator
+            >
+              {groups.length === 0 && !photosLoading && (
+                <View style={styles.emptyBox}>
+                  <Text style={styles.emptyText}>
+                    Aún no hay referencias. Agrega una para crear el primer grupo de fotos.
+                  </Text>
+                </View>
+              )}
+
+              {/* Fotos de referencia que ya existen (p. ej. de la validación de
+                  la compra) pero que todavía no son assets de la campaña. Se
+                  ofrecen para adoptarlas con un toque. */}
+              {groups.length === 0 && !photosLoading && !!existingReferenceUrls?.length && (
+                <View style={styles.suggestedBox}>
+                  <Text style={styles.suggestedTitle}>
+                    Este producto ya tiene {existingReferenceUrls.length}{' '}
+                    {existingReferenceUrls.length === 1 ? 'foto' : 'fotos'} de la compra
+                  </Text>
+                  <Text style={styles.suggestedHint}>
+                    Tócala para usarla como referencia y crear el grupo de fotos.
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.suggestedRow}
+                  >
+                    {existingReferenceUrls.map((url, idx) => {
+                      const key = `${url}-${idx}`;
+                      const adopting = photoUploadingKey === groupPhotoKey(null, 'reference');
+                      return (
+                        <TouchableOpacity
+                          key={key}
+                          style={styles.suggestedThumbWrap}
+                          disabled={adopting}
+                          onPress={() =>
+                            useUrlAsReference(url, {
+                              uploadKey: groupPhotoKey(null, 'reference'),
+                            })
+                          }
+                        >
+                          <Image
+                            source={{ uri: url }}
+                            style={styles.suggestedThumb}
+                            resizeMode="cover"
+                          />
+                          <View style={styles.suggestedThumbBadge}>
+                            <Text style={styles.suggestedThumbBadgeText}>Usar</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+
+              {groups.map((group, index) => renderGroup(group, index))}
+
+              <TouchableOpacity
+                style={[styles.addReferenceButton, addingReference && styles.buttonDisabled]}
+                onPress={() =>
+                  openReferencePicker({
+                    uploadKey: groupPhotoKey(null, 'reference'),
+                  })
+                }
+                disabled={addingReference}
+              >
+                {addingReference ? (
+                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
+                ) : (
+                  <Text style={styles.addReferenceButtonText}>+ Agregar referencia</Text>
+                )}
+              </TouchableOpacity>
+
+              {!!effectiveCatalogUrl && (
+                <TouchableOpacity
+                  onPress={() =>
+                    useCatalogForTarget({
+                      uploadKey: groupPhotoKey(null, 'reference'),
+                    })
+                  }
+                  disabled={addingReference}
+                >
+                  <Text style={styles.photoActionTextSecondary}>
+                    Usar foto de catálogo como nueva referencia
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {photosLoading && (
+                <View style={styles.inlineLoadingRow}>
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                  <Text style={styles.inlineLoadingText}>Cargando fotos...</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* Design (Gemini) prompt modal */}
+        <Modal visible={designModalVisible} transparent animationType="fade">
+          <View style={styles.modalBackdrop}>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Crear foto de diseño con Gemini</Text>
+                <Text style={styles.managerSubtitle}>Producto: {productTitle || productId}</Text>
+
+                <Text style={styles.inputLabel}>Plantilla</Text>
+                <View style={styles.templateRow}>
+                  {DESIGN_PROMPT_TEMPLATES.map((template) => {
+                    const selected = designTemplateKey === template.key;
+                    return (
+                      <TouchableOpacity
+                        key={template.key}
+                        style={[styles.templateChip, selected && styles.templateChipSelected]}
+                        onPress={() => {
+                          setDesignTemplateKey(template.key);
+                          setDesignPrompt(template.prompt);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.templateChipText,
+                            selected && styles.templateChipTextSelected,
+                          ]}
+                        >
+                          {template.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={styles.inputLabel}>Prompt de diseño</Text>
+                <TextInput
+                  style={[styles.input, styles.multiline]}
+                  multiline
+                  value={designPrompt}
+                  onChangeText={setDesignPrompt}
+                  placeholder="Describe cómo quieres generar la foto de diseño..."
+                  placeholderTextColor={theme.color.text.placeholder}
+                />
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.secondaryButton}
+                    onPress={() => setDesignModalVisible(false)}
+                  >
+                    <Text style={styles.secondaryButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => {
+                      const prompt = designPrompt;
+                      setDesignModalVisible(false);
+                      void handleGenerateDesignInBackground(prompt);
+                    }}
+                  >
+                    <Text style={styles.primaryButtonText}>Generar diseño</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
+
+        {/* Price photo (ad-design) modal */}
+        <Modal visible={pricePhotoModalVisible} transparent animationType="fade">
+          <View style={styles.modalBackdrop}>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Diseño con precio</Text>
+                <Text style={styles.managerSubtitle}>Producto: {productTitle || productId}</Text>
+
+                <Text style={styles.inputLabel}>Nombre</Text>
+                <TextInput
+                  style={styles.input}
+                  value={pricePhotoForm.name}
+                  onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, name: value }))}
+                  placeholder="Nombre"
+                  placeholderTextColor={theme.color.text.placeholder}
+                />
+                <Text style={styles.inputLabel}>SKU</Text>
+                <TextInput
+                  style={styles.input}
+                  value={pricePhotoForm.sku}
+                  onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, sku: value }))}
+                  placeholder="SKU"
+                  placeholderTextColor={theme.color.text.placeholder}
+                />
+
+                <Text style={styles.inputLabel}>Perfil de precio</Text>
+                {priceProfilesLoading ? (
+                  <View style={styles.inlineLoadingRow}>
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                    <Text style={styles.inlineLoadingText}>Cargando perfiles...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.templateRow}>
+                    {priceProfiles.map((profile) => {
+                      const selected = pricePhotoForm.profileId === profile.id;
+                      return (
+                        <TouchableOpacity
+                          key={profile.id}
+                          style={[styles.templateChip, selected && styles.templateChipSelected]}
+                          onPress={() => {
+                            const matchedPrice = priceSalePrices.find(
+                              (sp) => sp.profileId === profile.id && sp.presentationId === null
+                            );
+                            setPricePhotoForm((prev) => ({
+                              ...prev,
+                              profileId: profile.id,
+                              price: matchedPrice
+                                ? (matchedPrice.priceCents / 100).toFixed(2)
+                                : prev.price,
+                            }));
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.templateChipText,
+                              selected && styles.templateChipTextSelected,
+                            ]}
+                          >
+                            {profile.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+
+                <Text style={styles.inputLabel}>Precio</Text>
+                <TextInput
+                  style={styles.input}
+                  value={pricePhotoForm.price}
+                  keyboardType="numeric"
+                  onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, price: value }))}
+                  placeholder="Precio"
+                  placeholderTextColor={theme.color.text.placeholder}
+                />
+
+                <Text style={styles.inputLabel}>Template</Text>
+                <View style={styles.templateRow}>
+                  {(['promo', 'premium', 'minimal'] as AdDesignTemplate[]).map((templateKey) => {
+                    const selected = pricePhotoForm.template === templateKey;
+                    return (
+                      <TouchableOpacity
+                        key={templateKey}
+                        style={[styles.templateChip, selected && styles.templateChipSelected]}
+                        onPress={() =>
+                          setPricePhotoForm((prev) => ({ ...prev, template: templateKey }))
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.templateChipText,
+                            selected && styles.templateChipTextSelected,
+                          ]}
+                        >
+                          {templateKey}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={styles.secondaryButton} onPress={resetPriceState}>
+                    <Text style={styles.secondaryButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => void handleGeneratePriceInBackground()}
+                  >
+                    <Text style={styles.primaryButtonText}>Generar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
+
+        {/* Image viewer (pager) */}
+        <Modal
+          visible={imageViewerVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            resetImageViewerTransform();
+            setImageViewerVisible(false);
+          }}
+        >
+          <View style={styles.imageViewerBackdrop}>
+            <View style={styles.imageViewerHeader}>
+              <Text style={styles.imageViewerTitle}>
+                {currentViewerPhoto?.title || ''}
+                {viewerPhotos.length > 1 ? `  (${viewerIndex + 1}/${viewerPhotos.length})` : ''}
+              </Text>
+              <TouchableOpacity
+                style={styles.imageViewerCloseButton}
+                onPress={() => {
+                  resetImageViewerTransform();
+                  setImageViewerVisible(false);
+                }}
+              >
+                <Text style={styles.imageViewerCloseText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+
+            <GestureHandlerRootView style={styles.imageViewerContent}>
+              <GestureDetector gesture={imageViewerGesture}>
+                <Animated.View style={styles.imageViewerImageWrap}>
+                  {currentViewerPhoto ? (
+                    <Animated.Image
+                      source={{ uri: currentViewerPhoto.uri }}
+                      style={[styles.imageViewerImage, imageViewerAnimatedStyle]}
+                      resizeMode="contain"
+                    />
+                  ) : null}
+                </Animated.View>
+              </GestureDetector>
+
+              {viewerPhotos.length > 1 && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.imageViewerNav, styles.imageViewerNavLeft]}
+                    onPress={() => goToViewerIndex(viewerIndex - 1)}
+                    disabled={viewerIndex <= 0}
+                  >
+                    <Text
+                      style={[
+                        styles.imageViewerNavText,
+                        viewerIndex <= 0 && styles.imageViewerNavTextDisabled,
+                      ]}
+                    >
+                      ‹
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.imageViewerNav, styles.imageViewerNavRight]}
+                    onPress={() => goToViewerIndex(viewerIndex + 1)}
+                    disabled={viewerIndex >= viewerPhotos.length - 1}
+                  >
+                    <Text
+                      style={[
+                        styles.imageViewerNavText,
+                        viewerIndex >= viewerPhotos.length - 1 && styles.imageViewerNavTextDisabled,
+                      ]}
+                    >
+                      ›
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </GestureHandlerRootView>
+          </View>
+        </Modal>
+
+        {/* Recorte manual 1:1 */}
+        <ImageCropModal
+          visible={!!cropState}
+          imageUri={cropState?.uri ?? null}
+          title="Encuadrar producto"
+          onCancel={() => setCropState(null)}
+          onConfirm={(uri) => void handleCropConfirm(uri)}
+        />
+      </Modal>
+    </>
+  );
+};
+
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.space[4],
+    },
+    modalScroll: {
+      width: '100%',
+    },
+    modalScrollContent: {
+      alignItems: 'center',
+      paddingVertical: theme.space[4],
+    },
+    modalCard: {
+      width: '100%',
+      maxWidth: 560,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.base,
+      padding: theme.space[3.5],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      ...theme.shadow.md,
+    },
+    managerCard: {
+      maxWidth: 640,
+      maxHeight: '90%',
+    },
+    managerScroll: {
+      flexGrow: 0,
+    },
+    managerScrollContent: {
+      paddingBottom: theme.space[2],
+    },
+    managerHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[3],
+    },
+    managerHeaderMain: {
+      flex: 1,
+      marginRight: theme.space[2],
+    },
+    modalTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    managerSubtitle: {
+      marginTop: theme.space[1],
+      color: theme.color.text.muted,
+      fontSize: 12,
+    },
+    inputLabel: {
+      marginTop: theme.space[0.5],
+      marginBottom: theme.space[1.5],
+      color: theme.color.text.muted,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.background.subtle,
+      color: theme.color.text.body,
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[2],
+      marginBottom: theme.space[2],
+    },
+    multiline: {
+      minHeight: 120,
+      textAlignVertical: 'top',
+    },
+    groupCard: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2.5],
+      marginBottom: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    groupHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[2],
+    },
+    groupTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    groupDeleteText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.danger,
+    },
+    emptyBox: {
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    emptyText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    suggestedBox: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+      backgroundColor: theme.color.surface.subtle,
+    },
+    suggestedTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    suggestedHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      marginBottom: theme.space[2],
+    },
+    suggestedRow: {
+      gap: theme.space[2],
+      paddingVertical: theme.space[1],
+    },
+    suggestedThumbWrap: {
+      width: 96,
+      height: 96,
+      borderRadius: theme.radii.md,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    suggestedThumb: {
+      width: '100%',
+      height: '100%',
+    },
+    suggestedThumbBadge: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      paddingVertical: theme.space[1],
+    },
+    suggestedThumbBadgeText: {
+      color: theme.color.text.inverse,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    referenceDesignHeaderRow: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    geminiGenerateButton: {
+      flex: 1,
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+    },
+    geminiGenerateButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    priceDesignButton: {
+      flex: 1,
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    priceDesignButtonText: {
+      color: theme.color.text.heading,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    addReferenceButton: {
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      marginTop: theme.space[1],
+    },
+    addReferenceButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    photoTypesRow: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    photoTypeCard: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2],
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+    },
+    photoTypeLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1.5],
+    },
+    photoTouchArea: {
+      width: '100%',
+      aspectRatio: 1,
+      borderRadius: theme.radii.sm,
+      overflow: 'hidden',
+    },
+    photoThumb: {
+      width: '100%',
+      height: '100%',
+    },
+    photoMissingBox: {
+      width: '100%',
+      aspectRatio: 1,
+      borderRadius: theme.radii.sm,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: theme.space[1],
+    },
+    photoMissingText: {
+      fontSize: 11,
+      color: theme.color.text.placeholder,
+      textAlign: 'center',
+    },
+    photoActionText: {
+      marginTop: theme.space[1.5],
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+      textAlign: 'center',
+    },
+    photoActionIndicator: {
+      marginTop: theme.space[1.5],
+    },
+    photoActionTextSecondary: {
+      marginTop: theme.space[1],
+      marginBottom: theme.space[1],
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+      textAlign: 'center',
+    },
+    photoActionTextMuted: {
+      marginTop: theme.space[1.5],
+      fontSize: 10,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    photoActionInline: {
+      marginTop: theme.space[1.5],
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    inlineLoadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      marginTop: theme.space[2.5],
+    },
+    inlineLoadingText: {
+      color: theme.color.text.muted,
+      fontSize: 12,
+    },
+    templateRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+      marginBottom: theme.space[2],
+    },
+    templateChip: {
+      paddingVertical: theme.space[1.5],
+      paddingHorizontal: theme.space[2.5],
+      borderRadius: theme.radii.full,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    templateChipSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    templateChipText: {
+      fontSize: 12,
+      color: theme.color.text.body,
+    },
+    templateChipTextSelected: {
+      color: theme.color.brand.accent,
+      fontWeight: '700',
+    },
+    modalActions: {
+      marginTop: theme.space[2],
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: theme.space[2],
+    },
+    primaryButton: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    primaryButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    secondaryButton: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    secondaryButtonText: {
+      color: theme.color.text.heading,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    imageViewerBackdrop: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.strong,
+    },
+    imageViewerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+    },
+    imageViewerTitle: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    imageViewerCloseButton: {
+      paddingVertical: theme.space[1.5],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    imageViewerCloseText: {
+      color: theme.color.text.heading,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    imageViewerContent: {
+      flex: 1,
+    },
+    imageViewerImageWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    imageViewerImage: {
+      width: '100%',
+      height: '100%',
+    },
+    imageViewerNav: {
+      position: 'absolute',
+      top: '50%',
+      marginTop: -24,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.color.overlay.strong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    imageViewerNavLeft: {
+      left: theme.space[3],
+    },
+    imageViewerNavRight: {
+      right: theme.space[3],
+    },
+    imageViewerNavText: {
+      color: theme.color.text.inverse,
+      fontSize: 30,
+      fontWeight: '700',
+      lineHeight: 34,
+    },
+    imageViewerNavTextDisabled: {
+      opacity: 0.3,
+    },
+  });
+
+export default ProductPhotoManagerModal;

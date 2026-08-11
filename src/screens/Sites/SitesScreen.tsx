@@ -6,18 +6,19 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { sitesApi, Site, GetSitesParams } from '@/services/api';
 import { CreateSiteModal } from '@/components/sites/CreateSiteModal';
 import { SiteDetailModal } from '@/components/sites/SiteDetailModal';
 import { EditSiteModal } from '@/components/sites/EditSiteModal';
+import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 
@@ -33,6 +34,8 @@ interface SitesScreenProps {
 
 export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) => {
   const { user, logout } = useAuthStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -203,7 +206,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
   };
 
   const getStatusColor = (isActive: boolean) => {
-    return isActive ? colors.success[500] : colors.danger[500];
+    return isActive ? theme.color.state.success.border : theme.color.state.danger.border;
   };
 
   const getStatusText = (isActive: boolean) => {
@@ -326,7 +329,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
           placeholder="Buscar sedes..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor={colors.neutral[400]}
+          placeholderTextColor={theme.color.text.placeholder}
         />
       </View>
 
@@ -383,32 +386,32 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   headerTitleContainer: {
@@ -418,11 +421,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   placeholder: {
@@ -433,13 +436,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary[500],
+    backgroundColor: theme.color.brand.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   addButtonText: {
     fontSize: 24,
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
     fontWeight: '600',
   },
   loadingContainer: {
@@ -449,28 +452,28 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   searchContainer: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   searchInput: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     fontSize: 16,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   sitesList: {
     flex: 1,
-    paddingHorizontal: spacing[5],
+    paddingHorizontal: theme.space[5],
     paddingBottom: 100,
   },
   sitesListLandscape: {
@@ -480,13 +483,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginTop: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginTop: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -501,10 +504,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.accent[50],
+    backgroundColor: theme.color.brand.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   iconText: {
     fontSize: 24,
@@ -520,29 +523,29 @@ const styles = StyleSheet.create({
   siteName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     flex: 1,
   },
   codeContainer: {
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: spacing[2],
+    backgroundColor: theme.color.brand.accentSoft,
+    paddingHorizontal: theme.space[2],
     paddingVertical: 2,
-    borderRadius: borderRadius.md,
-    marginLeft: spacing[2],
+    borderRadius: theme.radii.md,
+    marginLeft: theme.space[2],
   },
   siteCode: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.primary[500],
+    color: theme.color.brand.accent,
   },
   siteAddress: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     marginBottom: 2,
   },
   sitePhone: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   siteStatus: {
     alignItems: 'center',
@@ -565,7 +568,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   emptyStateContainer: {
@@ -576,44 +579,44 @@ const styles = StyleSheet.create({
   },
   emptyStateIcon: {
     fontSize: 64,
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[3],
     textAlign: 'center',
   },
   emptyStateMessage: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
     lineHeight: 20,
   },
   emptyStateButton: {
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.xl,
-    marginTop: spacing[4],
+    backgroundColor: theme.color.brand.accent,
+    paddingHorizontal: theme.space[6],
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.xl,
+    marginTop: theme.space[4],
   },
   emptyStateButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
   },
   statsFooter: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   statsText: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
     fontWeight: '500',
   },

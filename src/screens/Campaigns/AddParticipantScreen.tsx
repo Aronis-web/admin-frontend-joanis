@@ -17,6 +17,8 @@ import { ParticipantType, AddParticipantRequest } from '@/types/campaigns';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface AddParticipantScreenProps {
   navigation: any;
@@ -50,6 +52,8 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const { width, height } = useWindowDimensions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -257,7 +261,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
             {/* Company/Site Selection */}
             {loadingData ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#6366F1" />
+                <ActivityIndicator size="small" color={theme.color.brand.primary} />
                 <Text style={styles.loadingText}>Cargando...</Text>
               </View>
             ) : (
@@ -322,7 +326,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
                 value={currentAmount}
                 onChangeText={setCurrentAmount}
                 placeholder="Ej: 10000.00"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="decimal-pad"
               />
               <Text style={[styles.hint, isTablet && styles.hintTablet]}>
@@ -428,7 +432,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
             disabled={loading || loadingData || selectedParticipants.length === 0}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={theme.color.text.onAction} />
             ) : (
               <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
                 Guardar Participantes ({selectedParticipants.length})
@@ -441,17 +445,17 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -462,7 +466,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#6366F1',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   backButtonTextTablet: {
@@ -471,7 +475,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   titleTablet: {
     fontSize: 32,
@@ -486,10 +490,10 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -504,7 +508,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   labelTablet: {
@@ -512,26 +516,26 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   pickerContainerTablet: {
     borderRadius: 10,
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
+    color: theme.color.text.heading,
+    backgroundColor: theme.color.surface.base,
   },
   inputTablet: {
     paddingHorizontal: 16,
@@ -540,7 +544,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     marginTop: 4,
   },
   hintTablet: {
@@ -555,14 +559,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   infoBox: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: theme.color.state.info.background,
     borderRadius: 8,
     padding: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: theme.color.state.info.border,
     marginTop: 8,
   },
   infoBoxTablet: {
@@ -571,7 +575,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: theme.color.state.info.text,
     marginBottom: 8,
   },
   infoTitleTablet: {
@@ -579,7 +583,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#1E40AF',
+    color: theme.color.state.info.text,
     lineHeight: 20,
   },
   infoTextTablet: {
@@ -587,7 +591,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   addToListButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: theme.color.action.success.background,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -600,7 +604,7 @@ const styles = StyleSheet.create({
   addToListButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   addToListButtonTextTablet: {
     fontSize: 18,
@@ -611,7 +615,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   sectionTitleTablet: {
@@ -621,12 +625,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   participantItemTablet: {
     padding: 16,
@@ -637,7 +641,7 @@ const styles = StyleSheet.create({
   participantName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   participantNameTablet: {
@@ -645,7 +649,7 @@ const styles = StyleSheet.create({
   },
   participantType: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginBottom: 4,
   },
   participantTypeTablet: {
@@ -654,7 +658,7 @@ const styles = StyleSheet.create({
   participantAmount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   participantAmountTablet: {
     fontSize: 16,
@@ -663,7 +667,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
@@ -676,7 +680,7 @@ const styles = StyleSheet.create({
   removeButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#DC2626',
+    color: theme.color.text.danger,
   },
   removeButtonTextTablet: {
     fontSize: 22,
@@ -685,9 +689,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
   footerTablet: {
     padding: 24,
@@ -698,7 +702,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -708,14 +712,14 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   cancelButtonTextTablet: {
     fontSize: 18,
   },
   addButton: {
     flex: 1,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.primary,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -730,7 +734,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   addButtonTextTablet: {
     fontSize: 18,

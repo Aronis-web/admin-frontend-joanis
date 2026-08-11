@@ -4,13 +4,14 @@
  * Pantalla de listado de repartos profesional y moderna.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   FlatList,
   StyleSheet,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   Platform,
@@ -33,12 +34,8 @@ import * as downloadTracker from '@/utils/downloadTracker';
 import { logger } from '@/utils/logger';
 
 // Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -61,17 +58,20 @@ interface RepartosScreenProps {
   navigation: any;
 }
 
-// Status colors mapping
-const STATUS_COLORS: Record<CampaignStatus, { background: string; text: string; border: string }> = {
-  [CampaignStatus.ACTIVE]: colors.status.active,
-  [CampaignStatus.DRAFT]: colors.status.draft,
-  [CampaignStatus.PAUSED]: colors.status.pending,
-  [CampaignStatus.COMPLETED]: colors.status.completed,
-  [CampaignStatus.CLOSED]: colors.status.completed,
-  [CampaignStatus.CANCELLED]: colors.status.cancelled,
-};
-
 export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+
+  // Status colors mapping
+  const STATUS_COLORS: Record<CampaignStatus, { background: string; text: string; border: string }> = useMemo(() => ({
+    [CampaignStatus.ACTIVE]: theme.color.state.active,
+    [CampaignStatus.DRAFT]: theme.color.state.draft,
+    [CampaignStatus.PAUSED]: theme.color.state.pending,
+    [CampaignStatus.COMPLETED]: theme.color.state.completed,
+    [CampaignStatus.CLOSED]: theme.color.state.completed,
+    [CampaignStatus.CANCELLED]: theme.color.state.cancelled,
+  }), [theme]);
+
   // ✅ Por defecto mostrar todas menos canceladas y borrador
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'ALL' | 'NOT_CANCELLED_DRAFT'>('NOT_CANCELLED_DRAFT');
   const [exportingCampaignId, setExportingCampaignId] = useState<string | null>(null);
@@ -363,7 +363,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
     const totalProductos = campaign.products?.length || 0;
     const isExporting = exportingCampaignId === campaign.id;
     const progress = campaignProgress.get(campaign.id) || { validated: 0, total: 0, percentage: 0 };
-    const statusColor = STATUS_COLORS[campaign.status] || colors.status.draft;
+    const statusColor = STATUS_COLORS[campaign.status] || theme.color.state.draft;
 
     return (
       <Card
@@ -401,14 +401,14 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           {/* Stats Row */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text variant="numericMedium" color={colors.accent[600]}>
+              <Text variant="numericMedium" color={theme.color.brand.accent}>
                 {totalParticipantes}
               </Text>
               <Caption color="tertiary">Participantes</Caption>
             </View>
 
             <View style={styles.statItem}>
-              <Text variant="numericMedium" color={colors.accent[600]}>
+              <Text variant="numericMedium" color={theme.color.brand.accent}>
                 {totalProductos}
               </Text>
               <Caption color="tertiary">Productos</Caption>
@@ -424,7 +424,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
                   validated={progress.validated}
                   fontSize={isTablet ? 14 : 12}
                 />
-                <Caption color="tertiary" style={{ marginTop: spacing[2] }}>Validación</Caption>
+                <Caption color="tertiary" style={{ marginTop: theme.space[2] }}>Validación</Caption>
               </View>
             )}
           </View>
@@ -432,7 +432,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           {campaign.startDate && (
             <View style={styles.dateRow}>
               <Caption color="tertiary">Fecha inicio:</Caption>
-              <Text variant="labelMedium" color="primary" style={{ marginLeft: spacing[2] }}>
+              <Text variant="labelMedium" color="primary" style={{ marginLeft: theme.space[2] }}>
                 {formatDate(campaign.startDate)}
               </Text>
             </View>
@@ -444,7 +444,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
         {/* Footer */}
         <View style={styles.cardFooter}>
           <Caption color="tertiary">Creado: {formatDate(campaign.createdAt)}</Caption>
-          <Text variant="titleLarge" color={colors.neutral[300]}>›</Text>
+          <Text variant="titleLarge" color={theme.color.border.default}>›</Text>
         </View>
 
         {/* Export Button */}
@@ -455,21 +455,21 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
             disabled={isExporting}
             activeOpacity={0.7}
           >
-            <Text variant="buttonSmall" color={colors.text.inverse}>
+            <Text variant="buttonSmall" color={theme.color.text.inverse}>
               {isExporting ? '📄 Generando...' : '📄 Descargar Hojas de Reparto'}
             </Text>
           </TouchableOpacity>
         )}
       </Card>
     );
-  }, [isTablet, exportingCampaignId, campaignProgress, handleCampaignPress, handleOpenProductSelection, formatDate]);
+  }, [isTablet, exportingCampaignId, campaignProgress, handleCampaignPress, handleOpenProductSelection, formatDate, STATUS_COLORS, theme, styles]);
 
   // Loading state
   if (isLoading && !isRefetching) {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -478,7 +478,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="git-branch" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="git-branch" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Repartos</Text>
               </View>
@@ -487,7 +487,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
           </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
             Cargando campañas...
           </Text>
@@ -501,7 +501,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
       <View style={styles.container}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -510,7 +510,7 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="git-branch" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="git-branch" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Repartos</Text>
               </View>
@@ -548,8 +548,8 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={handleRefresh}
-              tintColor={colors.primary[900]}
-              colors={[colors.primary[900]]}
+              tintColor={theme.color.brand.primary}
+              colors={[theme.color.brand.primary]}
             />
           }
           ListEmptyComponent={
@@ -645,17 +645,17 @@ export const RepartosScreen: React.FC<RepartosScreenProps> = ({ navigation }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
 
   // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
@@ -668,21 +668,21 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   headerTitleTablet: {
@@ -690,28 +690,28 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   statsHeaderContainer: {
     alignItems: 'flex-end',
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
@@ -720,19 +720,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[8],
+    padding: theme.space[8],
   },
 
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
 
   filtersContainer: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
 
   listContainer: {
@@ -740,27 +740,27 @@ const styles = StyleSheet.create({
   },
 
   listContent: {
-    padding: spacing[4],
-    paddingBottom: spacing[20],
+    padding: theme.space[4],
+    paddingBottom: theme.space[20],
   },
 
   // Campaign Card
   campaignCard: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[4],
-    paddingBottom: spacing[2],
+    padding: theme.space[4],
+    paddingBottom: theme.space[2],
   },
 
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
 
   cardCode: {
@@ -768,33 +768,33 @@ const styles = StyleSheet.create({
   },
 
   statusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
   },
 
   cardBody: {
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
+    paddingHorizontal: theme.space[4],
+    paddingBottom: theme.space[3],
   },
 
   campaignName: {
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
 
   campaignDescription: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.border.light,
-    marginBottom: spacing[3],
+    borderColor: theme.color.border.subtle,
+    marginBottom: theme.space[3],
   },
 
   statItem: {
@@ -810,26 +810,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
   },
 
   exportButton: {
-    backgroundColor: colors.primary[900],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
+    backgroundColor: theme.color.brand.primary,
+    paddingVertical: theme.space[2.5],
+    paddingHorizontal: theme.space[4],
     alignItems: 'center',
-    borderBottomLeftRadius: borderRadius.lg,
-    borderBottomRightRadius: borderRadius.lg,
+    borderBottomLeftRadius: theme.radii.lg,
+    borderBottomRightRadius: theme.radii.lg,
   },
 
   // Format Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
   },
 
   formatModalContainer: {
@@ -838,40 +838,40 @@ const styles = StyleSheet.create({
   },
 
   formatModalTitle: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 
   formatModalSubtitle: {
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
   },
 
   formatButtonsContainer: {
     flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[4],
+    gap: theme.space[3],
+    marginBottom: theme.space[4],
   },
 
   formatButton: {
     flex: 1,
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
 
   pdfButton: {
-    borderColor: colors.danger[400],
+    borderColor: theme.color.border.error,
   },
 
   excelButton: {
-    borderColor: colors.success[400],
+    borderColor: theme.color.border.success,
   },
 
   formatButtonIcon: {
     fontSize: 32,
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 });
 

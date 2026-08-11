@@ -16,10 +16,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../primitives/Text';
-import { colors } from '../../tokens/colors';
-import { spacing, borderRadius, iconSizes } from '../../tokens/spacing';
+import { iconSizes } from '../../tokens/spacing';
 import { textVariants } from '../../tokens/typography';
 import { activeOpacity, durations } from '../../tokens/animations';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export interface SearchBarProps {
   /**
@@ -85,6 +86,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   style,
   disabled = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const inputRef = useRef<TextInput>(null);
   const [isFocused, setIsFocused] = useState(false);
   const cancelAnim = useRef(new Animated.Value(onCancel ? 1 : 0)).current;
@@ -122,7 +125,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           <Ionicons
             name="search"
             size={iconSizes.md}
-            color={isFocused ? colors.icon.primary : colors.icon.tertiary}
+            color={isFocused ? theme.color.icon.default : theme.color.icon.subtle}
           />
         </View>
 
@@ -133,7 +136,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.text.placeholder}
+          placeholderTextColor={theme.color.text.placeholder}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onSubmitEditing={onSubmit}
@@ -147,7 +150,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         {/* Loading / Clear Button */}
         {loading ? (
           <View style={styles.rightIconContainer}>
-            <ActivityIndicator size="small" color={colors.primary[900]} />
+            <ActivityIndicator size="small" color={theme.color.brand.primary} />
           </View>
         ) : showClearButton ? (
           <TouchableOpacity
@@ -155,7 +158,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             onPress={handleClear}
             activeOpacity={activeOpacity.medium}
           >
-            <Ionicons name="close-circle" size={iconSizes.md} color={colors.icon.tertiary} />
+            <Ionicons name="close-circle" size={iconSizes.md} color={theme.color.icon.subtle} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -175,7 +178,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           ]}
         >
           <TouchableOpacity onPress={handleCancel} activeOpacity={activeOpacity.medium}>
-            <Text variant="buttonMedium" color={colors.primary[900]}>
+            <Text variant="buttonMedium" color={theme.color.brand.primary}>
               Cancelar
             </Text>
           </TouchableOpacity>
@@ -205,6 +208,8 @@ export const SearchWithFilters: React.FC<SearchWithFiltersProps> = ({
   onFilterPress,
   ...searchProps
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.searchWithFilters}>
       <View style={styles.searchContainer}>
@@ -220,11 +225,11 @@ export const SearchWithFilters: React.FC<SearchWithFiltersProps> = ({
           <Ionicons
             name="options-outline"
             size={iconSizes.md}
-            color={activeFilters > 0 ? colors.text.inverse : colors.icon.primary}
+            color={activeFilters > 0 ? theme.color.text.onAction : theme.color.icon.default}
           />
           {activeFilters > 0 && (
             <View style={styles.filterBadge}>
-              <Text variant="labelSmall" color={colors.primary[900]}>
+              <Text variant="labelSmall" color={theme.color.brand.primary}>
                 {activeFilters}
               </Text>
             </View>
@@ -235,7 +240,7 @@ export const SearchWithFilters: React.FC<SearchWithFiltersProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -245,33 +250,33 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.lg,
     borderWidth: 1.5,
     borderColor: 'transparent',
     minHeight: 44,
   },
 
   inputContainerFocused: {
-    backgroundColor: colors.surface.primary,
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.surface.base,
+    borderColor: theme.color.border.focus,
   },
 
   iconContainer: {
-    paddingLeft: spacing[3],
-    paddingRight: spacing[2],
+    paddingLeft: theme.space[3],
+    paddingRight: theme.space[2],
   },
 
   input: {
     flex: 1,
     ...textVariants.bodyMedium,
-    color: colors.text.primary,
-    paddingVertical: spacing[2],
-    paddingRight: spacing[2],
+    color: theme.color.text.body,
+    paddingVertical: theme.space[2],
+    paddingRight: theme.space[2],
   },
 
   rightIconContainer: {
-    paddingHorizontal: spacing[3],
+    paddingHorizontal: theme.space[3],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -286,7 +291,7 @@ const styles = StyleSheet.create({
   searchWithFilters: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
 
   searchContainer: {
@@ -300,22 +305,22 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   filterButtonActive: {
-    backgroundColor: colors.primary[900],
+    backgroundColor: theme.color.action.primary.background,
   },
 
   filterBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.full,
     width: 18,
     height: 18,
     alignItems: 'center',

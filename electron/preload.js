@@ -32,6 +32,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onDownloadProgress: (callback) => {
     ipcRenderer.on('download-progress', (event, progress) => callback(progress));
+  },
+
+  // Impresión de etiquetas térmicas
+  getPrinters: () => {
+    return ipcRenderer.invoke('get-printers');
+  },
+  printHTML: (options) => {
+    return ipcRenderer.invoke('print-html', options);
   }
 });
 

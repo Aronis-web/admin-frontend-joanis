@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -16,17 +15,22 @@ import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { transportService } from '@/services/api/transport';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   CreateTransporterRequest,
   TransporterDocumentType,
   TransporterStatus,
   AuthorizedCode,
 } from '@/types/transport';
+import Alert from '@/utils/alert';
 
 export const CreateTransporterScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { hasPermission } = usePermissions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const canCreate = hasPermission('transport.transporters.create');
 
@@ -240,7 +244,7 @@ export const CreateTransporterScreen: React.FC = () => {
                 value={formData.numeroRuc}
                 onChangeText={(value) => updateField('numeroRuc', value)}
                 placeholder="Ingrese el RUC (11 dígitos)"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="numeric"
                 maxLength={11}
                 editable={!isSubmitting}
@@ -277,7 +281,7 @@ export const CreateTransporterScreen: React.FC = () => {
                 value={formData.razonSocial}
                 onChangeText={(value) => updateField('razonSocial', value)}
                 placeholder="Ingrese la razón social"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 editable={!isSubmitting}
               />
               {errors.razonSocial && <Text style={styles.errorText}>{errors.razonSocial}</Text>}
@@ -299,7 +303,7 @@ export const CreateTransporterScreen: React.FC = () => {
                 value={formData.numeroRegistroMTC}
                 onChangeText={(value) => updateField('numeroRegistroMTC', value)}
                 placeholder="Ej: 0215YUIO8548"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 editable={!isSubmitting}
               />
               {errors.numeroRegistroMTC && (
@@ -317,7 +321,7 @@ export const CreateTransporterScreen: React.FC = () => {
                 value={formData.numeroAutorizacion}
                 onChangeText={(value) => updateField('numeroAutorizacion', value)}
                 placeholder="Ej: 026 5469"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 editable={!isSubmitting}
               />
               {errors.numeroAutorizacion && (
@@ -366,7 +370,7 @@ export const CreateTransporterScreen: React.FC = () => {
                 value={formData.telefono}
                 onChangeText={(value) => updateField('telefono', value)}
                 placeholder="Ej: 014567890"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="phone-pad"
                 editable={!isSubmitting}
               />
@@ -381,7 +385,7 @@ export const CreateTransporterScreen: React.FC = () => {
                 value={formData.email}
                 onChangeText={(value) => updateField('email', value)}
                 placeholder="Ej: contacto@empresa.com"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 editable={!isSubmitting}
@@ -397,7 +401,7 @@ export const CreateTransporterScreen: React.FC = () => {
                 value={formData.direccion}
                 onChangeText={(value) => updateField('direccion', value)}
                 placeholder="Ingrese la dirección"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
@@ -457,7 +461,7 @@ export const CreateTransporterScreen: React.FC = () => {
                 value={formData.notas}
                 onChangeText={(value) => updateField('notas', value)}
                 placeholder="Notas adicionales (opcional)"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -483,7 +487,7 @@ export const CreateTransporterScreen: React.FC = () => {
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={theme.color.text.inverse} />
             ) : (
               <Text style={styles.submitButtonText}>Crear Transportista</Text>
             )}
@@ -494,174 +498,175 @@ export const CreateTransporterScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#1F2937',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 40,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: '#1F2937',
-  },
-  inputError: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
-  },
-  textArea: {
-    minHeight: 80,
-    paddingTop: 10,
-  },
-  pickerContainer: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    color: '#1F2937',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkboxBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  checkboxBoxChecked: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  checkboxLabel: {
-    fontSize: 15,
-    color: '#374151',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  submitButton: {
-    backgroundColor: '#6366F1',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backButtonText: {
+      fontSize: 24,
+      color: theme.color.text.heading,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      flex: 1,
+      textAlign: 'center',
+    },
+    headerRight: {
+      width: 40,
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 20,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    formGroup: {
+      marginBottom: 16,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: theme.color.text.heading,
+    },
+    inputError: {
+      borderColor: theme.color.border.error,
+      backgroundColor: theme.color.state.danger.background,
+    },
+    textArea: {
+      minHeight: 80,
+      paddingTop: 10,
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    errorText: {
+      fontSize: 12,
+      color: theme.color.text.danger,
+      marginTop: 4,
+    },
+    checkboxRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    checkbox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    checkboxBox: {
+      width: 24,
+      height: 24,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 8,
+    },
+    checkboxBoxChecked: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    checkmark: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    checkboxLabel: {
+      fontSize: 15,
+      color: theme.color.text.body,
+    },
+    actionsContainer: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 8,
+      marginBottom: 20,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+  });

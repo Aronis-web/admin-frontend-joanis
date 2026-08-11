@@ -2,13 +2,14 @@
  * CreatePurchaseScreen - Crear Nueva Compra
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -21,10 +22,6 @@ import { SupplierType } from '@/types/suppliers';
 import { getTodayString } from '@/utils/dateHelpers';
 import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
@@ -34,12 +31,16 @@ import {
   Input,
   IconButton,
 } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CreatePurchaseScreenProps {
   navigation: any;
 }
 
 export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [guideNumber, setGuideNumber] = useState('');
   const [guideType, setGuideType] = useState<GuideType>(GuideType.FACTURA);
@@ -121,7 +122,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
                 }}
               >
                 <Body
-                  color={guideType === type ? colors.primary[900] : 'primary'}
+                  color={guideType === type ? theme.color.brand.primary : 'primary'}
                   style={guideType === type && { fontWeight: '600' }}
                 >
                   {GuideTypeLabels[type]}
@@ -142,7 +143,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={colors.icon.primary} />
+          <Ionicons name="chevron-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Title size="large">Nueva Compra</Title>
@@ -169,7 +170,7 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
             filterByType={SupplierType.MERCHANDISE}
           />
           <View style={styles.infoNote}>
-            <Ionicons name="information-circle" size={16} color={colors.info[500]} />
+            <Ionicons name="information-circle" size={16} color={theme.color.icon.accent} />
             <Caption color="secondary" style={styles.infoNoteText}>
               Solo se muestran proveedores de tipo Mercadería
             </Caption>
@@ -190,14 +191,14 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
         {/* Guide Type */}
         <Card variant="outlined" padding="medium" style={styles.section}>
           <Label color="secondary" style={styles.fieldLabel}>
-            Tipo de Guía <Label color={colors.danger[500]}>*</Label>
+            Tipo de Guía <Label color={theme.color.text.danger}>*</Label>
           </Label>
           <TouchableOpacity
             style={styles.selectInput}
             onPress={() => setShowGuideTypePicker(true)}
           >
             <Body>{GuideTypeLabels[guideType]}</Body>
-            <Ionicons name="chevron-down" size={20} color={colors.icon.tertiary} />
+            <Ionicons name="chevron-down" size={20} color={theme.color.icon.subtle} />
           </TouchableOpacity>
         </Card>
 
@@ -254,26 +255,26 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    gap: spacing[3],
+    borderBottomColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -284,26 +285,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[4],
-    gap: spacing[4],
+    padding: theme.space[4],
+    gap: theme.space[4],
   },
   contentContainerTablet: {
-    padding: spacing[6],
+    padding: theme.space[6],
     maxWidth: 800,
     alignSelf: 'center',
     width: '100%',
   },
   section: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   fieldLabel: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   infoNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing[3],
-    gap: spacing[2],
+    marginTop: theme.space[3],
+    gap: theme.space[2],
   },
   infoNoteText: {
     flex: 1,
@@ -312,56 +313,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1.5,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     minHeight: 48,
   },
   textAreaContainer: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
-    paddingTop: spacing[3],
+    paddingTop: theme.space[3],
   },
   bottomSpacer: {
-    height: spacing[10],
+    height: theme.space[10],
   },
   footer: {
     flexDirection: 'row',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   footerButton: {
     flex: 1,
   },
-  // Picker Modal
   pickerOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.overlay.medium,
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   pickerContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
     width: '90%',
     maxHeight: '70%',
     overflow: 'hidden',
-    ...shadows.xl,
+    ...theme.shadow.xl,
   },
   pickerContainerTablet: {
     width: '60%',
@@ -371,21 +371,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   pickerList: {
     maxHeight: 400,
   },
   pickerItem: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   pickerItemSelected: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: theme.color.brand.primarySoft,
   },
 });
 

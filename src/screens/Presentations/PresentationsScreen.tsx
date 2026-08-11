@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   Modal,
   Switch,
@@ -15,23 +14,28 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import {
   presentationsApi,
-  Presentation,
   CreatePresentationDto,
   UpdatePresentationDto,
 } from '@/services/api';
+import type { Presentation } from '@/services/api/presentations';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
 import { PERMISSIONS } from '@/constants/permissions';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface PresentationsScreenProps {
   navigation: any;
 }
 
 export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { logout } = useAuthStore();
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,7 +275,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
           placeholder="Buscar por código o nombre..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -282,17 +286,17 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
 
       {/* Stats Cards */}
       <View style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: '#EEF2FF' }]}>
+        <View style={[styles.statCard, { backgroundColor: theme.color.state.info.background }]}>
           <Text style={styles.statValue}>{filteredPresentations.length}</Text>
           <Text style={styles.statLabel}>Total</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: '#F0FDF4' }]}>
+        <View style={[styles.statCard, { backgroundColor: theme.color.state.success.background }]}>
           <Text style={styles.statValue}>
             {filteredPresentations.filter((p) => p.isBase).length}
           </Text>
           <Text style={styles.statLabel}>Base</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
+        <View style={[styles.statCard, { backgroundColor: theme.color.state.warning.background }]}>
           <Text style={styles.statValue}>
             {filteredPresentations.filter((p) => !p.isBase).length}
           </Text>
@@ -307,10 +311,14 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
         fallback={null}
       >
         <ProtectedFAB
-          icon="📋"
-          onPress={handleCreatePresentation}
-          requiredPermissions={['presentations.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'easel-outline',
+              label: 'Crear Presentaci\u00f3n',
+              onPress: handleCreatePresentation,
+              requiredPermissions: ['presentations.create'],
+            },
+          ]}
         />
       </ProtectedElement>
 
@@ -341,7 +349,11 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
                         <View
                           style={[
                             styles.statusBadge,
-                            { backgroundColor: presentation.isBase ? '#10B981' : '#6B7280' },
+                            {
+                              backgroundColor: presentation.isBase
+                                ? theme.color.state.success.border
+                                : theme.color.text.muted,
+                            },
                           ]}
                         >
                           <Text style={styles.statusText}>
@@ -414,7 +426,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
                   value={formData.code}
                   onChangeText={(text) => setFormData({ ...formData, code: text.toUpperCase() })}
                   placeholder="UN, PK, CJ, BX"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                   autoCapitalize="characters"
                   maxLength={10}
                 />
@@ -432,7 +444,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
                   value={formData.name}
                   onChangeText={(text) => setFormData({ ...formData, name: text })}
                   placeholder="Unidad, Paquete, Caja, Box"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                 />
               </View>
 
@@ -443,7 +455,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
                   value={formData.description}
                   onChangeText={(text) => setFormData({ ...formData, description: text })}
                   placeholder="Descripción opcional de la presentación"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                   multiline
                   numberOfLines={3}
                 />
@@ -487,52 +499,52 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 24,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: '#EEF2FF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: theme.color.brand.primarySoft,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    marginBottom: theme.space[3],
+    padding: theme.space[4],
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    borderColor: '#E0E7FF',
+    borderColor: theme.color.border.subtle,
   },
   infoBannerIcon: {
     fontSize: 32,
-    marginRight: 12,
+    marginRight: theme.space[3],
   },
   infoBannerContent: {
     flex: 1,
@@ -540,62 +552,62 @@ const styles = StyleSheet.create({
   infoBannerTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4338CA',
+    color: theme.color.brand.primary,
     marginBottom: 4,
   },
   infoBannerText: {
     fontSize: 12,
-    color: '#6366F1',
+    color: theme.color.text.muted,
     lineHeight: 18,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginBottom: theme.space[3],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   searchIcon: {
     fontSize: 18,
-    marginRight: 8,
+    marginRight: theme.space[2],
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1E293B',
+    color: theme.color.text.body,
   },
   clearIcon: {
     fontSize: 18,
-    color: '#94A3B8',
-    paddingHorizontal: 8,
+    color: theme.color.text.placeholder,
+    paddingHorizontal: theme.space[2],
   },
   statsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
+    paddingHorizontal: theme.space[4],
+    marginBottom: theme.space[3],
+    gap: theme.space[2],
   },
   statCard: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.md,
     alignItems: 'center',
   },
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   content: {
@@ -612,7 +624,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptyContainer: {
     flex: 1,
@@ -623,38 +635,34 @@ const styles = StyleSheet.create({
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: theme.space[4],
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   emptyText: {
     fontSize: 15,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'center',
     lineHeight: 22,
   },
   presentationsList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   presentationCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    marginBottom: theme.space[3],
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   presentationCardContent: {
-    padding: 16,
+    padding: theme.space[4],
   },
   presentationHeader: {
     flexDirection: 'row',
@@ -667,132 +675,132 @@ const styles = StyleSheet.create({
   presentationTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 12,
+    marginBottom: theme.space[2],
+    gap: theme.space[3],
   },
   presentationCode: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#8B5CF6',
+    color: theme.color.brand.accent,
     letterSpacing: 1,
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   presentationName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   presentationDescription: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     lineHeight: 20,
   },
   presentationActions: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    gap: theme.space[2],
+    paddingHorizontal: theme.space[4],
+    paddingBottom: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 12,
+    borderTopColor: theme.color.border.subtle,
+    paddingTop: theme.space[3],
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    backgroundColor: theme.color.surface.muted,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
+    borderRadius: theme.radii.sm,
     alignItems: 'center',
   },
   actionButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   deleteButton: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
   },
   deleteButtonText: {
-    color: '#DC2626',
+    color: theme.color.state.danger.text,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   closeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   modalHeaderTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   modalContent: {
     flex: 1,
-    padding: 16,
+    padding: theme.space[4],
   },
   modalSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[4],
   },
   modalSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 16,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[4],
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: theme.space[4],
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#475569',
-    marginBottom: 8,
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   required: {
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2.5],
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.body,
   },
   textArea: {
     minHeight: 80,
@@ -800,7 +808,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 4,
   },
   switchContainer: {
@@ -810,33 +818,33 @@ const styles = StyleSheet.create({
   },
   modalFooter: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    gap: theme.space[3],
+    padding: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
   button: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: theme.space[3.5],
+    borderRadius: theme.radii.md,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.muted,
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   submitButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: theme.color.brand.accent,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
 });
 

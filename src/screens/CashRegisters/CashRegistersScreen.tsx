@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -16,6 +15,10 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { cashRegistersApi, CashRegister, CashRegisterStatus } from '@/services/api/cash-registers';
 import logger from '@/utils/logger';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
+import Alert from '@/utils/alert';
 
 interface CashRegistersScreenProps {
   navigation: any;
@@ -36,6 +39,8 @@ export const CashRegistersScreen: React.FC<CashRegistersScreenProps> = ({ naviga
   const { currentSite, currentCompany } = useAuthStore();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const loadCashRegisters = useCallback(async () => {
     if (!currentSite?.id || !currentCompany?.id) {
@@ -120,13 +125,13 @@ export const CashRegistersScreen: React.FC<CashRegistersScreenProps> = ({ naviga
   const getStatusColor = (status: CashRegisterStatus): string => {
     switch (status) {
       case 'ACTIVE':
-        return '#10B981';
+        return theme.color.icon.success;
       case 'INACTIVE':
-        return '#EF4444';
+        return theme.color.icon.danger;
       case 'MAINTENANCE':
-        return '#F59E0B';
+        return theme.color.icon.warning;
       default:
-        return '#6B7280';
+        return theme.color.text.muted;
     }
   };
 
@@ -260,7 +265,7 @@ export const CashRegistersScreen: React.FC<CashRegistersScreenProps> = ({ naviga
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando cajas registradoras...</Text>
           </View>
         </SafeAreaView>
@@ -320,10 +325,10 @@ export const CashRegistersScreen: React.FC<CashRegistersScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -333,16 +338,16 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     padding: 24,
@@ -350,21 +355,21 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.color.text.heading,
   },
   headerTitleTablet: {
     fontSize: 32,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginTop: 4,
   },
   headerSubtitleTablet: {
     fontSize: 16,
   },
   createButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -374,7 +379,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   createButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -391,10 +396,10 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -425,14 +430,14 @@ const styles = StyleSheet.create({
   registerName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.color.text.heading,
   },
   registerNameTablet: {
     fontSize: 20,
   },
   registerSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   registerSubtitleTablet: {
@@ -448,7 +453,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   openBadge: {
-    backgroundColor: '#10B98120',
+    backgroundColor: theme.color.state.success.background,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -456,14 +461,14 @@ const styles = StyleSheet.create({
   openText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.color.state.success.text,
   },
   infoContainer: {
     gap: 8,
     marginBottom: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: theme.color.border.subtle,
   },
   infoRow: {
     flexDirection: 'row',
@@ -472,22 +477,22 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 13,
-    color: '#111827',
+    color: theme.color.text.heading,
     flex: 1,
   },
   warningLabel: {
     fontSize: 13,
-    color: '#F59E0B',
+    color: theme.color.text.warning,
     fontWeight: '500',
   },
   warningValue: {
     fontSize: 13,
-    color: '#F59E0B',
+    color: theme.color.text.warning,
     flex: 1,
   },
   cardActions: {
@@ -504,20 +509,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontSize: 13,
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
   },
   secondaryButtonText: {
-    color: '#374151',
+    color: theme.color.text.body,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -534,24 +539,24 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
   },
   emptyButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   emptyButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontSize: 16,
     fontWeight: '600',
   },

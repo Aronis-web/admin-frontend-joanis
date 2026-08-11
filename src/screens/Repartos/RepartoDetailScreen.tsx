@@ -1,7 +1,9 @@
-/**
+﻿/**
  * RepartoDetailScreen - Detalle de un reparto
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -9,7 +11,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
@@ -42,17 +43,18 @@ import {
 } from '@/components/Repartos';
 import { useAuthStore } from '@/store/auth';
 import {
-  colors,
   spacing,
   borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
   Button,
   IconButton,
+  useTheme,
+  useThemedStyles,
 } from '@/design-system';
+import type { Theme } from '@/design-system';
 
 interface RepartoDetailScreenProps {
   navigation: any;
@@ -66,6 +68,8 @@ interface RepartoDetailScreenProps {
 type TabType = 'overview' | 'participantes';
 
 export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { repartoId } = route.params;
   const [reparto, setReparto] = useState<Reparto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +151,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           console.log(`✅ Total productos con fotos: ${Object.keys(photosMap).length}`);
           console.log(`✅ Llamando a setProductPhotos con:`, photosMap);
           setProductPhotos(photosMap);
-          console.log(`✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`);
+          console.log(
+            `✅ setProductPhotos llamado (el estado se actualizará en el próximo render)`
+          );
         } else {
           console.log('⚠️ No hay productos para cargar fotos');
         }
@@ -181,7 +187,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     console.log('🔄 productPhotos state cambió (RepartoDetailScreen):', {
       totalProductos: Object.keys(productPhotos).length,
       productIds: Object.keys(productPhotos),
-      photosMap: productPhotos
+      photosMap: productPhotos,
     });
   }, [productPhotos]);
 
@@ -321,10 +327,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
       Alert.alert('Éxito', `Reporte ${format.toUpperCase()} descargado exitosamente`);
     } catch (error: any) {
       logger.error('Error descargando reporte:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte de validación'
-      );
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte de validación');
     } finally {
       setActionLoading(false);
       setSelectedParticipant(null);
@@ -661,7 +664,10 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                 console.log('🔍 Participante:', participantName);
                 console.log('📊 Progreso:', progressPercentageParticipante);
                 console.log('🆔 Campaign Participant ID:', participante.campaignParticipant?.id);
-                console.log('✅ Mostrar botón:', progressPercentageParticipante === 100 && !!participante.campaignParticipant?.id);
+                console.log(
+                  '✅ Mostrar botón:',
+                  progressPercentageParticipante === 100 && !!participante.campaignParticipant?.id
+                );
 
                 return (
                   <View
@@ -721,9 +727,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                           }
                           disabled={actionLoading}
                         >
-                          <Text style={styles.downloadReportButtonText}>
-                            📊 Totales venta
-                          </Text>
+                          <Text style={styles.downloadReportButtonText}>📊 Totales venta</Text>
                         </TouchableOpacity>
                       )}
 
@@ -736,7 +740,9 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                         </Text>
 
                         {/* Filtro de validación */}
-                        <View style={[styles.filterContainer, isTablet && styles.filterContainerTablet]}>
+                        <View
+                          style={[styles.filterContainer, isTablet && styles.filterContainerTablet]}
+                        >
                           <TouchableOpacity
                             style={[
                               styles.filterButton,
@@ -770,7 +776,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                 validationFilter === 'validated' && styles.filterButtonTextActive,
                               ]}
                             >
-                              ✅ Validados ({participante.productos.filter((p) => p.validationStatus === RepartoProductoValidationStatus.VALIDATED).length})
+                              ✅ Validados (
+                              {
+                                participante.productos.filter(
+                                  (p) =>
+                                    p.validationStatus === RepartoProductoValidationStatus.VALIDATED
+                                ).length
+                              }
+                              )
                             </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
@@ -788,7 +801,14 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                 validationFilter === 'pending' && styles.filterButtonTextActive,
                               ]}
                             >
-                              ⏳ Pendientes ({participante.productos.filter((p) => p.validationStatus === RepartoProductoValidationStatus.PENDING).length})
+                              ⏳ Pendientes (
+                              {
+                                participante.productos.filter(
+                                  (p) =>
+                                    p.validationStatus === RepartoProductoValidationStatus.PENDING
+                                ).length
+                              }
+                              )
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -798,9 +818,15 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                           .filter((producto) => {
                             // Filtrar por estado de validación
                             if (validationFilter === 'validated') {
-                              return producto.validationStatus === RepartoProductoValidationStatus.VALIDATED;
+                              return (
+                                producto.validationStatus ===
+                                RepartoProductoValidationStatus.VALIDATED
+                              );
                             } else if (validationFilter === 'pending') {
-                              return producto.validationStatus === RepartoProductoValidationStatus.PENDING;
+                              return (
+                                producto.validationStatus ===
+                                RepartoProductoValidationStatus.PENDING
+                              );
                             }
                             return true; // 'all'
                           })
@@ -873,37 +899,40 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                                       >
                                         {producto.product?.title || 'Producto'}
                                       </Text>
-                                  <Text
-                                    style={[styles.productSku, isTablet && styles.productSkuTablet]}
-                                  >
-                                    {(producto.product as any)?.correlativeNumber &&
-                                      `#${(producto.product as any).correlativeNumber} | `}
-                                    SKU: {producto.product?.sku}
-                                  </Text>
-                                  <Text
-                                    style={[
-                                      styles.productQuantity,
-                                      isTablet && styles.productQuantityTablet,
-                                    ]}
-                                  >
-                                    Cantidad Asignada:{' '}
-                                    {wasValidatedByPresentation
-                                      ? `${quantityInPresentation} ${presentationName} (${producto.quantityBase} unidades)`
-                                      : `${producto.quantityBase} unidades`}
-                                  </Text>
-                                  {producto.validacion && (
-                                    <Text
-                                      style={[
-                                        styles.validatedQuantity,
-                                        isTablet && styles.validatedQuantityTablet,
-                                      ]}
-                                    >
-                                      Cantidad Validada:{' '}
-                                      {wasValidatedByPresentation
-                                        ? `${validatedInPresentation} ${presentationName} (${producto.validacion.validatedQuantityBase} unidades)`
-                                        : `${producto.validacion.validatedQuantityBase} unidades`}
-                                    </Text>
-                                  )}
+                                      <Text
+                                        style={[
+                                          styles.productSku,
+                                          isTablet && styles.productSkuTablet,
+                                        ]}
+                                      >
+                                        {(producto.product as any)?.correlativeNumber &&
+                                          `#${(producto.product as any).correlativeNumber} | `}
+                                        SKU: {producto.product?.sku}
+                                      </Text>
+                                      <Text
+                                        style={[
+                                          styles.productQuantity,
+                                          isTablet && styles.productQuantityTablet,
+                                        ]}
+                                      >
+                                        Cantidad Asignada:{' '}
+                                        {wasValidatedByPresentation
+                                          ? `${quantityInPresentation} ${presentationName} (${producto.quantityBase} unidades)`
+                                          : `${producto.quantityBase} unidades`}
+                                      </Text>
+                                      {producto.validacion && (
+                                        <Text
+                                          style={[
+                                            styles.validatedQuantity,
+                                            isTablet && styles.validatedQuantityTablet,
+                                          ]}
+                                        >
+                                          Cantidad Validada:{' '}
+                                          {wasValidatedByPresentation
+                                            ? `${validatedInPresentation} ${presentationName} (${producto.validacion.validatedQuantityBase} unidades)`
+                                            : `${producto.validacion.validatedQuantityBase} unidades`}
+                                        </Text>
+                                      )}
                                     </View>
                                   </View>
                                 </View>
@@ -966,7 +995,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando reparto...</Text>
         </View>
       </SafeAreaView>
@@ -1033,11 +1062,15 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
           }}
         >
           <View style={styles.modalOverlay}>
-            <View style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}>
+            <View
+              style={[styles.formatModalContainer, isTablet && styles.formatModalContainerTablet]}
+            >
               <Text style={[styles.formatModalTitle, isTablet && styles.formatModalTitleTablet]}>
                 Seleccionar formato de descarga
               </Text>
-              <Text style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}>
+              <Text
+                style={[styles.formatModalSubtitle, isTablet && styles.formatModalSubtitleTablet]}
+              >
                 {selectedParticipant?.name}
               </Text>
 
@@ -1049,9 +1082,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                 >
                   <Text style={styles.formatButtonIcon}>📄</Text>
                   <Text style={styles.formatButtonTitle}>PDF</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Incluye fotos y firmas
-                  </Text>
+                  <Text style={styles.formatButtonDescription}>Incluye fotos y firmas</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1061,9 +1092,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
                 >
                   <Text style={styles.formatButtonIcon}>📊</Text>
                   <Text style={styles.formatButtonTitle}>Excel</Text>
-                  <Text style={styles.formatButtonDescription}>
-                    Datos tabulados
-                  </Text>
+                  <Text style={styles.formatButtonDescription}>Datos tabulados</Text>
                 </TouchableOpacity>
               </View>
 
@@ -1095,523 +1124,524 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  header: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[6],
-  },
-  backButton: {
-    marginBottom: spacing[3],
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary[500],
-    fontWeight: '500',
-  },
-  headerInfo: {
-    gap: spacing[1],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  subtitleTablet: {
-    fontSize: 18,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: spacing[4],
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabTablet: {
-    paddingVertical: spacing[5],
-  },
-  tabActive: {
-    borderBottomColor: colors.primary[500],
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text.secondary,
-  },
-  tabTextTablet: {
-    fontSize: 16,
-  },
-  tabTextActive: {
-    color: colors.primary[500],
-    fontWeight: '600',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-  },
-  scrollContentTablet: {
-    padding: spacing[8],
-  },
-  overviewContainer: {
-    gap: spacing[4],
-  },
-  tabContent: {
-    gap: spacing[4],
-  },
-  section: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    ...shadows.sm,
-  },
-  sectionTablet: {
-    padding: spacing[6],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[4],
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    fontWeight: '500',
-    width: 140,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-    width: 180,
-  },
-  infoValue: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text.primary,
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[3],
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
-    alignItems: 'center',
-  },
-  statCardTablet: {
-    padding: spacing[5],
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary[500],
-    marginBottom: spacing[1],
-  },
-  statValueTablet: {
-    fontSize: 28,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  statLabelTablet: {
-    fontSize: 14,
-  },
-  notesText: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    lineHeight: 20,
-  },
-  notesTextTablet: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  cancelButton: {
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3.5],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.danger[200],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.danger[600],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  downloadReportButton: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    marginTop: spacing[3],
-  },
-  downloadReportButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  participantCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-  },
-  participantCardTablet: {
-    padding: spacing[5],
-  },
-  participantHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  participantInfo: {
-    flex: 1,
-  },
-  participantProgress: {
-    marginLeft: spacing[4],
-  },
-  participantName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  participantNameTablet: {
-    fontSize: 18,
-  },
-  participantType: {
-    fontSize: 13,
-    color: colors.text.secondary,
-  },
-  participantTypeTablet: {
-    fontSize: 15,
-  },
-  participantStats: {
-    fontSize: 13,
-    color: colors.success[600],
-    fontWeight: '600',
-    marginTop: spacing[1],
-  },
-  participantStatsTablet: {
-    fontSize: 15,
-  },
-  productsList: {
-    marginTop: spacing[2],
-  },
-  productsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.tertiary,
-    marginBottom: spacing[2],
-  },
-  productsTitleTablet: {
-    fontSize: 16,
-  },
-  productItem: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginBottom: spacing[2],
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  productInfo: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  productHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[3],
-    marginBottom: spacing[2],
-  },
-  productThumbnail: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-  },
-  productTextInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  productNameTablet: {
-    fontSize: 16,
-  },
-  productSku: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginBottom: spacing[0.5],
-  },
-  productSkuTablet: {
-    fontSize: 14,
-  },
-  productQuantity: {
-    fontSize: 13,
-    color: colors.text.tertiary,
-    marginBottom: spacing[0.5],
-  },
-  productQuantityTablet: {
-    fontSize: 15,
-  },
-  validatedQuantity: {
-    fontSize: 13,
-    color: colors.success[600],
-    fontWeight: '500',
-  },
-  validatedQuantityTablet: {
-    fontSize: 15,
-  },
-  productActions: {
-    alignItems: 'flex-end',
-    gap: spacing[2],
-  },
-  productStatusBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-  },
-  productStatusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  validateButton: {
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-  },
-  validateButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  viewValidationButton: {
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-  },
-  viewValidationButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-    paddingVertical: spacing[5],
-  },
-  emptyTextTablet: {
-    fontSize: 16,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[2],
-    marginBottom: spacing[2],
-  },
-  filterContainerTablet: {
-    gap: spacing[3],
-    marginTop: spacing[3],
-    marginBottom: spacing[3],
-  },
-  filterButton: {
-    flex: 1,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[2.5],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    alignItems: 'center',
-  },
-  filterButtonTablet: {
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3.5],
-  },
-  filterButtonActive: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  filterButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  filterButtonTextTablet: {
-    fontSize: 13,
-  },
-  filterButtonTextActive: {
-    color: colors.text.inverse,
-  },
-  // Format Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  formatModalContainer: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[6],
-    width: '90%',
-    maxWidth: 400,
-    ...shadows.lg,
-  },
-  formatModalContainerTablet: {
-    padding: spacing[8],
-    maxWidth: 500,
-  },
-  formatModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[2],
-    textAlign: 'center',
-  },
-  formatModalTitleTablet: {
-    fontSize: 24,
-  },
-  formatModalSubtitle: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginBottom: spacing[6],
-    textAlign: 'center',
-  },
-  formatModalSubtitleTablet: {
-    fontSize: 16,
-  },
-  formatButtonsContainer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[4],
-  },
-  formatButton: {
-    flex: 1,
-    padding: spacing[5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    borderWidth: 2,
-  },
-  pdfButton: {
-    backgroundColor: colors.danger[50],
-    borderColor: colors.danger[300],
-  },
-  excelButton: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[300],
-  },
-  formatButtonIcon: {
-    fontSize: 32,
-    marginBottom: spacing[2],
-  },
-  formatButtonTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  formatButtonDescription: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  formatCancelButton: {
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-  },
-  formatCancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: spacing[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[4],
+      backgroundColor: theme.color.background.canvas,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerTablet: {
+      paddingHorizontal: spacing[8],
+      paddingVertical: spacing[6],
+    },
+    backButton: {
+      marginBottom: spacing[3],
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '500',
+    },
+    headerInfo: {
+      gap: spacing[1],
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    subtitleTablet: {
+      fontSize: 18,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.background.canvas,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: spacing[4],
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabTablet: {
+      paddingVertical: spacing[5],
+    },
+    tabActive: {
+      borderBottomColor: theme.color.brand.primary,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+    },
+    tabTextTablet: {
+      fontSize: 16,
+    },
+    tabTextActive: {
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: spacing[4],
+    },
+    scrollContentTablet: {
+      padding: spacing[8],
+    },
+    overviewContainer: {
+      gap: spacing[4],
+    },
+    tabContent: {
+      gap: spacing[4],
+    },
+    section: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      ...theme.shadow.sm,
+    },
+    sectionTablet: {
+      padding: spacing[6],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[4],
+    },
+    sectionTitleTablet: {
+      fontSize: 22,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      paddingVertical: spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    infoLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+      width: 140,
+    },
+    infoLabelTablet: {
+      fontSize: 16,
+      width: 180,
+    },
+    infoValue: {
+      flex: 1,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    infoValueTablet: {
+      fontSize: 16,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing[2.5],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      alignSelf: 'flex-start',
+    },
+    statusBadgeTablet: {
+      paddingHorizontal: spacing[3.5],
+      paddingVertical: spacing[1.5],
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    statusTextTablet: {
+      fontSize: 14,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing[3],
+    },
+    statCard: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      padding: spacing[4],
+      alignItems: 'center',
+    },
+    statCardTablet: {
+      padding: spacing[5],
+    },
+    statValue: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.brand.primary,
+      marginBottom: spacing[1],
+    },
+    statValueTablet: {
+      fontSize: 28,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    statLabelTablet: {
+      fontSize: 14,
+    },
+    notesText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      lineHeight: 20,
+    },
+    notesTextTablet: {
+      fontSize: 16,
+      lineHeight: 24,
+    },
+    cancelButton: {
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3.5],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.danger,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    downloadReportButton: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      marginTop: spacing[3],
+    },
+    downloadReportButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    participantCard: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      padding: spacing[4],
+      marginBottom: spacing[3],
+    },
+    participantCardTablet: {
+      padding: spacing[5],
+    },
+    participantHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+    },
+    participantInfo: {
+      flex: 1,
+    },
+    participantProgress: {
+      marginLeft: spacing[4],
+    },
+    participantName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    participantNameTablet: {
+      fontSize: 18,
+    },
+    participantType: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    participantTypeTablet: {
+      fontSize: 15,
+    },
+    participantStats: {
+      fontSize: 13,
+      color: theme.color.text.success,
+      fontWeight: '600',
+      marginTop: spacing[1],
+    },
+    participantStatsTablet: {
+      fontSize: 15,
+    },
+    productsList: {
+      marginTop: spacing[2],
+    },
+    productsTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginBottom: spacing[2],
+    },
+    productsTitleTablet: {
+      fontSize: 16,
+    },
+    productItem: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.md,
+      padding: spacing[3],
+      marginBottom: spacing[2],
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    productInfo: {
+      flex: 1,
+      marginRight: spacing[3],
+    },
+    productHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing[3],
+      marginBottom: spacing[2],
+    },
+    productThumbnail: {
+      width: 40,
+      height: 40,
+      borderRadius: borderRadius.sm,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.background.subtle,
+    },
+    productTextInfo: {
+      flex: 1,
+    },
+    productName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    productNameTablet: {
+      fontSize: 16,
+    },
+    productSku: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: spacing[0.5],
+    },
+    productSkuTablet: {
+      fontSize: 14,
+    },
+    productQuantity: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      marginBottom: spacing[0.5],
+    },
+    productQuantityTablet: {
+      fontSize: 15,
+    },
+    validatedQuantity: {
+      fontSize: 13,
+      color: theme.color.text.success,
+      fontWeight: '500',
+    },
+    validatedQuantityTablet: {
+      fontSize: 15,
+    },
+    productActions: {
+      alignItems: 'flex-end',
+      gap: spacing[2],
+    },
+    productStatusBadge: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+    },
+    productStatusText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    validateButton: {
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: borderRadius.sm,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[1.5],
+    },
+    validateButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    viewValidationButton: {
+      backgroundColor: theme.color.state.success.border,
+      borderRadius: borderRadius.sm,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[1.5],
+    },
+    viewValidationButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+      paddingVertical: spacing[5],
+    },
+    emptyTextTablet: {
+      fontSize: 16,
+    },
+    filterContainer: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      marginTop: spacing[2],
+      marginBottom: spacing[2],
+    },
+    filterContainerTablet: {
+      gap: spacing[3],
+      marginTop: spacing[3],
+      marginBottom: spacing[3],
+    },
+    filterButton: {
+      flex: 1,
+      paddingVertical: spacing[2],
+      paddingHorizontal: spacing[2.5],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+    },
+    filterButtonTablet: {
+      paddingVertical: spacing[2.5],
+      paddingHorizontal: spacing[3.5],
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    filterButtonText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterButtonTextTablet: {
+      fontSize: 13,
+    },
+    filterButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    // Format Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    formatModalContainer: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.xl,
+      padding: spacing[6],
+      width: '90%',
+      maxWidth: 400,
+      ...theme.shadow.lg,
+    },
+    formatModalContainerTablet: {
+      padding: spacing[8],
+      maxWidth: 500,
+    },
+    formatModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: spacing[2],
+      textAlign: 'center',
+    },
+    formatModalTitleTablet: {
+      fontSize: 24,
+    },
+    formatModalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: spacing[6],
+      textAlign: 'center',
+    },
+    formatModalSubtitleTablet: {
+      fontSize: 16,
+    },
+    formatButtonsContainer: {
+      flexDirection: 'row',
+      gap: spacing[3],
+      marginBottom: spacing[4],
+    },
+    formatButton: {
+      flex: 1,
+      padding: spacing[5],
+      borderRadius: borderRadius.lg,
+      alignItems: 'center',
+      borderWidth: 2,
+    },
+    pdfButton: {
+      backgroundColor: theme.color.state.danger.background,
+      borderColor: theme.color.state.danger.border,
+    },
+    excelButton: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.state.success.border,
+    },
+    formatButtonIcon: {
+      fontSize: 32,
+      marginBottom: spacing[2],
+    },
+    formatButtonTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    formatButtonDescription: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    formatCancelButton: {
+      paddingVertical: spacing[3],
+      alignItems: 'center',
+    },
+    formatCancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+  });

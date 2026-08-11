@@ -38,7 +38,14 @@ Panel ERP cross-platform construido con Expo + React Native + React Native Web. 
 
 ## Operativa
 
-- Git: tras cada cambio funcional, commit + push (rama de feature, nunca push directo a `master` en cambios grandes).
+### Git (REGLA DURA — NO NEGOCIABLE)
+- **OBLIGATORIO**: tras CADA cambio funcional concreto, ejecutar `git add` + `git commit` + `git push` **antes** de pasar al siguiente cambio. Sin excepciones.
+- Prohibido acumular múltiples cambios sin versionar, dejar trabajo "para commitear al final" o terminar un turno con cambios sin pushear.
+- Si un cambio rompe el typecheck más allá del baseline, igualmente debe commitearse como WIP (`wip:` prefix) y pushearse — la rama es la fuente de verdad, no el disco local.
+- Mensajes en español, imperativos, concisos (`feat:`, `fix:`, `refactor:`, `chore:`, `wip:`).
+- Rama de feature siempre; nunca push directo a `master` en cambios grandes.
+
+### Otros
 - No crear archivos `*.md` salvo solicitud explícita.
 - Archivos gigantes y artefactos: ver regla `heavy-files`.
 

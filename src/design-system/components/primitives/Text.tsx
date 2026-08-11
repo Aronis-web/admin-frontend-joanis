@@ -8,11 +8,35 @@ import React from 'react';
 import {
   Text as RNText,
   TextProps as RNTextProps,
-  StyleSheet,
   TextStyle,
 } from 'react-native';
-import { colors } from '../../tokens/colors';
 import { textVariants, TextVariantKey } from '../../tokens/typography';
+import { useTheme } from '../../themes';
+
+// Aliases de compatibilidad: nombres legacy → llaves del theme actual.
+const TEXT_COLOR_ALIASES: Record<string, string> = {
+  primary: 'body',
+  secondary: 'muted',
+  tertiary: 'subtle',
+};
+
+export type TextColorName =
+  | 'heading'
+  | 'body'
+  | 'muted'
+  | 'subtle'
+  | 'disabled'
+  | 'placeholder'
+  | 'inverse'
+  | 'link'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'onAction'
+  // Aliases legacy soportados
+  | 'primary'
+  | 'secondary'
+  | 'tertiary';
 
 export interface TextProps extends RNTextProps {
   /**
@@ -21,9 +45,9 @@ export interface TextProps extends RNTextProps {
   variant?: TextVariantKey;
 
   /**
-   * Color del texto
+   * Color del texto (nombre del theme o string crudo)
    */
-  color?: keyof typeof colors.text | string;
+  color?: TextColorName | string;
 
   /**
    * Alineación del texto
@@ -43,19 +67,19 @@ export interface TextProps extends RNTextProps {
 
 export const Text: React.FC<TextProps> = ({
   variant = 'bodyMedium',
-  color = 'primary',
+  color = 'body',
   align = 'auto',
   selectable = false,
   style,
   children,
   ...props
 }) => {
+  const theme = useTheme();
   const variantStyle = textVariants[variant];
 
-  const colorValue =
-    color in colors.text
-      ? colors.text[color as keyof typeof colors.text]
-      : color;
+  const resolvedKey = TEXT_COLOR_ALIASES[color] ?? color;
+  const themeColors = theme.color.text as Record<string, string>;
+  const colorValue = themeColors[resolvedKey] ?? color;
 
   const textStyle: TextStyle = {
     ...variantStyle,

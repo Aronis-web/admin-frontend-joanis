@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   useWindowDimensions,
   ActivityIndicator,
@@ -17,7 +16,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/auth';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { spacing, borderRadius } from '@/design-system/tokens';
+import { Pagination } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { accountsPayableService } from '@/services/api/accounts-payable';
@@ -37,6 +39,7 @@ import {
   SUPPLIER_TYPE_ICONS,
   CURRENCY_SYMBOLS,
 } from '@/constants/accountsPayable';
+import Alert from '@/utils/alert';
 
 interface AccountsPayableScreenProps {
   navigation: any;
@@ -45,6 +48,8 @@ interface AccountsPayableScreenProps {
 export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ navigation }) => {
   const { user } = useAuthStore();
   const { hasPermission, hasAnyPermission } = usePermissions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   // Verificar permisos de lectura
   const canRead = hasAnyPermission([
@@ -578,19 +583,19 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="wallet-outline" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="wallet-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={[styles.titleGradient, isTablet && styles.titleTabletGradient]}>Cuentas por Pagar</Text>
               </View>
@@ -607,17 +612,17 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
           {/* Search Bar */}
           <View style={styles.searchContainerGradient}>
             <View style={styles.searchInputContainerGradient}>
-              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIconGradient} />
+              <Ionicons name="search" size={20} color={theme.color.icon.disabled} style={styles.searchIconGradient} />
               <TextInput
                 style={[styles.searchInputGradient, isTablet && styles.searchInputTabletGradient]}
                 placeholder="Buscar por código, proveedor, RUC..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButtonGradient}>
-                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="close-circle" size={20} color={theme.color.icon.disabled} />
                 </TouchableOpacity>
               )}
             </View>
@@ -763,7 +768,7 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#667eea" />
+            <ActivityIndicator size="large" color={theme.color.brand.primary} />
             <Text style={[styles.loadingText, isTablet && styles.loadingTextTablet]}>
               Cargando cuentas por pagar...
             </Text>
@@ -791,52 +796,14 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
 
       {/* Pagination Controls */}
       {!loading && pagination.total > 0 && (
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page === 1 && styles.paginationButtonDisabled,
-            ]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page === 1 && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.paginationInfo}>
-            <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
-            </Text>
-            <Text style={styles.paginationSubtext}>
-              {accountsPayable.length} de {pagination.total}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={pagination.page >= pagination.totalPages}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.limit}
+          onPageChange={setPage}
+          loading={loading}
+        />
       )}
 
       {/* Filters Modal */}
@@ -846,10 +813,10 @@ export const AccountsPayableScreen: React.FC<AccountsPayableScreenProps> = ({ na
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
   },
   // Header con gradiente
   headerGradient: {
@@ -866,7 +833,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -883,7 +850,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -891,7 +858,7 @@ const styles = StyleSheet.create({
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     letterSpacing: 0.3,
   },
   titleTabletGradient: {
@@ -899,7 +866,7 @@ const styles = StyleSheet.create({
   },
   subtitleGradient: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     marginLeft: spacing[12],
   },
@@ -908,7 +875,7 @@ const styles = StyleSheet.create({
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.lg,
@@ -916,11 +883,11 @@ const styles = StyleSheet.create({
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
@@ -932,7 +899,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing[3],
   },
@@ -943,7 +910,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing[3],
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   searchInputTabletGradient: {
     fontSize: 16,
@@ -958,9 +925,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -975,13 +942,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   backIconTablet: {
     fontSize: 28,
@@ -989,14 +956,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   headerTitleTablet: {
     fontSize: 24,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginTop: 2,
   },
   headerSubtitleTablet: {
@@ -1005,14 +972,14 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     marginHorizontal: 20,
     marginVertical: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   searchContainerTablet: {
     marginHorizontal: 32,
@@ -1026,7 +993,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   searchInputTablet: {
     fontSize: 17,
@@ -1036,7 +1003,7 @@ const styles = StyleSheet.create({
   },
   clearSearchButtonText: {
     fontSize: 18,
-    color: '#94A3B8',
+    color: theme.color.text.disabled,
   },
   searchLoader: {
     marginLeft: 8,
@@ -1046,9 +1013,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
     gap: 12,
   },
   quickFilters: {
@@ -1060,12 +1027,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     marginRight: 8,
     gap: 4,
   },
   quickFilterChipActive: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.brand.primary,
   },
   quickFilterIcon: {
     fontSize: 14,
@@ -1073,22 +1040,22 @@ const styles = StyleSheet.create({
   quickFilterText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   quickFilterTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   filterButton: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   filterButtonActive: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.brand.primary,
   },
   filterButtonIcon: {
     fontSize: 20,
@@ -1097,7 +1064,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.color.icon.danger,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -1106,14 +1073,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   filterBadgeText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 11,
     fontWeight: '700',
   },
   summaryContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   summaryContent: {
     paddingHorizontal: 20,
@@ -1121,7 +1088,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   summaryCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
     borderRadius: 12,
     padding: 16,
     minWidth: 140,
@@ -1129,25 +1096,25 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontWeight: '600',
     marginBottom: 4,
   },
   summaryValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   summaryValuePending: {
-    color: '#F59E0B',
+    color: theme.color.text.warning,
   },
   summaryValuePaid: {
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   summaryCount: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: theme.color.text.disabled,
   },
   content: {
     flex: 1,
@@ -1164,12 +1131,12 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -1192,7 +1159,7 @@ const styles = StyleSheet.create({
   cardCode: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -1213,7 +1180,7 @@ const styles = StyleSheet.create({
   cardCurrency: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   supplierSection: {
     flexDirection: 'row',
@@ -1222,7 +1189,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: theme.color.surface.subtle,
   },
   supplierIcon: {
     fontSize: 20,
@@ -1233,15 +1200,15 @@ const styles = StyleSheet.create({
   supplierName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   supplierTaxId: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   amountsSection: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
@@ -1254,26 +1221,26 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   amountTotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   amountPaid: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   amountRemaining: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: theme.color.text.warning,
   },
   amountOverdue: {
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   datesSection: {
     flexDirection: 'row',
@@ -1291,26 +1258,26 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: theme.color.text.disabled,
     marginBottom: 2,
   },
   dateValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   dateOverdue: {
-    color: '#EF4444',
+    color: theme.color.text.danger,
   },
   overdueBadge: {
     fontSize: 10,
-    color: '#EF4444',
+    color: theme.color.text.danger,
     fontWeight: '600',
     marginTop: 2,
   },
   dueSoonBadge: {
     fontSize: 10,
-    color: '#F59E0B',
+    color: theme.color.text.warning,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -1324,7 +1291,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -1334,7 +1301,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 11,
-    color: '#475569',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   progressSection: {
@@ -1342,7 +1309,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -1352,7 +1319,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     fontWeight: '600',
     textAlign: 'right',
   },
@@ -1365,7 +1332,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   loadingTextTablet: {
     fontSize: 17,
@@ -1382,7 +1349,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
@@ -1391,13 +1358,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   clearFiltersButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.brand.primary,
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 12,
   },
   clearFiltersButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1406,16 +1373,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 2,
-    borderTopColor: '#667eea',
+    borderTopColor: theme.color.brand.primary,
     paddingHorizontal: 16,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1429,11 +1396,11 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   paginationSubtext: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginTop: 4,
     fontWeight: '500',
   },
@@ -1441,35 +1408,35 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.brand.primary,
     minWidth: 110,
     alignItems: 'center',
-    shadowColor: '#667eea',
+    shadowColor: theme.color.brand.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
   paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.action.primary.backgroundDisabled,
     shadowOpacity: 0,
     elevation: 0,
   },
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   paginationButtonTextDisabled: {
-    color: '#94A3B8',
+    color: theme.color.text.disabled,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
@@ -1484,16 +1451,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   modalClose: {
     fontSize: 28,
-    color: '#94A3B8',
+    color: theme.color.text.disabled,
     fontWeight: '300',
   },
   modalBody: {
@@ -1507,7 +1474,7 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   filterChips: {
@@ -1521,13 +1488,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     gap: 4,
   },
   filterChipActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderWidth: 2,
   },
   filterChipIcon: {
@@ -1536,20 +1503,20 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   filterToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     gap: 12,
   },
   filterToggleActive: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.color.state.warning.background,
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: theme.color.state.warning.border,
   },
   filterToggleIcon: {
     fontSize: 20,
@@ -1558,26 +1525,26 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   filterToggleTextActive: {
-    color: '#F59E0B',
+    color: theme.color.text.warning,
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderColor: theme.color.border.default,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxActive: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#F59E0B',
+    backgroundColor: theme.color.icon.warning,
+    borderColor: theme.color.icon.warning,
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -1588,22 +1555,22 @@ const styles = StyleSheet.create({
   sortOption: {
     padding: 14,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   sortOptionActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#667eea',
+    backgroundColor: theme.color.brand.accentSoft,
+    borderColor: theme.color.brand.primary,
     borderWidth: 2,
   },
   sortOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   sortOptionTextActive: {
-    color: '#667eea',
+    color: theme.color.brand.primary,
   },
   sortOrder: {
     flexDirection: 'row',
@@ -1616,23 +1583,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 12,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     gap: 6,
   },
   sortOrderButtonActive: {
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.brand.primary,
   },
   sortOrderIcon: {
     fontSize: 18,
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   sortOrderText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   sortOrderTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1640,30 +1607,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
   clearButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
   },
   clearButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   applyButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#667eea',
+    backgroundColor: theme.color.brand.primary,
     alignItems: 'center',
   },
   applyButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
 });

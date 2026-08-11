@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   Image,
@@ -17,8 +16,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { emissionPointsApi, EmissionType, EmissionPoint } from '@/services/api/emission-points';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 import config from '@/utils/config';
+import Alert from '@/utils/alert';
 
 interface EditEmissionPointScreenProps {
   navigation: any;
@@ -33,6 +35,8 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { emissionPointId } = route.params;
   const [emissionPoint, setEmissionPoint] = useState<EmissionPoint | null>(null);
   const [code, setCode] = useState('');
@@ -464,7 +468,7 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#6366F1" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando punto de emisión...</Text>
           </View>
         </SafeAreaView>
@@ -570,7 +574,7 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
                       disabled={uploadingLogo || loading}
                     >
                       {uploadingLogo ? (
-                        <ActivityIndicator color="#fff" size="small" />
+                        <ActivityIndicator color={theme.color.text.inverse} size="small" />
                       ) : (
                         <Text style={styles.logoButtonText}>Cambiar Logo</Text>
                       )}
@@ -591,7 +595,7 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
                   disabled={uploadingLogo || loading}
                 >
                   {uploadingLogo ? (
-                    <ActivityIndicator color="#6366F1" />
+                    <ActivityIndicator color={theme.color.brand.accent} />
                   ) : (
                     <>
                       <Text style={styles.uploadLogoIcon}>📷</Text>
@@ -649,7 +653,7 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={theme.color.text.inverse} />
                 ) : (
                   <Text style={styles.submitButtonText}>Guardar</Text>
                 )}
@@ -662,234 +666,235 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  header: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTablet: {
-    padding: 24,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  headerTitleTablet: {
-    fontSize: 32,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  form: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  radioGroup: {
-    gap: 12,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#6366F1',
-  },
-  radioLabel: {
-    fontSize: 14,
-    color: '#111827',
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxCheck: {
-    fontSize: 14,
-    color: '#6366F1',
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#111827',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteButton: {
-    backgroundColor: '#EF4444',
-  },
-  deleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  cancelButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: '#6366F1',
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    gap: 16,
-  },
-  logoPreview: {
-    width: 200,
-    height: 150,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    backgroundColor: '#F9FAFB',
-  },
-  logoActions: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  logoButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  changeLogoButton: {
-    backgroundColor: '#6366F1',
-  },
-  deleteLogoButton: {
-    backgroundColor: '#EF4444',
-  },
-  logoButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  uploadLogoButton: {
-    borderWidth: 2,
-    borderColor: '#6366F1',
-    borderStyle: 'dashed',
-    borderRadius: 8,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
-  },
-  uploadLogoIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  uploadLogoText: {
-    fontSize: 16,
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      padding: 24,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    headerTitleTablet: {
+      fontSize: 32,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    form: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.body,
+      marginBottom: 8,
+      marginTop: 12,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    radioGroup: {
+      gap: 12,
+    },
+    radioOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 8,
+    },
+    radio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    radioSelected: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: theme.color.brand.accent,
+    },
+    radioLabel: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    checkbox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 12,
+    },
+    checkboxBox: {
+      width: 20,
+      height: 20,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkboxCheck: {
+      fontSize: 14,
+      color: theme.color.brand.accent,
+      fontWeight: 'bold',
+    },
+    checkboxLabel: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 24,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deleteButton: {
+      backgroundColor: theme.color.action.danger.background,
+    },
+    deleteButtonText: {
+      color: theme.color.action.danger.text,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    cancelButtonText: {
+      color: theme.color.text.body,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    submitButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    helperText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: 16,
+      lineHeight: 18,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      gap: 16,
+    },
+    logoPreview: {
+      width: 200,
+      height: 150,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+    },
+    logoActions: {
+      flexDirection: 'row',
+      gap: 12,
+      width: '100%',
+    },
+    logoButton: {
+      flex: 1,
+      padding: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    changeLogoButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    deleteLogoButton: {
+      backgroundColor: theme.color.action.danger.background,
+    },
+    logoButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    uploadLogoButton: {
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      borderStyle: 'dashed',
+      borderRadius: 8,
+      padding: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.muted,
+    },
+    uploadLogoIcon: {
+      fontSize: 48,
+      marginBottom: 8,
+    },
+    uploadLogoText: {
+      fontSize: 16,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+  });

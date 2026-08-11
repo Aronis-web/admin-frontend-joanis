@@ -195,12 +195,17 @@ export interface TotalesPeriodo {
   diferencia_total: number;
 }
 
+export interface ResumenPorSede {
+  sede: SedeInfo;
+  detalle_diario: DetalleDiario[];
+  totales_periodo: TotalesPeriodo;
+}
+
 export interface ResumenDiarioResponse {
   fecha_inicio: string;
   fecha_fin: string;
   sedes: SedeInfo[];
-  detalle_diario: DetalleDiario[];
-  totales_periodo: TotalesPeriodo;
+  por_sede: ResumenPorSede[];
   generado_en: string;
 }
 
@@ -208,6 +213,7 @@ export interface ResumenDiarioParams {
   fecha_inicio: string;
   fecha_fin: string;
   sede_id?: string;
+  sede_ids?: string;
   sede_code?: string;
 }
 
@@ -280,6 +286,10 @@ class CashReconciliationApi {
 
     if (params.sede_id) {
       queryParams.sede_id = params.sede_id;
+    }
+
+    if (params.sede_ids) {
+      queryParams.sede_ids = params.sede_ids;
     }
 
     if (params.sede_code) {

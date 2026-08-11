@@ -11,10 +11,9 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { colors } from '../../tokens/colors';
-import { spacing, borderRadius } from '../../tokens/spacing';
-import { shadows } from '../../tokens/shadows';
 import { activeOpacity } from '../../tokens/animations';
+import { useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export type CardVariant = 'elevated' | 'outlined' | 'filled';
 export type CardPadding = 'none' | 'small' | 'medium' | 'large';
@@ -65,6 +64,7 @@ export const Card: React.FC<CardProps> = ({
   style,
   testID,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const containerStyles = [
     styles.base,
     styles[`variant_${variant}`],
@@ -103,43 +103,47 @@ export interface CardHeaderProps {
   style?: ViewStyle;
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => (
-  <View style={[styles.header, style]}>{children}</View>
-);
+export const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => {
+  const styles = useThemedStyles(createStyles);
+  return <View style={[styles.header, style]}>{children}</View>;
+};
 
 export interface CardContentProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
 
-export const CardContent: React.FC<CardContentProps> = ({ children, style }) => (
-  <View style={[styles.content, style]}>{children}</View>
-);
+export const CardContent: React.FC<CardContentProps> = ({ children, style }) => {
+  const styles = useThemedStyles(createStyles);
+  return <View style={[styles.content, style]}>{children}</View>;
+};
 
 export interface CardFooterProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
 
-export const CardFooter: React.FC<CardFooterProps> = ({ children, style }) => (
-  <View style={[styles.footer, style]}>{children}</View>
-);
+export const CardFooter: React.FC<CardFooterProps> = ({ children, style }) => {
+  const styles = useThemedStyles(createStyles);
+  return <View style={[styles.footer, style]}>{children}</View>;
+};
 
 export interface CardDividerProps {
   style?: ViewStyle;
 }
 
-export const CardDivider: React.FC<CardDividerProps> = ({ style }) => (
-  <View style={[styles.divider, style]} />
-);
+export const CardDivider: React.FC<CardDividerProps> = ({ style }) => {
+  const styles = useThemedStyles(createStyles);
+  return <View style={[styles.divider, style]} />;
+};
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   // ============================================
   // BASE STYLES
   // ============================================
   base: {
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.surface.base,
     overflow: 'hidden',
   },
 
@@ -151,18 +155,18 @@ const styles = StyleSheet.create({
   // VARIANT STYLES
   // ============================================
   variant_elevated: {
-    backgroundColor: colors.surface.elevated,
-    ...shadows.sm,
+    backgroundColor: theme.color.surface.elevated,
+    ...theme.shadow.sm,
   },
 
   variant_outlined: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: colors.border.light,
+    borderColor: theme.color.border.subtle,
   },
 
   variant_filled: {
-    backgroundColor: colors.surface.secondary,
+    backgroundColor: theme.color.surface.subtle,
   },
 
   // ============================================
@@ -173,22 +177,22 @@ const styles = StyleSheet.create({
   },
 
   padding_small: {
-    padding: spacing[3],
+    padding: theme.space[3],
   },
 
   padding_medium: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
 
   padding_large: {
-    padding: spacing[5],
+    padding: theme.space[5],
   },
 
   // ============================================
   // SUB-COMPONENT STYLES
   // ============================================
   header: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   content: {
@@ -196,18 +200,18 @@ const styles = StyleSheet.create({
   },
 
   footer: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
 
   divider: {
     height: 1,
-    backgroundColor: colors.border.light,
-    marginVertical: spacing[3],
-    marginHorizontal: -spacing[4],
+    backgroundColor: theme.color.border.subtle,
+    marginVertical: theme.space[3],
+    marginHorizontal: -theme.space[4],
   },
 });
 

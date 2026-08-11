@@ -7,6 +7,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type Props = NativeStackScreenProps<any, 'BizlinksMenu'>;
 
@@ -19,6 +21,7 @@ interface MenuOption {
 }
 
 export const BizlinksMenuScreen: React.FC<Props> = ({ navigation }) => {
+  const styles = useThemedStyles(createStyles);
   // Redirigir automáticamente a la pantalla de documentos
   useEffect(() => {
     navigation.replace('BizlinksDocuments');
@@ -88,26 +91,26 @@ export const BizlinksMenuScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   content: {
     padding: 16,
@@ -115,12 +118,12 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -144,35 +147,35 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   description: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   arrow: {
     fontSize: 24,
-    color: '#ccc',
+    color: theme.color.text.disabled,
     marginLeft: 8,
   },
   infoCard: {
-    backgroundColor: '#e7f3ff',
+    backgroundColor: theme.color.state.info.background,
     margin: 16,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#b3d9ff',
+    borderColor: theme.color.state.info.border,
   },
   infoTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#004085',
+    color: theme.color.state.info.text,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 14,
-    color: '#004085',
+    color: theme.color.state.info.text,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -181,7 +184,7 @@ const styles = StyleSheet.create({
   },
   infoItem: {
     fontSize: 14,
-    color: '#004085',
+    color: theme.color.state.info.text,
     marginBottom: 4,
   },
 });

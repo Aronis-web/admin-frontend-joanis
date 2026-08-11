@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,15 +21,21 @@ import { TemplateCard } from '@/components/Expenses/TemplateCard';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { ExpenseReportModal } from '@/components/Expenses/ExpenseReportModal';
 import { ExpenseTemplateBulkUploadModal } from '@/components/Expenses/ExpenseTemplateBulkUploadModal';
-import { ExpenseTemplatesFAB } from '@/components/Expenses/ExpenseTemplatesFAB';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { Pagination } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 export const ExpenseTemplatesScreen: React.FC = () => {
   const navigation = useNavigation();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { user } = useAuthStore();
   const { selectedSite } = useTenantStore();
   const { hasPermission } = usePermissions();
@@ -260,7 +265,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
       <ScreenLayout navigation={navigation as any}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <LinearGradient
-            colors={[colors.primary[900], colors.primary[800]]}
+            colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.headerGradient}
@@ -269,7 +274,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
               <View style={styles.headerTitleContainer}>
                 <View style={styles.headerIconRow}>
                   <View style={styles.headerIconContainer}>
-                    <Ionicons name="repeat-outline" size={22} color={colors.neutral[0]} />
+                    <Ionicons name="repeat-outline" size={22} color={theme.color.brand.onHeader} />
                   </View>
                   <Text style={styles.titleGradient}>Gastos Recurrentes</Text>
                 </View>
@@ -278,7 +283,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
             </View>
           </LinearGradient>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary[900]} />
+            <ActivityIndicator size="large" color={theme.color.brand.primary} />
             <Text style={styles.loadingText}>Cargando plantillas...</Text>
           </View>
         </SafeAreaView>
@@ -291,7 +296,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -300,7 +305,7 @@ export const ExpenseTemplatesScreen: React.FC = () => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="repeat-outline" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="repeat-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Gastos Recurrentes</Text>
               </View>
@@ -356,61 +361,43 @@ export const ExpenseTemplatesScreen: React.FC = () => {
 
       {/* Pagination Controls */}
       {pagination.total > 0 && (
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page === 1 && styles.paginationButtonDisabled,
-            ]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page === 1 && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.paginationInfo}>
-            <Text style={styles.paginationText}>
-              Pág. {pagination.page}/{pagination.totalPages}
-            </Text>
-            <Text style={styles.paginationSubtext}>
-              {templates.length} de {pagination.total}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={pagination.page >= pagination.totalPages}
-          >
-            <Text
-              style={[
-                styles.paginationButtonText,
-                pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-              ]}
-            >
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Pagination
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.limit}
+          onPageChange={loadTemplates}
+          loading={loading}
+        />
       )}
 
-      {/* Floating Action Button with animations */}
-      <ExpenseTemplatesFAB
-        onCreateTemplate={handleCreateTemplate}
-        onDownloadReport={handleOpenReportModal}
-        onBulkUpload={handleOpenBulkUploadModal}
-        onTestGeneration={handleTestGeneration}
-        generatingExpenses={generatingExpenses}
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'add',
+            label: 'Crear Plantilla',
+            onPress: handleCreateTemplate,
+            requiredPermissions: [PERMISSIONS.EXPENSES.TEMPLATES.CREATE],
+          },
+          {
+            icon: 'download-outline',
+            label: 'Descargar Reporte',
+            onPress: handleOpenReportModal,
+            requiredPermissions: [PERMISSIONS.EXPENSES.REPORTS.VIEW],
+          },
+          {
+            icon: 'cloud-upload-outline',
+            label: 'Carga Masiva',
+            onPress: handleOpenBulkUploadModal,
+            requiredPermissions: [PERMISSIONS.EXPENSES.TEMPLATES.CREATE],
+          },
+          {
+            icon: 'play-circle-outline',
+            label: generatingExpenses ? 'Generando...' : 'Generar Gastos',
+            onPress: handleTestGeneration,
+            requiredPermissions: [PERMISSIONS.EXPENSES.TEMPLATES.GENERATE],
+          },
+        ]}
       />
 
       {/* Report Modal */}
@@ -431,16 +418,16 @@ export const ExpenseTemplatesScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
@@ -453,90 +440,90 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   statsHeaderContainer: {
     alignItems: 'flex-end',
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   filterContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   filterTab: {
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterTabActive: {
-    backgroundColor: '#DC2626',
+    backgroundColor: theme.color.state.danger.border,
   },
   filterTabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   filterTabTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   scrollView: {
     flex: 1,
@@ -554,7 +541,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   emptyState: {
     flex: 1,
@@ -569,31 +556,31 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     textAlign: 'center',
     paddingHorizontal: 40,
     marginBottom: 24,
   },
   createButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: theme.color.state.danger.border,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   createButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '600',
   },
   paginationContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -609,31 +596,31 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   paginationSubtext: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     marginTop: 2,
   },
   paginationButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     minWidth: 110,
     alignItems: 'center',
   },
   paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
   },
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   paginationButtonTextDisabled: {
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
 });
 

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,6 +28,9 @@ import { SupplierSearchInput } from '@/components/Suppliers/SupplierSearchInput'
 import { CategorySubcategorySelector } from '@/components/Expenses/CategorySubcategorySelector';
 import { useAuthStore } from '@/store/auth';
 import { usePermissionError } from '@/hooks/usePermissionError';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface CreateExpenseTemplateScreenProps {
   navigation?: any;
@@ -43,6 +45,8 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
@@ -410,13 +414,13 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
     <View style={styles.inputContainer}>
       <Text style={styles.inputLabel}>{label}</Text>
       <View style={styles.inputWrapper}>
-        {icon && <Ionicons name={icon as any} size={20} color="#64748B" style={styles.inputIcon} />}
+        {icon && <Ionicons name={icon as any} size={20} color={theme.color.text.muted} style={styles.inputIcon} />}
         <TextInput
           style={[styles.input, multiline && styles.inputMultiline]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
           keyboardType={keyboardType}
           multiline={multiline}
           numberOfLines={multiline ? 4 : 1}
@@ -490,7 +494,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {route?.params?.templateId ? 'Editar Plantilla' : 'Gastos Recurrentes'}
@@ -501,7 +505,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={theme.color.text.inverse} />
           ) : (
             <Text style={styles.saveButtonText}>Guardar</Text>
           )}
@@ -563,7 +567,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           )}
 
           {templateExpenseType === TemplateExpenseType.SEMI_RECURRENT && (
-            <Text style={[styles.infoText, { color: '#F59E0B' }]}>
+            <Text style={[styles.infoText, { color: theme.color.state.warning.border }]}>
               ⚠️ Esta plantilla generará un solo gasto y luego se desactivará automáticamente.
             </Text>
           )}
@@ -658,8 +662,8 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
             onSubcategoryChange={setSubcategoryId}
             required={true}
             disabled={loading}
-            error={!categoryId && 'Debe seleccionar una categoría'}
-            subcategoryError={!subcategoryId && 'Debe seleccionar una subcategoría'}
+            error={!categoryId ? 'Debe seleccionar una categoría' : undefined}
+            subcategoryError={!subcategoryId ? 'Debe seleccionar una subcategoría' : undefined}
           />
         </View>
 
@@ -688,7 +692,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
               } as never);
             }}
           >
-            <Ionicons name="add-circle-outline" size={20} color="#6366F1" />
+            <Ionicons name="add-circle-outline" size={20} color={theme.color.brand.accent} />
             <Text style={styles.createSupplierButtonText}>Crear nuevo proveedor</Text>
           </TouchableOpacity>
 
@@ -714,7 +718,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           {/* Información sobre Cuenta por Pagar */}
           {selectedSupplier && supplierLegalEntityId && (
             <View style={styles.infoBanner}>
-              <Ionicons name="information-circle" size={20} color="#6366F1" />
+              <Ionicons name="information-circle" size={20} color={theme.color.brand.accent} />
               <Text style={styles.infoBannerText}>
                 Los gastos generados desde esta plantilla se vincularán automáticamente al
                 proveedor seleccionado.
@@ -753,7 +757,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
           )}
 
           {isActive && templateExpenseType === TemplateExpenseType.SEMI_RECURRENT && (
-            <Text style={[styles.infoText, { color: '#F59E0B' }]}>
+            <Text style={[styles.infoText, { color: theme.color.state.warning.border }]}>
               La plantilla generará un solo gasto y luego se desactivará automáticamente.
             </Text>
           )}
@@ -762,7 +766,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
         {/* Date Pickers */}
         <DatePicker
           visible={showStartDatePicker}
-          date={startDate || new Date().toISOString().split('T')[0]}
+          date={startDate ? new Date(startDate) : new Date()}
           onConfirm={(date) => {
             // Send ISO 8601 date string (YYYY-MM-DD format)
             // Backend expects valid ISO 8601 date string
@@ -782,10 +786,10 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   header: {
     flexDirection: 'row',
@@ -793,9 +797,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -803,37 +807,37 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
   saveButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   saveButtonDisabled: {
-    backgroundColor: '#94A3B8',
+    backgroundColor: theme.color.text.placeholder,
   },
   saveButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   content: {
     padding: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -842,7 +846,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   inputContainer: {
@@ -851,16 +855,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     paddingHorizontal: 12,
   },
   inputIcon: {
@@ -870,7 +874,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   inputMultiline: {
     minHeight: 80,
@@ -882,7 +886,7 @@ const styles = StyleSheet.create({
   pickerLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   pickerScroll: {
@@ -892,22 +896,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     marginRight: 8,
   },
   pickerOptionActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   pickerOptionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   pickerOptionTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   dayGrid: {
     flexDirection: 'row',
@@ -918,23 +922,23 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dayButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   dayButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   dayButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -944,38 +948,38 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   toggleButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   toggleButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   infoText: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 12,
     lineHeight: 18,
   },
   required: {
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
   },
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
@@ -984,16 +988,16 @@ const styles = StyleSheet.create({
   infoBannerText: {
     flex: 1,
     fontSize: 13,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     lineHeight: 18,
   },
   createSupplierButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -1003,7 +1007,7 @@ const styles = StyleSheet.create({
   createSupplierButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
 });
 

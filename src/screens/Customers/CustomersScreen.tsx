@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   useWindowDimensions,
   ActivityIndicator,
@@ -18,6 +17,10 @@ import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { customersService } from '@/services/api/customers';
 import { Customer, CustomerType } from '@/types/customers';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { Pagination } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface CustomersScreenProps {
   navigation: any;
@@ -25,6 +28,8 @@ interface CustomersScreenProps {
 
 export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) => {
   const { user } = useAuthStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -222,44 +227,14 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
     if (pagination.totalPages <= 1) return null;
 
     return (
-      <View style={styles.paginationContainer}>
-        <TouchableOpacity
-          style={[styles.paginationButton, pagination.page === 1 && styles.paginationButtonDisabled]}
-          onPress={() => loadCustomers(pagination.page - 1)}
-          disabled={pagination.page === 1}
-        >
-          <Text
-            style={[
-              styles.paginationButtonText,
-              pagination.page === 1 && styles.paginationButtonTextDisabled,
-            ]}
-          >
-            ← Anterior
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.paginationText}>
-          Página {pagination.page} de {pagination.totalPages}
-        </Text>
-
-        <TouchableOpacity
-          style={[
-            styles.paginationButton,
-            pagination.page === pagination.totalPages && styles.paginationButtonDisabled,
-          ]}
-          onPress={() => loadCustomers(pagination.page + 1)}
-          disabled={pagination.page === pagination.totalPages}
-        >
-          <Text
-            style={[
-              styles.paginationButtonText,
-              pagination.page === pagination.totalPages && styles.paginationButtonTextDisabled,
-            ]}
-          >
-            Siguiente →
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <Pagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.total}
+        itemsPerPage={pagination.limit}
+        onPageChange={loadCustomers}
+        loading={loading}
+      />
     );
   };
 
@@ -290,7 +265,7 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
           placeholder="Buscar por nombre, documento, email..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={theme.color.text.placeholder}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
@@ -309,7 +284,7 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando clientes...</Text>
         </View>
       ) : filteredCustomers.length === 0 ? (
@@ -329,34 +304,38 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           {filteredCustomers.map(renderCustomerCard)}
-          {renderPagination()}
           <View style={styles.bottomPadding} />
         </ScrollView>
       )}
+      {renderPagination()}
 
       {/* Add Button */}
       <ProtectedFAB
-        icon="👥"
-        onPress={handleAddCustomer}
-        requiredPermissions={['customers.create']}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'person-add-outline',
+            label: 'Crear Cliente',
+            onPress: handleAddCustomer,
+            requiredPermissions: ['customers.create'],
+          },
+        ]}
       />
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderBottomColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -376,7 +355,7 @@ const styles = StyleSheet.create({
   },
   menuIcon: {
     fontSize: 24,
-    color: '#475569',
+    color: theme.color.text.muted,
   },
   menuIconTablet: {
     fontSize: 28,
@@ -384,7 +363,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   headerTitleTablet: {
@@ -392,7 +371,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   headerSubtitleTablet: {
@@ -401,11 +380,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
     gap: 12,
   },
   searchContainerTablet: {
@@ -414,18 +393,18 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     fontSize: 20,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   searchInputTablet: {
     paddingVertical: 12,
@@ -436,30 +415,30 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 18,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     fontWeight: '600',
   },
   statsContainer: {
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: theme.color.border.subtle,
   },
   statsText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   scrollView: {
     flex: 1,
   },
   customerCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 8,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -479,15 +458,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   personaBadge: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: theme.color.state.info.background,
   },
   empresaBadge: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: theme.color.state.warning.background,
   },
   customerTypeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#333',
+    color: theme.color.text.body,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -495,18 +474,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   statusActive: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: theme.color.state.success.background,
   },
   statusInactive: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: theme.color.state.warning.background,
   },
   statusBlocked: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: theme.color.state.danger.background,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#333',
+    color: theme.color.text.body,
   },
   customerInfo: {
     marginBottom: 12,
@@ -514,17 +493,17 @@ const styles = StyleSheet.create({
   customerName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   customerDocument: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     marginBottom: 8,
   },
   customerDetail: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     marginTop: 4,
   },
   customerActions: {
@@ -534,16 +513,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: theme.color.border.subtle,
   },
   deleteButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    backgroundColor: '#FFEBEE',
+    backgroundColor: theme.color.state.danger.background,
   },
   deleteButtonText: {
-    color: '#D32F2F',
+    color: theme.color.state.danger.border,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -558,22 +537,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
   },
   paginationButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: theme.color.border.default,
   },
   paginationButtonText: {
-    color: '#fff',
+    color: theme.color.text.onAction,
     fontSize: 14,
     fontWeight: '600',
   },
   paginationButtonTextDisabled: {
-    color: '#999',
+    color: theme.color.text.subtle,
   },
   paginationText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   loadingContainer: {
     flex: 1,
@@ -583,7 +562,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   emptyContainer: {
     flex: 1,
@@ -593,18 +572,18 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.color.text.muted,
     marginBottom: 16,
     textAlign: 'center',
   },
   emptyButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   emptyButtonText: {
-    color: '#fff',
+    color: theme.color.text.onAction,
     fontSize: 16,
     fontWeight: '600',
   },

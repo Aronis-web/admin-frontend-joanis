@@ -10,7 +10,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 export interface RecurrentProductCandidate {
   productId: string;
@@ -51,6 +52,7 @@ export const RecurrentProductModal: React.FC<RecurrentProductModalProps> = ({
   onCreateNew,
   onCancel,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
@@ -326,331 +328,332 @@ export const RecurrentProductModal: React.FC<RecurrentProductModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  safeArea: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    width: '90%',
-    maxWidth: 500,
-    height: '90%',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    overflow: 'hidden',
-  },
-  containerTablet: {
-    maxWidth: 700,
-    height: '95%',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-  },
-  headerContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerIcon: {
-    fontSize: 32,
-    marginRight: spacing[3],
-  },
-  headerIconTablet: {
-    fontSize: 40,
-    marginRight: spacing[4],
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  titleTablet: {
-    fontSize: 22,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginTop: 2,
-  },
-  subtitleTablet: {
-    fontSize: 15,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  questionContainer: {
-    padding: spacing[5],
-    backgroundColor: colors.warning[50],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.warning[200],
-  },
-  questionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.warning[800],
-    marginBottom: spacing[1.5],
-  },
-  questionTextTablet: {
-    fontSize: 18,
-  },
-  questionHint: {
-    fontSize: 13,
-    color: colors.warning[700],
-  },
-  questionHintTablet: {
-    fontSize: 15,
-  },
-  candidatesList: {
-    flex: 1,
-    padding: spacing[4],
-  },
-  emptyStateCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 2,
-    borderColor: colors.border.default,
-    borderStyle: 'dashed',
-    padding: spacing[6],
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  emptyStateIcon: {
-    fontSize: 36,
-    marginBottom: spacing[3],
-  },
-  emptyStateTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-    textAlign: 'center',
-  },
-  emptyStateTitleTablet: {
-    fontSize: 18,
-  },
-  emptyStateText: {
-    fontSize: 13,
-    color: colors.neutral[600],
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyStateTextTablet: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  candidateCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    borderWidth: 2,
-    borderColor: colors.border.default,
-    padding: spacing[3],
-    marginBottom: spacing[3],
-  },
-  candidateCardTablet: {
-    padding: spacing[4],
-    marginBottom: spacing[4],
-  },
-  candidateCardSelected: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
-  },
-  selectionIndicator: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-    backgroundColor: colors.surface.primary,
-  },
-  selectionIndicatorSelected: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[500],
-  },
-  selectionCheckmark: {
-    fontSize: 16,
-    color: colors.neutral[0],
-    fontWeight: '700',
-  },
-  photoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    marginRight: spacing[3],
-    backgroundColor: colors.neutral[100],
-  },
-  productPhoto: {
-    width: '100%',
-    height: '100%',
-  },
-  noPhotoPlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-  },
-  noPhotoText: {
-    fontSize: 32,
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  productTitleTablet: {
-    fontSize: 17,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: spacing[1],
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginRight: spacing[1.5],
-    minWidth: 100,
-  },
-  infoLabelTablet: {
-    fontSize: 14,
-    minWidth: 120,
-  },
-  infoValue: {
-    fontSize: 12,
-    color: colors.neutral[800],
-    flex: 1,
-  },
-  infoValueTablet: {
-    fontSize: 14,
-  },
-  stockValue: {
-    fontWeight: '600',
-    color: colors.success[600],
-  },
-  warehouseSection: {
-    marginTop: spacing[2],
-    paddingTop: spacing[2],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  warehouseSectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  warehouseSectionTitleTablet: {
-    fontSize: 14,
-  },
-  warehouseRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  warehouseName: {
-    fontSize: 11,
-    color: colors.neutral[600],
-    flex: 1,
-  },
-  warehouseNameTablet: {
-    fontSize: 13,
-  },
-  warehouseQuantity: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.success[600],
-  },
-  warehouseQuantityTablet: {
-    fontSize: 13,
-  },
-  footer: {
-    padding: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-  },
-  footerTablet: {
-    padding: spacing[5],
-  },
-  confirmButton: {
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing[3.5],
-    alignItems: 'center',
-    marginBottom: spacing[2.5],
-  },
-  confirmButtonTablet: {
-    paddingVertical: spacing[4],
-    marginBottom: spacing[3],
-  },
-  confirmButtonDisabled: {
-    backgroundColor: colors.neutral[300],
-  },
-  confirmButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  confirmButtonTextTablet: {
-    fontSize: 17,
-  },
-  confirmButtonTextDisabled: {
-    color: colors.neutral[400],
-  },
-  createNewButton: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-    paddingVertical: spacing[3.5],
-    alignItems: 'center',
-  },
-  createNewButtonTablet: {
-    paddingVertical: spacing[4],
-  },
-  createNewButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.primary[500],
-  },
-  createNewButtonTextTablet: {
-    fontSize: 17,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    safeArea: {
+      flex: 1,
+      width: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    container: {
+      width: '90%',
+      maxWidth: 500,
+      height: '90%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      overflow: 'hidden',
+    },
+    containerTablet: {
+      maxWidth: 700,
+      height: '95%',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    headerContent: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    headerIcon: {
+      fontSize: 32,
+      marginRight: theme.space[3],
+    },
+    headerIconTablet: {
+      fontSize: 40,
+      marginRight: theme.space[4],
+    },
+    headerTextContainer: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    titleTablet: {
+      fontSize: 22,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    subtitleTablet: {
+      fontSize: 15,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    questionContainer: {
+      padding: theme.space[5],
+      backgroundColor: theme.color.state.warning.background,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.state.warning.border,
+    },
+    questionText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+      marginBottom: 6,
+    },
+    questionTextTablet: {
+      fontSize: 18,
+    },
+    questionHint: {
+      fontSize: 13,
+      color: theme.color.state.warning.text,
+    },
+    questionHintTablet: {
+      fontSize: 15,
+    },
+    candidatesList: {
+      flex: 1,
+      padding: theme.space[4],
+    },
+    emptyStateCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      borderStyle: 'dashed',
+      padding: theme.space[6],
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    emptyStateIcon: {
+      fontSize: 36,
+      marginBottom: theme.space[3],
+    },
+    emptyStateTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+      textAlign: 'center',
+    },
+    emptyStateTitleTablet: {
+      fontSize: 18,
+    },
+    emptyStateText: {
+      fontSize: 13,
+      color: theme.color.text.body,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    emptyStateTextTablet: {
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    candidateCard: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      padding: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    candidateCardTablet: {
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+    },
+    candidateCardSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.state.info.background,
+    },
+    selectionIndicator: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    selectionIndicatorSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accent,
+    },
+    selectionCheckmark: {
+      fontSize: 16,
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+    },
+    photoContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+      marginRight: theme.space[3],
+      backgroundColor: theme.color.surface.muted,
+    },
+    productPhoto: {
+      width: '100%',
+      height: '100%',
+    },
+    noPhotoPlaceholder: {
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.muted,
+    },
+    noPhotoText: {
+      fontSize: 32,
+    },
+    productInfo: {
+      flex: 1,
+    },
+    productTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    productTitleTablet: {
+      fontSize: 17,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      marginBottom: theme.space[1],
+    },
+    infoLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginRight: 6,
+      minWidth: 100,
+    },
+    infoLabelTablet: {
+      fontSize: 14,
+      minWidth: 120,
+    },
+    infoValue: {
+      fontSize: 12,
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    infoValueTablet: {
+      fontSize: 14,
+    },
+    stockValue: {
+      fontWeight: '600',
+      color: theme.color.text.success,
+    },
+    warehouseSection: {
+      marginTop: theme.space[2],
+      paddingTop: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    warehouseSectionTitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    warehouseSectionTitleTablet: {
+      fontSize: 14,
+    },
+    warehouseRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 2,
+    },
+    warehouseName: {
+      fontSize: 11,
+      color: theme.color.text.body,
+      flex: 1,
+    },
+    warehouseNameTablet: {
+      fontSize: 13,
+    },
+    warehouseQuantity: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.success,
+    },
+    warehouseQuantityTablet: {
+      fontSize: 13,
+    },
+    footer: {
+      padding: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    footerTablet: {
+      padding: theme.space[5],
+    },
+    confirmButton: {
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: theme.radii.lg,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    confirmButtonTablet: {
+      paddingVertical: theme.space[4],
+      marginBottom: theme.space[3],
+    },
+    confirmButtonDisabled: {
+      backgroundColor: theme.color.border.default,
+    },
+    confirmButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    confirmButtonTextTablet: {
+      fontSize: 17,
+    },
+    confirmButtonTextDisabled: {
+      color: theme.color.text.placeholder,
+    },
+    createNewButton: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    createNewButtonTablet: {
+      paddingVertical: theme.space[4],
+    },
+    createNewButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+    },
+    createNewButtonTextTablet: {
+      fontSize: 17,
+    },
+  });

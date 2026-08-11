@@ -16,9 +16,10 @@ import { Text } from '../primitives/Text';
 import { Avatar } from '../primitives/Avatar';
 import { Badge, StatusBadge } from '../primitives/Badge';
 import { Divider } from '../primitives/Divider';
-import { colors } from '../../tokens/colors';
-import { spacing, borderRadius, iconSizes } from '../../tokens/spacing';
+import { iconSizes } from '../../tokens/spacing';
 import { activeOpacity } from '../../tokens/animations';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export interface ListItemProps {
   /**
@@ -126,6 +127,8 @@ export const ListItem: React.FC<ListItemProps> = ({
   style,
   testID,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const hasLeftContent = leftIcon || avatar || leftContent;
 
   const containerStyles = [
@@ -146,7 +149,7 @@ export const ListItem: React.FC<ListItemProps> = ({
             <Avatar source={avatar.source} name={avatar.name} size="medium" />
           ) : leftIcon ? (
             <View style={styles.iconContainer}>
-              <Ionicons name={leftIcon} size={iconSizes.lg} color={colors.icon.secondary} />
+              <Ionicons name={leftIcon} size={iconSizes.lg} color={theme.color.icon.muted} />
             </View>
           ) : null}
         </View>
@@ -190,7 +193,7 @@ export const ListItem: React.FC<ListItemProps> = ({
           <Ionicons
             name="chevron-forward"
             size={iconSizes.md}
-            color={colors.icon.tertiary}
+            color={theme.color.icon.subtle}
             style={styles.chevron}
           />
         )}
@@ -239,6 +242,8 @@ export const ListSectionHeader: React.FC<ListSectionHeaderProps> = ({
   action,
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.sectionHeader, style]}>
       <Text variant="labelMedium" color="tertiary">
@@ -246,7 +251,7 @@ export const ListSectionHeader: React.FC<ListSectionHeaderProps> = ({
       </Text>
       {action && (
         <TouchableOpacity onPress={action.onPress} activeOpacity={activeOpacity.medium}>
-          <Text variant="labelMedium" color={colors.accent[600]}>
+          <Text variant="labelMedium" color={theme.color.brand.accent}>
             {action.label}
           </Text>
         </TouchableOpacity>
@@ -255,11 +260,11 @@ export const ListSectionHeader: React.FC<ListSectionHeaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
   },
 
   disabled: {
@@ -268,23 +273,23 @@ const styles = StyleSheet.create({
 
   // Padding variants
   padding_compact: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[3],
   },
 
   padding_normal: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[4],
   },
 
   padding_comfortable: {
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[4],
+    paddingVertical: theme.space[4],
+    paddingHorizontal: theme.space[4],
   },
 
   // Sections
   leftSection: {
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
 
   contentSection: {
@@ -295,33 +300,33 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 
   // Elements
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.surface.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   subtitle: {
-    marginTop: spacing[0.5],
+    marginTop: theme.space[0.5],
   },
 
   caption: {
-    marginTop: spacing[0.5],
+    marginTop: theme.space[0.5],
   },
 
   rightValue: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
 
   chevron: {
-    marginLeft: spacing[1],
+    marginLeft: theme.space[1],
   },
 
   // Section header
@@ -329,9 +334,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.background.secondary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    backgroundColor: theme.color.background.subtle,
   },
 });
 

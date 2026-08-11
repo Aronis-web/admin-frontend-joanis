@@ -4,6 +4,8 @@
  * Screen to list and manage bank accounts for a company
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -12,7 +14,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,6 +25,8 @@ import {
   CURRENCY_SYMBOLS,
   BankAccountCurrency,
 } from '@/types/treasury';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface BankAccountsScreenProps {
   navigation: any;
@@ -36,6 +39,8 @@ interface BankAccountsScreenProps {
 }
 
 export const BankAccountsScreen: React.FC<BankAccountsScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { companyId, companyName } = route.params;
 
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -139,7 +144,7 @@ export const BankAccountsScreen: React.FC<BankAccountsScreenProps> = ({ navigati
 
   const renderAccount = ({ item }: { item: BankAccount }) => (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: item.color || '#3B82F6' }]}
+      style={[styles.card, { borderLeftColor: item.color || theme.color.brand.accent }]}
       onPress={() =>
         navigation.navigate('BankAccountForm', {
           companyId,
@@ -223,7 +228,7 @@ export const BankAccountsScreen: React.FC<BankAccountsScreenProps> = ({ navigati
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={theme.color.brand.accent} />
         <Text style={styles.loadingText}>Cargando cuentas bancarias...</Text>
       </View>
     );
@@ -292,29 +297,29 @@ export const BankAccountsScreen: React.FC<BankAccountsScreenProps> = ({ navigati
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.color.background.subtle,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 8,
@@ -322,7 +327,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: '#007AFF',
+    color: theme.color.brand.accent,
   },
   headerTitleContainer: {
     flex: 1,
@@ -330,31 +335,31 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   addButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: theme.color.state.success.border,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: 'bold',
   },
   summaryContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     margin: 16,
     marginBottom: 8,
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -363,7 +368,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   summaryRow: {
@@ -375,23 +380,23 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   summaryValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#10B981',
+    color: theme.color.state.success.border,
   },
   list: {
     padding: 16,
     paddingTop: 8,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -404,7 +409,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   cardHeaderLeft: {
     flexDirection: 'row',
@@ -412,14 +417,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bankBadge: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
     marginRight: 12,
   },
   bankBadgeText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -429,11 +434,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     marginTop: 2,
   },
   cardHeaderRight: {
@@ -441,7 +446,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   defaultBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.color.state.warning.background,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -449,7 +454,7 @@ const styles = StyleSheet.create({
   defaultBadgeText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#92400E',
+    color: theme.color.state.warning.text,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -457,15 +462,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusActive: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.color.state.success.background,
   },
   statusInactive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: theme.color.state.danger.background,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#065F46',
+    color: theme.color.state.success.text,
   },
   cardBody: {
     padding: 16,
@@ -476,13 +481,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     width: 80,
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: '#333',
+    color: theme.color.text.heading,
     flex: 1,
   },
   balanceRow: {
@@ -491,11 +496,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: theme.color.border.subtle,
   },
   balanceLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     width: 80,
     fontWeight: '500',
   },
@@ -505,30 +510,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   balancePositive: {
-    color: '#10B981',
+    color: theme.color.state.success.border,
   },
   balanceNegative: {
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
   },
   cardActions: {
     flexDirection: 'row',
     padding: 12,
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: theme.color.border.subtle,
   },
   actionButton: {
     flex: 1,
     padding: 10,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
     borderRadius: 8,
     alignItems: 'center',
   },
   actionButtonDanger: {
-    backgroundColor: '#DC3545',
+    backgroundColor: theme.color.state.danger.border,
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -544,24 +549,24 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
     textAlign: 'center',
     paddingHorizontal: 32,
     marginBottom: 24,
   },
   emptyButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: theme.color.state.success.border,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   emptyButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: 'bold',
   },

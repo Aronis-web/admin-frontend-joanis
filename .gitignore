@@ -13,14 +13,54 @@ dist/
 dist-test/
 web-build/
 
-# Electron build resources (keep .gitkeep)
+# Electron build resources (keep .gitkeep + iconos + installer.nsh)
+# packed.nsh se autogenera en el build, NO versionar.
 electron/build/*
 !electron/build/.gitkeep
+!electron/build/icon.ico
+!electron/build/icon.png
+!electron/build/installer.nsh
 
 # Firebender session data (markers de hooks, no versionar)
 .firebender/.session/
+.firebender/plans/
 
-# Firebender local state (SQLite locks bloquean merges en Windows)
-.idea/firebender/*.db*
-.idea/firebender/plans/
+# Artefactos temporales de tests (no versionar)
+.tmp-tests/
 
+# Firebender chat history (per-machine, no versionar)
+.idea/firebender/chat_history.db
+.idea/firebender/chat_history.db-shm
+.idea/firebender/chat_history.db-wal
+
+# Augment IDE plugin state (per-machine)
+.idea/AugmentWebviewStateStore.xml
+
+# Recovery workspace (artefactos extraidos del instalador para reconstruccion)
+.recovery/
+
+# Build artefacts locales (APK, PID, logs de builds)
+*.apk
+build-apk*.pid
+build-apk*.err
+
+# Python caches y outputs de scripts exploratorios (ESL / Leeka)
+scripts/__pycache__/
+scripts/leeka_pdf_out/
+scripts/esl_*.py
+scripts/extract_leeka_pdf.py
+scripts/shrink_leeka_imgs.py
+scripts/detect-mojibake.js
+scripts/fix-mojibake.js
+
+# Dumps HTML/JSON de scraping y debug (no son parte del app)
+ddg*.html
+leeka*.html
+lleeka*.html
+lleeka_*.xml
+lkt_*.html
+lkt_*.js
+login.json
+sites.json
+warehouses.json
+stock-*.json

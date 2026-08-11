@@ -1,6 +1,11 @@
 /**
- * Servicio API para verificar y descargar actualizaciones de la app
+ * Servicio API para gestión de versiones de apps cliente (APK / EXE / IPA)
+ *
+ * Endpoints servidos por svc-admin bajo `/api/app-updates/*`.
+ * Para failover de lectura/descarga (app POS), están duplicados en svc-pos bajo
+ * `/api/pos/app-updates/*` — usar `usePosMirror: true` en los métodos públicos.
  */
+import { Platform as RNPlatform } from 'react-native';
 import apiClient from './client';
 import { config } from '@/utils/config';
 import { DocumentPickerAsset } from '@/utils/filePicker';
@@ -10,7 +15,26 @@ import { DocumentPickerAsset } from '@/utils/filePicker';
 // ============================================
 
 export type Platform = 'android' | 'windows' | 'ios' | 'web';
-export type AppId = 'erp-aio' | 'caja-frontend';
+
+/**
+ * Identificador de app. Es un string libre — agregar una app nueva no requiere
+ * migración en backend. Estos son los appIds sugeridos / usados actualmente.
+ */
+export type AppId =
+  | 'erp-aio'
+  | 'caja-frontend'
+  | 'admin'
+  | 'pos'
+  | 'biometric-reader'
+  | (string & {});
+
+export const APP_IDS = {
+  ERP_AIO: 'erp-aio',
+  CAJA_FRONTEND: 'caja-frontend',
+  ADMIN: 'admin',
+  POS: 'pos',
+  BIOMETRIC_READER: 'biometric-reader',
+} as const;
 
 export interface CheckUpdateResponse {
   updateAvailable: boolean;
@@ -32,17 +56,59 @@ export interface AppRelease {
   platform: Platform;
   version: string;
   versionCode: number;
-  downloadUrl?: string;
-  fileName?: string;
-  fileSize?: number;
-  changelog?: string;
+  downloadUrl?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  changelog?: string | null;
   isMandatory: boolean;
-  minSupportedVersion?: string;
+  minSupportedVersion?: string | null;
   isActive: boolean;
   releaseDate: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateReleaseDto {
+  appId: string;
+  platform: Platform;
+  version: string;
+  versionCode?: number;
+  changelog?: string;
+  isMandatory?: boolean;
+  minSupportedVersion?: string;
+  releaseDate?: string;
+}
+
+export interface UpdateReleaseDto {
+  changelog?: string;
+  isMandatory?: boolean;
+  isActive?: boolean;
+  minSupportedVersion?: string;
+}
+
+export interface DeleteReleaseResponse {
+  deleted: boolean;
+  id: string;
+  fileRemoved: boolean;
+}
+
+export interface ReadOptions {
+  /**
+   * Si es true, usa el mirror público servido por svc-pos
+   * (`/api/pos/app-updates/*`). Útil para que la app POS siga
+   * pudiendo verificar/descargar updates si svc-admin está caído.
+   */
+  usePosMirror?: boolean;
+}
+
+// ============================================
+// HELPERS
+// ============================================
+
+const ADMIN_PREFIX = '/app-updates';
+const POS_PREFIX = '/pos/app-updates';
+
+const readPrefix = (opts?: ReadOptions): string => (opts?.usePosMirror ? POS_PREFIX : ADMIN_PREFIX);
 
 // ============================================
 // API SERVICE
@@ -50,55 +116,75 @@ export interface AppRelease {
 
 export const appUpdatesApi = {
   /**
-   * Verificar si hay actualizaciones disponibles
+   * GET /check — Verificar si hay actualización disponible
    */
   checkForUpdates: async (
     appId: AppId,
     platform: Platform,
-    currentVersion: string
+    currentVersion: string,
+    opts?: ReadOptions
   ): Promise<CheckUpdateResponse> => {
-    const response = await apiClient.get<CheckUpdateResponse>('/app-updates/check', {
-      params: {
-        appId,
-        platform,
-        currentVersion,
-      },
+    return apiClient.get<CheckUpdateResponse>(`${readPrefix(opts)}/check`, {
+      params: { appId, platform, currentVersion },
     });
-    return response;
   },
 
   /**
-   * Obtener información de la última versión
+   * GET /latest — Última versión activa de cada (appId, platform)
    */
-  getLatestRelease: async (appId: AppId, platform: Platform): Promise<AppRelease> => {
-    return apiClient.get<AppRelease>(`/app-updates/latest/${appId}/${platform}`);
+  getLatestAll: async (opts?: ReadOptions): Promise<AppRelease[]> => {
+    return apiClient.get<AppRelease[]>(`${readPrefix(opts)}/latest`);
   },
 
   /**
-   * Obtener URL de descarga directa
-   * Nota: El endpoint de descarga NO usa el prefijo /api
+   * GET /latest/:appId/:platform — Última versión activa de una app
    */
-  getDownloadUrl: (appId: AppId, platform: Platform, version: string): string => {
-    let baseUrl = config.API_URL || '';
-    // Remover el sufijo /api si existe, ya que el endpoint de descarga no lo usa
-    if (baseUrl.endsWith('/api')) {
-      baseUrl = baseUrl.slice(0, -4);
-    }
-    return `${baseUrl}/app-updates/download/${appId}/${platform}/${version}`;
+  getLatestRelease: async (
+    appId: AppId,
+    platform: Platform,
+    opts?: ReadOptions
+  ): Promise<AppRelease> => {
+    return apiClient.get<AppRelease>(`${readPrefix(opts)}/latest/${appId}/${platform}`);
   },
 
   /**
-   * Listar todas las versiones de una app
+   * GET /releases/:appId — Listar todas las versiones (activas + inactivas) de una app,
+   * ordenadas por versionCode DESC.
    */
-  listReleases: async (appId: AppId, platform?: Platform): Promise<AppRelease[]> => {
-    const params = platform ? { platform } : {};
-    return apiClient.get<AppRelease[]>(`/app-updates/releases/${appId}`, { params });
+  listReleases: async (
+    appId: AppId,
+    platform?: Platform,
+    opts?: ReadOptions
+  ): Promise<AppRelease[]> => {
+    const params = platform ? { platform } : undefined;
+    return apiClient.get<AppRelease[]>(`${readPrefix(opts)}/releases/${appId}`, { params });
   },
 
   /**
-   * Subir nueva versión de APK/EXE
-   * POST /api/app-updates/releases/{appId}/{platform}/{version}/upload
-   * Si la versión no existe, la crea automáticamente
+   * Construye la URL absoluta del endpoint público de descarga.
+   * Útil para `<a href>` en web o pasar a DownloadResumable en nativo.
+   */
+  getDownloadUrl: (
+    appId: AppId,
+    platform: Platform,
+    version: string,
+    opts?: ReadOptions
+  ): string => {
+    const baseUrl = (config.API_URL || '').replace(/\/$/, '');
+    return `${baseUrl}${readPrefix(opts)}/download/${appId}/${platform}/${version}`;
+  },
+
+  /**
+   * POST /releases — Crear release solo con metadatos (sin archivo).
+   * Requiere permiso `app_releases.upload`.
+   */
+  createRelease: async (dto: CreateReleaseDto): Promise<AppRelease> => {
+    return apiClient.post<AppRelease>(`${ADMIN_PREFIX}/releases`, dto);
+  },
+
+  /**
+   * POST /releases/:appId/:platform/:version/upload — Subir APK/EXE/IPA.
+   * Si la versión no existe, la crea automáticamente. Requiere `app_releases.upload`.
    */
   uploadRelease: async (
     appId: AppId,
@@ -109,44 +195,69 @@ export const appUpdatesApi = {
   ): Promise<AppRelease> => {
     const formData = new FormData();
 
-    // Create the file object for FormData
-    const fileUri = file.uri;
     const fileName = file.name || `app-${version}.${platform === 'android' ? 'apk' : 'exe'}`;
     const mimeType = file.mimeType || 'application/octet-stream';
 
-    // Append file to FormData
-    formData.append('file', {
-      uri: fileUri,
-      name: fileName,
-      type: mimeType,
-    } as any);
-
-    // Simulate progress since we can't track real progress with fetch
-    if (onProgress) {
-      onProgress(10);
+    if (RNPlatform.OS === 'web') {
+      let fileToUpload: File | Blob;
+      if (file.file) {
+        fileToUpload = file.file;
+      } else {
+        const fetched = await fetch(file.uri);
+        const blob = await fetched.blob();
+        fileToUpload = new File([blob], fileName, { type: mimeType });
+      }
+      formData.append('file', fileToUpload, fileName);
+    } else {
+      formData.append('file', {
+        uri: file.uri,
+        name: fileName,
+        type: mimeType,
+      } as any);
     }
 
-    try {
-      if (onProgress) {
-        onProgress(30);
-      }
+    if (onProgress) onProgress(0);
 
-      const response = await apiClient.post<AppRelease>(
-        `/app-updates/releases/${appId}/${platform}/${version}/upload`,
-        formData
+    try {
+      // Usamos XHR (vía uploadFormData) para reportar progreso real de subida.
+      // `fetch` no expone progreso, por eso la barra antes se quedaba fija.
+      const response = await apiClient.uploadFormData<AppRelease>(
+        `${ADMIN_PREFIX}/releases/${appId}/${platform}/${version}/upload`,
+        formData,
+        onProgress
       );
 
-      if (onProgress) {
-        onProgress(100);
-      }
+      if (onProgress) onProgress(100);
 
       return response;
     } catch (error) {
-      if (onProgress) {
-        onProgress(0);
-      }
+      if (onProgress) onProgress(0);
       throw error;
     }
+  },
+
+  /**
+   * PATCH /releases/:id — Editar metadatos del release (changelog / flags).
+   * No reemplaza el archivo. Requiere `app_releases.upload`.
+   */
+  updateRelease: async (id: string, dto: UpdateReleaseDto): Promise<AppRelease> => {
+    return apiClient.patch<AppRelease>(`${ADMIN_PREFIX}/releases/${id}`, dto);
+  },
+
+  /**
+   * PATCH /releases/:id/deactivate — Soft delete (isActive=false).
+   * Conserva el archivo y el registro. Requiere `app_releases.delete`.
+   */
+  deactivateRelease: async (id: string): Promise<AppRelease> => {
+    return apiClient.patch<AppRelease>(`${ADMIN_PREFIX}/releases/${id}/deactivate`);
+  },
+
+  /**
+   * DELETE /releases/:id — Hard delete: borra el registro y el archivo físico.
+   * Operación irreversible. Requiere `app_releases.delete`.
+   */
+  deleteRelease: async (id: string): Promise<DeleteReleaseResponse> => {
+    return apiClient.delete<DeleteReleaseResponse>(`${ADMIN_PREFIX}/releases/${id}`);
   },
 };
 

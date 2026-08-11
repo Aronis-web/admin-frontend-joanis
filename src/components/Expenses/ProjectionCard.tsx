@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ExpenseProjection, ConfidenceLevelLabels, ConfidenceLevelColors } from '@/types/expenses';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ProjectionCardProps {
   projection: ExpenseProjection;
@@ -10,6 +11,8 @@ interface ProjectionCardProps {
 }
 
 export const ProjectionCard: React.FC<ProjectionCardProps> = ({ projection, onPress }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -36,7 +39,7 @@ export const ProjectionCard: React.FC<ProjectionCardProps> = ({ projection, onPr
             </Text>
           </View>
         </View>
-        <Ionicons name="trending-up-outline" size={24} color={colors.accent[500]} />
+        <Ionicons name="trending-up-outline" size={24} color={theme.color.brand.accent} />
       </View>
 
       <View style={styles.divider} />
@@ -71,114 +74,115 @@ export const ProjectionCard: React.FC<ProjectionCardProps> = ({ projection, onPr
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  expenseName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1.5],
-  },
-  confidenceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.xl,
-    gap: spacing[1.5],
-  },
-  confidenceDot: {
-    width: 6,
-    height: 6,
-    borderRadius: borderRadius.full,
-  },
-  confidenceText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.default,
-    marginBottom: spacing[3],
-  },
-  content: {
-    gap: spacing[3],
-  },
-  amountContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-  },
-  amountLabel: {
-    fontSize: 11,
-    color: colors.neutral[500],
-    fontWeight: '600',
-    marginBottom: spacing[1],
-  },
-  amountValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  infoItem: {
-    flex: 1,
-  },
-  label: {
-    fontSize: 10,
-    color: colors.neutral[400],
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  value: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[700],
-  },
-  notesContainer: {
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[2.5],
-    borderLeftWidth: 3,
-    borderLeftColor: colors.warning[500],
-  },
-  notesLabel: {
-    fontSize: 10,
-    color: colors.warning[800],
-    fontWeight: '600',
-    marginBottom: spacing[1],
-  },
-  notesText: {
-    fontSize: 12,
-    color: colors.warning[900],
-    lineHeight: 16,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    expenseName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1.5],
+    },
+    confidenceBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.xl,
+      gap: theme.space[1.5],
+    },
+    confidenceDot: {
+      width: 6,
+      height: 6,
+      borderRadius: theme.radii.full,
+    },
+    confidenceText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.color.border.default,
+      marginBottom: theme.space[3],
+    },
+    content: {
+      gap: theme.space[3],
+    },
+    amountContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+    },
+    amountLabel: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+      fontWeight: '600',
+      marginBottom: theme.space[1],
+    },
+    amountValue: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    infoItem: {
+      flex: 1,
+    },
+    label: {
+      fontSize: 10,
+      color: theme.color.text.placeholder,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    value: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    notesContainer: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[2.5],
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.state.warning.border,
+    },
+    notesLabel: {
+      fontSize: 10,
+      color: theme.color.state.warning.text,
+      fontWeight: '600',
+      marginBottom: theme.space[1],
+    },
+    notesText: {
+      fontSize: 12,
+      color: theme.color.state.warning.text,
+      lineHeight: 16,
+    },
+  });
 
 export default ProjectionCard;

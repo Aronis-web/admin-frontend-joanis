@@ -79,6 +79,8 @@ export const PERMISSIONS = {
     PRODUCTS_DELETE: 'purchases.products.delete',
     DEBT_ASSIGN: 'purchases.debt.assign',
     OCR_SCAN: 'purchases.ocr.scan',
+    REPORTS_DOWNLOAD: 'purchases.reports.download',
+    REPORTS_MULTI_DOWNLOAD: 'purchases.reports.multi.download',
   },
 
   // ========== PROVEEDORES ==========
@@ -313,6 +315,12 @@ export const PERMISSIONS = {
     },
   },
 
+  // ========== APP RELEASES (versiones APK / EXE / IPA) ==========
+  APP_RELEASES: {
+    UPLOAD: 'app_releases.upload',
+    DELETE: 'app_releases.delete',
+  },
+
   // ========== ARCHIVOS ==========
   FILES: {
     UPLOAD: 'files.upload',
@@ -339,12 +347,30 @@ export const PERMISSIONS = {
     DELETE: 'transmisiones.delete',
   },
 
+  // ========== ASISTENCIA ==========
+  ATTENDANCE: {
+    READ_OWN: 'attendance.read.own',
+    READ_ALL: 'attendance.read.all',
+    REPORTS: 'attendance.reports',
+    EVENT_TYPES: {
+      READ: 'attendance.event-types.read',
+      MANAGE: 'attendance.event-types.manage',
+    },
+    TERMINALS: {
+      READ: 'attendance.terminals.read',
+      MANAGE: 'attendance.terminals.manage',
+      TOKEN: 'attendance.terminals.token',
+    },
+  },
+
   // ========== INVENTARIO (Scopes-based) ==========
   INVENTORY: {
     READ: 'inventory.read',
     UPDATE: 'inventory.update',
     ADJUST: 'stock.adjust',
     TRANSFER: 'stock.transfer',
+    DOWNLOAD_FORMAT: 'stock.download.format',
+    UPLOAD_FORMAT: 'stock.upload.format',
   },
 
   // ========== ALMACENES ==========
@@ -379,6 +405,17 @@ export const PERMISSIONS = {
     HOLDINGS: {
       READ: 'admin.holdings.read',
       DEPOSIT: 'admin.holdings.deposit',
+    },
+
+    EXTERNAL_SALES: {
+      SYNC: 'admin.external_sales.sync',
+      SOURCES_WRITE: 'admin.external_sales.sources.write',
+      RUNS_READ: 'admin.external_sales.runs.read',
+    },
+
+    IZIPAY_SYNC: {
+      SYNC: 'admin.izipay_sync.sync',
+      RUNS_READ: 'admin.izipay_sync.runs.read',
     },
   },
 
@@ -635,6 +672,14 @@ export const PERMISSIONS = {
     REPORTS_FULL: 'accounts-receivable.reports-full',
     ADMIN_FULL: 'accounts-receivable.admin-full',
     FULL_ACCESS: 'accounts-receivable.full-access',
+  },
+
+  // ========== WEBMAIL / CORREO CORPORATIVO ==========
+  WEBMAIL: {
+    READ: 'webmail.read',
+    SEND: 'webmail.send',
+    MANAGE: 'webmail.manage',
+    ARCHIVE_READ: 'webmail.archive.read',
   },
 } as const;
 

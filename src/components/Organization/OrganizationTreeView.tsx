@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { PositionTreeNode } from '@/types/organization';
 
 interface OrganizationTreeViewProps {
@@ -20,6 +21,7 @@ export const OrganizationTreeView: React.FC<OrganizationTreeViewProps> = ({
   onCreateChild,
   level = 0,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const renderPosition = (position: PositionTreeNode, index: number) => {
     const hasChildren = position.children && position.children.length > 0;
     const isActive = position.isActive !== false;
@@ -140,149 +142,150 @@ export const OrganizationTreeView: React.FC<OrganizationTreeViewProps> = ({
   return <View style={styles.container}>{data.map(renderPosition)}</View>;
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  positionContainer: {
-    marginBottom: spacing[4],
-    position: 'relative',
-  },
-  connectorContainer: {
-    position: 'absolute',
-    left: -20,
-    top: 0,
-    bottom: 0,
-    width: 20,
-  },
-  horizontalLine: {
-    position: 'absolute',
-    top: 30,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: colors.neutral[300],
-  },
-  verticalLine: {
-    position: 'absolute',
-    top: 30,
-    bottom: -16,
-    left: 0,
-    width: 2,
-    backgroundColor: colors.neutral[300],
-  },
-  positionCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 2,
-    borderColor: colors.neutral[200],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  positionCardInactive: {
-    opacity: 0.6,
-    borderColor: colors.neutral[300],
-    borderStyle: 'dashed',
-  },
-  positionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing[3],
-  },
-  positionInfo: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  positionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    flexWrap: 'wrap',
-  },
-  positionIcon: {
-    fontSize: 20,
-    marginRight: spacing[2],
-  },
-  positionName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.neutral[900],
-    flex: 1,
-  },
-  inactiveBadge: {
-    backgroundColor: colors.danger[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.sm,
-    marginLeft: spacing[2],
-  },
-  inactiveBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.danger[600],
-  },
-  positionCode: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  positionDescription: {
-    fontSize: 14,
-    color: colors.neutral[700],
-    marginTop: spacing[1],
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  statItem: {
-    alignItems: 'center',
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-    minWidth: 40,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: colors.neutral[500],
-    marginBottom: spacing[0.5],
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.neutral[900],
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    flexWrap: 'wrap',
-  },
-  actionButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
-  },
-  actionButtonDanger: {
-    backgroundColor: colors.danger[100],
-  },
-  actionButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[700],
-  },
-  actionButtonTextDanger: {
-    color: colors.danger[600],
-  },
-  childrenContainer: {
-    marginTop: spacing[4],
-    marginLeft: spacing[5],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    positionContainer: {
+      marginBottom: theme.space[4],
+      position: 'relative',
+    },
+    connectorContainer: {
+      position: 'absolute',
+      left: -20,
+      top: 0,
+      bottom: 0,
+      width: 20,
+    },
+    horizontalLine: {
+      position: 'absolute',
+      top: 30,
+      left: 0,
+      right: 0,
+      height: 2,
+      backgroundColor: theme.color.border.default,
+    },
+    verticalLine: {
+      position: 'absolute',
+      top: 30,
+      bottom: -16,
+      left: 0,
+      width: 2,
+      backgroundColor: theme.color.border.default,
+    },
+    positionCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    positionCardInactive: {
+      opacity: 0.6,
+      borderColor: theme.color.border.default,
+      borderStyle: 'dashed',
+    },
+    positionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[3],
+    },
+    positionInfo: {
+      flex: 1,
+      marginRight: theme.space[3],
+    },
+    positionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+      flexWrap: 'wrap',
+    },
+    positionIcon: {
+      fontSize: 20,
+      marginRight: theme.space[2],
+    },
+    positionName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    inactiveBadge: {
+      backgroundColor: theme.color.state.danger.background,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[0.5],
+      borderRadius: theme.radii.sm,
+      marginLeft: theme.space[2],
+    },
+    inactiveBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.danger,
+    },
+    positionCode: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    positionDescription: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      marginTop: theme.space[1],
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    statItem: {
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.md,
+      minWidth: 40,
+    },
+    statLabel: {
+      fontSize: 10,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[0.5],
+    },
+    statValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      flexWrap: 'wrap',
+    },
+    actionButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.muted,
+    },
+    actionButtonDanger: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    actionButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    actionButtonTextDanger: {
+      color: theme.color.text.danger,
+    },
+    childrenContainer: {
+      marginTop: theme.space[4],
+      marginLeft: theme.space[5],
+    },
+  });
 
 export default OrganizationTreeView;

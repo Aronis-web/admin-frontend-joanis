@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   TextInput,
   Modal,
   ScrollView,
@@ -30,7 +29,8 @@ import {
   currencyToCents,
 } from '@/types/balances';
 import { useAuthStore } from '@/store/auth';
-import { BalanceOperationsFAB } from '@/components/Balances/BalanceOperationsFAB';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { BalanceOperationDetailModal } from '@/components/Balances/BalanceOperationDetailModal';
 import { formatDateToString, getTodayString } from '@/utils/dateHelpers';
@@ -42,6 +42,10 @@ import {
   requestCameraPermissionsAsync,
   MediaTypeOptions
 } from '@/utils/filePicker';
+import { Pagination } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface AllBalanceOperationsScreenProps {
   navigation: any;
@@ -52,6 +56,8 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentSite } = useAuthStore();
   const [operations, setOperations] = useState<BalanceOperation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -619,7 +625,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#38BDF8" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando operaciones...</Text>
         </View>
       ) : (
@@ -640,56 +646,50 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
 
           {/* Pagination Controls */}
           {pagination.total > 0 && (
-            <View style={styles.paginationContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.paginationButton,
-                  pagination.page === 1 && styles.paginationButtonDisabled,
-                ]}
-                onPress={handlePreviousPage}
-                disabled={pagination.page === 1}
-              >
-                <Text
-                  style={[
-                    styles.paginationButtonText,
-                    pagination.page === 1 && styles.paginationButtonTextDisabled,
-                  ]}
-                >
-                  ← Anterior
-                </Text>
-              </TouchableOpacity>
-
-              <View style={styles.paginationInfo}>
-                <Text style={styles.paginationText}>
-                  Pág. {pagination.page}/{pagination.totalPages}
-                </Text>
-                <Text style={styles.paginationSubtext}>
-                  {operations.length} de {pagination.total}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.paginationButton,
-                  pagination.page >= pagination.totalPages && styles.paginationButtonDisabled,
-                ]}
-                onPress={handleNextPage}
-                disabled={pagination.page >= pagination.totalPages}
-              >
-                <Text
-                  style={[
-                    styles.paginationButtonText,
-                    pagination.page >= pagination.totalPages && styles.paginationButtonTextDisabled,
-                  ]}
-                >
-                  Siguiente →
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.total}
+              itemsPerPage={pagination.limit}
+              onPageChange={loadOperations}
+              loading={loading}
+            />
           )}
 
-          {/* Floating Action Button with Operation Type Selection */}
-          <BalanceOperationsFAB onOperationSelect={handleOperationTypeSelect} />
+          <ProtectedFAB
+            actions={[
+              {
+                icon: 'cube-outline',
+                label: 'Monto de Reparto',
+                onPress: () => handleOperationTypeSelect(OperationType.DISTRIBUTED),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+              {
+                icon: 'cash-outline',
+                label: 'Monto Vendido',
+                onPress: () => handleOperationTypeSelect(OperationType.SOLD),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+              {
+                icon: 'time-outline',
+                label: 'Montos Por Pagar',
+                onPress: () => handleOperationTypeSelect(OperationType.TO_PAY),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+              {
+                icon: 'checkmark-circle-outline',
+                label: 'Registrar Pagos',
+                onPress: () => handleOperationTypeSelect(OperationType.PAID),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+              {
+                icon: 'return-down-back-outline',
+                label: getOperationTypeLabel(OperationType.RETURNED),
+                onPress: () => handleOperationTypeSelect(OperationType.RETURNED),
+                requiredPermissions: [PERMISSIONS.BALANCES.OPERATIONS.CREATE],
+              },
+            ]}
+          />
         </>
       )}
 
@@ -1124,44 +1124,44 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     textAlign: 'center',
   },
   searchContainer: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     position: 'relative',
   },
   searchInput: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   clearFilterButton: {
     position: 'absolute',
     right: 30,
     top: '50%',
     transform: [{ translateY: -12 }],
-    backgroundColor: '#E5E7EB',
+    backgroundColor: theme.color.border.subtle,
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -1170,14 +1170,14 @@ const styles = StyleSheet.create({
   },
   clearFilterText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   filtersContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     gap: 8,
     flexWrap: 'wrap',
   },
@@ -1185,21 +1185,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   filterButtonActive: {
-    backgroundColor: '#38BDF8',
-    borderColor: '#38BDF8',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   filterButtonText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   loadingContainer: {
     flex: 1,
@@ -1209,18 +1209,18 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   listContent: {
     padding: 20,
   },
   operationItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   operationHeader: {
     flexDirection: 'row',
@@ -1242,47 +1242,47 @@ const styles = StyleSheet.create({
   typeBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   operationDate: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   operationAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   operationBalance: {
     fontSize: 14,
-    color: '#38BDF8',
+    color: theme.color.brand.accent,
     fontWeight: '600',
     marginBottom: 4,
   },
   operationEmitter: {
     fontSize: 14,
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 4,
   },
   operationDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   operationReference: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: theme.color.text.subtle,
     fontStyle: 'italic',
   },
   operationFooter: {
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: theme.color.surface.subtle,
   },
   viewDetailsText: {
     fontSize: 13,
-    color: '#38BDF8',
+    color: theme.color.brand.accent,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -1294,16 +1294,16 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
@@ -1320,11 +1320,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   modalCloseButton: {
     fontSize: 28,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '300',
   },
   formGroup: {
@@ -1333,23 +1333,23 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   helperText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 12,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   textArea: {
     minHeight: 80,
@@ -1359,9 +1359,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   balanceOption: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -1369,34 +1369,34 @@ const styles = StyleSheet.create({
     minWidth: 180,
   },
   balanceOptionSelected: {
-    backgroundColor: '#38BDF8',
-    borderColor: '#38BDF8',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   balanceOptionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 6,
   },
   balanceOptionTitleSelected: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   balanceOptionCode: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   balanceOptionCodeSelected: {
-    color: '#E0F2FE',
+    color: theme.color.brand.accentSoft,
   },
   balanceOptionSubtext: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   balanceOptionSubtextSelected: {
-    color: '#DBEAFE',
+    color: theme.color.brand.accentSoft,
   },
   operationTypeContainer: {
     flexDirection: 'row',
@@ -1407,21 +1407,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   operationTypeButtonActive: {
-    backgroundColor: '#38BDF8',
-    borderColor: '#38BDF8',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   operationTypeButtonText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   operationTypeButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   operationTypeBadge: {
     paddingHorizontal: 16,
@@ -1432,30 +1432,30 @@ const styles = StyleSheet.create({
   operationTypeBadgeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   operationInfoBox: {
     marginTop: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: theme.color.state.info.background,
     borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    borderLeftColor: theme.color.state.info.border,
     borderRadius: 8,
     padding: 12,
   },
   operationInfoTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: theme.color.state.info.text,
     marginBottom: 6,
   },
   operationInfoText: {
     fontSize: 12,
-    color: '#1E3A8A',
+    color: theme.color.state.info.text,
     lineHeight: 18,
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
     marginTop: 8,
     fontWeight: '500',
   },
@@ -1468,22 +1468,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
   },
   balanceTypeButtonActive: {
-    backgroundColor: '#38BDF8',
-    borderColor: '#38BDF8',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   balanceTypeButtonText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   balanceTypeButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   paymentMethodContainer: {
     flexDirection: 'row',
@@ -1494,29 +1494,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     flex: 1,
     minWidth: '30%',
   },
   paymentMethodButtonActive: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   paymentMethodButtonText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '500',
     textAlign: 'center',
   },
   paymentMethodButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   fileUploadButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -1525,7 +1525,7 @@ const styles = StyleSheet.create({
   },
   fileUploadButtonText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   filesContainer: {
@@ -1536,12 +1536,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   fileInfo: {
     flex: 1,
@@ -1549,17 +1549,17 @@ const styles = StyleSheet.create({
   },
   fileName: {
     fontSize: 13,
-    color: '#374151',
+    color: theme.color.text.body,
     fontWeight: '500',
     marginBottom: 2,
   },
   fileType: {
     fontSize: 11,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   fileRemove: {
     fontSize: 18,
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
     fontWeight: '600',
     paddingHorizontal: 8,
   },
@@ -1575,27 +1575,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalButtonCancel: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   modalButtonSubmit: {
-    backgroundColor: '#38BDF8',
+    backgroundColor: theme.color.brand.accent,
   },
   modalButtonTextCancel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   modalButtonTextSubmit: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   paginationContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -1611,30 +1611,30 @@ const styles = StyleSheet.create({
   paginationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   paginationSubtext: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     marginTop: 2,
   },
   paginationButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     minWidth: 110,
     alignItems: 'center',
   },
   paginationButtonDisabled: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.surface.disabled,
   },
   paginationButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   paginationButtonTextDisabled: {
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
 });

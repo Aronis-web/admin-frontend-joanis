@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Switch,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { organizationApi } from '@/services/api/organization';
 import { PositionTreeNode } from '@/types/organization';
+import Alert from '@/utils/alert';
 
 interface EditPositionModalProps {
   visible: boolean;
@@ -28,6 +29,8 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
   onSuccess,
   position,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -108,6 +111,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                 value={formData.name}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                 placeholder="Nombre del puesto"
+                placeholderTextColor={theme.color.text.placeholder}
                 editable={!loading}
                 keyboardType="default"
               />
@@ -120,6 +124,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                 value={formData.description}
                 onChangeText={(text) => setFormData({ ...formData, description: text })}
                 placeholder="Descripción del puesto"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="default"
                 multiline
                 numberOfLines={3}
@@ -135,6 +140,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                   value={formData.minOccupants}
                   onChangeText={(text) => setFormData({ ...formData, minOccupants: text })}
                   placeholder="1"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="numeric"
                   editable={!loading}
                 />
@@ -147,6 +153,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                   value={formData.maxOccupants}
                   onChangeText={(text) => setFormData({ ...formData, maxOccupants: text })}
                   placeholder="Ilimitado"
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="numeric"
                   editable={!loading}
                 />
@@ -160,6 +167,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                 value={formData.displayOrder}
                 onChangeText={(text) => setFormData({ ...formData, displayOrder: text })}
                 placeholder="1"
+                placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="numeric"
                 editable={!loading}
               />
@@ -178,8 +186,13 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
                 value={formData.isActive}
                 onValueChange={(value) => setFormData({ ...formData, isActive: value })}
                 disabled={loading}
-                trackColor={{ false: colors.neutral[300], true: colors.accent[500] }}
-                thumbColor={formData.isActive ? colors.neutral[0] : colors.neutral[100]}
+                trackColor={{
+                  false: theme.color.border.default,
+                  true: theme.color.brand.accent,
+                }}
+                thumbColor={
+                  formData.isActive ? theme.color.text.onAction : theme.color.surface.muted
+                }
               />
             </View>
           </ScrollView>
@@ -198,7 +211,7 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.submitButtonText}>Guardar Cambios</Text>
               )}
@@ -210,140 +223,141 @@ export const EditPositionModal: React.FC<EditPositionModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '90%',
-    maxWidth: 500,
-    maxHeight: '80%',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[900],
-  },
-  closeButton: {
-    fontSize: 24,
-    color: colors.neutral[500],
-    padding: 4,
-  },
-  modalContent: {
-    padding: 20,
-  },
-  positionInfo: {
-    backgroundColor: colors.neutral[100],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[4],
-  },
-  positionCode: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing[1],
-  },
-  positionLevel: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
-  },
-  required: {
-    color: colors.danger[600],
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[900],
-    backgroundColor: colors.neutral[0],
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  halfWidth: {
-    flex: 1,
-  },
-  switchGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    marginTop: spacing[2],
-  },
-  switchLabelContainer: {
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  switchDescription: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[700],
-  },
-  submitButton: {
-    backgroundColor: colors.accent[500],
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContainer: {
+      width: '90%',
+      maxWidth: 500,
+      maxHeight: '80%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      fontSize: 24,
+      color: theme.color.text.muted,
+      padding: 4,
+    },
+    modalContent: {
+      padding: 20,
+    },
+    positionInfo: {
+      backgroundColor: theme.color.surface.muted,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[4],
+    },
+    positionCode: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[1],
+    },
+    positionLevel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[2],
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    row: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    halfWidth: {
+      flex: 1,
+    },
+    switchGroup: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      marginTop: theme.space[2],
+    },
+    switchLabelContainer: {
+      flex: 1,
+      marginRight: theme.space[3],
+    },
+    switchDescription: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+    },
+    modalFooter: {
+      flexDirection: 'row',
+      padding: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    submitButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+  });
 
 export default EditPositionModal;

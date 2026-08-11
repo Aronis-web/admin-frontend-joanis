@@ -3,7 +3,9 @@
  * Usa la API legacy de expo-file-system que es más estable en producción
  */
 
-import { Platform, Alert } from 'react-native';
+import Alert from '@/utils/alert';
+
+import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 

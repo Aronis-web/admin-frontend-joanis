@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   Modal,
@@ -22,12 +21,17 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DatePicker } from '@/components/DatePicker';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { useAuthStore } from '@/store/auth';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface CreateBalanceScreenProps {
   navigation: any;
 }
 
 export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [balanceType, setBalanceType] = useState<BalanceType>(BalanceType.INTERNAL);
   const [receiverCompanyId, setReceiverCompanyId] = useState('');
   const [receiverSiteId, setReceiverSiteId] = useState('');
@@ -345,7 +349,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ naviga
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Notas adicionales sobre el balance..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -359,7 +363,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ naviga
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.text.inverse} />
               ) : (
                 <Text style={[styles.submitButtonText, isTablet && styles.submitButtonTextTablet]}>
                   Crear Balance
@@ -390,7 +394,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ naviga
               <ScrollView style={styles.modalList}>
                 {loadingCompanies ? (
                   <View style={styles.modalLoading}>
-                    <ActivityIndicator size="large" color="#6366F1" />
+                    <ActivityIndicator size="large" color={theme.color.brand.accent} />
                     <Text style={styles.modalLoadingText}>Cargando empresas...</Text>
                   </View>
                 ) : companies.length === 0 ? (
@@ -453,7 +457,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ naviga
               <ScrollView style={styles.modalList}>
                 {loadingSites ? (
                   <View style={styles.modalLoading}>
-                    <ActivityIndicator size="large" color="#6366F1" />
+                    <ActivityIndicator size="large" color={theme.color.brand.accent} />
                     <Text style={styles.modalLoadingText}>Cargando sedes...</Text>
                   </View>
                 ) : sites.length === 0 ? (
@@ -527,19 +531,19 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ naviga
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -550,7 +554,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   backButtonTextTablet: {
@@ -559,7 +563,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   titleTablet: {
     fontSize: 24,
@@ -577,11 +581,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   formCardTablet: {
     padding: 32,
@@ -593,7 +597,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   labelTablet: {
@@ -607,66 +611,66 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
   },
   typeButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   typeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   typeButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   inputTablet: {
     fontSize: 16,
     paddingVertical: 14,
   },
   dateInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   dateInputTablet: {
     fontSize: 16,
     paddingVertical: 14,
   },
   dateText: {
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   dateTextTablet: {
     fontSize: 16,
   },
   textArea: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     minHeight: 100,
   },
   textAreaTablet: {
@@ -674,7 +678,7 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   submitButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -686,15 +690,15 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   submitButtonTextTablet: {
     fontSize: 18,
   },
   selectInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -707,7 +711,7 @@ const styles = StyleSheet.create({
   },
   selectText: {
     fontSize: 15,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
   },
   selectTextTablet: {
@@ -715,15 +719,15 @@ const styles = StyleSheet.create({
   },
   selectArrow: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
@@ -745,20 +749,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: theme.color.border.subtle,
+    backgroundColor: theme.color.surface.base,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   modalTitleTablet: {
     fontSize: 22,
   },
   modalClose: {
     fontSize: 28,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '300',
     width: 32,
     height: 32,
@@ -767,7 +771,7 @@ const styles = StyleSheet.create({
   },
   modalList: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   modalItem: {
     flexDirection: 'row',
@@ -776,13 +780,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: theme.color.surface.subtle,
+    backgroundColor: theme.color.surface.base,
   },
   modalItemSelected: {
-    backgroundColor: '#6366F1' + '08',
+    backgroundColor: theme.color.brand.accentSoft,
     borderLeftWidth: 4,
-    borderLeftColor: '#6366F1',
+    borderLeftColor: theme.color.brand.accent,
   },
   modalItemContent: {
     flex: 1,
@@ -791,7 +795,7 @@ const styles = StyleSheet.create({
   modalItemName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
     lineHeight: 22,
   },
@@ -801,12 +805,12 @@ const styles = StyleSheet.create({
   },
   modalItemType: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     lineHeight: 20,
   },
   modalItemCheck: {
     fontSize: 24,
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     fontWeight: '700',
     width: 24,
     height: 24,
@@ -820,7 +824,7 @@ const styles = StyleSheet.create({
   },
   modalEmptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   modalLoading: {
@@ -830,7 +834,7 @@ const styles = StyleSheet.create({
   },
   modalLoadingText: {
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 12,
   },
 });

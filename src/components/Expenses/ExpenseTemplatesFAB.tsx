@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface ExpenseTemplatesFABProps {
   onCreateTemplate: () => void;
@@ -35,6 +36,8 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
   onTestGeneration,
   generatingExpenses = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [isOpen, setIsOpen] = useState(false);
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -53,7 +56,7 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
     {
       key: 'test-generation',
       label: 'Generar Gastos',
-      color: colors.warning[500],
+      color: theme.color.icon.warning,
       icon: 'play-circle',
       onPress: onTestGeneration,
       loading: generatingExpenses,
@@ -61,21 +64,21 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
     {
       key: 'bulk-upload',
       label: 'Carga Masiva',
-      color: colors.success[500],
+      color: theme.color.icon.success,
       icon: 'cloud-upload',
       onPress: onBulkUpload,
     },
     {
       key: 'download',
       label: 'Descargar Reporte',
-      color: colors.accent[500],
+      color: theme.color.brand.accent,
       icon: 'download',
       onPress: onDownloadReport,
     },
     {
       key: 'create',
       label: 'Crear Plantilla',
-      color: colors.danger[600],
+      color: theme.color.action.danger.background,
       icon: 'add',
       onPress: onCreateTemplate,
     },
@@ -238,7 +241,7 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
                   <Ionicons
                     name={action.icon as any}
                     size={isTablet ? 24 : 20}
-                    color={colors.neutral[0]}
+                    color={theme.color.text.inverse}
                   />
                 </TouchableOpacity>
               </View>
@@ -268,99 +271,100 @@ export const ExpenseTemplatesFAB: React.FC<ExpenseTemplatesFABProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.neutral[950],
-    zIndex: 10000,
-  },
-  fabContainer: {
-    position: 'absolute',
-    zIndex: 10001,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mainFabContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mainFab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.danger[600],
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.danger[600],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
-    borderWidth: 3,
-    borderColor: colors.neutral[0],
-  },
-  mainFabTablet: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  mainFabIcon: {
-    fontSize: 28,
-    color: colors.neutral[0],
-    fontWeight: '700',
-  },
-  mainFabIconTablet: {
-    fontSize: 32,
-  },
-  optionButtonContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  optionButton: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    borderWidth: 2,
-    borderColor: colors.neutral[0],
-  },
-  optionButtonTablet: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  labelContainer: {
-    backgroundColor: colors.neutral[0],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.full,
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-    minWidth: 120,
-  },
-  optionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    textAlign: 'center',
-  },
-  optionLabelTablet: {
-    fontSize: 13,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: theme.color.shadow,
+      zIndex: 10000,
+    },
+    fabContainer: {
+      position: 'absolute',
+      zIndex: 10001,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mainFabContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mainFab: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.color.action.danger.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.action.danger.background,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 12,
+      borderWidth: 3,
+      borderColor: theme.color.surface.base,
+    },
+    mainFabTablet: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      shadowRadius: 16,
+      elevation: 10,
+    },
+    mainFabIcon: {
+      fontSize: 28,
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+    },
+    mainFabIconTablet: {
+      fontSize: 32,
+    },
+    optionButtonContainer: {
+      position: 'absolute',
+      alignItems: 'center',
+    },
+    optionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    optionButton: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.radii.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 6,
+      borderWidth: 2,
+      borderColor: theme.color.surface.base,
+    },
+    optionButtonTablet: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+    },
+    labelContainer: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.full,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 4,
+      minWidth: 120,
+    },
+    optionLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      textAlign: 'center',
+    },
+    optionLabelTablet: {
+      fontSize: 13,
+    },
+  });

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
@@ -20,11 +19,17 @@ import { OrganizationInteractiveTree } from '@/components/Organization';
 import { CreatePositionModal } from '@/components/Organization';
 import { EditPositionModal } from '@/components/Organization';
 import { PositionDetailModal } from '@/components/Organization';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 export const OrganizationChartScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const { currentCompany, currentSite } = useAuthStore();
   const { selectedCompany, selectedSite } = useTenantStore();
@@ -158,7 +163,7 @@ export const OrganizationChartScreen: React.FC = () => {
   if (loading && !refreshing) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color={theme.color.brand.accent} />
         <Text style={styles.loadingText}>Cargando organigrama...</Text>
       </View>
     );
@@ -244,7 +249,7 @@ export const OrganizationChartScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#6366F1']} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.color.brand.accent]} />
         }
       >
         {treeData.length === 0 ? (
@@ -272,10 +277,15 @@ export const OrganizationChartScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={handleCreateRoot}>
-        <Text style={styles.fabIcon}>➕</Text>
-      </TouchableOpacity>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'add-circle-outline',
+            label: 'Crear Posici\u00f3n Ra\u00edz',
+            onPress: handleCreateRoot,
+          },
+        ]}
+      />
 
       {/* Modals */}
       <CreatePositionModal
@@ -325,33 +335,33 @@ export const OrganizationChartScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   titleTablet: {
@@ -359,74 +369,74 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   viewModeContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 20,
     paddingVertical: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   viewModeButton: {
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     alignItems: 'center',
   },
   viewModeButtonActive: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
   },
   viewModeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   viewModeButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
   viewModeButtonTextDisabled: {
-    color: '#D1D5DB',
+    color: theme.color.border.default,
   },
   displayModeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 20,
     paddingVertical: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   displayModeLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginRight: 4,
   },
   displayModeButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   displayModeButtonActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.primarySoft,
+    borderColor: theme.color.brand.accent,
   },
   displayModeButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   displayModeButtonTextActive: {
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
   scrollView: {
     flex: 1,
@@ -446,12 +456,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   fab: {
     position: 'absolute',
@@ -460,18 +470,18 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
   fabIcon: {
     fontSize: 24,
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
   },
 });
 

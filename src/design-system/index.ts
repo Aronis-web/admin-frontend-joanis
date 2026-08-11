@@ -162,6 +162,34 @@ export type {
 } from './components';
 
 // ============================================
+// THEMES (semantic theming + provider)
+// ============================================
+export {
+  defaultLight,
+  defaultDark,
+  themes,
+  ThemeProvider,
+  useTheme,
+  useThemeValue,
+  useThemeActions,
+  useThemedStyles,
+  useThemeStore,
+} from './themes';
+export type { Theme, ThemeName, ThemeMode } from './themes';
+
+// ============================================
+// LAYOUT (floating footer registry)
+// ============================================
+export {
+  FloatingFooterProvider,
+  getFloatingActionBottomOffset,
+  useFloatingActionBottomOffset,
+  useFloatingFooterHeight,
+  useRegisterFloatingFooter,
+  useMeasuredFloatingFooter,
+} from './layout/FloatingFooterProvider';
+
+// ============================================
 // DEFAULT EXPORT
 // ============================================
 import { designTokens } from './tokens';

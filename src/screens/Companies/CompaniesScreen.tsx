@@ -6,12 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   TextInput,
   Modal,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { companiesApi } from '@/services/api';
 import {
   Company,
@@ -19,6 +20,7 @@ import {
   CreateCompanyRequest,
   UpdateCompanyRequest,
 } from '@/types/companies';
+import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { AddButton } from '@/components/Navigation/AddButton';
@@ -28,6 +30,8 @@ interface CompaniesScreenProps {
 }
 
 export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -351,7 +355,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={theme.color.brand.accent} />
         <Text style={styles.loadingText}>Cargando empresas...</Text>
       </View>
     );
@@ -432,85 +436,86 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFF',
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
-    padding: 8,
+    padding: theme.space[2],
   },
   backButtonText: {
     fontSize: 24,
-    color: '#007AFF',
+    color: theme.color.brand.accent,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   headerSpacer: {
     width: 40,
   },
   searchContainer: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#FFF',
+    padding: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.color.border.subtle,
   },
   searchInput: {
     flex: 1,
     height: 40,
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#F9F9F9',
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.space[3],
+    backgroundColor: theme.color.background.subtle,
+    color: theme.color.text.heading,
   },
   searchButton: {
-    marginLeft: 8,
+    marginLeft: theme.space[2],
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    backgroundColor: theme.color.brand.accent,
+    borderRadius: theme.radii.md,
   },
   searchButtonText: {
     fontSize: 18,
   },
   listContainer: {
-    padding: 16,
+    padding: theme.space[4],
     paddingBottom: 100,
   },
   companyCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    marginBottom: theme.space[3],
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -520,7 +525,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: theme.space[3],
   },
   companyInfo: {
     flex: 1,
@@ -528,57 +533,59 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   companyRuc: {
     fontSize: 14,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.lg,
   },
   statusActive: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: theme.color.state.success.background,
   },
   statusInactive: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: theme.color.state.danger.background,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
+    color: theme.color.text.heading,
   },
   companyActions: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
+    gap: theme.space[2],
+    marginBottom: theme.space[2],
     flexWrap: 'wrap',
   },
   actionButton: {
     flex: 1,
     minWidth: '30%',
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.md,
     alignItems: 'center',
   },
   viewDetailsButton: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: theme.color.brand.accentSoft,
   },
   editButton: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: theme.color.brand.accentSoft,
   },
   deleteButton: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: theme.color.state.danger.background,
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
+    color: theme.color.text.heading,
   },
   companyDate: {
     fontSize: 12,
-    color: '#999',
+    color: theme.color.text.subtle,
     marginTop: 4,
   },
   emptyContainer: {
@@ -589,48 +596,49 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
+    color: theme.color.text.muted,
+    marginBottom: theme.space[2],
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
+    color: theme.color.text.subtle,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: theme.color.surface.elevated,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[6],
     width: '90%',
     maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 24,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[6],
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: theme.space[5],
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
   },
   input: {
     borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.md,
+    padding: theme.space[3],
     fontSize: 16,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: theme.color.background.subtle,
+    color: theme.color.text.heading,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -640,28 +648,28 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#DDD',
+    borderColor: theme.color.border.default,
     borderRadius: 4,
-    marginRight: 8,
+    marginRight: theme.space[2],
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   checkboxIcon: {
-    color: '#FFF',
+    color: theme.color.text.onAction,
     fontSize: 16,
     fontWeight: 'bold',
   },
   checkboxLabel: {
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
   },
   radioGroup: {
     flexDirection: 'row',
-    gap: 16,
+    gap: theme.space[4],
   },
   radioOption: {
     flexDirection: 'row',
@@ -672,46 +680,46 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#DDD',
-    marginRight: 8,
+    borderColor: theme.color.border.default,
+    marginRight: theme.space[2],
   },
   radioSelected: {
-    borderColor: '#007AFF',
-    backgroundColor: '#007AFF',
+    borderColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.accent,
   },
   radioLabel: {
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
   },
   modalActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    gap: theme.space[3],
+    marginTop: theme.space[6],
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: theme.color.border.default,
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: theme.color.text.muted,
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#007AFF',
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.md,
+    backgroundColor: theme.color.brand.accent,
     alignItems: 'center',
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFF',
+    color: theme.color.text.onAction,
   },
 });
 

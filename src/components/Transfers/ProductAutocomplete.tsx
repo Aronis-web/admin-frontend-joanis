@@ -9,9 +9,11 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
-import { Product, productsApi } from '@/services/api/products';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import { Product } from '@/services/api/products';
 import { inventoryApi } from '@/services/api/inventory';
+import { logger } from '@/utils/logger';
 
 interface ProductAutocompleteProps {
   products: Product[]; // ⚠️ DEPRECATED - Ya no se usa, búsqueda en tiempo real con V2
@@ -30,6 +32,8 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
   placeholder = 'Buscar producto...',
   disabled = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -46,7 +50,9 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
     }
   }, [selectedProductId, products]);
 
-  // Búsqueda de productos con stock incluido
+  // Búsqueda de productos con stock incluido usando el buscador inteligente de Campañas.
+  // GET /admin/inventory/products/stock respeta X-Site-Id: solo devuelve
+  // almacenes/áreas de la sede seleccionada en el login.
   useEffect(() => {
     const searchProducts = async () => {
       if (searchQuery.trim() === '') {
@@ -55,50 +61,50 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
         return;
       }
 
-      console.log('🔍 Buscando productos con query:', searchQuery);
       setIsSearching(true);
       try {
-        // Usar endpoint v2 para búsqueda (más rápido y con full-text search)
-        const response = await productsApi.searchProductsV2({
+        const response = await inventoryApi.getProductsStock({
           q: searchQuery,
           limit: 10,
-          status: 'active,preliminary',
-          includePhotos: true,
+          includeZeroStock: true,
         });
 
-        console.log('✅ Productos encontrados:', response.results?.length || 0);
+        // Aplanar warehouses[].areas[] al shape StockItemResponse[] que
+        // consume el UI de traslados (warehouse/area anidados,
+        // availableQuantityBase/reservedQuantityBase/quantityBase).
+        const productsWithStock = (response.data || []).map((item) => ({
+          id: item.productId,
+          correlativeNumber: item.correlativeNumber,
+          sku: item.sku,
+          title: item.name,
+          status: item.status,
+          barcode: item.barcode,
+          stockItems: (item.warehouses || []).flatMap((w) =>
+            (w.areas || []).map((a) => ({
+              productId: item.productId,
+              warehouseId: w.warehouseId,
+              areaId: a.areaId,
+              quantityBase: a.totalStock,
+              reservedQuantityBase: a.reservedStock,
+              availableQuantityBase: a.availableStock,
+              warehouse: {
+                id: w.warehouseId,
+                name: w.warehouseName,
+                code: w.warehouseCode,
+              },
+              area: {
+                id: a.areaId,
+                name: a.areaName,
+                code: a.areaCode,
+              },
+            }))
+          ),
+        })) as unknown as Product[];
 
-        // Cargar el stock de cada producto encontrado usando inventoryApi
-        if (response.results && response.results.length > 0) {
-          const productsWithStock = await Promise.all(
-            response.results.map(async (product) => {
-              try {
-                // Obtener el stock del producto usando el endpoint de inventario
-                const stockItems = await inventoryApi.getStockByProduct(product.id);
-                console.log('📦 Producto:', product.title, 'Stock items:', stockItems?.length || 0);
-
-                // Agregar stockItems al producto
-                return {
-                  ...product,
-                  stockItems: stockItems || [],
-                };
-              } catch (error) {
-                console.error('Error loading stock for product:', product.id, error);
-                return {
-                  ...product,
-                  stockItems: [],
-                }; // Devolver el producto sin stock si falla
-              }
-            })
-          );
-          setFilteredProducts(productsWithStock);
-        } else {
-          setFilteredProducts([]);
-        }
-
-        setShowDropdown(true); // Asegurar que el dropdown se muestre
+        setFilteredProducts(productsWithStock);
+        setShowDropdown(true);
       } catch (error) {
-        console.error('❌ Error searching products:', error);
+        logger.error('❌ Error searching products:', error);
         setFilteredProducts([]);
       } finally {
         setIsSearching(false);
@@ -179,12 +185,12 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
               onChangeText={setSearchQuery}
               onFocus={() => setShowDropdown(true)}
               editable={!disabled}
-              placeholderTextColor={colors.neutral[400]}
+              placeholderTextColor={theme.color.text.placeholder}
             />
             {isSearching && (
               <ActivityIndicator
                 size="small"
-                color={colors.accent[500]}
+                color={theme.color.brand.accent}
                 style={styles.searchingIndicator}
               />
             )}
@@ -234,197 +240,204 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
             </View>
           )}
 
-          {showDropdown && searchQuery.trim() !== '' && filteredProducts.length === 0 && !isSearching && (
-            <View style={styles.dropdown}>
-              <Text style={styles.noResultsText}>No se encontraron productos</Text>
-            </View>
-          )}
-
-          {showDropdown && searchQuery.trim() !== '' && isSearching && filteredProducts.length === 0 && (
-            <View style={styles.dropdown}>
-              <View style={styles.searchingContainer}>
-                <ActivityIndicator size="small" color={colors.accent[500]} />
-                <Text style={styles.searchingText}>Buscando productos...</Text>
+          {showDropdown &&
+            searchQuery.trim() !== '' &&
+            filteredProducts.length === 0 &&
+            !isSearching && (
+              <View style={styles.dropdown}>
+                <Text style={styles.noResultsText}>No se encontraron productos</Text>
               </View>
-            </View>
-          )}
+            )}
+
+          {showDropdown &&
+            searchQuery.trim() !== '' &&
+            isSearching &&
+            filteredProducts.length === 0 && (
+              <View style={styles.dropdown}>
+                <View style={styles.searchingContainer}>
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                  <Text style={styles.searchingText}>Buscando productos...</Text>
+                </View>
+              </View>
+            )}
         </>
       )}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    zIndex: 1,
-  },
-  inputContainer: {
-    position: 'relative',
-  },
-  input: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    paddingRight: 40, // Espacio para el indicador de carga
-    fontSize: 14,
-    color: colors.neutral[800],
-  },
-  inputDisabled: {
-    backgroundColor: colors.neutral[100],
-    color: colors.neutral[400],
-  },
-  searchingIndicator: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-  },
-  selectedContainer: {
-    backgroundColor: colors.primary[50],
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  selectedInfo: {
-    flex: 1,
-  },
-  selectedTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary[900],
-    marginBottom: spacing[0.5],
-  },
-  selectedMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    marginBottom: spacing[0.5],
-  },
-  selectedCorrelative: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.accent[500],
-    fontFamily: 'monospace',
-  },
-  selectedSku: {
-    fontSize: 12,
-    color: colors.primary[700],
-    marginBottom: spacing[0.5],
-  },
-  productMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  productCorrelative: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.accent[500],
-    fontFamily: 'monospace',
-  },
-  selectedStock: {
-    fontSize: 12,
-    color: colors.primary[600],
-    fontWeight: '500',
-  },
-  clearButton: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[100],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing[2],
-  },
-  clearButtonText: {
-    fontSize: 16,
-    color: colors.primary[700],
-    fontWeight: 'bold',
-  },
-  dropdown: {
-    position: 'absolute',
-    top: 48,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.neutral[0],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    maxHeight: 250,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 1000,
-  },
-  dropdownList: {
-    maxHeight: 250,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  productInfo: {
-    flex: 1,
-    marginRight: spacing[2],
-  },
-  productTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.neutral[800],
-    marginBottom: spacing[0.5],
-  },
-  productSku: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  stockInfo: {
-    alignItems: 'flex-end',
-  },
-  stockText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.success[500],
-  },
-  stockTextZero: {
-    color: colors.danger[500],
-  },
-  noStockBadge: {
-    fontSize: 10,
-    color: colors.danger[500],
-    backgroundColor: colors.danger[100],
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 2,
-  },
-  noResultsText: {
-    padding: spacing[4],
-    textAlign: 'center',
-    color: colors.neutral[500],
-    fontSize: 14,
-  },
-  searchingContainer: {
-    padding: spacing[4],
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[2],
-  },
-  searchingText: {
-    color: colors.neutral[500],
-    fontSize: 14,
-    marginLeft: spacing[2],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      position: 'relative',
+      zIndex: 1,
+    },
+    inputContainer: {
+      position: 'relative',
+    },
+    input: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      paddingRight: 40, // Espacio para el indicador de carga
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    inputDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      color: theme.color.text.placeholder,
+    },
+    searchingIndicator: {
+      position: 'absolute',
+      right: 12,
+      top: 12,
+    },
+    selectedContainer: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    selectedInfo: {
+      flex: 1,
+    },
+    selectedTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+      marginBottom: theme.space[0.5],
+    },
+    selectedMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      marginBottom: theme.space[0.5],
+    },
+    selectedCorrelative: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+      fontFamily: 'monospace',
+    },
+    selectedSku: {
+      fontSize: 12,
+      color: theme.color.text.body,
+      marginBottom: theme.space[0.5],
+    },
+    productMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    productCorrelative: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+      fontFamily: 'monospace',
+    },
+    selectedStock: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    clearButton: {
+      width: 24,
+      height: 24,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: theme.space[2],
+    },
+    clearButtonText: {
+      fontSize: 16,
+      color: theme.color.text.body,
+      fontWeight: 'bold',
+    },
+    dropdown: {
+      position: 'absolute',
+      top: 48,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      maxHeight: 250,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      zIndex: 1000,
+    },
+    dropdownList: {
+      maxHeight: 250,
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    productInfo: {
+      flex: 1,
+      marginRight: theme.space[2],
+    },
+    productTitle: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[0.5],
+    },
+    productSku: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    stockInfo: {
+      alignItems: 'flex-end',
+    },
+    stockText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.state.success.border,
+    },
+    stockTextZero: {
+      color: theme.color.state.danger.border,
+    },
+    noStockBadge: {
+      fontSize: 10,
+      color: theme.color.state.danger.border,
+      backgroundColor: theme.color.state.danger.background,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      marginTop: 2,
+    },
+    noResultsText: {
+      padding: theme.space[4],
+      textAlign: 'center',
+      color: theme.color.text.muted,
+      fontSize: 14,
+    },
+    searchingContainer: {
+      padding: theme.space[4],
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+    },
+    searchingText: {
+      color: theme.color.text.muted,
+      fontSize: 14,
+      marginLeft: theme.space[2],
+    },
+  });

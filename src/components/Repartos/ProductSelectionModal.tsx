@@ -17,22 +17,14 @@ import {
 import { RepartoProducto } from '@/types/repartos';
 
 // Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
   Body,
   Caption,
-  Label,
   Button,
-  Card,
-  Badge,
-  Chip,
   Divider,
   EmptyState,
 } from '@/design-system/components';
@@ -52,6 +44,8 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
   products,
   loading = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showOnlyNotDownloaded, setShowOnlyNotDownloaded] = useState(false);
   const { width, height } = useWindowDimensions();
@@ -178,7 +172,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
               >
                 <Text
                   variant="labelMedium"
-                  color={showOnlyNotDownloaded ? colors.text.inverse : colors.text.secondary}
+                  color={showOnlyNotDownloaded ? theme.color.text.inverse : theme.color.text.muted}
                 >
                   {showOnlyNotDownloaded ? '✓ ' : ''}Mostrar solo pendientes de descarga
                 </Text>
@@ -197,7 +191,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                 {allSelected && <Text style={styles.checkmark}>✓</Text>}
                 {someSelected && <Text style={styles.checkmark}>−</Text>}
               </View>
-              <Text variant="labelLarge" color={colors.primary[900]}>
+              <Text variant="labelLarge" color={theme.color.brand.primary}>
                 {showOnlyNotDownloaded
                   ? (allSelected ? 'Deseleccionar pendientes' : 'Seleccionar pendientes')
                   : (allSelected ? 'Deseleccionar todos' : 'Seleccionar todos')}
@@ -259,7 +253,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                           </Text>
                           {downloadCount > 0 && (
                             <View style={styles.downloadBadge}>
-                              <Text variant="labelSmall" color={colors.text.inverse}>
+                              <Text variant="labelSmall" color={theme.color.text.inverse}>
                                 📥 {downloadCount}x
                               </Text>
                             </View>
@@ -274,7 +268,7 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                         </View>
 
                         {lastDownloadedAt && (
-                          <Caption color={colors.success[600]} style={styles.lastDownloadText}>
+                          <Caption color={theme.color.text.success} style={styles.lastDownloadText}>
                             Última descarga: {new Date(lastDownloadedAt).toLocaleString('es-PE', {
                               day: '2-digit',
                               month: '2-digit',
@@ -314,206 +308,207 @@ export const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
 
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    width: '100%',
-    maxWidth: 600,
-    maxHeight: '90%',
-    ...shadows.xl,
-  },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '100%',
+      maxWidth: 600,
+      maxHeight: '90%',
+      ...theme.shadow.xl,
+    },
 
-  modalContainerTablet: {
-    maxWidth: 800,
-    maxHeight: '85%',
-  },
+    modalContainerTablet: {
+      maxWidth: 800,
+      maxHeight: '85%',
+    },
 
-  header: {
-    padding: spacing[5],
-    paddingBottom: spacing[3],
-  },
+    header: {
+      padding: theme.space[5],
+      paddingBottom: theme.space[3],
+    },
 
-  subtitle: {
-    marginTop: spacing[2],
-  },
+    subtitle: {
+      marginTop: theme.space[2],
+    },
 
-  // Stats
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.info[50],
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.info[200],
-  },
+    // Stats
+    statsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.state.info.background,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
 
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1.5],
-  },
+    statItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+    },
 
-  statIcon: {
-    fontSize: 16,
-  },
+    statIcon: {
+      fontSize: 16,
+    },
 
-  statValue: {
-    marginLeft: spacing[1],
-  },
+    statValue: {
+      marginLeft: theme.space[1],
+    },
 
-  // Filter
-  filterContainer: {
-    padding: spacing[3],
-    paddingHorizontal: spacing[4],
-  },
+    // Filter
+    filterContainer: {
+      padding: theme.space[3],
+      paddingHorizontal: theme.space[4],
+    },
 
-  filterButton: {
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    alignItems: 'center',
-  },
+    filterButton: {
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+    },
 
-  filterButtonActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
-  },
+    filterButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
 
-  // Select All
-  selectAllContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.surface.secondary,
-  },
+    // Select All
+    selectAllContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+    },
 
-  selectAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
+    selectAllButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
 
-  // Checkbox
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
-    borderWidth: 2,
-    borderColor: colors.border.default,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-  },
+    // Checkbox
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: theme.radii.sm,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+    },
 
-  checkboxChecked: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
-  },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
 
-  checkboxIndeterminate: {
-    backgroundColor: colors.neutral[500],
-    borderColor: colors.neutral[500],
-  },
+    checkboxIndeterminate: {
+      backgroundColor: theme.color.text.subtle,
+      borderColor: theme.color.text.subtle,
+    },
 
-  checkmark: {
-    color: colors.text.inverse,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+    checkmark: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
 
-  // Products List
-  scrollView: {
-    flex: 1,
-    maxHeight: 400,
-  },
+    // Products List
+    scrollView: {
+      flex: 1,
+      maxHeight: 400,
+    },
 
-  scrollContent: {
-    padding: spacing[4],
-  },
+    scrollContent: {
+      padding: theme.space[4],
+    },
 
-  productItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.border.light,
-    marginBottom: spacing[2],
-    gap: spacing[3],
-  },
+    productItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      marginBottom: theme.space[2],
+      gap: theme.space[3],
+    },
 
-  productItemSelected: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[900],
-  },
+    productItemSelected: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderColor: theme.color.brand.primary,
+    },
 
-  productInfo: {
-    flex: 1,
-  },
+    productInfo: {
+      flex: 1,
+    },
 
-  productHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: spacing[2],
-    gap: spacing[2],
-  },
+    productHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[2],
+      gap: theme.space[2],
+    },
 
-  productName: {
-    flex: 1,
-  },
+    productName: {
+      flex: 1,
+    },
 
-  downloadBadge: {
-    backgroundColor: colors.success[500],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    flexShrink: 0,
-  },
+    downloadBadge: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.full,
+      flexShrink: 0,
+    },
 
-  productDetails: {
-    flexDirection: 'row',
-    gap: spacing[4],
-    flexWrap: 'wrap',
-  },
+    productDetails: {
+      flexDirection: 'row',
+      gap: theme.space[4],
+      flexWrap: 'wrap',
+    },
 
-  lastDownloadText: {
-    marginTop: spacing[1],
-    fontStyle: 'italic',
-  },
+    lastDownloadText: {
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
 
-  // Footer
-  footer: {
-    flexDirection: 'row',
-    padding: spacing[4],
-    gap: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    backgroundColor: colors.surface.secondary,
-    borderBottomLeftRadius: borderRadius.xl,
-    borderBottomRightRadius: borderRadius.xl,
-  },
+    // Footer
+    footer: {
+      flexDirection: 'row',
+      padding: theme.space[4],
+      gap: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.subtle,
+      borderBottomLeftRadius: theme.radii.xl,
+      borderBottomRightRadius: theme.radii.xl,
+    },
 
-  footerButton: {
-    flex: 1,
-  },
-});
+    footerButton: {
+      flex: 1,
+    },
+  });
 
 export default ProductSelectionModal;

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
 import { ExpenseCategory } from '@/types/expenses';
 import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ExpenseCategoryDetailScreenProps {
   navigation: any;
@@ -28,6 +30,8 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { categoryId } = route.params;
   const [category, setCategory] = useState<ExpenseCategory | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +109,7 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando categoría...</Text>
         </View>
       </SafeAreaView>
@@ -116,7 +120,7 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.centerContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#94A3B8" />
+          <Ionicons name="alert-circle-outline" size={64} color={theme.color.icon.subtle} />
           <Text style={styles.errorText}>No se encontró la categoría</Text>
         </View>
       </SafeAreaView>
@@ -127,19 +131,19 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalle de Categoría</Text>
         <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
-          <Ionicons name="create-outline" size={24} color="#6366F1" />
+          <Ionicons name="create-outline" size={24} color={theme.color.brand.accent} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.container}>
         {/* Category Header */}
         <View style={styles.categoryHeader}>
-          <View style={[styles.iconContainer, { backgroundColor: category.color || '#6366F1' }]}>
-            <Ionicons name={getSafeIconName(category.icon, getCategoryFallbackIcon(category.name)) as any} size={32} color="#FFFFFF" />
+          <View style={[styles.iconContainer, { backgroundColor: category.color || theme.color.brand.accent }]}>
+            <Ionicons name={getSafeIconName(category.icon, getCategoryFallbackIcon(category.name)) as any} size={32} color={theme.color.text.inverse} />
           </View>
           <View style={styles.categoryInfo}>
             <Text style={styles.categoryName}>{category.name}</Text>
@@ -152,15 +156,15 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: category.isActive ? '#DCFCE7' : '#FEE2E2' },
+              { backgroundColor: category.isActive ? theme.color.state.success.background : theme.color.state.danger.background },
             ]}
           >
             <Ionicons
               name={category.isActive ? 'checkmark-circle' : 'close-circle'}
               size={16}
-              color={category.isActive ? '#16A34A' : '#DC2626'}
+              color={category.isActive ? theme.color.state.success.border : theme.color.state.danger.border}
             />
-            <Text style={[styles.statusText, { color: category.isActive ? '#16A34A' : '#DC2626' }]}>
+            <Text style={[styles.statusText, { color: category.isActive ? theme.color.state.success.text : theme.color.state.danger.text }]}>
               {category.isActive ? 'Activo' : 'Inactivo'}
             </Text>
           </View>
@@ -191,13 +195,13 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
               <View
                 style={[
                   styles.iconContainer,
-                  { backgroundColor: category.parentCategory.color || '#6366F1' },
+                  { backgroundColor: category.parentCategory.color || theme.color.brand.accent },
                 ]}
               >
                 <Ionicons
                   name={getSafeIconName(category.parentCategory.icon, getCategoryFallbackIcon(category.parentCategory.name)) as any}
                   size={20}
-                  color="#FFFFFF"
+                  color={theme.color.text.inverse}
                 />
               </View>
               <View style={styles.parentInfo}>
@@ -214,8 +218,8 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
             <Text style={styles.sectionTitle}>Subcategorías ({category.subcategories.length})</Text>
             {category.subcategories.map((child: ExpenseCategory) => (
               <View key={child.id} style={styles.childCategory}>
-                <View style={[styles.iconContainer, { backgroundColor: child.color || '#6366F1' }]}>
-                  <Ionicons name={getSafeIconName(child.icon, getCategoryFallbackIcon(child.name)) as any} size={20} color="#FFFFFF" />
+                <View style={[styles.iconContainer, { backgroundColor: child.color || theme.color.brand.accent }]}>
+                  <Ionicons name={getSafeIconName(child.icon, getCategoryFallbackIcon(child.name)) as any} size={20} color={theme.color.text.inverse} />
                 </View>
                 <View style={styles.childInfo}>
                   <Text style={styles.childName}>{child.name}</Text>
@@ -234,7 +238,7 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
               style={[styles.actionButton, styles.createSubcategoryButton]}
               onPress={() => navigation.navigate('CreateExpenseCategory', { parentCategoryId: categoryId })}
             >
-              <Ionicons name="add-circle-outline" size={20} color="#10B981" />
+              <Ionicons name="add-circle-outline" size={20} color={theme.color.state.success.border} />
               <Text style={[styles.actionButtonText, styles.createSubcategoryButtonText]}>
                 Crear Subcategoría
               </Text>
@@ -242,7 +246,7 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
           )}
 
           <TouchableOpacity style={styles.actionButton} onPress={handleEdit}>
-            <Ionicons name="create-outline" size={20} color="#6366F1" />
+            <Ionicons name="create-outline" size={20} color={theme.color.brand.accent} />
             <Text style={styles.actionButtonText}>Editar</Text>
           </TouchableOpacity>
 
@@ -250,7 +254,7 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
             style={[styles.actionButton, styles.deleteButton]}
             onPress={handleDelete}
           >
-            <Ionicons name="trash-outline" size={20} color="#DC2626" />
+            <Ionicons name="trash-outline" size={20} color={theme.color.state.danger.border} />
             <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Eliminar</Text>
           </TouchableOpacity>
         </View>
@@ -261,10 +265,10 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   centerContainer: {
     flex: 1,
@@ -275,12 +279,12 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   errorText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
   header: {
@@ -289,9 +293,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -299,7 +303,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -308,15 +312,15 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   iconContainer: {
     width: 64,
@@ -332,18 +336,18 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   categoryCode: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   statusContainer: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -361,19 +365,19 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 16,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   description: {
     fontSize: 15,
-    color: '#475569',
+    color: theme.color.text.body,
     lineHeight: 22,
   },
   infoRow: {
@@ -382,16 +386,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: theme.color.border.subtle,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     flex: 1,
   },
   infoValue: {
     fontSize: 14,
-    color: '#1E293B',
+    color: theme.color.text.heading,
     fontWeight: '500',
     flex: 2,
     textAlign: 'right',
@@ -400,7 +404,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
   },
   parentInfo: {
@@ -409,17 +413,17 @@ const styles = StyleSheet.create({
   parentName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   parentCode: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   childCategory: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     marginBottom: 8,
   },
@@ -429,45 +433,45 @@ const styles = StyleSheet.create({
   childName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   childCode: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   actionsSection: {
     marginTop: 16,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     marginBottom: 8,
   },
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
     marginLeft: 8,
   },
   deleteButton: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.color.state.danger.background,
   },
   deleteButtonText: {
-    color: '#DC2626',
+    color: theme.color.state.danger.text,
   },
   createSubcategoryButton: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: theme.color.state.success.background,
   },
   createSubcategoryButtonText: {
-    color: '#10B981',
+    color: theme.color.state.success.text,
   },
   bottomSpacer: {
     height: 20,

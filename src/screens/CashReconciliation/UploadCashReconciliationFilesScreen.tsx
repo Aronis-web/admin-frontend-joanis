@@ -29,11 +29,9 @@ import { Site } from '@/types/sites';
 import { MAIN_ROUTES } from '@/constants/routes';
 
 // Design System Imports
-import { colors } from '@/design-system/tokens/colors';
-import { spacing, borderRadius } from '@/design-system/tokens/spacing';
-import { shadows } from '@/design-system/tokens/shadows';
-import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
 import { durations } from '@/design-system/tokens/animations';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 
@@ -88,71 +86,14 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, delay = 0, style 
 };
 
 // ============================================================================
-// Report Type Card Component
-// ============================================================================
-
-interface ReportTypeCardProps {
-  type: ReportTypeOption;
-  isSelected: boolean;
-  onPress: () => void;
-}
-
-const ReportTypeCard: React.FC<ReportTypeCardProps> = ({ type, isSelected, onPress }) => {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scale, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scale, {
-      toValue: 1,
-      friction: 3,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      <Animated.View
-        style={[
-          styles.reportTypeCard,
-          isSelected && styles.reportTypeCardSelected,
-          { transform: [{ scale }] },
-        ]}
-      >
-        <View style={[styles.reportTypeIcon, { backgroundColor: type.color }]}>
-          <Ionicons name={type.icon} size={28} color={colors.neutral[0]} />
-        </View>
-        <View style={styles.reportTypeContent}>
-          <Text style={styles.reportTypeLabel}>{type.label}</Text>
-          <Text style={styles.reportTypeDescription}>{type.description}</Text>
-        </View>
-        {isSelected && (
-          <View style={styles.checkmark}>
-            <Ionicons name="checkmark" size={18} color={colors.neutral[0]} />
-          </View>
-        )}
-      </Animated.View>
-    </TouchableOpacity>
-  );
-};
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
 export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { token, currentCompany } = useAuthStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [selectedFile, setSelectedFile] = useState<DocumentPickerAsset | null>(null);
   const [selectedReportType, setSelectedReportType] = useState<ReportType | null>(null);
   const [selectedSede, setSelectedSede] = useState<string>('');
@@ -165,24 +106,70 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       id: 'ventas',
       label: 'Ventas',
       description: 'Reporte de ventas del sistema',
-      color: colors.success[600],
+      color: theme.color.action.success.background,
       icon: 'cash-outline',
     },
     {
       id: 'izipay',
       label: 'Izipay',
       description: 'Reporte de transacciones Izipay',
-      color: colors.accent[600],
+      color: theme.color.brand.accent,
       icon: 'card-outline',
     },
     {
       id: 'prosegur',
       label: 'Prosegur',
       description: 'Reporte de recaudación Prosegur',
-      color: colors.warning[600],
+      color: theme.color.icon.warning,
       icon: 'business-outline',
     },
   ];
+
+  // Report Type Card (inline to access themed styles)
+  const ReportTypeCard: React.FC<{
+    type: ReportTypeOption;
+    isSelected: boolean;
+    onPress: () => void;
+  }> = ({ type, isSelected, onPress }) => {
+    const scale = useRef(new Animated.Value(1)).current;
+
+    const handlePressIn = () => {
+      Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
+    };
+    const handlePressOut = () => {
+      Animated.spring(scale, { toValue: 1, friction: 3, useNativeDriver: true }).start();
+    };
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        <Animated.View
+          style={[
+            styles.reportTypeCard,
+            isSelected && styles.reportTypeCardSelected,
+            { transform: [{ scale }] },
+          ]}
+        >
+          <View style={[styles.reportTypeIcon, { backgroundColor: type.color }]}>
+            <Ionicons name={type.icon} size={28} color={theme.color.text.inverse} />
+          </View>
+          <View style={styles.reportTypeContent}>
+            <Text style={styles.reportTypeLabel}>{type.label}</Text>
+            <Text style={styles.reportTypeDescription}>{type.description}</Text>
+          </View>
+          {isSelected && (
+            <View style={styles.checkmark}>
+              <Ionicons name="checkmark" size={18} color={theme.color.text.inverse} />
+            </View>
+          )}
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
 
   // Cargar sedes cuando se selecciona "ventas"
   useEffect(() => {
@@ -431,19 +418,19 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cloud-upload-outline" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="cloud-upload-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Subir Archivos</Text>
               </View>
@@ -453,7 +440,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
               onPress={() => navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any)}
               style={styles.historyButtonGradient}
             >
-              <Ionicons name="time-outline" size={24} color={colors.neutral[0]} />
+              <Ionicons name="time-outline" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -494,7 +481,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
               </View>
               {isLoadingSedes ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator color={colors.primary[600]} size="small" />
+                  <ActivityIndicator color={theme.color.icon.muted} size="small" />
                   <Text style={styles.loadingText}>Cargando sedes...</Text>
                 </View>
               ) : sedes.length > 0 ? (
@@ -516,7 +503,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
                 </View>
               ) : (
                 <View style={styles.warningContainer}>
-                  <Ionicons name="warning-outline" size={24} color={colors.warning[600]} />
+                  <Ionicons name="warning-outline" size={24} color={theme.color.icon.warning} />
                   <Text style={styles.warningText}>No hay sedes disponibles</Text>
                 </View>
               )}
@@ -544,7 +531,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
                 <Ionicons
                   name={selectedFile ? 'document-attach' : 'cloud-upload-outline'}
                   size={32}
-                  color={selectedFile ? colors.success[600] : colors.neutral[400]}
+                  color={selectedFile ? theme.color.text.success : theme.color.text.placeholder}
                 />
               </View>
               <Text style={[styles.selectFileText, selectedFile && styles.selectFileTextSelected]}>
@@ -576,12 +563,12 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
             >
               {isUploading ? (
                 <>
-                  <ActivityIndicator color={colors.neutral[0]} size="small" />
+                  <ActivityIndicator color={theme.color.action.success.text} size="small" />
                   <Text style={styles.uploadButtonText}>Procesando...</Text>
                 </>
               ) : (
                 <>
-                  <Ionicons name="cloud-upload" size={24} color={colors.neutral[0]} />
+                  <Ionicons name="cloud-upload" size={24} color={theme.color.action.success.text} />
                   <Text style={styles.uploadButtonText}>Subir y Procesar</Text>
                 </>
               )}
@@ -589,7 +576,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 
             {isUploading && (
               <View style={styles.processingWarning}>
-                <Ionicons name="time-outline" size={24} color={colors.warning[700]} />
+                <Ionicons name="time-outline" size={24} color={theme.color.state.warning.text} />
                 <Text style={styles.processingWarningText}>
                   El procesamiento puede tardar varios minutos.{'\n'}
                   No cierres esta pantalla.
@@ -603,7 +590,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
         <AnimatedCard delay={selectedReportType === 'ventas' ? 400 : 300}>
           <View style={styles.infoSection}>
             <View style={styles.infoHeader}>
-              <Ionicons name="information-circle" size={24} color={colors.info[600]} />
+              <Ionicons name="information-circle" size={24} color={theme.color.state.info.border} />
               <Text style={styles.infoTitle}>Información</Text>
             </View>
             {selectedReportType === 'ventas' && (
@@ -649,7 +636,7 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
             onPress={() => navigation.navigate(MAIN_ROUTES.UPLOADED_FILES_LIST as any)}
             activeOpacity={0.8}
           >
-            <Ionicons name="folder-open-outline" size={24} color={colors.neutral[0]} />
+            <Ionicons name="folder-open-outline" size={24} color={theme.color.text.inverse} />
             <Text style={styles.viewFilesButtonText}>Ver Archivos Subidos</Text>
           </TouchableOpacity>
         </AnimatedCard>
@@ -665,16 +652,16 @@ export const UploadCashReconciliationFilesScreen: React.FC<Props> = ({ navigatio
 // Styles
 // ============================================================================
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
   },
   // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
@@ -683,11 +670,11 @@ const styles = StyleSheet.create({
   backButtonGradient: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitleContainer: {
     flex: 1,
@@ -695,34 +682,34 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   historyButtonGradient: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -730,31 +717,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.neutral[0],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    ...shadows.sm,
+    borderBottomColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   historyButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.accent[50],
+    backgroundColor: theme.color.brand.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -762,234 +749,233 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    backgroundColor: colors.neutral[0],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    ...shadows.sm,
+    backgroundColor: theme.color.surface.base,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    ...theme.shadow.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[4],
-    gap: spacing[3],
+    marginBottom: theme.space[4],
+    gap: theme.space[3],
   },
   stepBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepNumber: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[0],
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.color.text.inverse,
   },
   sectionTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.heading,
   },
   reportTypesContainer: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   reportTypeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
     borderWidth: 2,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   reportTypeCardSelected: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[500],
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
   },
   reportTypeIcon: {
     width: 56,
     height: 56,
-    borderRadius: borderRadius.lg,
+    borderRadius: theme.radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[4],
+    marginRight: theme.space[4],
   },
   reportTypeContent: {
     flex: 1,
   },
   reportTypeLabel: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
   },
   reportTypeDescription: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    fontSize: 14,
+    color: theme.color.text.subtle,
   },
   checkmark: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.success[500],
+    backgroundColor: theme.color.state.success.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   pickerContainer: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
     borderWidth: 2,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: colors.neutral[900],
+    color: theme.color.text.heading,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
-    gap: spacing[3],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[4],
+    gap: theme.space[3],
   },
   loadingText: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    fontSize: 14,
+    color: theme.color.text.subtle,
   },
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
-    gap: spacing[3],
+    backgroundColor: theme.color.state.warning.background,
+    borderRadius: theme.radii.md,
+    padding: theme.space[4],
+    gap: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.warning[200],
+    borderColor: theme.color.state.warning.border,
   },
   warningText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
-    color: colors.warning[700],
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.color.state.warning.text,
   },
   selectFileButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[6],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[6],
     borderWidth: 2,
-    borderColor: colors.neutral[300],
+    borderColor: theme.color.border.default,
     borderStyle: 'dashed',
   },
   selectFileButtonSelected: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[400],
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
     borderStyle: 'solid',
   },
   selectFileIconContainer: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   selectFileText: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.medium,
-    color: colors.neutral[500],
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.color.text.subtle,
     textAlign: 'center',
   },
   selectFileTextSelected: {
-    color: colors.success[700],
+    color: theme.color.state.success.text,
   },
   selectFileSize: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[400],
-    marginTop: spacing[2],
+    fontSize: 14,
+    color: theme.color.text.placeholder,
+    marginTop: theme.space[2],
   },
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.success[600],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    gap: spacing[3],
-    ...shadows.md,
+    backgroundColor: theme.color.action.success.background,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    gap: theme.space[3],
+    ...theme.shadow.md,
   },
   uploadButtonDisabled: {
-    backgroundColor: colors.neutral[300],
-    ...shadows.none,
+    backgroundColor: theme.color.action.success.backgroundDisabled,
   },
   uploadButtonText: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.color.action.success.text,
   },
   processingWarning: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.md,
-    padding: spacing[4],
-    marginTop: spacing[4],
-    gap: spacing[3],
+    backgroundColor: theme.color.state.warning.background,
+    borderRadius: theme.radii.md,
+    padding: theme.space[4],
+    marginTop: theme.space[4],
+    gap: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.warning[200],
+    borderColor: theme.color.state.warning.border,
   },
   processingWarningText: {
     flex: 1,
-    fontSize: fontSizes.sm,
-    color: colors.warning[700],
-    fontWeight: fontWeights.medium,
+    fontSize: 14,
+    color: theme.color.state.warning.text,
+    fontWeight: '500',
     lineHeight: 20,
   },
   infoSection: {
-    backgroundColor: colors.info[50],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
+    backgroundColor: theme.color.state.info.background,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.info[200],
+    borderColor: theme.color.state.info.border,
   },
   infoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[3],
-    gap: spacing[2],
+    marginBottom: theme.space[3],
+    gap: theme.space[2],
   },
   infoTitle: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.info[800],
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.color.state.info.text,
   },
   infoText: {
-    fontSize: fontSizes.sm,
-    color: colors.info[700],
+    fontSize: 14,
+    color: theme.color.state.info.text,
     lineHeight: 22,
   },
   viewFilesButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accent[600],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    gap: spacing[3],
-    ...shadows.md,
+    backgroundColor: theme.color.brand.accent,
+    marginHorizontal: theme.space[4],
+    marginTop: theme.space[4],
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    gap: theme.space[3],
+    ...theme.shadow.md,
   },
   viewFilesButtonText: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.color.text.inverse,
   },
   bottomSpacer: {
-    height: spacing[8],
+    height: theme.space[8],
   },
 });

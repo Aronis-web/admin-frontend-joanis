@@ -1,7 +1,9 @@
-/**
+﻿/**
  * RepartoParticipantDetailScreen - Detalle de participante en reparto
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
@@ -10,7 +12,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   TextInput,
@@ -44,17 +45,18 @@ import logger from '@/utils/logger';
 import { config } from '@/utils/config';
 import { Driver, Vehicle, Transporter } from '@/types/transport';
 import {
-  colors,
   spacing,
   borderRadius,
-  shadows,
   Title,
   Body,
   Label,
   Caption,
   Button,
   IconButton,
+  useTheme,
+  useThemedStyles,
 } from '@/design-system';
+import type { Theme } from '@/design-system';
 
 interface RepartoParticipantDetailScreenProps {
   navigation: any;
@@ -250,6 +252,8 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { campaignId, participantId } = route.params;
   const [participant, setParticipant] = useState<CampaignParticipant | null>(null);
   const [productos, setProductos] = useState<ProductoReparto[]>([]);
@@ -1244,22 +1248,22 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return '#F59E0B';
+        return theme.color.icon.warning;
       case 'VALIDATED':
       case 'TRANSFERRED':
-        return '#10B981';
+        return theme.color.icon.success;
       case 'CANCELLED':
-        return '#EF4444';
+        return theme.color.icon.danger;
       case 'PARTIAL':
-        return '#3B82F6';
+        return theme.color.text.link;
       case 'DISCREPANCY':
-        return '#EF4444';
+        return theme.color.icon.danger;
       case 'IN_PROGRESS':
-        return '#3B82F6';
+        return theme.color.text.link;
       case 'COMPLETED':
-        return '#10B981';
+        return theme.color.icon.success;
       default:
-        return '#64748B';
+        return theme.color.text.muted;
     }
   };
 
@@ -1400,7 +1404,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   style={[
                     styles.quantityValue,
                     isTablet && styles.quantityValueTablet,
-                    { color: '#10B981' },
+                    { color: theme.color.icon.success },
                   ]}
                 >
                   {wasValidatedByPresentation
@@ -1412,7 +1416,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 
             {producto.warehouse && (
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>Almacén:</Text>
+                <Text style={[styles.infoLabel, isTablet && styles.infoLabelTablet]}>
+                  Almacén:
+                </Text>
                 <Text style={[styles.infoValue, isTablet && styles.infoValueTablet]}>
                   {producto.warehouse.name}
                 </Text>
@@ -1477,7 +1483,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando productos...</Text>
         </View>
       </SafeAreaView>
@@ -1596,7 +1602,9 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   isTablet && styles.downloadReportButtonTextTablet,
                 ]}
               >
-                {downloadingReport ? '📄 Generando Reporte...' : '📄 Descargar Reporte de Totales'}
+                {downloadingReport
+                  ? '📄 Generando Reporte...'
+                  : '📄 Descargar Reporte de Totales'}
               </Text>
             </TouchableOpacity>
           )}
@@ -1732,11 +1740,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                 {/* Buscador de productos */}
                 {productos.length > 0 && (
                   <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
-                    <Text style={[styles.searchIcon, isTablet && styles.searchIconTablet]}>🔍</Text>
+                    <Text style={[styles.searchIcon, isTablet && styles.searchIconTablet]}>
+                      🔍
+                    </Text>
                     <TextInput
                       style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                       placeholder="Buscar por nombre, SKU o reparto..."
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={theme.color.text.subtle}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
                       autoCapitalize="none"
@@ -1809,13 +1819,13 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                   onPress={() => setClosuresModalVisible(false)}
                   style={styles.closuresCloseButton}
                 >
-                  <Ionicons name="close" size={24} color={colors.text.secondary} />
+                  <Ionicons name="close" size={24} color={theme.color.text.muted} />
                 </TouchableOpacity>
               </View>
 
               {loadingClosures ? (
                 <View style={styles.closuresLoadingContainer}>
-                  <ActivityIndicator size="large" color={colors.primary[500]} />
+                  <ActivityIndicator size="large" color={theme.color.brand.primary} />
                   <Text style={styles.loadingText}>Cargando cierres...</Text>
                 </View>
               ) : (
@@ -1855,10 +1865,18 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                               ]}
                             >
                               {allPendingProductsSelected && (
-                                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                                <Ionicons
+                                  name="checkmark"
+                                  size={16}
+                                  color={theme.color.surface.base}
+                                />
                               )}
                               {partiallySelectedPendingProducts && (
-                                <Ionicons name="remove" size={16} color="#FFFFFF" />
+                                <Ionicons
+                                  name="remove"
+                                  size={16}
+                                  color={theme.color.surface.base}
+                                />
                               )}
                             </View>
                           </TouchableOpacity>
@@ -1879,7 +1897,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                             <Ionicons
                               name={pendingProductsExpanded ? 'chevron-up' : 'chevron-down'}
                               size={20}
-                              color={colors.primary[600]}
+                              color={theme.color.brand.primary}
                             />
                           </TouchableOpacity>
                         </View>
@@ -1902,7 +1920,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                             >
                               <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
                                 {selected && (
-                                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                                  <Ionicons
+                                    name="checkmark"
+                                    size={16}
+                                    color={theme.color.surface.base}
+                                  />
                                 )}
                               </View>
                               <View style={styles.pendingClosureInfo}>
@@ -1921,7 +1943,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                                     <Ionicons
                                       name="business-outline"
                                       size={14}
-                                      color={colors.primary[700]}
+                                      color={theme.color.brand.primary}
                                     />
                                   </View>
                                   <View style={styles.siteInfoTextBox}>
@@ -1972,7 +1994,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                         <TextInput
                           style={styles.closureNotesInput}
                           placeholder="Notas del cierre parcial (opcional)"
-                          placeholderTextColor={colors.text.tertiary}
+                          placeholderTextColor={theme.color.text.subtle}
                           value={closureNotes}
                           onChangeText={setClosureNotes}
                           multiline
@@ -2073,7 +2095,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                               <Ionicons
                                 name={productsExpanded ? 'chevron-up' : 'chevron-down'}
                                 size={18}
-                                color={colors.primary[600]}
+                                color={theme.color.brand.primary}
                               />
                             </TouchableOpacity>
 
@@ -2202,7 +2224,10 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               '🔍 selectedProducto.product?.presentations:',
               selectedProducto.product?.presentations
             );
-            console.log('🔍 selectedProducto completo:', JSON.stringify(selectedProducto, null, 2));
+            console.log(
+              '🔍 selectedProducto completo:',
+              JSON.stringify(selectedProducto, null, 2)
+            );
             console.log('🔍 productPhotos state:', JSON.stringify(productPhotos));
             console.log('🔍 selectedProducto.productId:', selectedProducto.productId);
             console.log('🔍 Fotos para este producto:', productPhotos[selectedProducto.productId]);
@@ -2299,7 +2324,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
               style={[styles.bultosModalContainer, isTablet && styles.bultosModalContainerTablet]}
             >
               <View style={styles.bultosModalHeader}>
-                <Ionicons name="cube-outline" size={32} color={colors.primary[500]} />
+                <Ionicons name="cube-outline" size={32} color={theme.color.brand.primary} />
                 <Text style={[styles.bultosModalTitle, isTablet && styles.bultosModalTitleTablet]}>
                   Cantidad de Bultos
                 </Text>
@@ -2320,7 +2345,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                     }
                   }}
                 >
-                  <Ionicons name="remove" size={24} color={colors.text.inverse} />
+                  <Ionicons name="remove" size={24} color={theme.color.text.inverse} />
                 </TouchableOpacity>
 
                 <TextInput
@@ -2343,7 +2368,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
                     setNumeroBultos(String(current + 1));
                   }}
                 >
-                  <Ionicons name="add" size={24} color={colors.text.inverse} />
+                  <Ionicons name="add" size={24} color={theme.color.text.inverse} />
                 </TouchableOpacity>
               </View>
 
@@ -2383,1205 +2408,1206 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.text.secondary,
-  },
-  header: {
-    backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[6],
-  },
-  backButton: {
-    marginBottom: spacing[2],
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: colors.primary[500],
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  headerInfo: {
-    marginTop: spacing[2],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  typeBadgeContainer: {
-    marginTop: spacing[2],
-  },
-  typeBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  typeBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
-  },
-  typeBadgeCompany: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[500],
-  },
-  typeBadgeSite: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[500],
-  },
-  typeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  typeTextTablet: {
-    fontSize: 14,
-  },
-  infoSection: {
-    backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  infoSectionTablet: {
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[4],
-  },
-  downloadReportButton: {
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-  },
-  downloadReportButtonTablet: {
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  downloadReportButtonText: {
-    color: colors.text.inverse,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  downloadReportButtonTextTablet: {
-    fontSize: 16,
-  },
-  downloadButtonDisabled: {
-    opacity: 0.5,
-  },
-  consolidatedButton: {
-    backgroundColor: colors.success[500],
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.success[600],
-  },
-  consolidatedButtonTablet: {
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  consolidatedButtonText: {
-    color: colors.text.inverse,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  consolidatedButtonTextTablet: {
-    fontSize: 17,
-  },
-  successMessage: {
-    backgroundColor: colors.success[100],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.success[500],
-  },
-  successMessageTablet: {
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  successMessageText: {
-    color: colors.success[800],
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  successMessageTextTablet: {
-    fontSize: 16,
-  },
-  successMessageSubtext: {
-    color: colors.success[700],
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: spacing[1],
-  },
-  successMessageSubtextTablet: {
-    fontSize: 14,
-    marginTop: spacing[1.5],
-  },
-  remissionGuideButton: {
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.accent[600],
-  },
-  remissionGuideButtonTablet: {
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  remissionGuideButtonText: {
-    color: colors.text.inverse,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  remissionGuideButtonTextTablet: {
-    fontSize: 17,
-  },
-  downloadGuideButton: {
-    backgroundColor: colors.info[500],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[3],
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    borderWidth: 2,
-    borderColor: colors.info[600],
-  },
-  downloadGuideButtonTablet: {
-    paddingVertical: spacing[3.5],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[4],
-  },
-  downloadGuideButtonText: {
-    color: colors.text.inverse,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  downloadGuideButtonTextTablet: {
-    fontSize: 16,
-  },
-  guideInfoCard: {
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginTop: spacing[3],
-    borderWidth: 2,
-    borderColor: colors.success[500],
-  },
-  guideInfoCardTablet: {
-    padding: spacing[5],
-    marginTop: spacing[4],
-  },
-  guideInfoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.success[200],
-  },
-  guideInfoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.success[800],
-    marginLeft: spacing[2],
-  },
-  guideInfoTitleTablet: {
-    fontSize: 18,
-  },
-  guideInfoDetails: {
-    gap: spacing[2],
-  },
-  guideInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  guideInfoLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.success[700],
-  },
-  guideInfoLabelTablet: {
-    fontSize: 15,
-  },
-  guideInfoValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.success[800],
-    flex: 1,
-    textAlign: 'right',
-  },
-  guideInfoValueTablet: {
-    fontSize: 15,
-  },
-  guideInfoMessage: {
-    backgroundColor: colors.info[50],
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    marginTop: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.info[500],
-  },
-  guideInfoMessageTablet: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[5],
-    marginTop: spacing[2.5],
-  },
-  guideInfoText: {
-    color: colors.info[700],
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  guideInfoTextTablet: {
-    fontSize: 15,
-  },
-  guideInfoSubtext: {
-    color: colors.info[800],
-    fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: spacing[1],
-  },
-  guideInfoSubtextTablet: {
-    fontSize: 13,
-    marginTop: spacing[1.5],
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-  },
-  scrollContentTablet: {
-    padding: spacing[8],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[4],
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
-  },
-  card: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    ...shadows.sm,
-  },
-  cardTablet: {
-    padding: spacing[6],
-    marginBottom: spacing[4],
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  cardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing[3],
-    gap: spacing[3],
-  },
-  productThumbnail: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    flex: 1,
-  },
-  productNameTablet: {
-    fontSize: 20,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[1.5],
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
-  },
-  cardBody: {
-    gap: spacing[2],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.text.secondary,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text.primary,
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  quantityValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary[500],
-  },
-  quantityValueTablet: {
-    fontSize: 18,
-  },
-  repartoInfo: {
-    marginTop: spacing[2],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  repartoLabel: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    marginBottom: spacing[1],
-  },
-  repartoLabelTablet: {
-    fontSize: 14,
-  },
-  repartoValue: {
-    fontSize: 13,
-    color: colors.primary[500],
-    fontWeight: '500',
-  },
-  repartoValueTablet: {
-    fontSize: 15,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing[14],
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.secondary,
-    marginBottom: spacing[2],
-  },
-  emptyTextTablet: {
-    fontSize: 22,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-  },
-  emptySubtextTablet: {
-    fontSize: 16,
-  },
-  cardFooter: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  validateButton: {
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  validateButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  detailButton: {
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  headerSection: {
-    marginBottom: spacing[4],
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-    marginTop: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    ...shadows.xs,
-  },
-  searchContainerTablet: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3.5],
-    marginTop: spacing[4],
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: spacing[2],
-  },
-  searchIconTablet: {
-    fontSize: 22,
-    marginRight: spacing[3],
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text.primary,
-    paddingVertical: 0,
-  },
-  searchInputTablet: {
-    fontSize: 17,
-  },
-  clearButton: {
-    padding: spacing[1],
-    marginLeft: spacing[2],
-  },
-  clearButtonText: {
-    fontSize: 18,
-    color: colors.text.tertiary,
-    fontWeight: 'bold',
-  },
-  clearButtonTextTablet: {
-    fontSize: 22,
-  },
-  searchResults: {
-    fontSize: 13,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    fontStyle: 'italic',
-  },
-  searchResultsTablet: {
-    fontSize: 15,
-    marginTop: spacing[3],
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[3],
-  },
-  filterContainerTablet: {
-    gap: spacing[3],
-    marginTop: spacing[4],
-  },
-  filterButton: {
-    flex: 1,
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    alignItems: 'center',
-  },
-  filterButtonTablet: {
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-  },
-  filterButtonActive: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  filterButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  filterButtonTextTablet: {
-    fontSize: 15,
-  },
-  filterButtonTextActive: {
-    color: colors.text.inverse,
-  },
-  closuresModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[3],
-  },
-  closuresModalContainer: {
-    width: '100%',
-    maxWidth: 720,
-    height: '92%',
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-    ...shadows.lg,
-  },
-  closuresModalContainerTablet: {
-    height: '88%',
-  },
-  closuresModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  closuresModalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.text.primary,
-  },
-  closuresModalTitleTablet: {
-    fontSize: 24,
-  },
-  closuresModalSubtitle: {
-    marginTop: spacing[1],
-    fontSize: 13,
-    color: colors.text.secondary,
-  },
-  closuresCloseButton: {
-    padding: spacing[2],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.background.secondary,
-  },
-  closuresLoadingContainer: {
-    paddingVertical: spacing[12],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closuresModalBody: {
-    flex: 1,
-    paddingHorizontal: spacing[4],
-  },
-  closuresModalBodyContent: {
-    paddingBottom: spacing[6],
-  },
-  closureSection: {
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  closureSectionTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  closureSectionHint: {
-    fontSize: 13,
-    color: colors.text.secondary,
-    marginBottom: spacing[3],
-  },
-  closureEmptyBox: {
-    padding: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  closureEmptyText: {
-    color: colors.text.secondary,
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  productsAccordionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-    backgroundColor: colors.primary[50],
-    marginBottom: spacing[3],
-  },
-  selectAllProductsButton: {
-    marginRight: spacing[3],
-  },
-  productsAccordionContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  productsAccordionTextBox: {
-    flex: 1,
-  },
-  productsAccordionTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.primary[800],
-  },
-  productsAccordionSubtitle: {
-    marginTop: spacing[0.5],
-    fontSize: 12,
-    color: colors.primary[700],
-  },
-  pendingClosureItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-    marginBottom: spacing[2],
-  },
-  pendingClosureItemSelected: {
-    borderColor: colors.primary[500],
-    backgroundColor: colors.primary[50],
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
-    borderWidth: 2,
-    borderColor: colors.border.dark,
-    marginRight: spacing[3],
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background.primary,
-  },
-  checkboxSelected: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  checkboxPartial: {
-    backgroundColor: colors.warning[500],
-    borderColor: colors.warning[500],
-  },
-  pendingClosureInfo: {
-    flex: 1,
-  },
-  pendingClosureProductHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[2],
-  },
-  pendingClosureProductName: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  quantityPill: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.success[100],
-  },
-  quantityPillText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.success[700],
-  },
-  siteInfoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing[2],
-    padding: spacing[2],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
-    backgroundColor: colors.background.primary,
-  },
-  siteIconBubble: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[100],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[2],
-  },
-  siteInfoTextBox: {
-    flex: 1,
-  },
-  siteInfoLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.text.tertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  siteInfoName: {
-    marginTop: spacing[0.5],
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  pendingClosureChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[1.5],
-    marginTop: spacing[2],
-  },
-  pendingClosureChip: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-  },
-  pendingClosureChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.text.secondary,
-  },
-  pendingClosureChipSuccess: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.success[100],
-  },
-  pendingClosureChipSuccessText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.success[700],
-  },
-  pendingClosureChipWarning: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.warning[100],
-  },
-  pendingClosureChipWarningText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.warning[700],
-  },
-  showMoreProductsButton: {
-    alignItems: 'center',
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.primary[300],
-    backgroundColor: colors.primary[50],
-  },
-  showMoreProductsText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.primary[700],
-  },
-  pendingClosureMeta: {
-    marginTop: spacing[1],
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  pendingClosureQuantities: {
-    marginTop: spacing[1],
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.success[700],
-  },
-  closureNotesInput: {
-    minHeight: 72,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    color: colors.text.primary,
-    backgroundColor: colors.background.primary,
-    textAlignVertical: 'top',
-    marginTop: spacing[2],
-  },
-  createClosureButton: {
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-    marginTop: spacing[3],
-  },
-  createClosureButtonText: {
-    color: colors.text.inverse,
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  closureBatchCard: {
-    padding: spacing[4],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    backgroundColor: colors.background.secondary,
-    marginBottom: spacing[3],
-  },
-  closureBatchHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: spacing[2],
-  },
-  closureBatchTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.text.primary,
-  },
-  closureBatchMeta: {
-    marginTop: spacing[1],
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  closureBatchBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[100],
-  },
-  closureBatchBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.primary[700],
-  },
-  closureBatchSummary: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.success[700],
-    marginBottom: spacing[2],
-  },
-  closureSummaryGrid: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginBottom: spacing[3],
-  },
-  closureSummaryCard: {
-    flex: 1,
-    padding: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  closureSummaryCardWarning: {
-    flex: 1,
-    padding: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.warning[50],
-    borderWidth: 1,
-    borderColor: colors.warning[200],
-  },
-  closureSummaryLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.text.tertiary,
-    textTransform: 'uppercase',
-  },
-  closureSummaryValue: {
-    marginTop: spacing[0.5],
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.text.primary,
-  },
-  closureSummaryValueWarning: {
-    marginTop: spacing[0.5],
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.warning[700],
-  },
-  batchProductsAccordionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.primary,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
-    marginBottom: spacing[2],
-  },
-  batchProductsAccordionText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.primary[700],
-  },
-  closureBatchProductRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[2],
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  closureBatchItemText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.text.secondary,
-  },
-  closureBatchItemQuantity: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.success[700],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.success[100],
-  },
-  showMoreBatchProductsButton: {
-    alignItems: 'center',
-    paddingVertical: spacing[2],
-    marginTop: spacing[1],
-  },
-  showMoreBatchProductsText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.primary[700],
-  },
-  guideActionsBox: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  guideSuccessText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: colors.success[700],
-  },
-  guideCompactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[2],
-  },
-  guideCompactInfo: {
-    flex: 1,
-  },
-  guideNumberText: {
-    marginTop: spacing[0.5],
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.text.primary,
-  },
-  guideStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    marginTop: spacing[0.5],
-  },
-  guideStatusLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.text.tertiary,
-  },
-  guideStatusValue: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.info[700],
-  },
-  guideActionsRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[2],
-  },
-  guideDownloadButton: {
-    backgroundColor: colors.info[500],
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    minWidth: 52,
-    alignItems: 'center',
-  },
-  guideDownloadButtonText: {
-    color: colors.text.inverse,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  generateGuideButton: {
-    marginTop: spacing[3],
-    backgroundColor: colors.accent[500],
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-  },
-  generateGuideButtonText: {
-    color: colors.text.inverse,
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  // Bultos Modal Styles
-  bultosModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[4],
-  },
-  bultosModalContainer: {
-    backgroundColor: colors.background.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[6],
-    width: '100%',
-    maxWidth: 340,
-    ...shadows.lg,
-  },
-  bultosModalContainerTablet: {
-    maxWidth: 400,
-    padding: spacing[8],
-  },
-  bultosModalHeader: {
-    alignItems: 'center',
-    marginBottom: spacing[6],
-  },
-  bultosModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    marginTop: spacing[3],
-    textAlign: 'center',
-  },
-  bultosModalTitleTablet: {
-    fontSize: 24,
-  },
-  bultosModalSubtitle: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  bultosModalSubtitleTablet: {
-    fontSize: 16,
-  },
-  bultosInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing[6],
-    gap: spacing[3],
-  },
-  bultosButton: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.sm,
-  },
-  bultosButtonMinus: {
-    backgroundColor: colors.danger[500],
-  },
-  bultosButtonPlus: {
-    backgroundColor: colors.success[500],
-  },
-  bultosInput: {
-    width: 100,
-    height: 60,
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-    borderColor: colors.primary[500],
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text.primary,
-    textAlign: 'center',
-  },
-  bultosInputTablet: {
-    width: 120,
-    height: 70,
-    fontSize: 32,
-  },
-  bultosModalActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  bultosModalButton: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bultosModalButtonCancel: {
-    backgroundColor: colors.neutral[200],
-  },
-  bultosModalButtonConfirm: {
-    backgroundColor: colors.primary[500],
-  },
-  bultosModalButtonCancelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  bultosModalButtonConfirmText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.inverse,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: spacing[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      backgroundColor: theme.color.background.canvas,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerTablet: {
+      paddingHorizontal: spacing[8],
+      paddingVertical: spacing[6],
+    },
+    backButton: {
+      marginBottom: spacing[2],
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    backButtonTextTablet: {
+      fontSize: 18,
+    },
+    headerInfo: {
+      marginTop: spacing[2],
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    typeBadgeContainer: {
+      marginTop: spacing[2],
+    },
+    typeBadge: {
+      paddingHorizontal: spacing[2.5],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      alignSelf: 'flex-start',
+    },
+    typeBadgeTablet: {
+      paddingHorizontal: spacing[3.5],
+      paddingVertical: spacing[1.5],
+    },
+    typeBadgeCompany: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderColor: theme.color.brand.primary,
+    },
+    typeBadgeSite: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.state.success.border,
+    },
+    typeText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    typeTextTablet: {
+      fontSize: 14,
+    },
+    infoSection: {
+      backgroundColor: theme.color.background.canvas,
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    infoSectionTablet: {
+      paddingHorizontal: spacing[8],
+      paddingVertical: spacing[4],
+    },
+    downloadReportButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+    },
+    downloadReportButtonTablet: {
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    downloadReportButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    downloadReportButtonTextTablet: {
+      fontSize: 16,
+    },
+    downloadButtonDisabled: {
+      opacity: 0.5,
+    },
+    consolidatedButton: {
+      backgroundColor: theme.color.state.success.border,
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.color.text.success,
+    },
+    consolidatedButtonTablet: {
+      paddingVertical: spacing[4],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    consolidatedButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    consolidatedButtonTextTablet: {
+      fontSize: 17,
+    },
+    successMessage: {
+      backgroundColor: theme.color.state.success.background,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+    },
+    successMessageTablet: {
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    successMessageText: {
+      color: theme.color.state.success.text,
+      fontSize: 14,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    successMessageTextTablet: {
+      fontSize: 16,
+    },
+    successMessageSubtext: {
+      color: theme.color.text.success,
+      fontSize: 12,
+      fontWeight: '500',
+      textAlign: 'center',
+      marginTop: spacing[1],
+    },
+    successMessageSubtextTablet: {
+      fontSize: 14,
+      marginTop: spacing[1.5],
+    },
+    remissionGuideButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+    },
+    remissionGuideButtonTablet: {
+      paddingVertical: spacing[4],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    remissionGuideButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    remissionGuideButtonTextTablet: {
+      fontSize: 17,
+    },
+    downloadGuideButton: {
+      backgroundColor: theme.color.state.info.border,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[3],
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      borderWidth: 2,
+      borderColor: theme.color.text.link,
+    },
+    downloadGuideButtonTablet: {
+      paddingVertical: spacing[3.5],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[4],
+    },
+    downloadGuideButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    downloadGuideButtonTextTablet: {
+      fontSize: 16,
+    },
+    guideInfoCard: {
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      marginTop: spacing[3],
+      borderWidth: 2,
+      borderColor: theme.color.state.success.border,
+    },
+    guideInfoCardTablet: {
+      padding: spacing[5],
+      marginTop: spacing[4],
+    },
+    guideInfoHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+      paddingBottom: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.state.success.border,
+    },
+    guideInfoTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.state.success.text,
+      marginLeft: spacing[2],
+    },
+    guideInfoTitleTablet: {
+      fontSize: 18,
+    },
+    guideInfoDetails: {
+      gap: spacing[2],
+    },
+    guideInfoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    guideInfoLabel: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.success,
+    },
+    guideInfoLabelTablet: {
+      fontSize: 15,
+    },
+    guideInfoValue: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.success.text,
+      flex: 1,
+      textAlign: 'right',
+    },
+    guideInfoValueTablet: {
+      fontSize: 15,
+    },
+    guideInfoMessage: {
+      backgroundColor: theme.color.state.info.background,
+      paddingVertical: spacing[2.5],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[2],
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    guideInfoMessageTablet: {
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[5],
+      marginTop: spacing[2.5],
+    },
+    guideInfoText: {
+      color: theme.color.state.info.text,
+      fontSize: 13,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    guideInfoTextTablet: {
+      fontSize: 15,
+    },
+    guideInfoSubtext: {
+      color: theme.color.state.info.text,
+      fontSize: 11,
+      fontWeight: '500',
+      textAlign: 'center',
+      marginTop: spacing[1],
+    },
+    guideInfoSubtextTablet: {
+      fontSize: 13,
+      marginTop: spacing[1.5],
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: spacing[4],
+    },
+    scrollContentTablet: {
+      padding: spacing[8],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: spacing[4],
+    },
+    sectionTitleTablet: {
+      fontSize: 22,
+    },
+    card: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      marginBottom: spacing[3],
+      ...theme.shadow.sm,
+    },
+    cardTablet: {
+      padding: spacing[6],
+      marginBottom: spacing[4],
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+      paddingBottom: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    cardHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: spacing[3],
+      gap: spacing[3],
+    },
+    productThumbnail: {
+      width: 40,
+      height: 40,
+      borderRadius: borderRadius.sm,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.background.subtle,
+    },
+    productName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    productNameTablet: {
+      fontSize: 20,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing[2.5],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+    },
+    statusBadgeTablet: {
+      paddingHorizontal: spacing[3.5],
+      paddingVertical: spacing[1.5],
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    statusTextTablet: {
+      fontSize: 14,
+    },
+    cardBody: {
+      gap: spacing[2],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    infoLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    infoLabelTablet: {
+      fontSize: 16,
+    },
+    infoValue: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.heading,
+    },
+    infoValueTablet: {
+      fontSize: 16,
+    },
+    quantityValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.brand.primary,
+    },
+    quantityValueTablet: {
+      fontSize: 18,
+    },
+    repartoInfo: {
+      marginTop: spacing[2],
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    repartoLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: spacing[1],
+    },
+    repartoLabelTablet: {
+      fontSize: 14,
+    },
+    repartoValue: {
+      fontSize: 13,
+      color: theme.color.brand.primary,
+      fontWeight: '500',
+    },
+    repartoValueTablet: {
+      fontSize: 15,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: spacing[14],
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: spacing[2],
+    },
+    emptyTextTablet: {
+      fontSize: 22,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+    },
+    emptySubtextTablet: {
+      fontSize: 16,
+    },
+    cardFooter: {
+      marginTop: spacing[3],
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    validateButton: {
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    validateButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    detailButton: {
+      backgroundColor: theme.color.state.success.border,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    detailButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    headerSection: {
+      marginBottom: spacing[4],
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2.5],
+      marginTop: spacing[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      ...theme.shadow.xs,
+    },
+    searchContainerTablet: {
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[3.5],
+      marginTop: spacing[4],
+    },
+    searchIcon: {
+      fontSize: 18,
+      marginRight: spacing[2],
+    },
+    searchIconTablet: {
+      fontSize: 22,
+      marginRight: spacing[3],
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: theme.color.text.heading,
+      paddingVertical: 0,
+    },
+    searchInputTablet: {
+      fontSize: 17,
+    },
+    clearButton: {
+      padding: spacing[1],
+      marginLeft: spacing[2],
+    },
+    clearButtonText: {
+      fontSize: 18,
+      color: theme.color.text.subtle,
+      fontWeight: 'bold',
+    },
+    clearButtonTextTablet: {
+      fontSize: 22,
+    },
+    searchResults: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginTop: spacing[2],
+      fontStyle: 'italic',
+    },
+    searchResultsTablet: {
+      fontSize: 15,
+      marginTop: spacing[3],
+    },
+    filterContainer: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      marginTop: spacing[3],
+    },
+    filterContainerTablet: {
+      gap: spacing[3],
+      marginTop: spacing[4],
+    },
+    filterButton: {
+      flex: 1,
+      paddingVertical: spacing[2.5],
+      paddingHorizontal: spacing[3],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+    },
+    filterButtonTablet: {
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    filterButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterButtonTextTablet: {
+      fontSize: 15,
+    },
+    filterButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    closuresModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.55)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing[3],
+    },
+    closuresModalContainer: {
+      width: '100%',
+      maxWidth: 720,
+      height: '92%',
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+      ...theme.shadow.lg,
+    },
+    closuresModalContainerTablet: {
+      height: '88%',
+    },
+    closuresModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    closuresModalTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    closuresModalTitleTablet: {
+      fontSize: 24,
+    },
+    closuresModalSubtitle: {
+      marginTop: spacing[1],
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    closuresCloseButton: {
+      padding: spacing[2],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.background.subtle,
+    },
+    closuresLoadingContainer: {
+      paddingVertical: spacing[12],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closuresModalBody: {
+      flex: 1,
+      paddingHorizontal: spacing[4],
+    },
+    closuresModalBodyContent: {
+      paddingBottom: spacing[6],
+    },
+    closureSection: {
+      paddingVertical: spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    closureSectionTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    closureSectionHint: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: spacing[3],
+    },
+    closureEmptyBox: {
+      padding: spacing[4],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    closureEmptyText: {
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      fontSize: 14,
+    },
+    productsAccordionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing[3],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.brand.primarySoft,
+      marginBottom: spacing[3],
+    },
+    selectAllProductsButton: {
+      marginRight: spacing[3],
+    },
+    productsAccordionContent: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    productsAccordionTextBox: {
+      flex: 1,
+    },
+    productsAccordionTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    productsAccordionSubtitle: {
+      marginTop: spacing[0.5],
+      fontSize: 12,
+      color: theme.color.brand.primary,
+    },
+    pendingClosureItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: spacing[3],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.background.subtle,
+      marginBottom: spacing[2],
+    },
+    pendingClosureItemSelected: {
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: borderRadius.sm,
+      borderWidth: 2,
+      borderColor: theme.color.border.strong,
+      marginRight: spacing[3],
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.background.canvas,
+    },
+    checkboxSelected: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxPartial: {
+      backgroundColor: theme.color.icon.warning,
+      borderColor: theme.color.icon.warning,
+    },
+    pendingClosureInfo: {
+      flex: 1,
+    },
+    pendingClosureProductHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing[2],
+    },
+    pendingClosureProductName: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    quantityPill: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.state.success.background,
+    },
+    quantityPillText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    siteInfoCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing[2],
+      padding: spacing[2],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primarySoft,
+      backgroundColor: theme.color.background.canvas,
+    },
+    siteIconBubble: {
+      width: 28,
+      height: 28,
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.brand.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing[2],
+    },
+    siteInfoTextBox: {
+      flex: 1,
+    },
+    siteInfoLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    siteInfoName: {
+      marginTop: spacing[0.5],
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    pendingClosureChipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing[1.5],
+      marginTop: spacing[2],
+    },
+    pendingClosureChip: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.surface.muted,
+    },
+    pendingClosureChipText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+    },
+    pendingClosureChipSuccess: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.state.success.background,
+    },
+    pendingClosureChipSuccessText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    pendingClosureChipWarning: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.state.warning.background,
+    },
+    pendingClosureChipWarningText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.state.warning.text,
+    },
+    showMoreProductsButton: {
+      alignItems: 'center',
+      paddingVertical: spacing[2.5],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    showMoreProductsText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    pendingClosureMeta: {
+      marginTop: spacing[1],
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    pendingClosureQuantities: {
+      marginTop: spacing[1],
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.success,
+    },
+    closureNotesInput: {
+      minHeight: 72,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: borderRadius.md,
+      padding: spacing[3],
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.background.canvas,
+      textAlignVertical: 'top',
+      marginTop: spacing[2],
+    },
+    createClosureButton: {
+      backgroundColor: theme.color.state.success.border,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      alignItems: 'center',
+      marginTop: spacing[3],
+    },
+    createClosureButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '800',
+      fontSize: 15,
+    },
+    closureBatchCard: {
+      padding: spacing[4],
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.background.subtle,
+      marginBottom: spacing[3],
+    },
+    closureBatchHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: spacing[2],
+    },
+    closureBatchTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    closureBatchMeta: {
+      marginTop: spacing[1],
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    closureBatchBadge: {
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    closureBatchBadgeText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    closureBatchSummary: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.success,
+      marginBottom: spacing[2],
+    },
+    closureSummaryGrid: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      marginBottom: spacing[3],
+    },
+    closureSummaryCard: {
+      flex: 1,
+      padding: spacing[2],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.background.canvas,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    closureSummaryCardWarning: {
+      flex: 1,
+      padding: spacing[2],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    closureSummaryLabel: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+    },
+    closureSummaryValue: {
+      marginTop: spacing[0.5],
+      fontSize: 14,
+      fontWeight: '900',
+      color: theme.color.text.heading,
+    },
+    closureSummaryValueWarning: {
+      marginTop: spacing[0.5],
+      fontSize: 14,
+      fontWeight: '900',
+      color: theme.color.state.warning.text,
+    },
+    batchProductsAccordionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing[2.5],
+      paddingHorizontal: spacing[3],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.background.canvas,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primarySoft,
+      marginBottom: spacing[2],
+    },
+    batchProductsAccordionText: {
+      fontSize: 13,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    closureBatchProductRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing[2],
+      paddingVertical: spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    closureBatchItemText: {
+      flex: 1,
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    closureBatchItemQuantity: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.text.success,
+      paddingHorizontal: spacing[2],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.state.success.background,
+    },
+    showMoreBatchProductsButton: {
+      alignItems: 'center',
+      paddingVertical: spacing[2],
+      marginTop: spacing[1],
+    },
+    showMoreBatchProductsText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.color.brand.primary,
+    },
+    guideActionsBox: {
+      marginTop: spacing[3],
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    guideSuccessText: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: theme.color.text.success,
+    },
+    guideCompactRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing[2],
+    },
+    guideCompactInfo: {
+      flex: 1,
+    },
+    guideNumberText: {
+      marginTop: spacing[0.5],
+      fontSize: 13,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+    },
+    guideStatusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      marginTop: spacing[0.5],
+    },
+    guideStatusLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.text.subtle,
+    },
+    guideStatusValue: {
+      flex: 1,
+      fontSize: 11,
+      fontWeight: '800',
+      color: theme.color.state.info.text,
+    },
+    guideActionsRow: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      marginTop: spacing[2],
+    },
+    guideDownloadButton: {
+      backgroundColor: theme.color.state.info.border,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      minWidth: 52,
+      alignItems: 'center',
+    },
+    guideDownloadButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '800',
+      fontSize: 12,
+    },
+    generateGuideButton: {
+      marginTop: spacing[3],
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      alignItems: 'center',
+    },
+    generateGuideButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '800',
+      fontSize: 14,
+    },
+    // Bultos Modal Styles
+    bultosModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing[4],
+    },
+    bultosModalContainer: {
+      backgroundColor: theme.color.background.canvas,
+      borderRadius: borderRadius.xl,
+      padding: spacing[6],
+      width: '100%',
+      maxWidth: 340,
+      ...theme.shadow.lg,
+    },
+    bultosModalContainerTablet: {
+      maxWidth: 400,
+      padding: spacing[8],
+    },
+    bultosModalHeader: {
+      alignItems: 'center',
+      marginBottom: spacing[6],
+    },
+    bultosModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginTop: spacing[3],
+      textAlign: 'center',
+    },
+    bultosModalTitleTablet: {
+      fontSize: 24,
+    },
+    bultosModalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: spacing[2],
+      textAlign: 'center',
+    },
+    bultosModalSubtitleTablet: {
+      fontSize: 16,
+    },
+    bultosInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing[6],
+      gap: spacing[3],
+    },
+    bultosButton: {
+      width: 48,
+      height: 48,
+      borderRadius: borderRadius.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...theme.shadow.sm,
+    },
+    bultosButtonMinus: {
+      backgroundColor: theme.color.icon.danger,
+    },
+    bultosButtonPlus: {
+      backgroundColor: theme.color.state.success.border,
+    },
+    bultosInput: {
+      width: 100,
+      height: 60,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.lg,
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      textAlign: 'center',
+    },
+    bultosInputTablet: {
+      width: 120,
+      height: 70,
+      fontSize: 32,
+    },
+    bultosModalActions: {
+      flexDirection: 'row',
+      gap: spacing[3],
+    },
+    bultosModalButton: {
+      flex: 1,
+      paddingVertical: spacing[3.5],
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bultosModalButtonCancel: {
+      backgroundColor: theme.color.border.subtle,
+    },
+    bultosModalButtonConfirm: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    bultosModalButtonCancelText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    bultosModalButtonConfirmText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });

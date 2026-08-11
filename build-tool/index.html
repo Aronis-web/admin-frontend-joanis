@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>ERP-aio · Release Tool</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <h1>ERP-aio · Release Tool</h1>
+        <p class="subtitle">Sube versión, genera builds y publica en un clic</p>
+      </div>
+    </div>
+    <div class="version-badges">
+      <div class="badge">
+        <span class="badge-label">Versión actual</span>
+        <span id="currentVersion" class="badge-value">—</span>
+      </div>
+      <div class="badge next">
+        <span class="badge-label">Próxima versión</span>
+        <span id="nextVersion" class="badge-value">—</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="panel">
+      <h2>0 · Proyecto</h2>
+      <div class="segmented" id="projectGroup"></div>
+      <p id="projectPath" class="hint">—</p>
+    </section>
+
+    <section class="panel">
+      <h2>1 · Versión</h2>
+      <div class="segmented" id="bumpGroup">
+        <button class="seg active" data-bump="patch">Patch</button>
+        <button class="seg" data-bump="minor">Minor</button>
+        <button class="seg" data-bump="major">Major</button>
+        <button class="seg" data-bump="none">Sin cambio</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>2 · Artefactos</h2>
+      <label class="check">
+        <input type="checkbox" id="optApk" checked />
+        <span class="check-box"></span>
+        <span class="check-text"><strong>APK Android</strong><small>Gradle · arm64-v8a</small></span>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="optElectron" />
+        <span class="check-box"></span>
+        <span class="check-text"><strong>Escritorio (.exe)</strong><small>Electron · instalador NSIS</small></span>
+      </label>
+    </section>
+
+    <section class="panel">
+      <h2>3 · Git</h2>
+      <label class="check">
+        <input type="checkbox" id="optCommit" />
+        <span class="check-box"></span>
+        <span class="check-text"><strong>Commit + Push</strong><small>chore: release v{versión}</small></span>
+      </label>
+    </section>
+
+    <div class="actions">
+      <button id="runBtn" class="btn primary">▶ Ejecutar release</button>
+      <button id="cancelBtn" class="btn ghost" disabled>Cancelar</button>
+      <span id="statusChip" class="chip idle">Inactivo</span>
+    </div>
+
+    <section class="panel log-panel">
+      <div class="log-head">
+        <h2>Registro</h2>
+        <button id="clearBtn" class="btn tiny">Limpiar</button>
+      </div>
+      <div id="log" class="log"></div>
+    </section>
+
+    <section id="results" class="panel results hidden">
+      <h2>Resultado</h2>
+      <ul id="resultsList"></ul>
+    </section>
+  </main>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
@@ -16,7 +15,8 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system/legacy';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { activeOpacity, borderRadius, colors, shadows, spacing } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { photoCampaignsApi } from '@/services/api';
 import priceProfilesApi from '@/services/api/price-profiles';
 import { productsApi, Product } from '@/services/api/products';
@@ -34,6 +34,11 @@ import {
   requestMediaLibraryPermissionsAsync,
   MediaTypeOptions,
 } from '@/utils/filePicker';
+import { ensureSquareImageUri } from '@/utils/imageFile';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
+import Alert from '@/utils/alert';
+import { logger } from '@/utils/logger';
 
 interface PhotoCampaignManagementScreenProps {
   navigation: any;
@@ -137,14 +142,21 @@ const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
   price: 'Con precio',
 };
 
-export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScreenProps> = ({ navigation, route }) => {
+export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScreenProps> = ({
+  navigation,
+  route,
+}) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const campaignIdFromRoute = route?.params?.campaignId;
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [campaigns, setCampaigns] = useState<PhotoCampaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<PhotoCampaign | null>(null);
-  const [selectedCampaignProducts, setSelectedCampaignProducts] = useState<PhotoCampaignProductItem[]>([]);
+  const [selectedCampaignProducts, setSelectedCampaignProducts] = useState<
+    PhotoCampaignProductItem[]
+  >([]);
 
   const [campaignFormVisible, setCampaignFormVisible] = useState(false);
   const [campaignForm, setCampaignForm] = useState<CampaignFormState>(emptyCampaignForm);
@@ -176,7 +188,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   const imageViewerFocalX = useSharedValue(0);
   const imageViewerFocalY = useSharedValue(0);
   const [designTargetItem, setDesignTargetItem] = useState<PhotoCampaignProductItem | null>(null);
-  const [pricePhotoTargetItem, setPricePhotoTargetItem] = useState<PhotoCampaignProductItem | null>(null);
+  const [pricePhotoTargetItem, setPricePhotoTargetItem] = useState<PhotoCampaignProductItem | null>(
+    null
+  );
   const [designPrompt, setDesignPrompt] = useState(DEFAULT_DESIGN_PROMPT);
   const [designReferenceFile, setDesignReferenceFile] = useState<any | null>(null);
   const [designPreviewUri, setDesignPreviewUri] = useState<string | null>(null);
@@ -188,7 +202,8 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   const [pricePhotoForm, setPricePhotoForm] = useState<PricePhotoFormState>(defaultPricePhotoForm);
   const [pricePhotoPreviewUri, setPricePhotoPreviewUri] = useState<string | null>(null);
   const [pricePhotoDesignBaseUri, setPricePhotoDesignBaseUri] = useState<string | null>(null);
-  const [pricePhotoDesignBaseMimeType, setPricePhotoDesignBaseMimeType] = useState<string>('image/jpeg');
+  const [pricePhotoDesignBaseMimeType, setPricePhotoDesignBaseMimeType] =
+    useState<string>('image/jpeg');
   const [pricePhotoHasGeneratedPreview, setPricePhotoHasGeneratedPreview] = useState(false);
   const [pricePhotoGenerating, setPricePhotoGenerating] = useState(false);
   const [pricePhotoSaving, setPricePhotoSaving] = useState(false);
@@ -199,11 +214,14 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   const [whatsappModalVisible, setWhatsappModalVisible] = useState(false);
   const [whatsappContacts, setWhatsappContacts] = useState<PhotoCampaignWhatsappContact[]>([]);
   const [whatsappContactsLoading, setWhatsappContactsLoading] = useState(false);
-  const [whatsappSubmitting, setWhatsappSubmitting] = useState(false);
   const [whatsappContactId, setWhatsappContactId] = useState('');
   const [whatsappSendAll, setWhatsappSendAll] = useState(true);
-  const [whatsappSelectedProductIds, setWhatsappSelectedProductIds] = useState<Set<string>>(new Set());
-  const [whatsappSelectedPhotoTypes, setWhatsappSelectedPhotoTypes] = useState<Set<PhotoType>>(new Set());
+  const [whatsappSelectedProductIds, setWhatsappSelectedProductIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [whatsappSelectedPhotoTypes, setWhatsappSelectedPhotoTypes] = useState<Set<PhotoType>>(
+    new Set()
+  );
   const [whatsappCaption, setWhatsappCaption] = useState('');
   const [whatsappProductSearchQuery, setWhatsappProductSearchQuery] = useState('');
 
@@ -259,7 +277,6 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     }
   }, [selectedCampaign?.id, loadCampaignProducts]);
 
-
   const filteredCampaignProducts = useMemo(() => {
     const query = productSearchQuery.trim().toLowerCase();
     if (!query) {
@@ -267,7 +284,8 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     }
 
     return selectedCampaignProducts.filter((item) => {
-      const text = `${item.product?.title || ''} ${item.product?.sku || ''} ${item.notes || ''}`.toLowerCase();
+      const text =
+        `${item.product?.title || ''} ${item.product?.sku || ''} ${item.notes || ''}`.toLowerCase();
       return text.includes(query);
     });
   }, [selectedCampaignProducts, productSearchQuery]);
@@ -342,31 +360,36 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     setCampaignSearchTimeout(timeout);
   };
 
-  const loadProductPhotos = useCallback(async (productId: string, force = false) => {
-    if (!force && photosCacheRef.current[productId]) {
-      setPhotosByProduct((prev) => ({ ...prev, [productId]: photosCacheRef.current[productId] }));
-      return;
-    }
+  const loadProductPhotos = useCallback(
+    async (productId: string, force = false) => {
+      if (!force && photosCacheRef.current[productId]) {
+        setPhotosByProduct((prev) => ({ ...prev, [productId]: photosCacheRef.current[productId] }));
+        return;
+      }
 
-    if (photoLoadingByProduct[productId]) {
-      return;
-    }
+      if (photoLoadingByProduct[productId]) {
+        return;
+      }
 
-    try {
-      setPhotoLoadingByProduct((prev) => ({ ...prev, [productId]: true }));
-      const assets = await photoCampaignsApi.getProductPhotos(productId);
-      photosCacheRef.current[productId] = assets;
-      setPhotosByProduct((prev) => ({ ...prev, [productId]: assets }));
-    } catch {
-      setPhotosByProduct((prev) => ({ ...prev, [productId]: [] }));
-    } finally {
-      setPhotoLoadingByProduct((prev) => ({ ...prev, [productId]: false }));
-    }
-  }, [photoLoadingByProduct]);
+      try {
+        setPhotoLoadingByProduct((prev) => ({ ...prev, [productId]: true }));
+        const assets = await photoCampaignsApi.getProductPhotos(productId);
+        photosCacheRef.current[productId] = assets;
+        setPhotosByProduct((prev) => ({ ...prev, [productId]: assets }));
+      } catch {
+        setPhotosByProduct((prev) => ({ ...prev, [productId]: [] }));
+      } finally {
+        setPhotoLoadingByProduct((prev) => ({ ...prev, [productId]: false }));
+      }
+    },
+    [photoLoadingByProduct]
+  );
 
   const getPhotoByType = useCallback(
     (productId: string, photoType: PhotoType): ProductPhotoAsset | undefined => {
-      return photosByProduct[productId]?.find((asset) => asset.photoType === photoType && asset.isActive);
+      return photosByProduct[productId]?.find(
+        (asset) => asset.photoType === photoType && asset.isActive
+      );
     },
     [photosByProduct]
   );
@@ -374,7 +397,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   const getPhotoCompletion = useCallback(
     (productId: string): number => {
       const assets = photosByProduct[productId] || [];
-      const typesFound = new Set(assets.filter((asset) => asset.isActive).map((asset) => asset.photoType));
+      const typesFound = new Set(
+        assets.filter((asset) => asset.isActive).map((asset) => asset.photoType)
+      );
       return PHOTO_TYPES.reduce((acc, type) => (typesFound.has(type.key) ? acc + 1 : acc), 0);
     },
     [photosByProduct]
@@ -396,7 +421,8 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
 
       const result = await launchImageLibraryAsync({
         mediaTypes: MediaTypeOptions.Images,
-        allowsEditing: false,
+        allowsEditing: true,
+        aspect: [1, 1],
         quality: 1,
       });
 
@@ -405,8 +431,10 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
       }
 
       const asset = result.assets[0];
+      // Forzamos recorte 1:1 antes de subir.
+      const squareUri = await ensureSquareImageUri(asset.uri);
       const filePayload: any = {
-        uri: asset.uri,
+        uri: squareUri,
         type: asset.mimeType || 'image/jpeg',
         name: asset.fileName || `${photoType}-${Date.now()}.jpg`,
       };
@@ -435,7 +463,10 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     const designPhoto = getPhotoByType(item.productId, 'design');
 
     if (!designPhoto?.fileUrl) {
-      Alert.alert('Diseño requerido', 'Primero debes tener una foto de diseño para agregarle precio.');
+      Alert.alert(
+        'Diseño requerido',
+        'Primero debes tener una foto de diseño para agregarle precio.'
+      );
       return;
     }
 
@@ -456,13 +487,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
 
       const defaultSalePrice = defaultProfile
         ? salePricesArray.find(
-            (sp: ProductSalePrice) => sp.profileId === defaultProfile.id && sp.presentationId === null
+            (sp: ProductSalePrice) =>
+              sp.profileId === defaultProfile.id && sp.presentationId === null
           )
         : null;
 
-      const defaultPrice = defaultSalePrice
-        ? (defaultSalePrice.priceCents / 100).toFixed(2)
-        : '';
+      const defaultPrice = defaultSalePrice ? (defaultSalePrice.priceCents / 100).toFixed(2) : '';
 
       const fileUri = `${FileSystem.cacheDirectory}price-design-${item.productId}-${Date.now()}.jpg`;
       const downloadResult = await FileSystem.downloadAsync(designPhoto.fileUrl, fileUri, {
@@ -554,7 +584,10 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
       // para que previsualizar no deje cambios.
       await restoreOriginalDesignAfterPreview(pricePhotoTargetItem.productId, selectedCampaign.id);
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'No se pudo generar la vista previa del diseño con precio.');
+      Alert.alert(
+        'Error',
+        error?.message || 'No se pudo generar la vista previa del diseño con precio.'
+      );
     } finally {
       if (pricePhotoTargetItem?.productId) {
         await loadProductPhotos(pricePhotoTargetItem.productId, true);
@@ -587,8 +620,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         return;
       }
 
+      const squarePriceUri = await ensureSquareImageUri(downloadResult.uri);
       const priceFile: any = {
-        uri: downloadResult.uri,
+        uri: squarePriceUri,
         type: 'image/png',
         name: `price-${pricePhotoTargetItem.productId}.png`,
       };
@@ -623,12 +657,13 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     }
 
     const extension = pricePhotoDesignBaseMimeType.includes('png') ? 'png' : 'jpg';
+    const squareBaseUri = await ensureSquareImageUri(pricePhotoDesignBaseUri);
 
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       await photoCampaignsApi.uploadProductPhoto(productId, {
         photoType: 'design',
         file: {
-          uri: pricePhotoDesignBaseUri,
+          uri: squareBaseUri,
           type: pricePhotoDesignBaseMimeType,
           name: `restore-design-${productId}-${attempt}.${extension}`,
         },
@@ -701,7 +736,10 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         },
       });
 
-      const response = await photoCampaignsApi.editImageWithGemini(designReferenceFile, designPrompt.trim());
+      const response = await photoCampaignsApi.editImageWithGemini(
+        designReferenceFile,
+        designPrompt.trim()
+      );
 
       console.log('🧪 [PHOTO_CAMPAIGNS][GEMINI] Response received', {
         response,
@@ -722,10 +760,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         response?.result?.editedImageBase64;
 
       const generatedMimeType =
-        response?.mimeType ||
-        response?.data?.mimeType ||
-        response?.result?.mimeType ||
-        'image/png';
+        response?.mimeType || response?.data?.mimeType || response?.result?.mimeType || 'image/png';
 
       console.log('🧪 [PHOTO_CAMPAIGNS][GEMINI] URL/Base64 extraction', {
         generatedUrl,
@@ -866,8 +901,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         }
       }
 
+      const squareDesignUri = await ensureSquareImageUri(fileUri);
       const designFile: any = {
-        uri: fileUri,
+        uri: squareDesignUri,
         type: designGeneratedMimeType || 'image/jpeg',
         name: `design-${designTargetItem.productId}.${extension}`,
       };
@@ -902,8 +938,6 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
       }
     });
   }, [selectedCampaignProducts, visibleProductIds, loadProductPhotos]);
-
-
 
   const openEditCampaignModal = () => {
     if (!selectedCampaign) {
@@ -959,32 +993,28 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
       return;
     }
 
-    Alert.alert(
-      'Eliminar campaña',
-      `¿Seguro que deseas eliminar ${selectedCampaign.code}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setSubmitting(true);
-              await photoCampaignsApi.deleteCampaign(selectedCampaign.id);
+    Alert.alert('Eliminar campaña', `¿Seguro que deseas eliminar ${selectedCampaign.code}?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setSubmitting(true);
+            await photoCampaignsApi.deleteCampaign(selectedCampaign.id);
 
-              const campaignsAfterDelete = campaigns.filter((c) => c.id !== selectedCampaign.id);
-              setCampaigns(campaignsAfterDelete);
-              setSelectedCampaign(campaignsAfterDelete[0] || null);
-              setSelectedCampaignProducts([]);
-            } catch (error: any) {
-              Alert.alert('Error', error?.message || 'No se pudo eliminar la campaña');
-            } finally {
-              setSubmitting(false);
-            }
-          },
+            const campaignsAfterDelete = campaigns.filter((c) => c.id !== selectedCampaign.id);
+            setCampaigns(campaignsAfterDelete);
+            setSelectedCampaign(campaignsAfterDelete[0] || null);
+            setSelectedCampaignProducts([]);
+          } catch (error: any) {
+            Alert.alert('Error', error?.message || 'No se pudo eliminar la campaña');
+          } finally {
+            setSubmitting(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleDeleteCampaignProduct = (item: PhotoCampaignProductItem) => {
@@ -1017,7 +1047,8 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   };
 
   const isUuid = (value?: string) =>
-    !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    !!value &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
   const getWhatsappContactUuid = (contact: PhotoCampaignWhatsappContact): string => {
     const directCandidates = [
@@ -1114,11 +1145,14 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     );
 
     if (productsWithoutLoadedPhotos.length > 0) {
-      await Promise.all(productsWithoutLoadedPhotos.map((item) => loadProductPhotos(item.productId)));
+      await Promise.all(
+        productsWithoutLoadedPhotos.map((item) => loadProductPhotos(item.productId))
+      );
     }
 
     const selectedAssets = selectedItems.flatMap((item) => {
-      const assets = photosCacheRef.current[item.productId] || photosByProduct[item.productId] || [];
+      const assets =
+        photosCacheRef.current[item.productId] || photosByProduct[item.productId] || [];
       return assets.filter((asset) => asset.isActive);
     });
 
@@ -1131,34 +1165,39 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     const photoAssetIds = Array.from(new Set(filteredAssets.map((asset) => asset.id)));
 
     if (!whatsappSendAll && photoAssetIds.length === 0) {
-      Alert.alert('Validación', 'Cuando no envías todos, debes seleccionar productos con fotos disponibles.');
+      Alert.alert(
+        'Validación',
+        'Cuando no envías todos, debes seleccionar productos con fotos disponibles.'
+      );
       return;
     }
 
-    try {
-      setWhatsappSubmitting(true);
-      await photoCampaignsApi.sendCampaignPhotosWhatsapp(selectedCampaign.id, {
+    // El backend procesa el envío en segundo plano; no esperamos la respuesta.
+    // Disparamos la petición (fire-and-forget) y cerramos de inmediato.
+    void photoCampaignsApi
+      .sendCampaignPhotosWhatsapp(selectedCampaign.id, {
         contactId: whatsappContactId,
         sendAll: whatsappSendAll,
         photoAssetIds: whatsappSendAll ? [] : photoAssetIds,
         photoTypes: selectedPhotoTypes.length > 0 ? selectedPhotoTypes : undefined,
         caption: whatsappCaption.trim() || undefined,
+      })
+      .catch((error: any) => {
+        logger.error('Error solicitando envío de fotos por WhatsApp', error);
       });
 
-      Alert.alert('Éxito', 'Fotos enviadas por WhatsApp correctamente.');
-      setWhatsappModalVisible(false);
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'No se pudo enviar las fotos por WhatsApp.');
-    } finally {
-      setWhatsappSubmitting(false);
-    }
+    Alert.alert(
+      'Envío en proceso',
+      'El envío de fotos por WhatsApp se está procesando en segundo plano.'
+    );
+    setWhatsappModalVisible(false);
   };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loaderText}>Cargando campañas de fotos...</Text>
         </View>
       </SafeAreaView>
@@ -1168,7 +1207,11 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={activeOpacity.medium}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          activeOpacity={theme.motion.activeOpacity.medium}
+        >
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestión de Campaña de Fotos</Text>
@@ -1176,134 +1219,138 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
       </View>
 
       <View style={styles.mainContent}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>
-                {selectedCampaign ? selectedCampaign.name : 'Selecciona una campaña'}
-              </Text>
-              {!!selectedCampaign && (
-                <Text style={styles.sectionSubtitle}>{selectedCampaign.code}</Text>
-              )}
-            </View>
-
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>
+              {selectedCampaign ? selectedCampaign.name : 'Selecciona una campaña'}
+            </Text>
             {!!selectedCampaign && (
-              <View style={styles.headerActions}>
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={openEditCampaignModal}
-                  disabled={submitting}
-                >
-                  <Text style={styles.secondaryButtonText}>Editar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.dangerButton}
-                  onPress={handleDeleteCampaign}
-                  disabled={submitting}
-                >
-                  <Text style={styles.dangerButtonText}>Eliminar</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.sectionSubtitle}>{selectedCampaign.code}</Text>
             )}
           </View>
 
-          <View style={styles.productsToolbar}>
-            <TextInput
-              style={[styles.searchInput, styles.productsFilterInput]}
-              value={productSearchQuery}
-              onChangeText={handleCampaignProductsSearchChange}
-              onFocus={() => {
-                if (productSearchQuery.trim().length > 0) {
-                  setShowCampaignSearchSuggestions(true);
-                }
-              }}
-              placeholder="Buscar producto de campaña por SKU, nombre o descripción..."
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-
-          {showCampaignSearchSuggestions && (
-            <View style={styles.suggestionsContainerInline}>
-              {campaignSearchLoading ? (
-                <View style={styles.suggestionsLoadingWrap}>
-                  <ActivityIndicator size="small" color="#2563EB" />
-                  <Text style={styles.suggestionsLoadingText}>Buscando productos...</Text>
-                </View>
-              ) : campaignSearchResults.length > 0 ? (
-                <ScrollView
-                  style={styles.suggestionsList}
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled
-                  showsVerticalScrollIndicator
-                >
-                  {campaignSearchResults.slice(0, 10).map((product) => (
-                    <TouchableOpacity
-                      key={product.id}
-                      style={styles.searchResultItem}
-                      onPress={async () => {
-                        if (!selectedCampaign?.id) {
-                          return;
-                        }
-
-                        try {
-                          setSubmitting(true);
-                          await photoCampaignsApi.addCampaignProduct(selectedCampaign.id, { productId: product.id });
-                          await loadCampaignProducts(selectedCampaign.id);
-                          setShowCampaignSearchSuggestions(false);
-                        } catch (error: any) {
-                          Alert.alert('Error', error?.message || 'No se pudo agregar el producto');
-                        } finally {
-                          setSubmitting(false);
-                        }
-                      }}
-                    >
-                      <Text style={styles.searchResultTitle}>{product.title}</Text>
-                      <Text style={styles.searchResultMeta}>SKU: {product.sku}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              ) : (
-                <Text style={styles.emptySuggestionsText}>
-                  {productSearchQuery.trim().length < 2
-                    ? 'Escribe al menos 2 caracteres'
-                    : 'No se encontraron productos'}
-                </Text>
-              )}
+          {!!selectedCampaign && (
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={openEditCampaignModal}
+                disabled={submitting}
+              >
+                <Text style={styles.secondaryButtonText}>Editar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dangerButton}
+                onPress={handleDeleteCampaign}
+                disabled={submitting}
+              >
+                <Text style={styles.dangerButtonText}>Eliminar</Text>
+              </TouchableOpacity>
             </View>
           )}
+        </View>
 
-          <FlatList
-            style={styles.productsList}
-            data={filteredCampaignProducts}
-            keyExtractor={(item) => item.id}
-            initialNumToRender={14}
-            maxToRenderPerBatch={20}
-            windowSize={9}
-            removeClippedSubviews
-            onViewableItemsChanged={({ viewableItems }) => {
-              const ids = viewableItems
-                .map((v) => (v.item as PhotoCampaignProductItem | undefined)?.productId)
-                .filter((id): id is string => !!id);
-
-              setVisibleProductIds(new Set(ids));
+        <View style={styles.productsToolbar}>
+          <TextInput
+            style={[styles.searchInput, styles.productsFilterInput]}
+            value={productSearchQuery}
+            onChangeText={handleCampaignProductsSearchChange}
+            onFocus={() => {
+              if (productSearchQuery.trim().length > 0) {
+                setShowCampaignSearchSuggestions(true);
+              }
             }}
-            renderItem={({ item }) => {
-              const completion = getPhotoCompletion(item.productId);
-              const isLoadingPhotos = photoLoadingByProduct[item.productId];
+            placeholder="Buscar producto de campaña por SKU, nombre o descripción..."
+            placeholderTextColor={theme.color.text.placeholder}
+          />
+        </View>
 
-              return (
-                <View style={styles.productItemCard}>
-                    <View style={styles.productHeaderRow}>
-                    <View style={styles.productItemMain}>
-                      <Text style={styles.productTitle}>{item.product?.title || item.productId}</Text>
-                      <Text style={styles.productMeta}>SKU: {item.product?.sku || '-'}</Text>
-                      {!!item.notes && <Text style={styles.productMeta}>Nota: {item.notes}</Text>}
-                      {typeof item.sortOrder === 'number' && (
-                        <Text style={styles.productMeta}>Orden: {item.sortOrder}</Text>
-                      )}
-                      <Text style={styles.photoCompletionText}>Completitud fotos: {completion}/3</Text>
-                    </View>
+        {showCampaignSearchSuggestions && (
+          <View style={styles.suggestionsContainerInline}>
+            {campaignSearchLoading ? (
+              <View style={styles.suggestionsLoadingWrap}>
+                <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                <Text style={styles.suggestionsLoadingText}>Buscando productos...</Text>
+              </View>
+            ) : campaignSearchResults.length > 0 ? (
+              <ScrollView
+                style={styles.suggestionsList}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+              >
+                {campaignSearchResults.slice(0, 10).map((product) => (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={styles.searchResultItem}
+                    onPress={async () => {
+                      if (!selectedCampaign?.id) {
+                        return;
+                      }
 
-                    <View style={styles.itemActions}>
+                      try {
+                        setSubmitting(true);
+                        await photoCampaignsApi.addCampaignProduct(selectedCampaign.id, {
+                          productId: product.id,
+                        });
+                        await loadCampaignProducts(selectedCampaign.id);
+                        setShowCampaignSearchSuggestions(false);
+                      } catch (error: any) {
+                        Alert.alert('Error', error?.message || 'No se pudo agregar el producto');
+                      } finally {
+                        setSubmitting(false);
+                      }
+                    }}
+                  >
+                    <Text style={styles.searchResultTitle}>{product.title}</Text>
+                    <Text style={styles.searchResultMeta}>SKU: {product.sku}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={styles.emptySuggestionsText}>
+                {productSearchQuery.trim().length < 2
+                  ? 'Escribe al menos 2 caracteres'
+                  : 'No se encontraron productos'}
+              </Text>
+            )}
+          </View>
+        )}
+
+        <FlatList
+          style={styles.productsList}
+          data={filteredCampaignProducts}
+          keyExtractor={(item) => item.id}
+          initialNumToRender={14}
+          maxToRenderPerBatch={20}
+          windowSize={9}
+          removeClippedSubviews
+          onViewableItemsChanged={({ viewableItems }) => {
+            const ids = viewableItems
+              .map((v) => (v.item as PhotoCampaignProductItem | undefined)?.productId)
+              .filter((id): id is string => !!id);
+
+            setVisibleProductIds(new Set(ids));
+          }}
+          renderItem={({ item }) => {
+            const completion = getPhotoCompletion(item.productId);
+            const isLoadingPhotos = photoLoadingByProduct[item.productId];
+
+            return (
+              <View style={styles.productItemCard}>
+                <View style={styles.productHeaderRow}>
+                  <View style={styles.productItemMain}>
+                    <Text style={styles.productTitle}>{item.product?.title || item.productId}</Text>
+                    <Text style={styles.productMeta}>SKU: {item.product?.sku || '-'}</Text>
+                    {!!item.notes && <Text style={styles.productMeta}>Nota: {item.notes}</Text>}
+                    {typeof item.sortOrder === 'number' && (
+                      <Text style={styles.productMeta}>Orden: {item.sortOrder}</Text>
+                    )}
+                    <Text style={styles.photoCompletionText}>
+                      Completitud fotos: {completion}/3
+                    </Text>
+                  </View>
+
+                  <View style={styles.itemActions}>
                     <TouchableOpacity
                       style={styles.dangerButton}
                       onPress={() => handleDeleteCampaignProduct(item)}
@@ -1312,138 +1359,160 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                       <Text style={styles.dangerButtonText}>Eliminar</Text>
                     </TouchableOpacity>
                   </View>
-                  </View>
-
-                  {(() => {
-                    const referencePhoto = getPhotoByType(item.productId, 'reference');
-                    const designPhoto = getPhotoByType(item.productId, 'design');
-                    const pricePhoto = getPhotoByType(item.productId, 'price');
-
-                    const referenceUploading = photoUploadingKey === `${item.productId}:reference`;
-
-                    return (
-                      <>
-                        <View style={styles.referenceDesignHeaderRow}>
-                          <TouchableOpacity
-                            style={styles.geminiGenerateButton}
-                            onPress={() => void openDesignModal(item)}
-                            disabled={submitting}
-                          >
-                            <Text style={styles.geminiGenerateButtonText}>Generar diseño</Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={styles.priceDesignButton}
-                            onPress={() => void openPricePhotoModal(item)}
-                            disabled={submitting}
-                          >
-                            <Text style={styles.priceDesignButtonText}>Agregar datos</Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.photoTypesRow}>
-                          <View style={styles.photoTypeCard}>
-                            <Text style={styles.photoTypeLabel}>Referencia</Text>
-                            {referencePhoto ? (
-                              <TouchableOpacity
-                                onPress={() => openImageViewer(referencePhoto.fileUrl, 'Referencia')}
-                                activeOpacity={0.9}
-                                style={styles.photoTouchArea}
-                              >
-                                <Image source={{ uri: referencePhoto.fileUrl }} style={styles.photoThumb} resizeMode="cover" />
-                              </TouchableOpacity>
-                            ) : (
-                              <View style={styles.photoMissingBox}>
-                                <Text style={styles.photoMissingText}>Sin foto</Text>
-                              </View>
-                            )}
-                            <TouchableOpacity
-                              onPress={() => void pickAndUploadPhoto(item, 'reference')}
-                              disabled={referenceUploading || submitting}
-                            >
-                              {referenceUploading ? (
-                                <ActivityIndicator size="small" color="#2563EB" style={styles.photoActionIndicator} />
-                              ) : (
-                                <Text style={styles.photoActionText}>{referencePhoto ? 'Reemplazar' : 'Subir'}</Text>
-                              )}
-                            </TouchableOpacity>
-                          </View>
-
-                          <View style={styles.photoTypeCard}>
-                            <Text style={styles.photoTypeLabel}>Diseño</Text>
-                            {designPhoto ? (
-                              <TouchableOpacity
-                                onPress={() => openImageViewer(designPhoto.fileUrl, 'Diseño')}
-                                activeOpacity={0.9}
-                                style={styles.photoTouchArea}
-                              >
-                                <Image source={{ uri: designPhoto.fileUrl }} style={styles.photoThumb} resizeMode="cover" />
-                              </TouchableOpacity>
-                            ) : (
-                              <View style={styles.photoMissingBox}>
-                                <Text style={styles.photoMissingText}>Generar con Gemini</Text>
-                              </View>
-                            )}
-                            <Text style={styles.photoActionTextMuted}>Se genera desde referencia</Text>
-                          </View>
-
-                          <View style={styles.photoTypeCard}>
-                            <Text style={styles.photoTypeLabel}>Con precio</Text>
-                            {pricePhoto ? (
-                              <TouchableOpacity
-                                onPress={() => openImageViewer(pricePhoto.fileUrl, 'Con precio')}
-                                activeOpacity={0.9}
-                                style={styles.photoTouchArea}
-                              >
-                                <Image source={{ uri: pricePhoto.fileUrl }} style={styles.photoThumb} resizeMode="cover" />
-                              </TouchableOpacity>
-                            ) : (
-                              <View style={styles.photoMissingBox}>
-                                <Text style={styles.photoMissingText}>Paso específico</Text>
-                              </View>
-                            )}
-                            <Text style={styles.photoActionTextMuted}>Se llena en flujo específico</Text>
-                          </View>
-                        </View>
-                      </>
-                    );
-                  })()}
-
-                  {isLoadingPhotos && (
-                    <View style={styles.inlineLoadingRow}>
-                      <ActivityIndicator size="small" color="#2563EB" />
-                      <Text style={styles.inlineLoadingText}>Cargando fotos...</Text>
-                    </View>
-                  )}
                 </View>
-              );
-            }}
-            ListEmptyComponent={
-              selectedCampaign ? <Text style={styles.emptyText}>No hay productos en esta campaña</Text> : null
-            }
-          />
+
+                {(() => {
+                  const referencePhoto = getPhotoByType(item.productId, 'reference');
+                  const designPhoto = getPhotoByType(item.productId, 'design');
+                  const pricePhoto = getPhotoByType(item.productId, 'price');
+
+                  const referenceUploading = photoUploadingKey === `${item.productId}:reference`;
+
+                  return (
+                    <>
+                      <View style={styles.referenceDesignHeaderRow}>
+                        <TouchableOpacity
+                          style={styles.geminiGenerateButton}
+                          onPress={() => void openDesignModal(item)}
+                          disabled={submitting}
+                        >
+                          <Text style={styles.geminiGenerateButtonText}>Generar diseño</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.priceDesignButton}
+                          onPress={() => void openPricePhotoModal(item)}
+                          disabled={submitting}
+                        >
+                          <Text style={styles.priceDesignButtonText}>Agregar datos</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.photoTypesRow}>
+                        <View style={styles.photoTypeCard}>
+                          <Text style={styles.photoTypeLabel}>Referencia</Text>
+                          {referencePhoto ? (
+                            <TouchableOpacity
+                              onPress={() => openImageViewer(referencePhoto.fileUrl, 'Referencia')}
+                              activeOpacity={0.9}
+                              style={styles.photoTouchArea}
+                            >
+                              <Image
+                                source={{ uri: referencePhoto.fileUrl }}
+                                style={styles.photoThumb}
+                                resizeMode="cover"
+                              />
+                            </TouchableOpacity>
+                          ) : (
+                            <View style={styles.photoMissingBox}>
+                              <Text style={styles.photoMissingText}>Sin foto</Text>
+                            </View>
+                          )}
+                          <TouchableOpacity
+                            onPress={() => void pickAndUploadPhoto(item, 'reference')}
+                            disabled={referenceUploading || submitting}
+                          >
+                            {referenceUploading ? (
+                              <ActivityIndicator
+                                size="small"
+                                color={theme.color.brand.accent}
+                                style={styles.photoActionIndicator}
+                              />
+                            ) : (
+                              <Text style={styles.photoActionText}>
+                                {referencePhoto ? 'Reemplazar' : 'Subir'}
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.photoTypeCard}>
+                          <Text style={styles.photoTypeLabel}>Diseño</Text>
+                          {designPhoto ? (
+                            <TouchableOpacity
+                              onPress={() => openImageViewer(designPhoto.fileUrl, 'Diseño')}
+                              activeOpacity={0.9}
+                              style={styles.photoTouchArea}
+                            >
+                              <Image
+                                source={{ uri: designPhoto.fileUrl }}
+                                style={styles.photoThumb}
+                                resizeMode="cover"
+                              />
+                            </TouchableOpacity>
+                          ) : (
+                            <View style={styles.photoMissingBox}>
+                              <Text style={styles.photoMissingText}>Generar con Gemini</Text>
+                            </View>
+                          )}
+                          <Text style={styles.photoActionTextMuted}>
+                            Se genera desde referencia
+                          </Text>
+                        </View>
+
+                        <View style={styles.photoTypeCard}>
+                          <Text style={styles.photoTypeLabel}>Con precio</Text>
+                          {pricePhoto ? (
+                            <TouchableOpacity
+                              onPress={() => openImageViewer(pricePhoto.fileUrl, 'Con precio')}
+                              activeOpacity={0.9}
+                              style={styles.photoTouchArea}
+                            >
+                              <Image
+                                source={{ uri: pricePhoto.fileUrl }}
+                                style={styles.photoThumb}
+                                resizeMode="cover"
+                              />
+                            </TouchableOpacity>
+                          ) : (
+                            <View style={styles.photoMissingBox}>
+                              <Text style={styles.photoMissingText}>Paso específico</Text>
+                            </View>
+                          )}
+                          <Text style={styles.photoActionTextMuted}>
+                            Se llena en flujo específico
+                          </Text>
+                        </View>
+                      </View>
+                    </>
+                  );
+                })()}
+
+                {isLoadingPhotos && (
+                  <View style={styles.inlineLoadingRow}>
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                    <Text style={styles.inlineLoadingText}>Cargando fotos...</Text>
+                  </View>
+                )}
+              </View>
+            );
+          }}
+          ListEmptyComponent={
+            selectedCampaign ? (
+              <Text style={styles.emptyText}>No hay productos en esta campaña</Text>
+            ) : null
+          }
+        />
       </View>
 
       {!!selectedCampaign && (
-        <View style={styles.floatingActionsContainer} pointerEvents="box-none">
-          <TouchableOpacity
-            style={styles.floatingWhatsappButton}
-            onPress={() => void openWhatsappModal()}
-            disabled={submitting || whatsappContactsLoading}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.floatingWhatsappButtonText}>WhatsApp</Text>
-          </TouchableOpacity>
-        </View>
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'logo-whatsapp',
+              label: 'Enviar por WhatsApp',
+              onPress: () => void openWhatsappModal(),
+              requiredPermissions: [PERMISSIONS.PHOTO_CAMPAIGNS.UPDATE],
+            },
+          ]}
+        />
       )}
 
       <Modal visible={whatsappModalVisible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, styles.whatsappModalCard]}>
             <Text style={styles.modalTitle}>Enviar fotos por WhatsApp</Text>
-            <Text style={styles.geminiModalSubtitle}>
-              Campaña: {selectedCampaign?.name || '-'}
-            </Text>
+            <Text style={styles.geminiModalSubtitle}>Campaña: {selectedCampaign?.name || '-'}</Text>
 
             <ScrollView
               style={styles.whatsappBodyScroll}
@@ -1453,7 +1522,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               <Text style={styles.inputLabel}>Contacto destino</Text>
               {whatsappContactsLoading ? (
                 <View style={styles.inlineLoadingRow}>
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   <Text style={styles.inlineLoadingText}>Cargando contactos...</Text>
                 </View>
               ) : (
@@ -1474,7 +1543,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                         onPress={() => setWhatsappContactId(resolvedContactId)}
                         disabled={!resolvedContactId}
                       >
-                        <Text style={[styles.templateChipText, selected && styles.templateChipTextSelected]}>
+                        <Text
+                          style={[
+                            styles.templateChipText,
+                            selected && styles.templateChipTextSelected,
+                          ]}
+                        >
                           {label}
                         </Text>
                       </TouchableOpacity>
@@ -1489,7 +1563,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                   style={[styles.templateChip, whatsappSendAll && styles.templateChipSelected]}
                   onPress={() => setWhatsappSendAll(true)}
                 >
-                  <Text style={[styles.templateChipText, whatsappSendAll && styles.templateChipTextSelected]}>
+                  <Text
+                    style={[
+                      styles.templateChipText,
+                      whatsappSendAll && styles.templateChipTextSelected,
+                    ]}
+                  >
                     Todos
                   </Text>
                 </TouchableOpacity>
@@ -1497,7 +1576,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                   style={[styles.templateChip, !whatsappSendAll && styles.templateChipSelected]}
                   onPress={() => setWhatsappSendAll(false)}
                 >
-                  <Text style={[styles.templateChipText, !whatsappSendAll && styles.templateChipTextSelected]}>
+                  <Text
+                    style={[
+                      styles.templateChipText,
+                      !whatsappSendAll && styles.templateChipTextSelected,
+                    ]}
+                  >
                     Seleccionar
                   </Text>
                 </TouchableOpacity>
@@ -1510,16 +1594,21 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                     value={whatsappProductSearchQuery}
                     onChangeText={setWhatsappProductSearchQuery}
                     placeholder="Buscar producto por nombre o SKU"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
-                  <ScrollView style={styles.whatsappProductsList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                  <ScrollView
+                    style={styles.whatsappProductsList}
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                  >
                     {selectedCampaignProducts
                       .filter((item) => {
                         const query = whatsappProductSearchQuery.trim().toLowerCase();
                         if (!query) {
                           return true;
                         }
-                        const haystack = `${item.product?.title || ''} ${item.product?.sku || ''}`.toLowerCase();
+                        const haystack =
+                          `${item.product?.title || ''} ${item.product?.sku || ''}`.toLowerCase();
                         return haystack.includes(query);
                       })
                       .map((item) => {
@@ -1527,11 +1616,18 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                         return (
                           <TouchableOpacity
                             key={item.id}
-                            style={[styles.whatsappProductRow, selected && styles.whatsappProductRowSelected]}
+                            style={[
+                              styles.whatsappProductRow,
+                              selected && styles.whatsappProductRowSelected,
+                            ]}
                             onPress={() => toggleWhatsappProduct(item.productId)}
                           >
-                            <Text style={styles.whatsappProductTitle}>{item.product?.title || item.productId}</Text>
-                            <Text style={styles.whatsappProductMeta}>SKU: {item.product?.sku || '-'}</Text>
+                            <Text style={styles.whatsappProductTitle}>
+                              {item.product?.title || item.productId}
+                            </Text>
+                            <Text style={styles.whatsappProductMeta}>
+                              SKU: {item.product?.sku || '-'}
+                            </Text>
                           </TouchableOpacity>
                         );
                       })}
@@ -1549,7 +1645,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                       style={[styles.templateChip, selected && styles.templateChipSelected]}
                       onPress={() => toggleWhatsappPhotoType(photoType)}
                     >
-                      <Text style={[styles.templateChipText, selected && styles.templateChipTextSelected]}>
+                      <Text
+                        style={[
+                          styles.templateChipText,
+                          selected && styles.templateChipTextSelected,
+                        ]}
+                      >
                         {PHOTO_TYPE_LABELS[photoType]}
                       </Text>
                     </TouchableOpacity>
@@ -1564,7 +1665,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 value={whatsappCaption}
                 onChangeText={setWhatsappCaption}
                 placeholder="Ej: Hola, te compartimos las fotos de la campaña"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
             </ScrollView>
 
@@ -1572,18 +1673,15 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               <TouchableOpacity
                 style={styles.secondaryButton}
                 onPress={() => setWhatsappModalVisible(false)}
-                disabled={whatsappSubmitting}
               >
                 <Text style={styles.secondaryButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.whatsappButton}
                 onPress={() => void handleSendWhatsapp()}
-                disabled={whatsappSubmitting || !whatsappContactId}
+                disabled={!whatsappContactId}
               >
-                <Text style={styles.whatsappButtonText}>
-                  {whatsappSubmitting ? 'Enviando...' : 'Enviar WhatsApp'}
-                </Text>
+                <Text style={styles.whatsappButtonText}>Enviar WhatsApp</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1603,7 +1701,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.name}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, name: value }))}
               placeholder="Nombre *"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
             <Text style={styles.inputLabel}>Descripción</Text>
             <TextInput
@@ -1611,7 +1709,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.description}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, description: value }))}
               placeholder="Descripción"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
             <Text style={styles.inputLabel}>Fecha inicio</Text>
             <TextInput
@@ -1619,7 +1717,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.startDate}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, startDate: value }))}
               placeholder="Fecha inicio (YYYY-MM-DD)"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
             <Text style={styles.inputLabel}>Fecha fin</Text>
             <TextInput
@@ -1627,7 +1725,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.endDate}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, endDate: value }))}
               placeholder="Fecha fin (YYYY-MM-DD)"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
             <Text style={styles.inputLabel}>Notas</Text>
             <TextInput
@@ -1636,7 +1734,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               value={campaignForm.notes}
               onChangeText={(value) => setCampaignForm((prev) => ({ ...prev, notes: value }))}
               placeholder="Notas"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <View style={styles.modalActions}>
@@ -1652,7 +1750,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 onPress={handleSaveCampaign}
                 disabled={submitting}
               >
-                <Text style={styles.primaryButtonText}>{submitting ? 'Guardando...' : 'Guardar'}</Text>
+                <Text style={styles.primaryButtonText}>
+                  {submitting ? 'Guardando...' : 'Guardar'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1679,7 +1779,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 value={designPrompt}
                 onChangeText={setDesignPrompt}
                 placeholder="Describe cómo quieres generar la foto de diseño..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
 
               <View style={styles.geminiModalActionsTop}>
@@ -1695,7 +1795,11 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               </View>
 
               {designPreviewUri ? (
-                <Image source={{ uri: designPreviewUri }} style={styles.geminiPreviewImage} resizeMode="cover" />
+                <Image
+                  source={{ uri: designPreviewUri }}
+                  style={styles.geminiPreviewImage}
+                  resizeMode="cover"
+                />
               ) : (
                 <View style={styles.geminiPreviewPlaceholder}>
                   <Text style={styles.photoMissingText}>Aquí verás la vista previa del diseño</Text>
@@ -1723,7 +1827,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                   onPress={() => void handleAcceptGeneratedDesign()}
                   disabled={!designPreviewUri || designGenerating || designSaving}
                 >
-                  <Text style={styles.primaryButtonText}>{designSaving ? 'Guardando...' : 'Aceptar y guardar'}</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {designSaving ? 'Guardando...' : 'Aceptar y guardar'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1741,7 +1847,8 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>Diseño con precio</Text>
               <Text style={styles.geminiModalSubtitle}>
-                Producto: {pricePhotoTargetItem?.product?.title || pricePhotoTargetItem?.productId || '-'}
+                Producto:{' '}
+                {pricePhotoTargetItem?.product?.title || pricePhotoTargetItem?.productId || '-'}
               </Text>
 
               <Text style={styles.inputLabel}>Nombre</Text>
@@ -1750,7 +1857,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 value={pricePhotoForm.name}
                 onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, name: value }))}
                 placeholder="Nombre"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
               <Text style={styles.inputLabel}>SKU</Text>
               <TextInput
@@ -1758,12 +1865,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 value={pricePhotoForm.sku}
                 onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, sku: value }))}
                 placeholder="SKU"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
               <Text style={styles.inputLabel}>Perfil de precio</Text>
               {priceProfilesLoading ? (
                 <View style={styles.inlineLoadingRow}>
-                  <ActivityIndicator size="small" color="#2563EB" />
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   <Text style={styles.inlineLoadingText}>Cargando perfiles...</Text>
                 </View>
               ) : (
@@ -1781,11 +1888,18 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                           setPricePhotoForm((prev) => ({
                             ...prev,
                             profileId: profile.id,
-                            price: matchedPrice ? (matchedPrice.priceCents / 100).toFixed(2) : prev.price,
+                            price: matchedPrice
+                              ? (matchedPrice.priceCents / 100).toFixed(2)
+                              : prev.price,
                           }));
                         }}
                       >
-                        <Text style={[styles.templateChipText, selected && styles.templateChipTextSelected]}>
+                        <Text
+                          style={[
+                            styles.templateChipText,
+                            selected && styles.templateChipTextSelected,
+                          ]}
+                        >
                           {profile.name}
                         </Text>
                       </TouchableOpacity>
@@ -1801,7 +1915,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 keyboardType="numeric"
                 onChangeText={(value) => setPricePhotoForm((prev) => ({ ...prev, price: value }))}
                 placeholder="Precio"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
 
               <Text style={styles.inputLabel}>Template</Text>
@@ -1812,9 +1926,16 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                     <TouchableOpacity
                       key={templateKey}
                       style={[styles.templateChip, selected && styles.templateChipSelected]}
-                      onPress={() => setPricePhotoForm((prev) => ({ ...prev, template: templateKey }))}
+                      onPress={() =>
+                        setPricePhotoForm((prev) => ({ ...prev, template: templateKey }))
+                      }
                     >
-                      <Text style={[styles.templateChipText, selected && styles.templateChipTextSelected]}>
+                      <Text
+                        style={[
+                          styles.templateChipText,
+                          selected && styles.templateChipTextSelected,
+                        ]}
+                      >
                         {templateKey}
                       </Text>
                     </TouchableOpacity>
@@ -1835,8 +1956,15 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               </View>
 
               {pricePhotoPreviewUri ? (
-                <TouchableOpacity onPress={() => openImageViewer(pricePhotoPreviewUri, 'Vista previa con precio')} activeOpacity={0.9}>
-                  <Image source={{ uri: pricePhotoPreviewUri }} style={styles.geminiPreviewImage} resizeMode="cover" />
+                <TouchableOpacity
+                  onPress={() => openImageViewer(pricePhotoPreviewUri, 'Vista previa con precio')}
+                  activeOpacity={0.9}
+                >
+                  <Image
+                    source={{ uri: pricePhotoPreviewUri }}
+                    style={styles.geminiPreviewImage}
+                    resizeMode="cover"
+                  />
                 </TouchableOpacity>
               ) : (
                 <View style={styles.geminiPreviewPlaceholder}>
@@ -1865,9 +1993,13 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                 <TouchableOpacity
                   style={styles.primaryButton}
                   onPress={() => void handleSavePricePhoto()}
-                  disabled={!pricePhotoHasGeneratedPreview || pricePhotoGenerating || pricePhotoSaving}
+                  disabled={
+                    !pricePhotoHasGeneratedPreview || pricePhotoGenerating || pricePhotoSaving
+                  }
                 >
-                  <Text style={styles.primaryButtonText}>{pricePhotoSaving ? 'Guardando...' : 'Guardar foto con precio'}</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {pricePhotoSaving ? 'Guardando...' : 'Guardar foto con precio'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1913,670 +2045,669 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
           </GestureHandlerRootView>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  loaderWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loaderText: {
-    marginTop: spacing[3],
-    color: colors.text.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backText: {
-    fontSize: 22,
-    color: colors.text.primary,
-  },
-  headerTitle: {
-    flex: 1,
-    marginHorizontal: spacing[2],
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  headerSpacer: {
-    width: 40,
-    height: 40,
-  },
-  mainContent: {
-    flex: 1,
-    backgroundColor: colors.surface.primary,
-    padding: spacing[3],
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: colors.border.medium,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.secondary,
-    color: colors.text.primary,
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[2],
-    marginBottom: spacing[2.5],
-  },
-  inputLabel: {
-    marginTop: spacing[0.5],
-    marginBottom: spacing[1.5],
-    color: colors.text.secondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  productsFilterInput: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  campaignList: {
-    flex: 1,
-  },
-  campaignCard: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  campaignCardSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
-  },
-  campaignCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  campaignCode: {
-    fontSize: 12,
-    color: '#475569',
-    fontWeight: '700',
-  },
-  campaignStatus: {
-    fontSize: 12,
-    color: '#2563EB',
-    fontWeight: '700',
-  },
-  campaignName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  campaignDescription: {
-    marginTop: 4,
-    color: '#475569',
-    fontSize: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  sectionSubtitle: {
-    marginTop: 2,
-    color: '#475569',
-    fontSize: 12,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  productsToolbar: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  floatingActionsContainer: {
-    position: 'absolute',
-    right: 20,
-    bottom: 130,
-    zIndex: 999,
-    alignItems: 'flex-end',
-    gap: 10,
-  },
-  floatingSecondaryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: '#2563EB',
-    minWidth: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  floatingSecondaryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  floatingWhatsappButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: '#DCFCE7',
-    minWidth: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  floatingWhatsappButtonText: {
-    color: '#166534',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  productsList: {
-    flex: 1,
-    marginTop: 8,
-  },
-  productItemCard: {
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    padding: spacing[2.5],
-    marginBottom: spacing[2],
-    backgroundColor: colors.surface.primary,
-    ...shadows.sm,
-  },
-  productHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  productItemMain: {
-    flex: 1,
-  },
-  productTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  productMeta: {
-    color: '#475569',
-    fontSize: 12,
-  },
-  photoCompletionText: {
-    marginTop: 6,
-    color: '#2563EB',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  itemActions: {
-    justifyContent: 'center',
-    gap: 6,
-  },
-  referenceDesignHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  photoTypesRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 4,
-    alignItems: 'center',
-  },
-  photoTypeCard: {
-    flex: 1,
-    minWidth: 145,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
-    padding: 10,
-    alignItems: 'center',
-  },
-  photoTouchArea: {
-    width: '100%',
-  },
-  geminiGenerateButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    minWidth: 130,
-  },
-  geminiGenerateButtonText: {
-    textAlign: 'center',
-    color: '#4338CA',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  priceDesignButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#ECFDF5',
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    minWidth: 120,
-  },
-  priceDesignButtonText: {
-    textAlign: 'center',
-    color: '#047857',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  photoTypeLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#334155',
-    marginBottom: 6,
-  },
-  photoThumb: {
-    width: '100%',
-    aspectRatio: 1.35,
-    borderRadius: 6,
-    backgroundColor: '#E2E8F0',
-  },
-  photoMissingBox: {
-    width: '100%',
-    aspectRatio: 1.35,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  photoMissingText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  photoActionText: {
-    marginTop: 6,
-    color: '#2563EB',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  photoActionTextMuted: {
-    marginTop: 6,
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  photoActionIndicator: {
-    marginTop: 6,
-  },
-  inlineLoadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  inlineLoadingText: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  primaryButton: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary[900],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
-    color: colors.text.inverse,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  secondaryButton: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.text.primary,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  dangerButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dangerButtonText: {
-    color: '#B91C1C',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  whatsappButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#DCFCE7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  whatsappButtonText: {
-    color: '#166534',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.text.tertiary,
-    marginTop: spacing[4],
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 560,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
-    padding: spacing[3.5],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    ...shadows.md,
-  },
-  modalScroll: {
-    width: '100%',
-  },
-  modalScrollContent: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 10,
-  },
-  whatsappModalCard: {
-    maxHeight: '85%',
-    paddingBottom: 0,
-  },
-  whatsappBodyScroll: {
-    maxHeight: 520,
-  },
-  whatsappBodyScrollContent: {
-    paddingBottom: 12,
-  },
-  whatsappProductsList: {
-    maxHeight: 220,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    marginBottom: 10,
-    backgroundColor: '#F8FAFC',
-  },
-  whatsappProductRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  whatsappProductRowSelected: {
-    backgroundColor: '#DBEAFE',
-  },
-  whatsappProductTitle: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  whatsappProductMeta: {
-    color: '#64748B',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  whatsappModalFooter: {
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 10,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border.medium,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
-    color: colors.text.primary,
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[2],
-    marginBottom: spacing[2],
-  },
-  multiline: {
-    minHeight: 74,
-    textAlignVertical: 'top',
-  },
-  modalActions: {
-    marginTop: 8,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  geminiModalSubtitle: {
-    color: '#475569',
-    marginBottom: 8,
-    fontSize: 12,
-  },
-  geminiModalActionsTop: {
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  templateRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  templateRowWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 10,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  templateChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
-  },
-  templateChipSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#DBEAFE',
-  },
-  templateChipText: {
-    color: '#334155',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  templateChipTextSelected: {
-    color: '#1D4ED8',
-    fontWeight: '700',
-  },
-  geminiPreviewImage: {
-    width: '100%',
-    aspectRatio: 1.35,
-    borderRadius: 8,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 8,
-  },
-  geminiPreviewPlaceholder: {
-    width: '100%',
-    aspectRatio: 1.35,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-  },
-  inlineLoader: {
-    marginBottom: 8,
-  },
-  suggestionsContainer: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    maxHeight: 240,
-    marginBottom: 8,
-  },
-  suggestionsContainerInline: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    height: 180,
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  suggestionsList: {
-    flex: 1,
-  },
-  suggestionsLoadingWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 8,
-  },
-  suggestionsLoadingText: {
-    color: '#64748B',
-    fontSize: 12,
-  },
-  searchResultItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    padding: 8,
-    backgroundColor: '#F8FAFC',
-  },
-  searchResultTitle: {
-    color: '#0F172A',
-    fontWeight: '600',
-  },
-  searchResultMeta: {
-    marginTop: 2,
-    fontSize: 12,
-    color: '#64748B',
-  },
-  emptySuggestionsText: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    color: '#64748B',
-    textAlign: 'center',
-    fontSize: 12,
-  },
-  imageViewerBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(2, 6, 23, 0.95)',
-  },
-  imageViewerHeader: {
-    paddingTop: 44,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  imageViewerTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  imageViewerCloseButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-  },
-  imageViewerCloseText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  imageViewerContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imageViewerImageWrap: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imageViewerImage: {
-    width: '100%',
-    height: '100%',
-  },
-
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loaderWrap: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loaderText: {
+      marginTop: theme.space[3],
+      color: theme.color.text.muted,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    backText: {
+      fontSize: 22,
+      color: theme.color.text.body,
+    },
+    headerTitle: {
+      flex: 1,
+      marginHorizontal: theme.space[2],
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.body,
+    },
+    headerSpacer: {
+      width: 40,
+      height: 40,
+    },
+    mainContent: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+      padding: theme.space[3],
+    },
+    searchInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.background.subtle,
+      color: theme.color.text.body,
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[2],
+      marginBottom: theme.space[2.5],
+    },
+    inputLabel: {
+      marginTop: theme.space[0.5],
+      marginBottom: theme.space[1.5],
+      color: theme.color.text.muted,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    productsFilterInput: {
+      flex: 1,
+      marginBottom: 0,
+    },
+    campaignList: {
+      flex: 1,
+    },
+    campaignCard: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 10,
+      padding: 10,
+      marginBottom: 8,
+      backgroundColor: theme.color.surface.base,
+    },
+    campaignCardSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    campaignCardTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    campaignCode: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontWeight: '700',
+    },
+    campaignStatus: {
+      fontSize: 12,
+      color: theme.color.brand.accent,
+      fontWeight: '700',
+    },
+    campaignName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    campaignDescription: {
+      marginTop: 4,
+      color: theme.color.text.muted,
+      fontSize: 12,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    sectionSubtitle: {
+      marginTop: 2,
+      color: theme.color.text.muted,
+      fontSize: 12,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    productsToolbar: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    floatingActionsContainer: {
+      position: 'absolute',
+      right: 20,
+      bottom: 130,
+      zIndex: 999,
+      alignItems: 'flex-end',
+      gap: 10,
+    },
+    floatingSecondaryButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      backgroundColor: theme.color.brand.accent,
+      minWidth: 120,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
+      elevation: 5,
+    },
+    floatingSecondaryButtonText: {
+      color: theme.color.text.onAction,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    floatingWhatsappButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      backgroundColor: theme.color.state.success.background,
+      minWidth: 120,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
+      elevation: 5,
+    },
+    floatingWhatsappButtonText: {
+      color: theme.color.state.success.text,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    productsList: {
+      flex: 1,
+      marginTop: 8,
+    },
+    productItemCard: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[2.5],
+      marginBottom: theme.space[2],
+      backgroundColor: theme.color.surface.base,
+      ...theme.shadow.sm,
+    },
+    productHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    productItemMain: {
+      flex: 1,
+    },
+    productTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    productMeta: {
+      color: theme.color.text.muted,
+      fontSize: 12,
+    },
+    photoCompletionText: {
+      marginTop: 6,
+      color: theme.color.brand.accent,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    itemActions: {
+      justifyContent: 'center',
+      gap: 6,
+    },
+    referenceDesignHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 8,
+      marginBottom: 8,
+    },
+    photoTypesRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 4,
+      alignItems: 'center',
+    },
+    photoTypeCard: {
+      flex: 1,
+      minWidth: 145,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      backgroundColor: theme.color.background.subtle,
+      padding: 10,
+      alignItems: 'center',
+    },
+    photoTouchArea: {
+      width: '100%',
+    },
+    geminiGenerateButton: {
+      alignSelf: 'flex-start',
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+      borderRadius: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      minWidth: 130,
+    },
+    geminiGenerateButtonText: {
+      textAlign: 'center',
+      color: theme.color.brand.accent,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    priceDesignButton: {
+      alignSelf: 'flex-start',
+      backgroundColor: theme.color.state.success.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+      borderRadius: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      minWidth: 120,
+    },
+    priceDesignButtonText: {
+      textAlign: 'center',
+      color: theme.color.state.success.text,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    photoTypeLabel: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      marginBottom: 6,
+    },
+    photoThumb: {
+      width: '100%',
+      aspectRatio: 1.35,
+      borderRadius: 6,
+      backgroundColor: theme.color.border.subtle,
+    },
+    photoMissingBox: {
+      width: '100%',
+      aspectRatio: 1.35,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.color.border.strong,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.base,
+    },
+    photoMissingText: {
+      color: theme.color.text.placeholder,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    photoActionText: {
+      marginTop: 6,
+      color: theme.color.brand.accent,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    photoActionTextMuted: {
+      marginTop: 6,
+      color: theme.color.text.subtle,
+      fontSize: 11,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    photoActionIndicator: {
+      marginTop: 6,
+    },
+    inlineLoadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      marginTop: 8,
+    },
+    inlineLoadingText: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    primaryButton: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.brand.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    primaryButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    secondaryButton: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    secondaryButtonText: {
+      color: theme.color.text.body,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    dangerButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: theme.color.state.danger.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dangerButtonText: {
+      color: theme.color.state.danger.text,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    whatsappButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: theme.color.state.success.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    whatsappButtonText: {
+      color: theme.color.state.success.text,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    emptyText: {
+      textAlign: 'center',
+      color: theme.color.text.subtle,
+      marginTop: theme.space[4],
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 16,
+    },
+    modalCard: {
+      width: '100%',
+      maxWidth: 560,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.base,
+      padding: theme.space[3.5],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      ...theme.shadow.md,
+    },
+    modalScroll: {
+      width: '100%',
+    },
+    modalScrollContent: {
+      flexGrow: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 8,
+    },
+    modalTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 10,
+    },
+    whatsappModalCard: {
+      maxHeight: '85%',
+      paddingBottom: 0,
+    },
+    whatsappBodyScroll: {
+      maxHeight: 520,
+    },
+    whatsappBodyScrollContent: {
+      paddingBottom: 12,
+    },
+    whatsappProductsList: {
+      maxHeight: 220,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      marginBottom: 10,
+      backgroundColor: theme.color.background.subtle,
+    },
+    whatsappProductRow: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    whatsappProductRowSelected: {
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    whatsappProductTitle: {
+      color: theme.color.text.heading,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    whatsappProductMeta: {
+      color: theme.color.text.subtle,
+      fontSize: 11,
+      marginTop: 2,
+    },
+    whatsappModalFooter: {
+      marginTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      paddingTop: 10,
+      paddingBottom: 12,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 8,
+      backgroundColor: theme.color.surface.base,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.base,
+      color: theme.color.text.body,
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[2],
+      marginBottom: theme.space[2],
+    },
+    multiline: {
+      minHeight: 74,
+      textAlignVertical: 'top',
+    },
+    modalActions: {
+      marginTop: 8,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 8,
+    },
+    geminiModalSubtitle: {
+      color: theme.color.text.muted,
+      marginBottom: 8,
+      fontSize: 12,
+    },
+    geminiModalActionsTop: {
+      alignItems: 'flex-start',
+      marginBottom: 10,
+    },
+    templateRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 10,
+    },
+    templateRowWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 10,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 10,
+    },
+    templateChip: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.color.border.strong,
+      backgroundColor: theme.color.background.subtle,
+    },
+    templateChipSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    templateChipText: {
+      color: theme.color.text.muted,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    templateChipTextSelected: {
+      color: theme.color.text.link,
+      fontWeight: '700',
+    },
+    geminiPreviewImage: {
+      width: '100%',
+      aspectRatio: 1.35,
+      borderRadius: 8,
+      backgroundColor: theme.color.border.subtle,
+      marginBottom: 8,
+    },
+    geminiPreviewPlaceholder: {
+      width: '100%',
+      aspectRatio: 1.35,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.color.border.strong,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.base,
+      marginBottom: 8,
+    },
+    inlineLoader: {
+      marginBottom: 8,
+    },
+    suggestionsContainer: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.base,
+      maxHeight: 240,
+      marginBottom: 8,
+    },
+    suggestionsContainerInline: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.base,
+      height: 180,
+      marginBottom: 8,
+      overflow: 'hidden',
+    },
+    suggestionsList: {
+      flex: 1,
+    },
+    suggestionsLoadingWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 12,
+      gap: 8,
+    },
+    suggestionsLoadingText: {
+      color: theme.color.text.subtle,
+      fontSize: 12,
+    },
+    searchResultItem: {
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      padding: 8,
+      backgroundColor: theme.color.background.subtle,
+    },
+    searchResultTitle: {
+      color: theme.color.text.heading,
+      fontWeight: '600',
+    },
+    searchResultMeta: {
+      marginTop: 2,
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    emptySuggestionsText: {
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+      fontSize: 12,
+    },
+    imageViewerBackdrop: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.strong,
+    },
+    imageViewerHeader: {
+      paddingTop: 44,
+      paddingHorizontal: 16,
+      paddingBottom: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    imageViewerTitle: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    imageViewerCloseButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: theme.color.brand.headerBadge,
+    },
+    imageViewerCloseText: {
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    imageViewerContent: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    imageViewerImageWrap: {
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    imageViewerImage: {
+      width: '100%',
+      height: '100%',
+    },
+  });

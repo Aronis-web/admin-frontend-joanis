@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +16,9 @@ import { Expense, ExpenseTemplate } from '@/types/expenses';
 import { ExpenseCard } from '@/components/Expenses/ExpenseCard';
 import { ReconcileAmountModal } from '@/components/Expenses/ReconcileAmountModal';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface TemplateExpensesScreenProps {
   route: {
@@ -32,6 +34,8 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
   route,
   navigation,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { templateId, templateName } = route.params;
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +124,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>
             Gastos Generados
@@ -128,7 +132,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
           <View style={styles.headerRight} />
         </View>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#DC2626" />
+          <ActivityIndicator size="large" color={theme.color.state.danger.border} />
           <Text style={styles.loadingText}>Cargando gastos...</Text>
         </View>
       </SafeAreaView>
@@ -139,7 +143,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -154,7 +158,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
 
       {expenses.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="receipt-outline" size={64} color="#CBD5E1" />
+          <Ionicons name="receipt-outline" size={64} color={theme.color.icon.subtle} />
           <Text style={styles.emptyText}>No hay gastos generados</Text>
           <Text style={styles.emptySubtext}>
             Esta plantilla aún no ha generado gastos automáticamente
@@ -186,7 +190,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Total Pagado:</Text>
-              <Text style={[styles.summaryValue, { color: '#10B981' }]}>
+              <Text style={[styles.summaryValue, { color: theme.color.text.success }]}>
                 {expenses[0]?.currency || 'PEN'}{' '}
                 {(expenses.reduce((sum, exp) => sum + (exp.totalPaidCents || 0), 0) / 100).toFixed(
                   2
@@ -195,7 +199,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Total Pendiente:</Text>
-              <Text style={[styles.summaryValue, { color: '#F59E0B' }]}>
+              <Text style={[styles.summaryValue, { color: theme.color.text.warning }]}>
                 {expenses[0]?.currency || 'PEN'}{' '}
                 {(
                   expenses.reduce((sum, exp) => sum + (exp.remainingAmountCents || 0), 0) / 100
@@ -236,10 +240,10 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   header: {
     flexDirection: 'row',
@@ -247,9 +251,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -261,12 +265,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'center',
     marginTop: 2,
   },
@@ -275,7 +279,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   scrollContent: {
     padding: 16,
@@ -285,34 +289,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     textAlign: 'center',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     textAlign: 'center',
     paddingHorizontal: 32,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -322,13 +326,13 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   summaryValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
 });
 

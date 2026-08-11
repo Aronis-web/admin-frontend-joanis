@@ -3,7 +3,7 @@
     "name": "ERP-aio",
     "slug": "panel-admin-grit",
     "scheme": "erp-aio",
-    "version": "1.0.44",
+    "version": "1.0.83",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/logo.png",
@@ -42,7 +42,11 @@
         "READ_MEDIA_VIDEO",
         "READ_MEDIA_AUDIO",
         "CAMERA",
-        "REQUEST_INSTALL_PACKAGES"
+        "REQUEST_INSTALL_PACKAGES",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT"
       ],
       "config": {
         "googleMaps": {
@@ -73,7 +77,15 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": ["central"],
+          "bluetoothAlwaysPermission": "Esta app necesita Bluetooth para comunicarse con las etiquetas electrónicas Leeka."
+        }
+      ]
     ]
   }
 }

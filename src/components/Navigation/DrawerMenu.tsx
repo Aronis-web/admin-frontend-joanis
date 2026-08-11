@@ -24,22 +24,10 @@ import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
 
 // Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-  activeOpacity,
-  iconSizes,
-} from '@/design-system/tokens';
-import {
-  Text,
-  Title,
-  Caption,
-  Avatar,
-  Divider,
-  IconButton,
-} from '@/design-system/components';
+import { activeOpacity, iconSizes } from '@/design-system/tokens';
+import { Text, Title, Caption, Avatar, Divider, IconButton } from '@/design-system/components';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 // Settings Modal
 import { SettingsModal } from './SettingsModal';
@@ -160,14 +148,22 @@ const menuCategories: MenuCategory[] = [
             icon: 'trending-up-outline',
             label: 'Cuentas por Cobrar',
             route: MAIN_ROUTES.ACCOUNTS_RECEIVABLE,
-            requiredPermissions: ['accounts-receivable.read', 'accounts-receivable.read-own-company', 'accounts-receivable.read-all'],
+            requiredPermissions: [
+              'accounts-receivable.read',
+              'accounts-receivable.read-own-company',
+              'accounts-receivable.read-all',
+            ],
           },
           {
             id: 'accounts-payable',
             icon: 'trending-down-outline',
             label: 'Cuentas por Pagar',
             route: MAIN_ROUTES.ACCOUNTS_PAYABLE,
-            requiredPermissions: ['accounts-payable.read', 'accounts-payable.read-own-company', 'accounts-payable.read-all'],
+            requiredPermissions: [
+              'accounts-payable.read',
+              'accounts-payable.read-own-company',
+              'accounts-payable.read-all',
+            ],
           },
         ],
       },
@@ -192,7 +188,6 @@ const menuCategories: MenuCategory[] = [
           },
         ],
       },
-
     ],
   },
   // Inventario
@@ -221,6 +216,22 @@ const menuCategories: MenuCategory[] = [
         label: 'Campañas de Fotos',
         route: MAIN_ROUTES.PHOTOS,
         requiredPermissions: ['photo_campaigns.read'],
+      },
+      {
+        id: 'etiquetas',
+        icon: 'pricetag-outline',
+        label: 'Etiquetas Electrónicas',
+        route: MAIN_ROUTES.ETIQUETAS,
+        // Sin permisos por ahora (etapa de desarrollo).
+        requiredPermissions: [],
+      },
+      {
+        id: 'tickets-turno',
+        icon: 'receipt-outline',
+        label: 'Tickets de Turno',
+        route: MAIN_ROUTES.SHIFT_TICKETS,
+        // Módulo libre: sin permisos.
+        requiredPermissions: [],
       },
     ],
   },
@@ -349,6 +360,63 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Asistencia
+  {
+    id: 'asistencia',
+    title: 'Asistencia',
+    icon: 'finger-print-outline',
+    requiredPermissions: [
+      'attendance.read.all',
+      'attendance.read.own',
+      'attendance.terminals.read',
+    ],
+    items: [
+      {
+        id: 'attendance-workers',
+        icon: 'people-outline',
+        label: 'Asistencia',
+        route: MAIN_ROUTES.ATTENDANCE,
+        requiredPermissions: ['attendance.read.all', 'attendance.read.own'],
+      },
+      {
+        id: 'attendance-terminals',
+        icon: 'hardware-chip-outline',
+        label: 'Terminales',
+        route: MAIN_ROUTES.ATTENDANCE_TERMINALS,
+        requiredPermissions: ['attendance.terminals.read'],
+      },
+    ],
+  },
+  // Correo
+  {
+    id: 'webmail',
+    title: 'Correo',
+    icon: 'mail-outline',
+    requiredPermissions: ['webmail.read', 'webmail.archive.read'],
+    items: [
+      {
+        id: 'webmail-inbox',
+        icon: 'file-tray-outline',
+        label: 'Bandeja',
+        route: MAIN_ROUTES.WEBMAIL_INBOX,
+        requiredPermissions: ['webmail.read'],
+      },
+      {
+        id: 'webmail-compose',
+        icon: 'create-outline',
+        label: 'Redactar',
+        route: MAIN_ROUTES.WEBMAIL_COMPOSE,
+        requiredPermissions: ['webmail.send'],
+      },
+      {
+        id: 'webmail-archive',
+        icon: 'file-tray-full-outline',
+        label: 'Archivo histórico',
+        route: MAIN_ROUTES.WEBMAIL_ARCHIVE,
+        requiredPermissions: ['webmail.archive.read'],
+      },
+    ],
+  },
   // Configuración
   {
     id: 'config',
@@ -391,7 +459,12 @@ const menuCategories: MenuCategory[] = [
             icon: 'storefront-outline',
             label: 'Proveedores',
             route: MAIN_ROUTES.SUPPLIERS,
-            requiredPermissions: ['suppliers.read', 'suppliers.create', 'suppliers.update', 'providers.read'],
+            requiredPermissions: [
+              'suppliers.read',
+              'suppliers.create',
+              'suppliers.update',
+              'providers.read',
+            ],
           },
         ],
       },
@@ -447,7 +520,10 @@ const menuCategories: MenuCategory[] = [
             icon: 'git-network-outline',
             label: 'Organigrama',
             route: MAIN_ROUTES.ORGANIZATION_CHART,
-            requiredPermissions: ['organization.positions.company.read', 'organization.positions.site.read'],
+            requiredPermissions: [
+              'organization.positions.company.read',
+              'organization.positions.site.read',
+            ],
           },
           {
             id: 'roles',
@@ -498,6 +574,12 @@ const menuCategories: MenuCategory[] = [
             route: MAIN_ROUTES.APP_VERSIONS,
             requiredPermissions: ['apps.manage', 'apps.read'],
           },
+          {
+            id: 'theme-playground',
+            icon: 'color-palette-outline',
+            label: 'Theme Playground',
+            route: MAIN_ROUTES.THEME_PLAYGROUND,
+          },
         ],
       },
     ],
@@ -514,6 +596,8 @@ interface DrawerMenuProps {
 }
 
 export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side = 'left' }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [slideAnim] = useState(new Animated.Value(side === 'left' ? -300 : 300));
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubItems, setExpandedSubItems] = useState<Set<string>>(new Set());
@@ -678,14 +762,18 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                 onPress={handleSiteChange}
                 activeOpacity={activeOpacity.medium}
               >
-                <Ionicons name="business" size={iconSizes.md} color={colors.primary[900]} />
+                <Ionicons name="business" size={iconSizes.md} color={theme.color.brand.primary} />
                 <View style={styles.siteSelectorText}>
                   <Caption color="tertiary">Sede actual</Caption>
                   <Text variant="labelMedium" color="primary" numberOfLines={1}>
                     {selectedSite.name}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={iconSizes.sm} color={colors.icon.tertiary} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={iconSizes.sm}
+                  color={theme.color.icon.subtle}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -716,7 +804,11 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                     disabled={!item.route}
                   >
                     <View style={styles.menuItemIcon}>
-                      <Ionicons name={item.icon} size={iconSizes.md} color={colors.icon.secondary} />
+                      <Ionicons
+                        name={item.icon}
+                        size={iconSizes.md}
+                        color={theme.color.icon.muted}
+                      />
                     </View>
                     <Text variant="bodyMedium" color="primary">
                       {item.label}
@@ -735,7 +827,11 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                   >
                     <View style={styles.categoryHeaderLeft}>
                       <View style={styles.menuItemIcon}>
-                        <Ionicons name={category.icon} size={iconSizes.md} color={colors.icon.secondary} />
+                        <Ionicons
+                          name={category.icon}
+                          size={iconSizes.md}
+                          color={theme.color.icon.muted}
+                        />
                       </View>
                       <Text variant="titleSmall" color="primary">
                         {category.title}
@@ -744,68 +840,86 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                     <Ionicons
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
                       size={iconSizes.sm}
-                      color={colors.icon.tertiary}
+                      color={theme.color.icon.subtle}
                     />
                   </TouchableOpacity>
 
-                  {isExpanded && category.items.map((item) => {
-                    if (item.subItems && item.subItems.length > 0) {
-                      const isSubExpanded = expandedSubItems.has(item.id);
-                      return (
-                        <View key={item.id}>
-                          <TouchableOpacity
-                            style={styles.subCategoryHeader}
-                            onPress={() => toggleSubItem(item.id)}
-                            activeOpacity={activeOpacity.medium}
-                          >
-                            <View style={styles.subMenuItemIcon}>
-                              <Ionicons name={item.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
-                            </View>
-                            <Text variant="bodySmall" color="secondary" style={styles.subMenuLabel}>
-                              {item.label}
-                            </Text>
-                            <Ionicons
-                              name={isSubExpanded ? 'chevron-up' : 'chevron-down'}
-                              size={iconSizes.xs}
-                              color={colors.icon.tertiary}
-                            />
-                          </TouchableOpacity>
-
-                          {isSubExpanded && item.subItems.map((subItem) => (
+                  {isExpanded &&
+                    category.items.map((item) => {
+                      if (item.subItems && item.subItems.length > 0) {
+                        const isSubExpanded = expandedSubItems.has(item.id);
+                        return (
+                          <View key={item.id}>
                             <TouchableOpacity
-                              key={subItem.id}
-                              style={styles.subMenuItem}
-                              onPress={() => handleMenuItemPress(subItem.route)}
+                              style={styles.subCategoryHeader}
+                              onPress={() => toggleSubItem(item.id)}
                               activeOpacity={activeOpacity.medium}
                             >
-                              <View style={styles.subMenuItemIconSmall}>
-                                <Ionicons name={subItem.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
+                              <View style={styles.subMenuItemIcon}>
+                                <Ionicons
+                                  name={item.icon}
+                                  size={iconSizes.sm}
+                                  color={theme.color.icon.subtle}
+                                />
                               </View>
-                              <Text variant="bodySmall" color="secondary">
-                                {subItem.label}
+                              <Text
+                                variant="bodySmall"
+                                color="secondary"
+                                style={styles.subMenuLabel}
+                              >
+                                {item.label}
                               </Text>
+                              <Ionicons
+                                name={isSubExpanded ? 'chevron-up' : 'chevron-down'}
+                                size={iconSizes.xs}
+                                color={theme.color.icon.subtle}
+                              />
                             </TouchableOpacity>
-                          ))}
-                        </View>
-                      );
-                    }
 
-                    return (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={styles.categoryItem}
-                        onPress={() => handleMenuItemPress(item.route)}
-                        activeOpacity={activeOpacity.medium}
-                      >
-                        <View style={styles.subMenuItemIcon}>
-                          <Ionicons name={item.icon} size={iconSizes.sm} color={colors.icon.tertiary} />
-                        </View>
-                        <Text variant="bodySmall" color="secondary">
-                          {item.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                            {isSubExpanded &&
+                              item.subItems.map((subItem) => (
+                                <TouchableOpacity
+                                  key={subItem.id}
+                                  style={styles.subMenuItem}
+                                  onPress={() => handleMenuItemPress(subItem.route)}
+                                  activeOpacity={activeOpacity.medium}
+                                >
+                                  <View style={styles.subMenuItemIconSmall}>
+                                    <Ionicons
+                                      name={subItem.icon}
+                                      size={iconSizes.sm}
+                                      color={theme.color.icon.subtle}
+                                    />
+                                  </View>
+                                  <Text variant="bodySmall" color="secondary">
+                                    {subItem.label}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                          </View>
+                        );
+                      }
+
+                      return (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={styles.categoryItem}
+                          onPress={() => handleMenuItemPress(item.route)}
+                          activeOpacity={activeOpacity.medium}
+                        >
+                          <View style={styles.subMenuItemIcon}>
+                            <Ionicons
+                              name={item.icon}
+                              size={iconSizes.sm}
+                              color={theme.color.icon.subtle}
+                            />
+                          </View>
+                          <Text variant="bodySmall" color="secondary">
+                            {item.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                 </View>
               );
             })}
@@ -819,8 +933,16 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
               onPress={handleLogout}
               activeOpacity={activeOpacity.medium}
             >
-              <Ionicons name="log-out-outline" size={iconSizes.lg} color={colors.danger[600]} />
-              <Text variant="buttonMedium" color={colors.danger[600]} style={styles.logoutText}>
+              <Ionicons
+                name="log-out-outline"
+                size={iconSizes.lg}
+                color={theme.color.state.danger.text}
+              />
+              <Text
+                variant="buttonMedium"
+                color={theme.color.state.danger.text}
+                style={styles.logoutText}
+              >
                 Cerrar Sesión
               </Text>
             </TouchableOpacity>
@@ -837,189 +959,190 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
   );
 };
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    flexDirection: 'row',
-  },
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      flexDirection: 'row',
+    },
 
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-  },
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+    },
 
-  drawer: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    backgroundColor: colors.surface.primary,
-    ...shadows.xl,
-  },
+    drawer: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      backgroundColor: theme.color.surface.base,
+      ...theme.shadow.xl,
+    },
 
-  // ============================================
-  // HEADER
-  // ============================================
-  header: {
-    padding: spacing[4],
-  },
+    // ============================================
+    // HEADER
+    // ============================================
+    header: {
+      padding: theme.space[4],
+    },
 
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing[4],
-  },
+    headerTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[4],
+    },
 
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1],
+    },
 
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.secondary,
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[3],
-  },
+    userInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.subtle,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[3],
+    },
 
-  userDetails: {
-    flex: 1,
-    marginLeft: spacing[3],
-  },
+    userDetails: {
+      flex: 1,
+      marginLeft: theme.space[3],
+    },
 
-  siteSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-  },
+    siteSelector: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.primarySoft,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
 
-  siteSelectorText: {
-    flex: 1,
-    marginLeft: spacing[3],
-  },
+    siteSelectorText: {
+      flex: 1,
+      marginLeft: theme.space[3],
+    },
 
-  // ============================================
-  // MENU
-  // ============================================
-  menuScroll: {
-    flex: 1,
-  },
+    // ============================================
+    // MENU
+    // ============================================
+    menuScroll: {
+      flex: 1,
+    },
 
-  menuScrollContent: {
-    paddingVertical: spacing[2],
-  },
+    menuScrollContent: {
+      paddingVertical: theme.space[2],
+    },
 
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-  },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+    },
 
-  menuItemIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[3],
-  },
+    menuItemIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.space[3],
+    },
 
-  categorySection: {
-    marginBottom: spacing[1],
-  },
+    categorySection: {
+      marginBottom: theme.space[1],
+    },
 
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    backgroundColor: colors.surface.primary,
-  },
+    categoryHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+    },
 
-  categoryHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+    categoryHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
 
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[2.5],
-    paddingLeft: spacing[8],
-    paddingRight: spacing[4],
-    backgroundColor: colors.surface.secondary,
-  },
+    categoryItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[2.5],
+      paddingLeft: theme.space[8],
+      paddingRight: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+    },
 
-  subMenuItemIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[2],
-  },
+    subMenuItemIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.space[2],
+    },
 
-  subMenuItemIconSmall: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[2],
-  },
+    subMenuItemIconSmall: {
+      width: 24,
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.space[2],
+    },
 
-  subCategoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[2.5],
-    paddingLeft: spacing[8],
-    paddingRight: spacing[4],
-    backgroundColor: colors.surface.secondary,
-  },
+    subCategoryHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[2.5],
+      paddingLeft: theme.space[8],
+      paddingRight: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+    },
 
-  subMenuLabel: {
-    flex: 1,
-  },
+    subMenuLabel: {
+      flex: 1,
+    },
 
-  subMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[2],
-    paddingLeft: spacing[14],
-    paddingRight: spacing[4],
-    backgroundColor: colors.surface.tertiary,
-  },
+    subMenuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[2],
+      paddingLeft: theme.space[14],
+      paddingRight: theme.space[4],
+      backgroundColor: theme.color.surface.muted,
+    },
 
-  // ============================================
-  // FOOTER
-  // ============================================
-  footer: {
-    paddingHorizontal: spacing[4],
-    paddingBottom: spacing[2],
-  },
+    // ============================================
+    // FOOTER
+    // ============================================
+    footer: {
+      paddingHorizontal: theme.space[4],
+      paddingBottom: theme.space[2],
+    },
 
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing[3],
-    marginTop: spacing[3],
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.lg,
-  },
+    logoutButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[3],
+      marginTop: theme.space[3],
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: theme.radii.lg,
+    },
 
-  logoutText: {
-    marginLeft: spacing[2],
-  },
-});
+    logoutText: {
+      marginLeft: theme.space[2],
+    },
+  });
 
 export default DrawerMenu;

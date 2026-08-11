@@ -8,11 +8,11 @@ import {
   ScrollView,
   FlatList,
   ActivityIndicator,
-  Alert,
   TextInput,
 } from 'react-native';
 import { balancesApi } from '@/services/api';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Balance,
   BalanceOperation,
@@ -21,6 +21,7 @@ import {
   getOperationTypeColor,
   formatCentsToCurrency,
 } from '@/types/balances';
+import Alert from '@/utils/alert';
 
 interface BalanceOperationsModalProps {
   visible: boolean;
@@ -35,6 +36,8 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
   onClose,
   preselectedOperationType,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [operations, setOperations] = useState<BalanceOperation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -397,7 +400,7 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
         {/* Operations List */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#38BDF8" />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando operaciones...</Text>
           </View>
         ) : (
@@ -422,296 +425,297 @@ export const BalanceOperationsModal: React.FC<BalanceOperationsModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  searchContainer: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-  },
-  searchInput: {
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    fontSize: 15,
-    color: colors.neutral[800],
-  },
-  filtersContainer: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  filterButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    marginRight: spacing[2],
-  },
-  filterButtonActive: {
-    backgroundColor: colors.info[400],
-    borderColor: colors.info[400],
-  },
-  filterButtonText: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontWeight: '500',
-  },
-  filterButtonTextActive: {
-    color: colors.neutral[0],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  listContent: {
-    padding: spacing[5],
-  },
-  operationItem: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  operationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  operationInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  typeBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    marginRight: spacing[2],
-  },
-  typeBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  operationDate: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  operationAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  operationEmitter: {
-    fontSize: 14,
-    color: colors.neutral[700],
-    marginBottom: spacing[1],
-  },
-  operationDescription: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  operationReference: {
-    fontSize: 13,
-    color: colors.neutral[400],
-    fontStyle: 'italic',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing[10],
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  detailModalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  detailModalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  detailModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  operationBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[4],
-  },
-  operationBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    textAlign: 'center',
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  detailModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1.5],
-  },
-  detailModalAmount: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.success[500],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    maxHeight: '70%',
-  },
-  section: {
-    marginBottom: spacing[6],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  sectionContent: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  infoRow: {
-    marginBottom: spacing[3],
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  infoValue: {
-    fontSize: 15,
-    color: colors.neutral[800],
-    fontWeight: '500',
-  },
-  detailModalActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    gap: spacing[2],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeActionButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  closeActionButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backButtonText: {
+      fontSize: 20,
+      color: theme.color.text.subtle,
+      fontWeight: '600',
+    },
+    headerTitleContainer: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[0.5],
+    },
+    headerSpacer: {
+      width: 40,
+    },
+    searchContainer: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    searchInput: {
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 15,
+      color: theme.color.text.heading,
+    },
+    filtersContainer: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    filterButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      marginRight: theme.space[2],
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.state.info.border,
+      borderColor: theme.color.state.info.border,
+    },
+    filterButtonText: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+    },
+    filterButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.subtle,
+    },
+    listContent: {
+      padding: theme.space[5],
+    },
+    operationItem: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    operationHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    operationInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    typeBadge: {
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.lg,
+      marginRight: theme.space[2],
+    },
+    typeBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    operationDate: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+    },
+    operationAmount: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    operationEmitter: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      marginBottom: theme.space[1],
+    },
+    operationDescription: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[1],
+    },
+    operationReference: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+      fontStyle: 'italic',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: theme.space[10],
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.color.text.subtle,
+    },
+    detailModalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    detailModalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    detailModalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    operationBadge: {
+      width: 56,
+      height: 56,
+      borderRadius: theme.radii.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[4],
+    },
+    operationBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+      textAlign: 'center',
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    detailModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1.5],
+    },
+    detailModalAmount: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.success,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.subtle,
+      fontWeight: '600',
+    },
+    scrollContent: {
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      maxHeight: '70%',
+    },
+    section: {
+      marginBottom: theme.space[6],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    sectionContent: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    infoRow: {
+      marginBottom: theme.space[3],
+    },
+    infoLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[1],
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    infoValue: {
+      fontSize: 15,
+      color: theme.color.text.heading,
+      fontWeight: '500',
+    },
+    detailModalActions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      gap: theme.space[2],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeActionButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    closeActionButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+  });
 
 export default BalanceOperationsModal;

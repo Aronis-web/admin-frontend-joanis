@@ -5,10 +5,12 @@ alwaysApply: true
 
 # Reglas del proyecto ERP-aio
 
-## Git
-- Tras cada cambio funcional concreto: `git commit` + `git push` inmediato. No acumular cambios sin versionar.
-- Mensajes de commit en español, imperativos y concisos.
-- No hacer push directo a `master` para cambios grandes; usar rama de feature.
+## Git (REGLA DURA — NO NEGOCIABLE)
+- **OBLIGATORIO**: tras CADA cambio funcional concreto, ejecutar `git add` + `git commit` + `git push` **antes** de pasar al siguiente cambio. Sin excepciones.
+- Prohibido acumular múltiples cambios sin versionar, dejar trabajo "para commitear al final" o terminar un turno con cambios sin pushear.
+- Si un cambio rompe el typecheck más allá del baseline, igualmente debe commitearse como WIP (`wip:` prefix) y pushearse — la rama es la fuente de verdad, no el disco local.
+- Mensajes de commit en español, imperativos y concisos (`feat:`, `fix:`, `refactor:`, `chore:`, `wip:`).
+- Prohibido push directo a `master` en cambios grandes; usar rama de feature.
 
 ## Documentación
 - **NO crear** archivos `*.md` (README, guías, resúmenes, changelogs) salvo que el usuario lo pida explícitamente.

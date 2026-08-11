@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Modal,
   ActivityIndicator,
   Switch,
@@ -25,10 +24,14 @@ import {
 } from '@/services/api/roles';
 import { ProtectedRoute, ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { usePermissions } from '@/hooks/usePermissions';
+import Alert from '@/utils/alert';
 
 import { useAuthStore } from '@/store/auth';
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { AddButton } from '@/components/Navigation/AddButton';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 
 interface RolesPermissionsScreenProps {
   navigation: any;
@@ -38,6 +41,8 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
   const { hasAnyPermission } = usePermissions();
   const { logout } = useAuthStore();
   const navigateFromMenu = useMenuNavigation(navigation);
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   // All useState hooks must be declared before any early returns to follow Rules of Hooks
   const [roles, setRoles] = useState<Role[]>([]);
@@ -505,9 +510,9 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
             <Switch
               value={status.isAllSelected}
               onValueChange={() => toggleAllPermissionsInModule(module, modulePermissions)}
-              trackColor={{ false: '#E5E7EB', true: '#EEF2FF' }}
-              thumbColor={status.isAllSelected ? '#4F46E5' : '#9CA3AF'}
-              ios_backgroundColor="#E5E7EB"
+              trackColor={{ false: theme.color.border.subtle, true: theme.color.brand.primarySoft }}
+              thumbColor={status.isAllSelected ? theme.color.brand.primary : theme.color.text.placeholder}
+              ios_backgroundColor={theme.color.border.subtle}
             />
 
             <TouchableOpacity
@@ -546,7 +551,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando roles y permisos...</Text>
         </View>
       </SafeAreaView>
@@ -759,10 +764,10 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -770,27 +775,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: '#4F46E5',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   headerSpacer: {
     width: 40,
@@ -809,15 +814,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   roleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -832,8 +837,8 @@ const styles = StyleSheet.create({
   roleCode: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4F46E5',
-    backgroundColor: '#EEF2FF',
+    color: theme.color.brand.primary,
+    backgroundColor: theme.color.brand.primarySoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -841,43 +846,44 @@ const styles = StyleSheet.create({
   roleName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   roleDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 8,
     lineHeight: 20,
   },
   roleDate: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
   },
 
   searchInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     marginBottom: 12,
     fontSize: 16,
+    color: theme.color.text.body,
   },
 
   permissionItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     padding: 16,
     marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   permissionItemSelected: {
-    borderColor: '#4F46E5',
-    backgroundColor: '#EEF2FF',
+    borderColor: theme.color.brand.primary,
+    backgroundColor: theme.color.brand.primarySoft,
   },
   permissionInfo: {
     flex: 1,
@@ -885,39 +891,39 @@ const styles = StyleSheet.create({
   permissionKey: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   permissionDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   permissionModule: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: theme.color.border.default,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontSize: 14,
     fontWeight: '600',
   },
   emptyText: {
     textAlign: 'center',
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
     fontSize: 14,
     fontStyle: 'italic',
   },
@@ -928,12 +934,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     fontSize: 16,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -942,20 +948,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   cancelButtonText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   saveButtonText: {
     fontSize: 16,
-    color: '#4F46E5',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   modalContent: {
@@ -968,17 +974,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     fontSize: 16,
+    color: theme.color.text.body,
   },
   textArea: {
     height: 80,
@@ -1001,47 +1008,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: theme.color.state.info.border,
   },
   editButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.border,
   },
   deleteButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: theme.color.state.danger.border,
   },
   actionButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontSize: 12,
     fontWeight: '600',
   },
   disabledInput: {
-    backgroundColor: '#F3F4F6',
-    color: '#6B7280',
+    backgroundColor: theme.color.surface.disabled,
+    color: theme.color.text.disabled,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.color.background.subtle,
   },
   deniedTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#DC2626',
+    color: theme.color.text.danger,
     marginBottom: 12,
     textAlign: 'center',
   },
   deniedMessage: {
     fontSize: 16,
-    color: '#374151',
+    color: theme.color.text.body,
     textAlign: 'center',
     marginBottom: 8,
     lineHeight: 24,
   },
   deniedHint: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.muted,
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -1050,11 +1057,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   moduleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     overflow: 'hidden',
   },
   moduleHeader: {
@@ -1062,9 +1069,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.surface.subtle,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   moduleInfo: {
     flex: 1,
@@ -1072,12 +1079,12 @@ const styles = StyleSheet.create({
   moduleName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   moduleStatus: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.muted,
   },
   moduleControls: {
     flexDirection: 'row',
@@ -1088,13 +1095,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   expandButtonText: {
     fontSize: 14,
-    color: '#4F46E5',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   modulePermissions: {

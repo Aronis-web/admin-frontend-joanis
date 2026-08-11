@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   Platform,
   useWindowDimensions,
   Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +19,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { salesApi } from '@/services/api/sales';
 import {
   Sale,
+  SaleItem,
   SaleStatus,
   PaymentStatus,
   SaleStatusLabels,
@@ -31,10 +32,12 @@ import {
 } from '@/types/sales';
 import { useAuthStore } from '@/store/auth';
 import { config } from '@/utils/config';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import Alert from '@/utils/alert';
 
 interface SaleDetailScreenProps {
   route: {
@@ -51,6 +54,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const { token, currentCompany, currentSite } = useAuthStore();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   // State
   const [sale, setSale] = useState<Sale | null>(null);
@@ -64,6 +69,12 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const [showDebitNoteModal, setShowDebitNoteModal] = useState(false);
   const [creatingCreditNote, setCreatingCreditNote] = useState(false);
   const creatingCreditNoteRef = useRef(false);
+
+  // Credit Note - partial return state
+  const [creditNoteMode, setCreditNoteMode] = useState<'total' | 'partial'>('partial');
+  const [creditNoteSustento, setCreditNoteSustento] = useState<string>('');
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [itemQuantities, setItemQuantities] = useState<Record<string, string>>({});
 
   // Load sale
   const loadSale = async (isRefresh: boolean = false) => {
@@ -84,11 +95,15 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       logger.info('📊 Venta cargada:', data);
 
       if (data.documents && Array.isArray(data.documents)) {
-        const creditNotesList = data.documents.filter((doc: any) =>
-          doc.documentType?.code === '07' || doc.documentType?.name?.toLowerCase().includes('crédito')
+        const creditNotesList = data.documents.filter(
+          (doc: any) =>
+            doc.documentType?.code === '07' ||
+            doc.documentType?.name?.toLowerCase().includes('crédito')
         );
-        const debitNotesList = data.documents.filter((doc: any) =>
-          doc.documentType?.code === '08' || doc.documentType?.name?.toLowerCase().includes('débito')
+        const debitNotesList = data.documents.filter(
+          (doc: any) =>
+            doc.documentType?.code === '08' ||
+            doc.documentType?.name?.toLowerCase().includes('débito')
         );
 
         setCreditNotes(creditNotesList);
@@ -123,7 +138,8 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       ]);
 
       const docs = docsResult.status === 'fulfilled' ? docsResult.value : null;
-      const creditNotesResponse = creditNotesResult.status === 'fulfilled' ? creditNotesResult.value : null;
+      const creditNotesResponse =
+        creditNotesResult.status === 'fulfilled' ? creditNotesResult.value : null;
       const allDocs = docs?.allDocuments || docs?.documents || [];
       const adminCreditNotes = Array.isArray(creditNotesResponse?.creditNotes)
         ? creditNotesResponse.creditNotes
@@ -144,7 +160,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         }));
 
         if (docs?.debitNotes && Array.isArray(docs.debitNotes) && docs.debitNotes.length > 0) {
-          setDebitNotes((prev) => prev.length === 0 ? docs.debitNotes : prev);
+          setDebitNotes((prev) => (prev.length === 0 ? docs.debitNotes : prev));
         }
       }
     } catch (error: any) {
@@ -161,8 +177,6 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   const handleRefresh = () => {
     loadSale(true);
   };
-
-
 
   const handleRegisterPayment = () => {
     if (sale?.id) {
@@ -264,6 +278,172 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     }
   };
 
+  // ============ Credit Note helpers (partial returns) ============
+  const normalizeQty = (value: unknown, fallback = 0): number => {
+    const n = Number(String(value ?? '').replace(',', '.'));
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  const getCnItemSku = (it: any): string =>
+    it?.sku || it?.productCode || it?.codigo || it?.product?.sku || it?.product?.code || '';
+
+  const getCnItemsFromDocument = (cn: any): any[] =>
+    cn?.items ||
+    cn?.details ||
+    cn?.creditNoteItems ||
+    cn?.saleItems ||
+    cn?.documentItems ||
+    cn?.document?.items ||
+    [];
+
+  // Total already-returned quantity per SaleItem (matched by id or SKU)
+  const returnedByItem = useMemo(() => {
+    const map: Record<string, number> = {};
+    const bySku: Record<string, number> = {};
+
+    creditNotes.forEach((cn: any) => {
+      const items = getCnItemsFromDocument(cn);
+      items.forEach((it: any) => {
+        const qty = normalizeQty(
+          it?.cantidad ?? it?.quantity ?? it?.qty ?? it?.returnedQuantity,
+          0
+        );
+        if (qty <= 0) return;
+        const saleItemId = it?.saleItemId || it?.itemId || it?.saleItem?.id;
+        if (saleItemId) {
+          map[String(saleItemId)] = (map[String(saleItemId)] || 0) + qty;
+        }
+        const sku = getCnItemSku(it);
+        if (sku) {
+          bySku[sku] = (bySku[sku] || 0) + qty;
+        }
+      });
+    });
+
+    // Merge SKU-based counts for items not matched by id
+    (sale?.items || []).forEach((item) => {
+      if (map[item.id] != null) return;
+      const sku = item.productSnapshot?.sku;
+      if (sku && bySku[sku] != null) {
+        map[item.id] = bySku[sku];
+      }
+    });
+
+    return map;
+  }, [creditNotes, sale?.items]);
+
+  const getReturnedQty = (item: SaleItem): number => returnedByItem[item.id] || 0;
+  const getAvailableQty = (item: SaleItem): number =>
+    Math.max(item.quantity - getReturnedQty(item), 0);
+
+  const totalAvailableToReturn = useMemo(
+    () => (sale?.items || []).reduce((sum, it) => sum + getAvailableQty(it), 0),
+    [sale?.items, returnedByItem]
+  );
+
+  const openCreditNoteModal = () => {
+    if (!sale?.items || sale.items.length === 0) return;
+
+    const availableItems = sale.items.filter((it) => getAvailableQty(it) > 0);
+    if (availableItems.length === 0) {
+      Alert.alert('Sin saldo disponible', 'Todos los productos de esta venta ya fueron devueltos.');
+      return;
+    }
+
+    const quantities: Record<string, string> = {};
+    availableItems.forEach((it) => {
+      quantities[it.id] = String(getAvailableQty(it));
+    });
+
+    setCreditNoteMode('partial');
+    setCreditNoteSustento('');
+    setSelectedItemIds([]);
+    setItemQuantities(quantities);
+    setShowCreditNoteModal(true);
+  };
+
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+    );
+  };
+
+  const updateItemQuantity = (itemId: string, value: string, max: number) => {
+    const sanitized = value.replace(/[^0-9.,]/g, '');
+    const num = Number(sanitized.replace(',', '.'));
+    const finalValue = Number.isFinite(num) && num > max ? String(max) : sanitized;
+    setItemQuantities((prev) => ({ ...prev, [itemId]: finalValue }));
+  };
+
+  const handleSubmitCreditNote = () => {
+    if (!sale?.items) return;
+
+    if (!creditNoteSustento.trim()) {
+      Alert.alert('Sustento requerido', 'Ingresa el sustento de la nota de crédito.');
+      return;
+    }
+
+    if (creditNoteMode === 'partial') {
+      if (selectedItemIds.length === 0) {
+        Alert.alert('Selecciona productos', 'Debes seleccionar al menos un producto a devolver.');
+        return;
+      }
+
+      const items: any[] = [];
+      for (const item of sale.items) {
+        if (!selectedItemIds.includes(item.id)) continue;
+        const max = getAvailableQty(item);
+        const qty = normalizeQty(itemQuantities[item.id], 0);
+        if (qty <= 0 || qty > max) {
+          Alert.alert(
+            'Cantidad inválida',
+            `La cantidad de "${item.productSnapshot.title}" debe ser mayor a 0 y no superar ${max}.`
+          );
+          return;
+        }
+        const unitPrice = item.unitPriceCents / 100;
+        items.push({
+          sku: item.productSnapshot.sku,
+          descripcion: item.productSnapshot.title,
+          cantidad: qty,
+          unidadMedida: 'NIU',
+          valorUnitario: unitPrice,
+          precioVentaUnitario: unitPrice,
+        });
+      }
+
+      createCreditNote({
+        motivoNota: '07',
+        sustentoNota: creditNoteSustento.trim(),
+        items,
+        observaciones: 'Devolución parcial generada desde Admin',
+      });
+    } else {
+      // Total: sends all remaining items
+      const items: any[] = [];
+      for (const item of sale.items) {
+        const remaining = getAvailableQty(item);
+        if (remaining <= 0) continue;
+        const unitPrice = item.unitPriceCents / 100;
+        items.push({
+          sku: item.productSnapshot.sku,
+          descripcion: item.productSnapshot.title,
+          cantidad: remaining,
+          unidadMedida: 'NIU',
+          valorUnitario: unitPrice,
+          precioVentaUnitario: unitPrice,
+        });
+      }
+
+      createCreditNote({
+        motivoNota: '06',
+        sustentoNota: creditNoteSustento.trim(),
+        items,
+        observaciones: 'Devolución total generada desde Admin',
+      });
+    }
+  };
+
   const createCreditNote = async (data: CreateCreditNoteRequest) => {
     if (!sale?.id || creatingCreditNoteRef.current) return;
 
@@ -314,11 +494,9 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
       const result = await salesApi.createDebitNote(sale.id, data);
       setShowDebitNoteModal(false);
-      Alert.alert(
-        'Éxito',
-        `Nota de débito creada: ${result.documentNumber}`,
-        [{ text: 'OK', onPress: () => loadSale(true) }]
-      );
+      Alert.alert('Éxito', `Nota de débito creada: ${result.documentNumber}`, [
+        { text: 'OK', onPress: () => loadSale(true) },
+      ]);
     } catch (error: any) {
       logger.error('Error creando nota de débito:', error);
       Alert.alert('Error', error?.response?.data?.message || 'No se pudo crear la nota de débito');
@@ -329,28 +507,38 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
 
   const getStatusColor = (status: SaleStatus) => {
     switch (status) {
-      case SaleStatus.CONFIRMED: return colors.success[500];
-      case SaleStatus.COMPLETED: return colors.accent[500];
-      case SaleStatus.CANCELLED: return colors.danger[500];
-      case SaleStatus.DRAFT: return colors.warning[500];
-      default: return colors.neutral[500];
+      case SaleStatus.CONFIRMED:
+        return theme.color.state.success.border;
+      case SaleStatus.COMPLETED:
+        return theme.color.brand.accent;
+      case SaleStatus.CANCELLED:
+        return theme.color.state.danger.border;
+      case SaleStatus.DRAFT:
+        return theme.color.state.warning.border;
+      default:
+        return theme.color.text.subtle;
     }
   };
 
   const getPaymentStatusColor = (status: PaymentStatus) => {
     switch (status) {
-      case PaymentStatus.PAID: return colors.success[500];
-      case PaymentStatus.PARTIAL: return colors.warning[500];
-      case PaymentStatus.PENDING: return colors.neutral[500];
-      case PaymentStatus.OVERDUE: return colors.danger[500];
-      default: return colors.neutral[500];
+      case PaymentStatus.PAID:
+        return theme.color.state.success.border;
+      case PaymentStatus.PARTIAL:
+        return theme.color.state.warning.border;
+      case PaymentStatus.PENDING:
+        return theme.color.text.subtle;
+      case PaymentStatus.OVERDUE:
+        return theme.color.state.danger.border;
+      default:
+        return theme.color.text.subtle;
     }
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.accent[500]} />
+        <ActivityIndicator size="large" color={theme.color.brand.accent} />
         <Text style={styles.loadingText}>Cargando venta...</Text>
       </View>
     );
@@ -359,7 +547,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   if (!sale) {
     return (
       <View style={styles.loadingContainer}>
-        <Ionicons name="alert-circle-outline" size={64} color={colors.danger[400]} />
+        <Ionicons name="alert-circle-outline" size={64} color={theme.color.icon.danger} />
         <Text style={styles.errorText}>No se encontró la venta</Text>
         <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonErrorText}>Volver</Text>
@@ -368,21 +556,22 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
     );
   }
 
-  const customerName = sale.customerSnapshot?.fullName || sale.companySnapshot?.razonSocial || 'Sin cliente';
+  const customerName =
+    sale.customerSnapshot?.fullName || sale.companySnapshot?.razonSocial || 'Sin cliente';
   const documentNumber = sale.customerSnapshot?.documentNumber || sale.companySnapshot?.ruc || '';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <LinearGradient
-        colors={[colors.primary[900], colors.primary[800]]}
+        colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+            <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerCode}>{sale.code}</Text>
@@ -390,7 +579,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
               <View style={[styles.headerBadge, { backgroundColor: getStatusColor(sale.status) }]}>
                 <Text style={styles.headerBadgeText}>{SaleStatusLabels[sale.status]}</Text>
               </View>
-              <View style={[styles.headerBadge, { backgroundColor: colors.accent[500] }]}>
+              <View style={[styles.headerBadge, { backgroundColor: theme.color.brand.accent }]}>
                 <Text style={styles.headerBadgeText}>{SaleTypeLabels[sale.saleType]}</Text>
               </View>
             </View>
@@ -402,7 +591,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                 onPress={handleDownloadDocument}
                 disabled={loadingDocuments}
               >
-                <Ionicons name="download-outline" size={22} color={colors.neutral[0]} />
+                <Ionicons name="download-outline" size={22} color={theme.color.brand.onHeader} />
               </TouchableOpacity>
             )}
           </View>
@@ -417,14 +606,24 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
             <Text style={styles.summaryLabel}>Pagado</Text>
-            <Text style={[styles.summaryValue, { color: colors.success[300] }]}>
+            <Text style={[styles.summaryValue, { color: theme.color.brand.onHeader }]}>
               S/ {(sale.paidAmountCents / 100).toFixed(2)}
             </Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryItem}>
             <Text style={styles.summaryLabel}>Saldo</Text>
-            <Text style={[styles.summaryValue, { color: sale.balanceCents > 0 ? colors.danger[300] : colors.success[300] }]}>
+            <Text
+              style={[
+                styles.summaryValue,
+                {
+                  color:
+                    sale.balanceCents > 0
+                      ? theme.color.state.danger.background
+                      : theme.color.brand.onHeader,
+                },
+              ]}
+            >
               S/ {(sale.balanceCents / 100).toFixed(2)}
             </Text>
           </View>
@@ -434,12 +633,18 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.accent[500]]} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.color.brand.accent]}
+          />
+        }
       >
         {/* Customer Info */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="person-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="person-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Cliente</Text>
           </View>
           <View style={styles.card}>
@@ -471,7 +676,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {/* Sale Info */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="information-circle-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Información de la Venta</Text>
           </View>
           <View style={styles.card}>
@@ -489,8 +694,13 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Procesamiento</Text>
-              <View style={[styles.processingBadge, { backgroundColor: colors.accent[50] }]}>
-                <Text style={[styles.processingBadgeText, { color: colors.accent[700] }]}>
+              <View
+                style={[
+                  styles.processingBadge,
+                  { backgroundColor: theme.color.state.info.background },
+                ]}
+              >
+                <Text style={[styles.processingBadgeText, { color: theme.color.state.info.text }]}>
                   {ProcessingStatusLabels[sale.processingStatus]}
                 </Text>
               </View>
@@ -499,9 +709,9 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
               <Text style={styles.infoLabel}>Stock Validado</Text>
               <View style={styles.checkContainer}>
                 <Ionicons
-                  name={sale.isStockValidated ? "checkmark-circle" : "close-circle"}
+                  name={sale.isStockValidated ? 'checkmark-circle' : 'close-circle'}
                   size={20}
-                  color={sale.isStockValidated ? colors.success[500] : colors.danger[500]}
+                  color={sale.isStockValidated ? theme.color.icon.success : theme.color.icon.danger}
                 />
               </View>
             </View>
@@ -517,44 +727,91 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {/* Products */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="cube-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="cube-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Productos ({sale.itemCount})</Text>
           </View>
           {sale.items && sale.items.length > 0 ? (
             <View style={styles.productsContainer}>
-              {sale.items.map((item, index) => (
-                <View key={item.id} style={styles.productCard}>
-                  <View style={styles.productHeader}>
-                    <Text style={styles.productName} numberOfLines={2}>
-                      {item.productSnapshot.title}
-                    </Text>
-                    <Text style={styles.productPrice}>
-                      S/ {(item.totalCents / 100).toFixed(2)}
-                    </Text>
-                  </View>
-                  <Text style={styles.productSku}>SKU: {item.productSnapshot.sku}</Text>
-                  <View style={styles.productDetails}>
-                    <View style={styles.productDetailItem}>
-                      <Text style={styles.productDetailLabel}>Cant.:</Text>
-                      <Text style={styles.productDetailValue}>{item.quantity}</Text>
-                    </View>
-                    <View style={styles.productDetailItem}>
-                      <Text style={styles.productDetailLabel}>P.Unit.:</Text>
-                      <Text style={styles.productDetailValue}>
-                        S/ {(item.unitPriceCents / 100).toFixed(2)}
+              {sale.items.map((item) => {
+                const returned = getReturnedQty(item);
+                const available = getAvailableQty(item);
+                const fullyReturned = returned >= item.quantity && item.quantity > 0;
+                return (
+                  <View key={item.id} style={styles.productCard}>
+                    <View style={styles.productHeader}>
+                      <Text style={styles.productName} numberOfLines={2}>
+                        {item.productSnapshot.title}
+                      </Text>
+                      <Text style={styles.productPrice}>
+                        S/ {(item.totalCents / 100).toFixed(2)}
                       </Text>
                     </View>
-                    {item.discountCents > 0 && (
+                    <Text style={styles.productSku}>SKU: {item.productSnapshot.sku}</Text>
+                    <View style={styles.productDetails}>
                       <View style={styles.productDetailItem}>
-                        <Text style={[styles.productDetailLabel, { color: colors.danger[500] }]}>Desc.:</Text>
-                        <Text style={[styles.productDetailValue, { color: colors.danger[500] }]}>
-                          -S/ {(item.discountCents / 100).toFixed(2)}
+                        <Text style={styles.productDetailLabel}>Cant.:</Text>
+                        <Text style={styles.productDetailValue}>{item.quantity}</Text>
+                      </View>
+                      <View style={styles.productDetailItem}>
+                        <Text style={styles.productDetailLabel}>P.Unit.:</Text>
+                        <Text style={styles.productDetailValue}>
+                          S/ {(item.unitPriceCents / 100).toFixed(2)}
+                        </Text>
+                      </View>
+                      {item.discountCents > 0 && (
+                        <View style={styles.productDetailItem}>
+                          <Text
+                            style={[styles.productDetailLabel, { color: theme.color.text.danger }]}
+                          >
+                            Desc.:
+                          </Text>
+                          <Text
+                            style={[styles.productDetailValue, { color: theme.color.text.danger }]}
+                          >
+                            -S/ {(item.discountCents / 100).toFixed(2)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    {returned > 0 && (
+                      <View
+                        style={[
+                          styles.returnedBadge,
+                          {
+                            backgroundColor: fullyReturned
+                              ? theme.color.state.danger.background
+                              : theme.color.state.warning.background,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={fullyReturned ? 'close-circle' : 'return-down-back'}
+                          size={14}
+                          color={
+                            fullyReturned
+                              ? theme.color.state.danger.text
+                              : theme.color.state.warning.text
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.returnedBadgeText,
+                            {
+                              color: fullyReturned
+                                ? theme.color.state.danger.text
+                                : theme.color.state.warning.text,
+                            },
+                          ]}
+                        >
+                          {fullyReturned
+                            ? `Devuelto totalmente (${returned}/${item.quantity})`
+                            : `Devuelto ${returned} de ${item.quantity} · Disponible ${available}`}
                         </Text>
                       </View>
                     )}
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -566,7 +823,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {/* Totals */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="calculator-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="calculator-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Totales</Text>
           </View>
           <View style={styles.card}>
@@ -577,7 +834,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
             {sale.discountCents > 0 && (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Descuento</Text>
-                <Text style={[styles.totalValue, { color: colors.danger[500] }]}>
+                <Text style={[styles.totalValue, { color: theme.color.text.danger }]}>
                   -S/ {(sale.discountCents / 100).toFixed(2)}
                 </Text>
               </View>
@@ -592,15 +849,30 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {/* Payment Status */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="wallet-outline" size={20} color={colors.neutral[600]} />
+            <Ionicons name="wallet-outline" size={20} color={theme.color.icon.muted} />
             <Text style={styles.sectionTitle}>Estado de Pago</Text>
           </View>
           <View style={styles.card}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Estado</Text>
-              <View style={[styles.paymentStatusBadge, { backgroundColor: getPaymentStatusColor(sale.paymentStatus) + '15' }]}>
-                <View style={[styles.paymentStatusDot, { backgroundColor: getPaymentStatusColor(sale.paymentStatus) }]} />
-                <Text style={[styles.paymentStatusText, { color: getPaymentStatusColor(sale.paymentStatus) }]}>
+              <View
+                style={[
+                  styles.paymentStatusBadge,
+                  { backgroundColor: getPaymentStatusColor(sale.paymentStatus) + '15' },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.paymentStatusDot,
+                    { backgroundColor: getPaymentStatusColor(sale.paymentStatus) },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.paymentStatusText,
+                    { color: getPaymentStatusColor(sale.paymentStatus) },
+                  ]}
+                >
                   {PaymentStatusLabels[sale.paymentStatus]}
                 </Text>
               </View>
@@ -608,17 +880,27 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
             <View style={styles.paymentSummary}>
               <View style={styles.paymentSummaryItem}>
                 <Text style={styles.paymentSummaryLabel}>Total</Text>
-                <Text style={styles.paymentSummaryValue}>S/ {(sale.totalCents / 100).toFixed(2)}</Text>
+                <Text style={styles.paymentSummaryValue}>
+                  S/ {(sale.totalCents / 100).toFixed(2)}
+                </Text>
               </View>
               <View style={styles.paymentSummaryItem}>
                 <Text style={styles.paymentSummaryLabel}>Pagado</Text>
-                <Text style={[styles.paymentSummaryValue, { color: colors.success[600] }]}>
+                <Text style={[styles.paymentSummaryValue, { color: theme.color.text.success }]}>
                   S/ {(sale.paidAmountCents / 100).toFixed(2)}
                 </Text>
               </View>
               <View style={styles.paymentSummaryItem}>
                 <Text style={styles.paymentSummaryLabel}>Saldo</Text>
-                <Text style={[styles.paymentSummaryValue, { color: sale.balanceCents > 0 ? colors.danger[600] : colors.success[600] }]}>
+                <Text
+                  style={[
+                    styles.paymentSummaryValue,
+                    {
+                      color:
+                        sale.balanceCents > 0 ? theme.color.text.danger : theme.color.text.success,
+                    },
+                  ]}
+                >
                   S/ {(sale.balanceCents / 100).toFixed(2)}
                 </Text>
               </View>
@@ -630,21 +912,23 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {sale.payments && sale.payments.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="cash-outline" size={20} color={colors.neutral[600]} />
+              <Ionicons name="cash-outline" size={20} color={theme.color.icon.muted} />
               <Text style={styles.sectionTitle}>Pagos ({sale.payments.length})</Text>
             </View>
             <View style={styles.paymentsContainer}>
               {sale.payments.map((payment) => (
                 <View key={payment.id} style={styles.paymentCard}>
                   <View style={styles.paymentHeader}>
-                    <Text style={styles.paymentAmount}>S/ {(payment.amountCents / 100).toFixed(2)}</Text>
+                    <Text style={styles.paymentAmount}>
+                      S/ {(payment.amountCents / 100).toFixed(2)}
+                    </Text>
                     <Text style={styles.paymentDate}>
                       {new Date(payment.createdAt).toLocaleDateString('es-PE')}
                     </Text>
                   </View>
                   {payment.paymentMethod && (
                     <View style={styles.paymentMethodContainer}>
-                      <Ionicons name="card-outline" size={14} color={colors.neutral[500]} />
+                      <Ionicons name="card-outline" size={14} color={theme.color.icon.subtle} />
                       <Text style={styles.paymentMethod}>{payment.paymentMethod.name}</Text>
                     </View>
                   )}
@@ -661,20 +945,29 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         {creditNotes.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="document-text-outline" size={20} color={colors.warning[600]} />
+              <Ionicons name="document-text-outline" size={20} color={theme.color.icon.warning} />
               <Text style={styles.sectionTitle}>Notas de Crédito ({creditNotes.length})</Text>
             </View>
             {creditNotes.map((note, index) => (
               <View key={note.id || index} style={styles.noteCard}>
                 <View style={styles.noteHeader}>
                   <Text style={styles.noteNumber}>{note.documentNumber}</Text>
-                  <View style={[styles.noteStatusBadge, { backgroundColor: colors.warning[100] }]}>
-                    <Text style={[styles.noteStatusText, { color: colors.warning[700] }]}>{note.status}</Text>
+                  <View
+                    style={[
+                      styles.noteStatusBadge,
+                      { backgroundColor: theme.color.state.warning.background },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.noteStatusText, { color: theme.color.state.warning.text }]}
+                    >
+                      {note.status}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Monto</Text>
-                  <Text style={[styles.infoValue, { color: colors.warning[600] }]}>
+                  <Text style={[styles.infoValue, { color: theme.color.text.warning }]}>
                     S/ {((note.totalCents ?? Math.round((note.total || 0) * 100)) / 100).toFixed(2)}
                   </Text>
                 </View>
@@ -683,7 +976,7 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                   onPress={() => handleDownloadNoteDocument(note.id, note.documentNumber)}
                   disabled={loadingDocuments}
                 >
-                  <Ionicons name="download-outline" size={18} color={colors.neutral[0]} />
+                  <Ionicons name="download-outline" size={18} color={theme.color.text.inverse} />
                   <Text style={styles.downloadNoteButtonText}>Descargar PDF</Text>
                 </TouchableOpacity>
               </View>
@@ -696,37 +989,55 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
           <View style={styles.actionsSection}>
             {sale.balanceCents > 0 && (
               <TouchableOpacity style={styles.actionButton} onPress={handleRegisterPayment}>
-                <Ionicons name="add-circle-outline" size={20} color={colors.neutral[0]} />
+                <Ionicons name="add-circle-outline" size={20} color={theme.color.text.inverse} />
                 <Text style={styles.actionButtonText}>Registrar Pago</Text>
               </TouchableOpacity>
             )}
 
-            {sale.status === SaleStatus.CONFIRMED && (sale.documentType === DocumentType.BOLETA || sale.documentType === DocumentType.FACTURA) && (
-              <>
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: colors.warning[500] }, creatingCreditNote && styles.disabledActionButton]}
-                  onPress={() => setShowCreditNoteModal(true)}
-                  disabled={creatingCreditNote}
-                >
-                  {creatingCreditNote ? (
-                    <ActivityIndicator size="small" color={colors.neutral[0]} />
-                  ) : (
-                    <Ionicons name="document-text-outline" size={20} color={colors.neutral[0]} />
-                  )}
-                  <Text style={styles.actionButtonText}>{creatingCreditNote ? 'Generando NC...' : 'Nota de Crédito'}</Text>
-                </TouchableOpacity>
+            {sale.status === SaleStatus.CONFIRMED &&
+              (sale.documentType === DocumentType.BOLETA ||
+                sale.documentType === DocumentType.FACTURA) && (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: theme.color.state.warning.border },
+                      (creatingCreditNote || totalAvailableToReturn <= 0) &&
+                        styles.disabledActionButton,
+                    ]}
+                    onPress={openCreditNoteModal}
+                    disabled={creatingCreditNote || totalAvailableToReturn <= 0}
+                  >
+                    {creatingCreditNote ? (
+                      <ActivityIndicator size="small" color={theme.color.text.inverse} />
+                    ) : (
+                      <Ionicons
+                        name="document-text-outline"
+                        size={20}
+                        color={theme.color.text.inverse}
+                      />
+                    )}
+                    <Text style={styles.actionButtonText}>
+                      {creatingCreditNote
+                        ? 'Generando NC...'
+                        : totalAvailableToReturn <= 0
+                          ? 'Todo devuelto'
+                          : 'Nota de Crédito'}
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: colors.info[500] }]}
-                  onPress={() => setShowDebitNoteModal(true)}
-                >
-                  <Ionicons name="add-outline" size={20} color={colors.neutral[0]} />
-                  <Text style={styles.actionButtonText}>Nota de Débito</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: theme.color.state.info.border },
+                    ]}
+                    onPress={() => setShowDebitNoteModal(true)}
+                  >
+                    <Ionicons name="add-outline" size={20} color={theme.color.text.inverse} />
+                    <Text style={styles.actionButtonText}>Nota de Débito</Text>
+                  </TouchableOpacity>
+                </>
+              )}
           </View>
         )}
 
@@ -734,38 +1045,195 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       </ScrollView>
 
       {/* Credit Note Modal */}
-      <Modal visible={showCreditNoteModal} transparent animationType="slide" onRequestClose={() => !creatingCreditNote && setShowCreditNoteModal(false)}>
+      <Modal
+        visible={showCreditNoteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !creatingCreditNote && setShowCreditNoteModal(false)}
+      >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Crear Nota de Crédito</Text>
-              <TouchableOpacity onPress={() => setShowCreditNoteModal(false)} disabled={creatingCreditNote}>
-                <Ionicons name="close" size={24} color={creatingCreditNote ? colors.neutral[300] : colors.neutral[500]} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.modalBody}>
-              <Text style={styles.modalDescription}>Genera una nota de crédito para anular la operación:</Text>
+              <Text style={styles.modalTitle}>Nueva Nota de Crédito</Text>
               <TouchableOpacity
-                style={[styles.modalOption, creatingCreditNote && styles.disabledModalOption]}
-                onPress={() => createCreditNote({
-                  motivoNota: '01',
-                  sustentoNota: 'Anulación de la operación',
-                  observaciones: 'Nota de crédito generada desde Admin',
-                })}
+                onPress={() => setShowCreditNoteModal(false)}
                 disabled={creatingCreditNote}
               >
-                <View style={styles.modalOptionIcon}>
-                  {creatingCreditNote ? (
-                    <ActivityIndicator size="small" color={colors.warning[600]} />
-                  ) : (
-                    <Ionicons name="document-text-outline" size={24} color={colors.warning[600]} />
-                  )}
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={creatingCreditNote ? theme.color.border.default : theme.color.icon.subtle}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: '80%' }} contentContainerStyle={styles.modalBody}>
+              {/* Mode toggle */}
+              <Text style={styles.cnFieldLabel}>Tipo de devolución</Text>
+              <View style={styles.cnModeRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.cnModeButton,
+                    creditNoteMode === 'partial' && styles.cnModeButtonActive,
+                  ]}
+                  onPress={() => setCreditNoteMode('partial')}
+                  disabled={creatingCreditNote}
+                >
+                  <Text
+                    style={[
+                      styles.cnModeText,
+                      creditNoteMode === 'partial' && styles.cnModeTextActive,
+                    ]}
+                  >
+                    Parcial (por ítem)
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.cnModeButton,
+                    creditNoteMode === 'total' && styles.cnModeButtonActive,
+                  ]}
+                  onPress={() => setCreditNoteMode('total')}
+                  disabled={creatingCreditNote}
+                >
+                  <Text
+                    style={[
+                      styles.cnModeText,
+                      creditNoteMode === 'total' && styles.cnModeTextActive,
+                    ]}
+                  >
+                    Total (saldo restante)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Sustento */}
+              <Text style={styles.cnFieldLabel}>Sustento</Text>
+              <TextInput
+                style={styles.cnTextInput}
+                value={creditNoteSustento}
+                onChangeText={setCreditNoteSustento}
+                placeholder="Motivo detallado de la nota de crédito"
+                placeholderTextColor={theme.color.text.placeholder}
+                editable={!creatingCreditNote}
+                multiline
+              />
+
+              {/* Items - only in partial mode */}
+              {creditNoteMode === 'partial' && sale.items && (
+                <>
+                  <Text style={[styles.cnFieldLabel, { marginTop: theme.space[4] }]}>
+                    Productos a devolver
+                  </Text>
+                  {sale.items.map((item) => {
+                    const available = getAvailableQty(item);
+                    const returned = getReturnedQty(item);
+                    const disabled = available <= 0;
+                    const selected = selectedItemIds.includes(item.id);
+                    const qtyStr = itemQuantities[item.id] ?? String(available);
+
+                    return (
+                      <View
+                        key={item.id}
+                        style={[
+                          styles.cnItemCard,
+                          selected && styles.cnItemCardSelected,
+                          disabled && styles.cnItemCardDisabled,
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={styles.cnItemHeader}
+                          onPress={() => !disabled && toggleItemSelection(item.id)}
+                          disabled={disabled || creatingCreditNote}
+                        >
+                          <Ionicons
+                            name={
+                              disabled ? 'close-circle' : selected ? 'checkbox' : 'square-outline'
+                            }
+                            size={22}
+                            color={
+                              disabled
+                                ? theme.color.icon.disabled
+                                : selected
+                                  ? theme.color.brand.accent
+                                  : theme.color.icon.subtle
+                            }
+                          />
+                          <View style={{ flex: 1, marginLeft: theme.space[3] }}>
+                            <Text style={styles.cnItemName} numberOfLines={2}>
+                              {item.productSnapshot.title}
+                            </Text>
+                            <Text style={styles.cnItemMeta}>
+                              SKU: {item.productSnapshot.sku} · S/{' '}
+                              {(item.unitPriceCents / 100).toFixed(2)}
+                            </Text>
+                            <Text style={styles.cnItemMeta}>
+                              Original: {item.quantity} · Devuelto: {returned} · Disponible:{' '}
+                              {available}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+
+                        {selected && !disabled && (
+                          <View style={styles.cnItemQtyRow}>
+                            <Text style={styles.cnItemQtyLabel}>Cantidad a devolver</Text>
+                            <TextInput
+                              style={styles.cnItemQtyInput}
+                              value={qtyStr}
+                              onChangeText={(v) => updateItemQuantity(item.id, v, available)}
+                              keyboardType="numeric"
+                              editable={!creatingCreditNote}
+                            />
+                            <Text style={styles.cnItemQtyMax}>/ {available}</Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </>
+              )}
+
+              {creditNoteMode === 'total' && (
+                <View style={styles.cnTotalInfo}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={18}
+                    color={theme.color.icon.warning}
+                  />
+                  <Text style={styles.cnTotalInfoText}>
+                    Se devolverá todo el saldo disponible ({totalAvailableToReturn} unidad
+                    {totalAvailableToReturn === 1 ? '' : 'es'} restante
+                    {totalAvailableToReturn === 1 ? '' : 's'}).
+                  </Text>
                 </View>
-                <View style={styles.modalOptionContent}>
-                  <Text style={styles.modalOptionTitle}>{creatingCreditNote ? 'Generando NC...' : 'Anulación de la operación'}</Text>
-                  <Text style={styles.modalOptionSubtitle}>Crear y encolar envío a Bizlinks</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+              )}
+            </ScrollView>
+
+            <View style={styles.cnFooter}>
+              <TouchableOpacity
+                style={styles.cnCancelButton}
+                onPress={() => setShowCreditNoteModal(false)}
+                disabled={creatingCreditNote}
+              >
+                <Text style={styles.cnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cnSubmitButton, creatingCreditNote && styles.disabledActionButton]}
+                onPress={handleSubmitCreditNote}
+                disabled={creatingCreditNote}
+              >
+                {creatingCreditNote ? (
+                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
+                ) : (
+                  <Ionicons
+                    name="document-text-outline"
+                    size={18}
+                    color={theme.color.text.inverse}
+                  />
+                )}
+                <Text style={styles.cnSubmitText}>
+                  {creatingCreditNote ? 'Generando...' : 'Generar Nota de Crédito'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -773,13 +1241,18 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
       </Modal>
 
       {/* Debit Note Modal */}
-      <Modal visible={showDebitNoteModal} transparent animationType="slide" onRequestClose={() => setShowDebitNoteModal(false)}>
+      <Modal
+        visible={showDebitNoteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDebitNoteModal(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Crear Nota de Débito</Text>
               <TouchableOpacity onPress={() => setShowDebitNoteModal(false)}>
-                <Ionicons name="close" size={24} color={colors.neutral[500]} />
+                <Ionicons name="close" size={24} color={theme.color.icon.subtle} />
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
@@ -790,14 +1263,23 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                   style={styles.modalOption}
                   onPress={() => createDebitNote(monto, 'Cargo adicional')}
                 >
-                  <View style={[styles.modalOptionIcon, { backgroundColor: colors.info[100] }]}>
-                    <Text style={[styles.modalOptionIconText, { color: colors.info[700] }]}>+</Text>
+                  <View
+                    style={[
+                      styles.modalOptionIcon,
+                      { backgroundColor: theme.color.state.info.background },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.modalOptionIconText, { color: theme.color.state.info.text }]}
+                    >
+                      +
+                    </Text>
                   </View>
                   <View style={styles.modalOptionContent}>
                     <Text style={styles.modalOptionTitle}>S/ {monto.toFixed(2)}</Text>
                     <Text style={styles.modalOptionSubtitle}>Cargo adicional</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="chevron-forward" size={20} color={theme.color.icon.disabled} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -808,513 +1290,715 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    gap: spacing[4],
-  },
-  loadingText: {
-    fontSize: 16,
-    color: colors.neutral[500],
-    fontWeight: '500',
-  },
-  errorText: {
-    fontSize: 18,
-    color: colors.danger[600],
-    fontWeight: '600',
-    marginTop: spacing[4],
-  },
-  backButtonError: {
-    marginTop: spacing[4],
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.accent[500],
-    borderRadius: borderRadius.lg,
-  },
-  backButtonErrorText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  headerGradient: {
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[2],
-    paddingBottom: spacing[4],
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[4],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerCode: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    marginBottom: spacing[2],
-  },
-  headerBadges: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  headerBadge: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-  },
-  headerBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  headerActionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  summaryContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    marginBottom: spacing[1],
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  summaryDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginHorizontal: spacing[3],
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing[4],
-  },
-  section: {
-    marginBottom: spacing[5],
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    marginBottom: spacing[3],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[700],
-  },
-  card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: 14,
-    color: colors.neutral[800],
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'right',
-  },
-  processingBadge: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-  },
-  processingBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  checkContainer: {},
-  notesContainer: {
-    paddingTop: spacing[3],
-    marginTop: spacing[2],
-  },
-  notesLabel: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    fontWeight: '500',
-    marginBottom: spacing[1],
-  },
-  notesText: {
-    fontSize: 14,
-    color: colors.neutral[700],
-    lineHeight: 20,
-  },
-  productsContainer: {
-    gap: spacing[3],
-  },
-  productCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
-  },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing[2],
-  },
-  productName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    flex: 1,
-    marginRight: spacing[3],
-  },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.success[600],
-  },
-  productSku: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[3],
-  },
-  productDetails: {
-    flexDirection: 'row',
-    gap: spacing[4],
-    flexWrap: 'wrap',
-  },
-  productDetailItem: {
-    flexDirection: 'row',
-    gap: spacing[1],
-  },
-  productDetailLabel: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  productDetailValue: {
-    fontSize: 13,
-    color: colors.neutral[700],
-    fontWeight: '600',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing[2],
-  },
-  totalLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  totalValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[700],
-  },
-  totalRowFinal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: spacing[3],
-    marginTop: spacing[2],
-    borderTopWidth: 2,
-    borderTopColor: colors.neutral[200],
-  },
-  totalLabelFinal: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  totalValueFinal: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.success[600],
-  },
-  paymentStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.full,
-    gap: spacing[1.5],
-  },
-  paymentStatusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  paymentStatusText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  paymentSummary: {
-    flexDirection: 'row',
-    marginTop: spacing[4],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[100],
-  },
-  paymentSummaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  paymentSummaryLabel: {
-    fontSize: 11,
-    color: colors.neutral[500],
-    fontWeight: '500',
-    marginBottom: spacing[1],
-  },
-  paymentSummaryValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  paymentsContainer: {
-    gap: spacing[3],
-  },
-  paymentCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
-  },
-  paymentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  paymentAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.success[600],
-  },
-  paymentDate: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  paymentMethodContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1.5],
-  },
-  paymentMethod: {
-    fontSize: 13,
-    color: colors.neutral[600],
-  },
-  paymentReference: {
-    fontSize: 12,
-    color: colors.neutral[400],
-    marginTop: spacing[1],
-  },
-  emptyContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[8],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral[400],
-  },
-  noteCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.warning[200],
-    ...shadows.sm,
-  },
-  noteHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  noteNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  noteStatusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-  },
-  noteStatusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  downloadNoteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.accent[500],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[3],
-    gap: spacing[2],
-  },
-  downloadNoteButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  actionsSection: {
-    gap: spacing[3],
-    marginTop: spacing[4],
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.success[500],
-    padding: spacing[4],
-    borderRadius: borderRadius.xl,
-    gap: spacing[2],
-    ...shadows.sm,
-  },
-  disabledActionButton: {
-    opacity: 0.7,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  bottomSpacer: {
-    height: spacing[10],
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '70%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  modalBody: {
-    padding: spacing[5],
-  },
-  modalDescription: {
-    fontSize: 15,
-    color: colors.neutral[600],
-    marginBottom: spacing[4],
-  },
-  modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.xl,
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  disabledModalOption: {
-    opacity: 0.7,
-  },
-  modalOptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.warning[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[4],
-  },
-  modalOptionIconText: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  modalOptionContent: {
-    flex: 1,
-  },
-  modalOptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[0.5],
-  },
-  modalOptionSubtitle: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      gap: theme.space[4],
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+    },
+    errorText: {
+      fontSize: 18,
+      color: theme.color.text.danger,
+      fontWeight: '600',
+      marginTop: theme.space[4],
+    },
+    backButtonError: {
+      marginTop: theme.space[4],
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+    },
+    backButtonErrorText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    headerGradient: {
+      paddingHorizontal: theme.space[4],
+      paddingTop: theme.space[2],
+      paddingBottom: theme.space[4],
+    },
+    headerTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    headerTitleContainer: {
+      flex: 1,
+    },
+    headerCode: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: theme.color.brand.onHeader,
+      marginBottom: theme.space[2],
+    },
+    headerBadges: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    headerBadge: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.full,
+    },
+    headerBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.brand.onHeader,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    headerActionButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    summaryContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.brand.headerBadge,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+    },
+    summaryItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    summaryLabel: {
+      fontSize: 11,
+      color: theme.color.brand.onHeaderMuted,
+      fontWeight: '500',
+      textTransform: 'uppercase',
+      marginBottom: theme.space[1],
+    },
+    summaryValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.brand.onHeader,
+    },
+    summaryDivider: {
+      width: 1,
+      backgroundColor: theme.color.brand.headerBadge,
+      marginHorizontal: theme.space[3],
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: theme.space[4],
+    },
+    section: {
+      marginBottom: theme.space[5],
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.body,
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      ...theme.shadow.sm,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.background.muted,
+    },
+    infoLabel: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+    },
+    infoValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+      flex: 1,
+      textAlign: 'right',
+    },
+    processingBadge: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.md,
+    },
+    processingBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    checkContainer: {},
+    notesContainer: {
+      paddingTop: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    notesLabel: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+      marginBottom: theme.space[1],
+    },
+    notesText: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      lineHeight: 20,
+    },
+    productsContainer: {
+      gap: theme.space[3],
+    },
+    productCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      ...theme.shadow.sm,
+    },
+    productHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[2],
+    },
+    productName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      flex: 1,
+      marginRight: theme.space[3],
+    },
+    productPrice: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.success,
+    },
+    productSku: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[3],
+    },
+    productDetails: {
+      flexDirection: 'row',
+      gap: theme.space[4],
+      flexWrap: 'wrap',
+    },
+    productDetailItem: {
+      flexDirection: 'row',
+      gap: theme.space[1],
+    },
+    productDetailLabel: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+    },
+    productDetailValue: {
+      fontSize: 13,
+      color: theme.color.text.body,
+      fontWeight: '600',
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[2],
+    },
+    totalLabel: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+    },
+    totalValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    totalRowFinal: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: theme.space[3],
+      marginTop: theme.space[2],
+      borderTopWidth: 2,
+      borderTopColor: theme.color.border.subtle,
+    },
+    totalLabelFinal: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    totalValueFinal: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.success,
+    },
+    paymentStatusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.full,
+      gap: theme.space[1.5],
+    },
+    paymentStatusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    paymentStatusText: {
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    paymentSummary: {
+      flexDirection: 'row',
+      marginTop: theme.space[4],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.background.muted,
+    },
+    paymentSummaryItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    paymentSummaryLabel: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+      marginBottom: theme.space[1],
+    },
+    paymentSummaryValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    paymentsContainer: {
+      gap: theme.space[3],
+    },
+    paymentCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      ...theme.shadow.sm,
+    },
+    paymentHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    paymentAmount: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.success,
+    },
+    paymentDate: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+    },
+    paymentMethodContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+    },
+    paymentMethod: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    paymentReference: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+      marginTop: theme.space[1],
+    },
+    emptyContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[8],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.placeholder,
+    },
+    noteCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+      ...theme.shadow.sm,
+    },
+    noteHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+      paddingBottom: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.background.muted,
+    },
+    noteNumber: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    noteStatusBadge: {
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.md,
+    },
+    noteStatusText: {
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    downloadNoteButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.brand.accent,
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      marginTop: theme.space[3],
+      gap: theme.space[2],
+    },
+    downloadNoteButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    actionsSection: {
+      gap: theme.space[3],
+      marginTop: theme.space[4],
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.state.success.border,
+      padding: theme.space[4],
+      borderRadius: theme.radii.xl,
+      gap: theme.space[2],
+      ...theme.shadow.sm,
+    },
+    disabledActionButton: {
+      opacity: 0.7,
+    },
+    actionButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    bottomSpacer: {
+      height: theme.space[10],
+    },
+    // Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '70%',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    modalBody: {
+      padding: theme.space[5],
+    },
+    modalDescription: {
+      fontSize: 15,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[4],
+    },
+    modalOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.space[4],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    disabledModalOption: {
+      opacity: 0.7,
+    },
+    modalOptionIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.color.state.warning.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[4],
+    },
+    modalOptionIconText: {
+      fontSize: 24,
+      fontWeight: '700',
+    },
+    modalOptionContent: {
+      flex: 1,
+    },
+    modalOptionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[0.5],
+    },
+    modalOptionSubtitle: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+    },
+    // Returned badge on product cards
+    returnedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+      marginTop: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.md,
+      alignSelf: 'flex-start',
+    },
+    returnedBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    // Credit note modal - partial
+    cnFieldLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+      marginBottom: theme.space[2],
+      marginTop: theme.space[2],
+    },
+    cnModeRow: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    cnModeButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.background.subtle,
+      alignItems: 'center',
+    },
+    cnModeButtonActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.state.info.background,
+    },
+    cnModeText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    cnModeTextActive: {
+      color: theme.color.brand.accent,
+    },
+    cnMotivoRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    cnMotivoChip: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.full,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.background.subtle,
+    },
+    cnMotivoChipActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accent,
+    },
+    cnMotivoChipText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    cnMotivoChipTextActive: {
+      color: theme.color.text.inverse,
+    },
+    cnTextInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.body,
+      backgroundColor: theme.color.surface.base,
+      minHeight: 60,
+      textAlignVertical: 'top',
+    },
+    cnItemCard: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginBottom: theme.space[2],
+      backgroundColor: theme.color.surface.base,
+    },
+    cnItemCardSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.state.info.background,
+    },
+    cnItemCardDisabled: {
+      opacity: 0.55,
+      backgroundColor: theme.color.background.muted,
+    },
+    cnItemHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    cnItemName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    cnItemMeta: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[0.5],
+    },
+    cnItemQtyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    cnItemQtyLabel: {
+      fontSize: 13,
+      color: theme.color.text.body,
+      flex: 1,
+    },
+    cnItemQtyInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      backgroundColor: theme.color.surface.base,
+      minWidth: 70,
+      textAlign: 'center',
+    },
+    cnItemQtyMax: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      fontWeight: '600',
+    },
+    cnTotalInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.state.warning.background,
+      marginTop: theme.space[2],
+    },
+    cnTotalInfoText: {
+      flex: 1,
+      fontSize: 13,
+      color: theme.color.state.warning.text,
+    },
+    cnFooter: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      padding: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    cnCancelButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cnCancelText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    cnSubmitButton: {
+      flex: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.state.warning.border,
+    },
+    cnSubmitText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+  });

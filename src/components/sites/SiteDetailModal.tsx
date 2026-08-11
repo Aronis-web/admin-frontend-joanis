@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import Alert from '@/utils/alert';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView} from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Site } from '@/types/sites';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
@@ -30,6 +31,8 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   onSiteDeleted,
   onSiteUpdated,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [showManageAdminsModal, setShowManageAdminsModal] = useState(false);
   const [showWarehousesModal, setShowWarehousesModal] = useState(false);
   const [showWarehouseFormModal, setShowWarehouseFormModal] = useState(false);
@@ -86,7 +89,7 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   };
 
   const getStatusColor = (isActive: boolean) => {
-    return isActive ? colors.success[500] : colors.danger[500];
+    return isActive ? theme.color.icon.success : theme.color.icon.danger;
   };
 
   const getStatusText = (isActive: boolean) => {
@@ -428,257 +431,258 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    flex: 1,
-  },
-  siteIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.accent[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[4],
-  },
-  iconText: {
-    fontSize: 28,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: 6,
-  },
-  codeContainer: {
-    backgroundColor: colors.accent[50],
-    paddingHorizontal: 10,
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    alignSelf: 'flex-start',
-    marginBottom: spacing[2],
-  },
-  codeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary[500],
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    paddingHorizontal: 10,
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-    alignSelf: 'flex-start',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: borderRadius.full,
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[5],
-  },
-  section: {
-    marginBottom: spacing[6],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  sectionContent: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    fontWeight: '500',
-    flex: 1,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: colors.neutral[800],
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'right',
-  },
-  adminItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  adminAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  adminAvatarText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  adminInfo: {
-    flex: 1,
-  },
-  adminName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  adminEmail: {
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  noAdminsText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    paddingVertical: spacing[3],
-  },
-  manageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[2],
-  },
-  contactsButton: {
-    backgroundColor: colors.success[500],
-  },
-  manageButtonIcon: {
-    fontSize: 18,
-    marginRight: spacing[2],
-  },
-  manageButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  sectionHint: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    textAlign: 'center',
-  },
-  manageAdminsButton: {
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[3],
-    alignItems: 'center',
-  },
-  manageAdminsButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  modalActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[5],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeActionButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  closeActionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  deleteButton: {
-    backgroundColor: colors.danger[500],
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  editButton: {
-    backgroundColor: colors.primary[500],
-  },
-  editButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      flex: 1,
+    },
+    siteIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.accentSoft,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[4],
+    },
+    iconText: {
+      fontSize: 28,
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 6,
+    },
+    codeContainer: {
+      backgroundColor: theme.color.brand.accentSoft,
+      paddingHorizontal: 10,
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.lg,
+      alignSelf: 'flex-start',
+      marginBottom: theme.space[2],
+    },
+    codeText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      paddingHorizontal: 10,
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.lg,
+      alignSelf: 'flex-start',
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: theme.radii.full,
+      marginRight: 6,
+    },
+    statusText: {
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    scrollContent: {
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[5],
+    },
+    section: {
+      marginBottom: theme.space[6],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    sectionContent: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingVertical: theme.space[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    infoLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+      flex: 1,
+    },
+    infoValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+      flex: 1,
+      textAlign: 'right',
+    },
+    adminItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    adminAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    adminAvatarText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    adminInfo: {
+      flex: 1,
+    },
+    adminName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    adminEmail: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    noAdminsText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      paddingVertical: theme.space[3],
+    },
+    manageButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[2],
+    },
+    contactsButton: {
+      backgroundColor: theme.color.icon.success,
+    },
+    manageButtonIcon: {
+      fontSize: 18,
+      marginRight: theme.space[2],
+    },
+    manageButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    sectionHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    manageAdminsButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      marginTop: theme.space[3],
+      alignItems: 'center',
+    },
+    manageAdminsButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[5],
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeActionButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    closeActionButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.icon.danger,
+    },
+    deleteButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    editButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    editButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });
 
 export default SiteDetailModal;

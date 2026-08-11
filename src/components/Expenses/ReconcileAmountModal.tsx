@@ -7,12 +7,13 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
 import { ReconcileAmountRequest } from '@/types/expenses';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ReconcileAmountModalProps {
   visible: boolean;
@@ -31,6 +32,8 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
   estimatedAmount,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [actualAmount, setActualAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -85,7 +88,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.title}>Actualizar Monto Real</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.neutral[500]} />
+              <Ionicons name="close" size={24} color={theme.color.icon.subtle} />
             </TouchableOpacity>
           </View>
 
@@ -110,7 +113,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
                   value={actualAmount}
                   onChangeText={setActualAmount}
                   placeholder="0.00"
-                  placeholderTextColor={colors.neutral[400]}
+                  placeholderTextColor={theme.color.text.placeholder}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -124,7 +127,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Ej: Factura recibida con descuento"
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
                 multiline
                 numberOfLines={3}
               />
@@ -165,7 +168,7 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color={colors.neutral[0]} />
+                <ActivityIndicator size="small" color={theme.color.text.inverse} />
               ) : (
                 <Text style={styles.confirmButtonText}>Conciliar</Text>
               )}
@@ -177,169 +180,170 @@ export const ReconcileAmountModal: React.FC<ReconcileAmountModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
-  container: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    width: '100%',
-    maxWidth: 500,
-    maxHeight: '90%',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    padding: spacing[1],
-  },
-  content: {
-    padding: spacing[5],
-  },
-  expenseInfo: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[5],
-  },
-  expenseName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  amountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  amountLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  estimatedAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.accent[500],
-  },
-  inputContainer: {
-    marginBottom: spacing[4],
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[2],
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    paddingHorizontal: spacing[3],
-  },
-  currencySymbol: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginRight: spacing[2],
-  },
-  input: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  notesInput: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[3],
-    fontSize: 14,
-    color: colors.neutral[800],
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  differenceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginTop: spacing[2],
-  },
-  differenceLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  differenceValue: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  differencePositive: {
-    color: colors.success[500],
-  },
-  differenceNegative: {
-    color: colors.danger[500],
-  },
-  differenceZero: {
-    color: colors.neutral[500],
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    padding: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  confirmButton: {
-    backgroundColor: colors.accent[500],
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    container: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      width: '100%',
+      maxWidth: 500,
+      maxHeight: '90%',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      padding: theme.space[1],
+    },
+    content: {
+      padding: theme.space[5],
+    },
+    expenseInfo: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[5],
+    },
+    expenseName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    amountRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    amountLabel: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+    },
+    estimatedAmount: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+    },
+    inputContainer: {
+      marginBottom: theme.space[4],
+    },
+    inputLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      paddingHorizontal: theme.space[3],
+    },
+    currencySymbol: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      marginRight: theme.space[2],
+    },
+    input: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    notesInput: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.heading,
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    differenceContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    differenceLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    differenceValue: {
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    differencePositive: {
+      color: theme.color.icon.success,
+    },
+    differenceNegative: {
+      color: theme.color.text.danger,
+    },
+    differenceZero: {
+      color: theme.color.text.subtle,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      padding: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    confirmButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    confirmButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });
 
 export default ReconcileAmountModal;

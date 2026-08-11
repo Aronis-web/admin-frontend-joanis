@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { User } from '@/services/api/users';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { UserScopesModal } from './UserScopesModal';
@@ -29,6 +30,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onUpdateBiometric,
   onVerifyBiometric,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [showScopesModal, setShowScopesModal] = useState(false);
 
   if (!user) {
@@ -88,7 +91,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'active' ? colors.success[500] : colors.danger[500];
+    return status === 'active'
+      ? theme.color.state.success.border
+      : theme.color.state.danger.border;
   };
 
   const getStatusText = (status: string) => {
@@ -275,10 +280,16 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </Text>
                   <View style={styles.biometricInfo}>
                     <Text style={styles.biometricLabel}>Estado</Text>
-                    <Text style={[
-                      styles.biometricValue,
-                      { color: user.has_biometric ? colors.success[600] : colors.neutral[500] }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.biometricValue,
+                        {
+                          color: user.has_biometric
+                            ? theme.color.text.success
+                            : theme.color.text.muted,
+                        },
+                      ]}
+                    >
                       {user.has_biometric ? 'Registrado' : 'Sin registrar'}
                     </Text>
                   </View>
@@ -357,247 +368,247 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius.full,
-    borderTopRightRadius: borderRadius.full,
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  userAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[4],
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: 6,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: borderRadius.full,
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius['2xl'],
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  scrollContent: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    maxHeight: '70%',
-  },
-  section: {
-    marginBottom: spacing[6],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  sectionContent: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  infoRow: {
-    marginBottom: spacing[3],
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  infoValue: {
-    fontSize: 15,
-    color: colors.neutral[800],
-    fontWeight: '500',
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  tag: {
-    backgroundColor: colors.primary[500],
-    paddingHorizontal: spacing[3],
-    paddingVertical: 6,
-    borderRadius: borderRadius['2xl'],
-  },
-  tagText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  permissionTag: {
-    backgroundColor: colors.accent[600],
-  },
-  permissionTagText: {
-    color: colors.neutral[0],
-  },
-  modalActions: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-    gap: spacing[2],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeActionButton: {
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    flex: 0.8,
-  },
-  closeActionButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  secondaryButton: {
-    backgroundColor: colors.accent[50],
-    borderWidth: 1,
-    borderColor: colors.accent[200],
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  scopesButton: {
-    backgroundColor: colors.accent[600],
-    borderWidth: 1,
-    borderColor: colors.accent[700],
-  },
-  scopesButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  editButton: {
-    backgroundColor: colors.primary[500],
-  },
-  editButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  // Biometric styles
-  biometricContainer: {
-    gap: spacing[4],
-  },
-  biometricStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  biometricIcon: {
-    fontSize: 32,
-  },
-  biometricInfo: {
-    flex: 1,
-  },
-  biometricLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing[1],
-  },
-  biometricValue: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  biometricActions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  biometricButton: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  biometricRegisterButton: {
-    backgroundColor: colors.primary[500],
-  },
-  biometricUpdateButton: {
-    backgroundColor: colors.accent[600],
-  },
-  biometricVerifyButton: {
-    backgroundColor: colors.success[500],
-  },
-  biometricButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii.full,
+      borderTopRightRadius: theme.radii.full,
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    userAvatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.color.brand.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[4],
+    },
+    avatarText: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.text.onAction,
+    },
+    headerInfo: {
+      flex: 1,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 6,
+    },
+    statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: theme.radii.full,
+      marginRight: 6,
+    },
+    statusText: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii['2xl'],
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    scrollContent: {
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      maxHeight: '70%',
+    },
+    section: {
+      marginBottom: theme.space[6],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    sectionContent: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    infoRow: {
+      marginBottom: theme.space[3],
+    },
+    infoLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    infoValue: {
+      fontSize: 15,
+      color: theme.color.text.heading,
+      fontWeight: '500',
+    },
+    tagsContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    tag: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 6,
+      borderRadius: theme.radii['2xl'],
+    },
+    tagText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    permissionTag: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    permissionTagText: {
+      color: theme.color.text.onAction,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+      gap: theme.space[2],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeActionButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      flex: 0.8,
+    },
+    closeActionButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    secondaryButton: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
+    },
+    secondaryButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    scopesButton: {
+      backgroundColor: theme.color.brand.accent,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
+    },
+    scopesButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    editButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    editButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    biometricContainer: {
+      gap: theme.space[4],
+    },
+    biometricStatus: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    biometricIcon: {
+      fontSize: 32,
+    },
+    biometricInfo: {
+      flex: 1,
+    },
+    biometricLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: theme.space[1],
+    },
+    biometricValue: {
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    biometricActions: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    biometricButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    biometricRegisterButton: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    biometricUpdateButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    biometricVerifyButton: {
+      backgroundColor: theme.color.action.success.background,
+    },
+    biometricButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });
 
 export default UserDetailModal;

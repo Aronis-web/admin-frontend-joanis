@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+﻿import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,8 @@ import {
 } from '@/types/campaigns';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DistributionFormModal } from '@/components/Campaigns/DistributionFormModal';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CampaignProductDetailScreenProps {
   navigation: any;
@@ -48,6 +50,8 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { campaignId, productId, fromCampaignDetail, openDistributionModal } = route.params;
   const [product, setProduct] = useState<CampaignProduct | null>(null);
   const [preview, setPreview] = useState<DistributionPreviewResponse | null>(null);
@@ -139,7 +143,10 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 
     // Also check campaign product status (should be ACTIVE)
     if (product.productStatus !== 'ACTIVE') {
-      Alert.alert('Error', 'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña');
+      Alert.alert(
+        'Error',
+        'Solo se pueden generar repartos de productos en estado ACTIVO en la campaña'
+      );
       return;
     }
 
@@ -152,7 +159,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       });
 
       // El API puede devolver un array o un objeto paginado { data: [...], total, page, limit }
-      const stockData = Array.isArray(stockResponse) ? stockResponse : (stockResponse?.data || []);
+      const stockData = Array.isArray(stockResponse) ? stockResponse : stockResponse?.data || [];
 
       // Guardar en estado local sin actualizar el producto (evita recargar la campaña)
       if (stockData && stockData.length > 0) {
@@ -251,7 +258,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando producto...</Text>
         </View>
       </SafeAreaView>
@@ -443,9 +450,9 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
               ℹ️ Acciones Disponibles
             </Text>
             <Text style={[styles.infoText, isTablet && styles.infoTextTablet]}>
-              • Vista Previa: Ver cómo se distribuirá el producto{'\n'}• Generar Reparto: Crear los
-              registros de distribución{'\n'}• Solo productos ACTIVOS pueden generar reparto{'\n'}•
-              El reparto se genera una sola vez por producto
+              • Vista Previa: Ver cómo se distribuirá el producto{'\n'}• Generar Reparto:
+              Crear los registros de distribución{'\n'}• Solo productos ACTIVOS pueden generar
+              reparto{'\n'}• El reparto se genera una sola vez por producto
             </Text>
           </View>
         </ScrollView>
@@ -458,7 +465,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             disabled={actionLoading}
           >
             {actionLoading ? (
-              <ActivityIndicator color="#6366F1" />
+              <ActivityIndicator color={theme.color.brand.primary} />
             ) : (
               <Text style={[styles.previewButtonText, isTablet && styles.previewButtonTextTablet]}>
                 Vista Previa
@@ -471,8 +478,8 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
               styles.generateButton,
               isTablet && styles.generateButtonTablet,
               (product.distributionGenerated ||
-               product.productStatus !== 'ACTIVE' ||
-               (product.product?.status as any) === 'preliminary') &&
+                product.productStatus !== 'ACTIVE' ||
+                (product.product?.status as any) === 'preliminary') &&
                 styles.generateButtonDisabled,
             ]}
             onPress={handleGenerateDistribution}
@@ -484,9 +491,11 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
             }
           >
             <Text style={[styles.generateButtonText, isTablet && styles.generateButtonTextTablet]}>
-              {product.distributionGenerated ? 'Ya Generado' :
-               (product.product?.status as any) === 'preliminary' ? 'Producto Preliminar' :
-               'Generar Reparto'}
+              {product.distributionGenerated
+                ? 'Ya Generado'
+                : (product.product?.status as any) === 'preliminary'
+                  ? 'Producto Preliminar'
+                  : 'Generar Reparto'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -634,1288 +643,1289 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#64748B',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  scrollContentTablet: {
-    padding: 32,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTablet: {
-    padding: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 16,
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748B',
-    minWidth: 150,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-    minWidth: 180,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    flex: 1,
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  statusContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
-  },
-  changeStatusButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  changeStatusButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  changeStatusButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  changeStatusButtonTextTablet: {
-    fontSize: 14,
-  },
-  generatedYes: {
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  generatedNo: {
-    color: '#EF4444',
-    fontWeight: '600',
-  },
-  manageButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  manageButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  manageButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  manageButtonTextTablet: {
-    fontSize: 14,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  emptyTextTablet: {
-    fontSize: 16,
-  },
-  distributionItem: {
-    padding: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  distributionName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  distributionItems: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  infoBox: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
-  },
-  infoBoxTablet: {
-    padding: 16,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E40AF',
-    marginBottom: 8,
-  },
-  infoTitleTablet: {
-    fontSize: 16,
-  },
-  infoText: {
-    fontSize: 13,
-    color: '#1E40AF',
-    lineHeight: 20,
-  },
-  infoTextTablet: {
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  footerTablet: {
-    padding: 24,
-    gap: 16,
-  },
-  previewButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#6366F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewButtonTablet: {
-    paddingVertical: 16,
-  },
-  previewButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  previewButtonTextTablet: {
-    fontSize: 18,
-  },
-  generateButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generateButtonTablet: {
-    paddingVertical: 16,
-  },
-  generateButtonDisabled: {
-    backgroundColor: '#94A3B8',
-  },
-  generateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  generateButtonTextTablet: {
-    fontSize: 18,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    width: '100%',
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  modalContentTablet: {
-    width: '80%',
-    maxWidth: 600,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  modalTitleTablet: {
-    fontSize: 22,
-  },
-  modalClose: {
-    fontSize: 24,
-    color: '#64748B',
-    fontWeight: 'bold',
-  },
-  modalBody: {
-    padding: 16,
-  },
-  previewHeader: {
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  previewProductName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  previewProductStatus: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  previewSection: {
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  previewSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  previewType: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
-    marginBottom: 8,
-  },
-  previewDescription: {
-    fontSize: 13,
-    color: '#64748B',
-    fontStyle: 'italic',
-    lineHeight: 18,
-  },
-  previewSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  previewSummaryLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    flex: 1,
-  },
-  previewSummaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  previewRemainder: {
-    color: '#F59E0B',
-  },
-  previewQuantity: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  previewItem: {
-    padding: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  previewItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  previewParticipantName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  previewParticipantType: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  previewItemDetails: {
-    marginTop: 8,
-  },
-  previewDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  previewDetailLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    flex: 1,
-  },
-  // Adjust Modal Styles
-  warningBox: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  warningTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#92400E',
-    marginBottom: 6,
-  },
-  warningText: {
-    fontSize: 13,
-    color: '#92400E',
-    lineHeight: 18,
-  },
-  adjustHint: {
-    fontSize: 13,
-    color: '#6366F1',
-    fontStyle: 'italic',
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  infoBoxModal: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  infoBoxTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4338CA',
-    marginBottom: 8,
-  },
-  infoBoxText: {
-    fontSize: 13,
-    color: '#4338CA',
-    lineHeight: 18,
-  },
-  adjustItem: {
-    padding: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  adjustItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  adjustParticipantName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  adjustParticipantType: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  adjustItemDetails: {
-    marginTop: 4,
-  },
-  adjustDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  adjustDetailLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    flex: 1,
-  },
-  adjustAmount: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  adjustPercentage: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#8B5CF6',
-  },
-  adjustQuantity: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-  },
-  modalCancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#94A3B8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  modalCancelButtonTablet: {
-    paddingVertical: 14,
-  },
-  modalCancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  modalCancelButtonTextTablet: {
-    fontSize: 17,
-  },
-  modalConfirmButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  modalConfirmButtonTablet: {
-    paddingVertical: 14,
-  },
-  modalConfirmButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  modalConfirmButtonTextTablet: {
-    fontSize: 17,
-  },
-  // Distribution Type Selector Styles
-  distributionTypeHint: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  // Presentation Styles
-  presentationToggleContainer: {
-    gap: 10,
-    marginBottom: 16,
-  },
-  presentationToggleOption: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  presentationToggleOptionSelected: {
-    borderColor: '#10B981',
-    backgroundColor: '#F0FDF4',
-  },
-  presentationToggleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  presentationToggleRadio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  presentationToggleRadioSelected: {
-    borderColor: '#10B981',
-  },
-  presentationToggleRadioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#10B981',
-  },
-  presentationToggleLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  presentationToggleLabelSelected: {
-    color: '#10B981',
-  },
-  presentationToggleDescription: {
-    fontSize: 12,
-    color: '#64748B',
-    lineHeight: 16,
-    marginLeft: 30,
-  },
-  presentationSelectorContainer: {
-    marginTop: 12,
-  },
-  presentationSelectorLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 10,
-  },
-  presentationOptions: {
-    gap: 8,
-  },
-  presentationOption: {
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  presentationOptionSelected: {
-    borderColor: '#10B981',
-    backgroundColor: '#F0FDF4',
-  },
-  presentationOptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  presentationOptionRadio: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    marginRight: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  presentationOptionRadioSelected: {
-    borderColor: '#10B981',
-  },
-  presentationOptionRadioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-  },
-  presentationOptionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  presentationOptionLabelSelected: {
-    color: '#10B981',
-  },
-  presentationOptionFactor: {
-    fontSize: 11,
-    color: '#64748B',
-    marginLeft: 24,
-  },
-  previewSummarySecondary: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '400',
-  },
-  adjustQuantitySecondary: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '400',
-  },
-  distributionTypeContainer: {
-    gap: 10,
-  },
-  distributionTypeOption: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  distributionTypeOptionSelected: {
-    borderColor: '#6366F1',
-    backgroundColor: '#EEF2FF',
-  },
-  distributionTypeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  distributionTypeRadio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  distributionTypeRadioSelected: {
-    borderColor: '#6366F1',
-  },
-  distributionTypeRadioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#6366F1',
-  },
-  distributionTypeLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  distributionTypeLabelSelected: {
-    color: '#6366F1',
-  },
-  distributionTypeDescription: {
-    fontSize: 12,
-    color: '#64748B',
-    lineHeight: 16,
-    marginLeft: 30,
-  },
-  previewLoadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    gap: 8,
-  },
-  previewLoadingText: {
-    fontSize: 13,
-    color: '#6366F1',
-  },
-  // Custom Distribution Styles
-  customTotalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  customTotalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  customTotalValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  customTotalError: {
-    color: '#EF4444',
-  },
-  customItem: {
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  customItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  customParticipantName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  customParticipantType: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  customInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  customInputLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    minWidth: 70,
-  },
-  customInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
-  },
-  customInputUnit: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  // Remainder Info Styles
-  remainderInfoBox: {
-    backgroundColor: '#ECFDF5',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#10B981',
-  },
-  remainderInfoTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#065F46',
-    marginBottom: 6,
-  },
-  remainderInfoText: {
-    fontSize: 12,
-    color: '#065F46',
-    lineHeight: 16,
-  },
-  remainderSiteName: {
-    fontWeight: '700',
-    color: '#047857',
-  },
-  remainderWarningBox: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  remainderWarningTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#92400E',
-    marginBottom: 6,
-  },
-  remainderWarningText: {
-    fontSize: 12,
-    color: '#92400E',
-    lineHeight: 16,
-  },
-  remainderAssignedBox: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
-  },
-  remainderAssignedTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1E40AF',
-    marginBottom: 6,
-  },
-  remainderAssignedText: {
-    fontSize: 12,
-    color: '#1E40AF',
-    lineHeight: 16,
-  },
-  remainderParticipantName: {
-    fontWeight: '700',
-    color: '#1D4ED8',
-  },
-  previewAmount: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  previewPercentage: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  previewCalculated: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  modalCloseButton: {
-    margin: 16,
-    padding: 12,
-    backgroundColor: '#6366F1',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  // Stock Info Styles
-  stockInfoSection: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0EA5E9',
-  },
-  stockInfoTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0C4A6E',
-    marginBottom: 12,
-  },
-  stockInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  stockInfoLabel: {
-    fontSize: 13,
-    color: '#075985',
-    fontWeight: '500',
-  },
-  stockInfoValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0C4A6E',
-  },
-  stockInfoValueDifferent: {
-    color: '#DC2626',
-  },
-  stockDifferenceWarning: {
-    flexDirection: 'row',
-    backgroundColor: '#FEF3C7',
-    borderRadius: 6,
-    padding: 10,
-    marginTop: 8,
-    gap: 10,
-  },
-  stockDifferenceWarningIcon: {
-    fontSize: 18,
-  },
-  stockDifferenceWarningTextContainer: {
-    flex: 1,
-  },
-  stockDifferenceWarningTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#92400E',
-    marginBottom: 4,
-  },
-  stockDifferenceWarningText: {
-    fontSize: 12,
-    color: '#92400E',
-    lineHeight: 16,
-  },
-  previewSummaryError: {
-    color: '#EF4444',
-  },
-  // Include in Sheet Checkbox Styles
-  includeInSheetGlobalContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  includeInSheetCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    marginTop: 2,
-  },
-  includeInSheetCheckboxChecked: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
-  },
-  includeInSheetCheckmark: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  includeInSheetTextContainer: {
-    flex: 1,
-  },
-  includeInSheetLabelLarge: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 6,
-    lineHeight: 20,
-  },
-  includeInSheetDescription: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-  },
-  // Stock Detail Styles
-  stockDetailCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  stockWarehouseName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 10,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  stockDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  stockDetailLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  stockDetailValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  stockReserved: {
-    color: '#F59E0B',
-  },
-  stockAvailable: {
-    color: '#10B981',
-  },
-  // Editable Total Quantity Styles
-  editableTotalQuantityContainer: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-  },
-  editableTotalQuantityLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0C4A6E',
-    marginBottom: 10,
-  },
-  editableTotalQuantityInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
-  },
-  editableTotalQuantityInput: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: '#0EA5E9',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0C4A6E',
-    backgroundColor: '#FFFFFF',
-  },
-  editableTotalQuantityUnit: {
-    fontSize: 14,
-    color: '#0C4A6E',
-    fontWeight: '600',
-  },
-  editableTotalQuantityHint: {
-    fontSize: 12,
-    color: '#0369A1',
-    fontStyle: 'italic',
-    lineHeight: 16,
-  },
-  recalculateButton: {
-    backgroundColor: '#0EA5E9',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  recalculateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  // Editable Distribution Styles
-  editableItem: {
-    padding: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  editableItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  editableParticipantName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  editableParticipantType: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  editableItemDetails: {
-    gap: 10,
-  },
-  editableDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  editableDetailLabel: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  editablePercentage: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#8B5CF6',
-  },
-  roundingFactorContainer: {
-    marginTop: 4,
-  },
-  roundingFactorLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
-  },
-  roundingFactorButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  roundingFactorButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-  },
-  roundingFactorButtonSelected: {
-    borderColor: '#10B981',
-    backgroundColor: '#F0FDF4',
-  },
-  roundingFactorButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  roundingFactorButtonTextSelected: {
-    color: '#10B981',
-  },
-  editableQuantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  editableQuantityLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-    minWidth: 70,
-  },
-  editableQuantityInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
-    fontWeight: '600',
-  },
-  editableQuantityUnit: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  presentationEquivalence: {
-    marginTop: 6,
-    paddingLeft: 78,
-  },
-  presentationEquivalenceText: {
-    fontSize: 12,
-    color: '#6366F1',
-    fontStyle: 'italic',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.subtle,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: 32,
+      paddingVertical: 24,
+    },
+    backButton: {
+      marginBottom: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    backButtonTextTablet: {
+      fontSize: 18,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    scrollContentTablet: {
+      padding: 32,
+    },
+    section: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    sectionTablet: {
+      padding: 24,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 16,
+    },
+    sectionTitleTablet: {
+      fontSize: 22,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 8,
+    },
+    infoLabel: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.subtle,
+      minWidth: 150,
+    },
+    infoLabelTablet: {
+      fontSize: 16,
+      minWidth: 180,
+    },
+    infoValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    infoValueTablet: {
+      fontSize: 16,
+    },
+    statusContainer: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    statusBadgeTablet: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    statusTextTablet: {
+      fontSize: 14,
+    },
+    changeStatusButton: {
+      backgroundColor: theme.color.action.success.background,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    changeStatusButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    changeStatusButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    changeStatusButtonTextTablet: {
+      fontSize: 14,
+    },
+    generatedYes: {
+      color: theme.color.action.success.background,
+      fontWeight: '600',
+    },
+    generatedNo: {
+      color: theme.color.border.error,
+      fontWeight: '600',
+    },
+    manageButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    manageButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    manageButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    manageButtonTextTablet: {
+      fontSize: 14,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.disabled,
+      textAlign: 'center',
+      paddingVertical: 20,
+    },
+    emptyTextTablet: {
+      fontSize: 16,
+    },
+    distributionItem: {
+      padding: 12,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    distributionName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    distributionItems: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    infoBox: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: 8,
+      padding: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.info.border,
+    },
+    infoBoxTablet: {
+      padding: 16,
+    },
+    infoTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.state.info.text,
+      marginBottom: 8,
+    },
+    infoTitleTablet: {
+      fontSize: 16,
+    },
+    infoText: {
+      fontSize: 13,
+      color: theme.color.state.info.text,
+      lineHeight: 20,
+    },
+    infoTextTablet: {
+      fontSize: 15,
+      lineHeight: 24,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: 12,
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    footerTablet: {
+      padding: 24,
+      gap: 16,
+    },
+    previewButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    previewButtonTablet: {
+      paddingVertical: 16,
+    },
+    previewButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    previewButtonTextTablet: {
+      fontSize: 18,
+    },
+    generateButton: {
+      flex: 1,
+      backgroundColor: theme.color.action.success.background,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    generateButtonTablet: {
+      paddingVertical: 16,
+    },
+    generateButtonDisabled: {
+      backgroundColor: theme.color.text.disabled,
+    },
+    generateButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    generateButtonTextTablet: {
+      fontSize: 18,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      width: '100%',
+      maxHeight: '80%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    modalContentTablet: {
+      width: '80%',
+      maxWidth: 600,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    modalTitleTablet: {
+      fontSize: 22,
+    },
+    modalClose: {
+      fontSize: 24,
+      color: theme.color.text.subtle,
+      fontWeight: 'bold',
+    },
+    modalBody: {
+      padding: 16,
+    },
+    previewHeader: {
+      marginBottom: 16,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    previewProductName: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    previewProductStatus: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginBottom: 4,
+    },
+    previewSection: {
+      marginBottom: 20,
+      paddingBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    previewSectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    previewType: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+      marginBottom: 8,
+    },
+    previewDescription: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      fontStyle: 'italic',
+      lineHeight: 18,
+    },
+    previewSummaryRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    previewSummaryLabel: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      flex: 1,
+    },
+    previewSummaryValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    previewRemainder: {
+      color: theme.color.icon.warning,
+    },
+    previewQuantity: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      marginBottom: 4,
+    },
+    previewItem: {
+      padding: 12,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    previewItemHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    previewParticipantName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    previewParticipantType: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    previewItemDetails: {
+      marginTop: 8,
+    },
+    previewDetailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    previewDetailLabel: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      flex: 1,
+    },
+    // Adjust Modal Styles
+    warningBox: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    warningTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.state.warning.text,
+      marginBottom: 6,
+    },
+    warningText: {
+      fontSize: 13,
+      color: theme.color.state.warning.text,
+      lineHeight: 18,
+    },
+    adjustHint: {
+      fontSize: 13,
+      color: theme.color.brand.primary,
+      fontStyle: 'italic',
+      marginBottom: 12,
+      lineHeight: 18,
+    },
+    infoBoxModal: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    infoBoxTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+      marginBottom: 8,
+    },
+    infoBoxText: {
+      fontSize: 13,
+      color: theme.color.brand.primary,
+      lineHeight: 18,
+    },
+    adjustItem: {
+      padding: 14,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    adjustItemHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+      paddingBottom: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    adjustParticipantName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    adjustParticipantType: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+    },
+    adjustItemDetails: {
+      marginTop: 4,
+    },
+    adjustDetailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    adjustDetailLabel: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      flex: 1,
+    },
+    adjustAmount: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    adjustPercentage: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    adjustQuantity: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.action.success.background,
+    },
+    modalFooter: {
+      flexDirection: 'row',
+      gap: 12,
+      padding: 16,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      backgroundColor: theme.color.background.subtle,
+    },
+    modalCancelButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.text.disabled,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.base,
+    },
+    modalCancelButtonTablet: {
+      paddingVertical: 14,
+    },
+    modalCancelButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    modalCancelButtonTextTablet: {
+      fontSize: 17,
+    },
+    modalConfirmButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.action.success.background,
+      shadowColor: theme.color.action.success.background,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    modalConfirmButtonTablet: {
+      paddingVertical: 14,
+    },
+    modalConfirmButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    modalConfirmButtonTextTablet: {
+      fontSize: 17,
+    },
+    // Distribution Type Selector Styles
+    distributionTypeHint: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      marginBottom: 12,
+      lineHeight: 18,
+    },
+    // Presentation Styles
+    presentationToggleContainer: {
+      gap: 10,
+      marginBottom: 16,
+    },
+    presentationToggleOption: {
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    presentationToggleOptionSelected: {
+      borderColor: theme.color.action.success.background,
+      backgroundColor: theme.color.state.success.background,
+    },
+    presentationToggleHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    presentationToggleRadio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      marginRight: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    presentationToggleRadioSelected: {
+      borderColor: theme.color.action.success.background,
+    },
+    presentationToggleRadioInner: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: theme.color.action.success.background,
+    },
+    presentationToggleLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    presentationToggleLabelSelected: {
+      color: theme.color.action.success.background,
+    },
+    presentationToggleDescription: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      lineHeight: 16,
+      marginLeft: 30,
+    },
+    presentationSelectorContainer: {
+      marginTop: 12,
+    },
+    presentationSelectorLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 10,
+    },
+    presentationOptions: {
+      gap: 8,
+    },
+    presentationOption: {
+      padding: 10,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    presentationOptionSelected: {
+      borderColor: theme.color.action.success.background,
+      backgroundColor: theme.color.state.success.background,
+    },
+    presentationOptionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    presentationOptionRadio: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      marginRight: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    presentationOptionRadioSelected: {
+      borderColor: theme.color.action.success.background,
+    },
+    presentationOptionRadioInner: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: theme.color.action.success.background,
+    },
+    presentationOptionLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    presentationOptionLabelSelected: {
+      color: theme.color.action.success.background,
+    },
+    presentationOptionFactor: {
+      fontSize: 11,
+      color: theme.color.text.subtle,
+      marginLeft: 24,
+    },
+    previewSummarySecondary: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      fontWeight: '400',
+    },
+    adjustQuantitySecondary: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      fontWeight: '400',
+    },
+    distributionTypeContainer: {
+      gap: 10,
+    },
+    distributionTypeOption: {
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    distributionTypeOptionSelected: {
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.state.info.background,
+    },
+    distributionTypeHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    distributionTypeRadio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      marginRight: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    distributionTypeRadioSelected: {
+      borderColor: theme.color.brand.primary,
+    },
+    distributionTypeRadioInner: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: theme.color.brand.primary,
+    },
+    distributionTypeLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    distributionTypeLabelSelected: {
+      color: theme.color.brand.primary,
+    },
+    distributionTypeDescription: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      lineHeight: 16,
+      marginLeft: 30,
+    },
+    previewLoadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 16,
+      gap: 8,
+    },
+    previewLoadingText: {
+      fontSize: 13,
+      color: theme.color.brand.primary,
+    },
+    // Custom Distribution Styles
+    customTotalContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: 8,
+      marginBottom: 12,
+    },
+    customTotalLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    customTotalValue: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.action.success.background,
+    },
+    customTotalError: {
+      color: theme.color.border.error,
+    },
+    customItem: {
+      padding: 12,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    customItemHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    customParticipantName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    customParticipantType: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+    },
+    customInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    customInputLabel: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      minWidth: 70,
+    },
+    customInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    customInputUnit: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+    },
+    // Remainder Info Styles
+    remainderInfoBox: {
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.action.success.background,
+    },
+    remainderInfoTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.state.success.text,
+      marginBottom: 6,
+    },
+    remainderInfoText: {
+      fontSize: 12,
+      color: theme.color.state.success.text,
+      lineHeight: 16,
+    },
+    remainderSiteName: {
+      fontWeight: '700',
+      color: theme.color.state.success.text,
+    },
+    remainderWarningBox: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    remainderWarningTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.state.warning.text,
+      marginBottom: 6,
+    },
+    remainderWarningText: {
+      fontSize: 12,
+      color: theme.color.state.warning.text,
+      lineHeight: 16,
+    },
+    remainderAssignedBox: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: 8,
+      padding: 12,
+      marginTop: 12,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.info.border,
+    },
+    remainderAssignedTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+      marginBottom: 6,
+    },
+    remainderAssignedText: {
+      fontSize: 12,
+      color: theme.color.state.info.text,
+      lineHeight: 16,
+    },
+    remainderParticipantName: {
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+    },
+    previewAmount: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    previewPercentage: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    previewCalculated: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.action.success.background,
+    },
+    modalCloseButton: {
+      margin: 16,
+      padding: 12,
+      backgroundColor: theme.color.brand.primary,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    modalCloseButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    // Stock Info Styles
+    stockInfoSection: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 20,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.info.border,
+    },
+    stockInfoTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+      marginBottom: 12,
+    },
+    stockInfoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    stockInfoLabel: {
+      fontSize: 13,
+      color: theme.color.state.info.text,
+      fontWeight: '500',
+    },
+    stockInfoValue: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+    },
+    stockInfoValueDifferent: {
+      color: theme.color.text.danger,
+    },
+    stockDifferenceWarning: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: 6,
+      padding: 10,
+      marginTop: 8,
+      gap: 10,
+    },
+    stockDifferenceWarningIcon: {
+      fontSize: 18,
+    },
+    stockDifferenceWarningTextContainer: {
+      flex: 1,
+    },
+    stockDifferenceWarningTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.state.warning.text,
+      marginBottom: 4,
+    },
+    stockDifferenceWarningText: {
+      fontSize: 12,
+      color: theme.color.state.warning.text,
+      lineHeight: 16,
+    },
+    previewSummaryError: {
+      color: theme.color.border.error,
+    },
+    // Include in Sheet Checkbox Styles
+    includeInSheetGlobalContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      padding: 16,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    includeInSheetCheckbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.surface.base,
+      marginTop: 2,
+    },
+    includeInSheetCheckboxChecked: {
+      backgroundColor: theme.color.action.success.background,
+      borderColor: theme.color.action.success.background,
+    },
+    includeInSheetCheckmark: {
+      color: theme.color.surface.base,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    includeInSheetTextContainer: {
+      flex: 1,
+    },
+    includeInSheetLabelLarge: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 6,
+      lineHeight: 20,
+    },
+    includeInSheetDescription: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      lineHeight: 18,
+    },
+    // Stock Detail Styles
+    stockDetailCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    stockWarehouseName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 10,
+      paddingBottom: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    stockDetailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    stockDetailLabel: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+    },
+    stockDetailValue: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    stockReserved: {
+      color: theme.color.icon.warning,
+    },
+    stockAvailable: {
+      color: theme.color.action.success.background,
+    },
+    // Editable Total Quantity Styles
+    editableTotalQuantityContainer: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: 8,
+      padding: 14,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    editableTotalQuantityLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.state.info.text,
+      marginBottom: 10,
+    },
+    editableTotalQuantityInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 8,
+    },
+    editableTotalQuantityInput: {
+      flex: 1,
+      borderWidth: 2,
+      borderColor: theme.color.state.info.border,
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+      backgroundColor: theme.color.surface.base,
+    },
+    editableTotalQuantityUnit: {
+      fontSize: 14,
+      color: theme.color.state.info.text,
+      fontWeight: '600',
+    },
+    editableTotalQuantityHint: {
+      fontSize: 12,
+      color: theme.color.state.info.text,
+      fontStyle: 'italic',
+      lineHeight: 16,
+    },
+    recalculateButton: {
+      backgroundColor: theme.color.state.info.border,
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      marginTop: 12,
+      marginBottom: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    recalculateButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    // Editable Distribution Styles
+    editableItem: {
+      padding: 14,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    editableItemHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+      paddingBottom: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    editableParticipantName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    editableParticipantType: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      fontWeight: '500',
+    },
+    editableItemDetails: {
+      gap: 10,
+    },
+    editableDetailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    editableDetailLabel: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+    },
+    editablePercentage: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    roundingFactorContainer: {
+      marginTop: 4,
+    },
+    roundingFactorLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 8,
+    },
+    roundingFactorButtons: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    roundingFactorButton: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+    },
+    roundingFactorButtonSelected: {
+      borderColor: theme.color.action.success.background,
+      backgroundColor: theme.color.state.success.background,
+    },
+    roundingFactorButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+    },
+    roundingFactorButtonTextSelected: {
+      color: theme.color.action.success.background,
+    },
+    editableQuantityContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 4,
+    },
+    editableQuantityLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      minWidth: 70,
+    },
+    editableQuantityInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+      fontWeight: '600',
+    },
+    editableQuantityUnit: {
+      fontSize: 13,
+      color: theme.color.text.subtle,
+    },
+    presentationEquivalence: {
+      marginTop: 6,
+      paddingLeft: 78,
+    },
+    presentationEquivalenceText: {
+      fontSize: 12,
+      color: theme.color.brand.primary,
+      fontStyle: 'italic',
+    },
+  });

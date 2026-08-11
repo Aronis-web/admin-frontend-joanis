@@ -22,18 +22,19 @@ import Alert from '@/utils/alert';
 import { saveAndSharePdf, saveAndShareFile } from '@/utils/fileDownload';
 import { isWeb } from '@/utils/platform';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type Props = NativeStackScreenProps<any, 'RetencionDetail'>;
 
-const STATUS_COLORS: Record<string, string> = {
-  QUEUED: '#94A3B8',
-  SENDING: '#F59E0B',
-  SENT: '#3B82F6',
-  ACCEPTED: '#10B981',
-  REJECTED: '#EF4444',
-  ERROR: '#DC2626',
-};
+const buildStatusColors = (theme: Theme): Record<string, string> => ({
+  QUEUED: theme.color.text.placeholder,
+  SENDING: theme.color.icon.warning,
+  SENT: theme.color.icon.accent,
+  ACCEPTED: theme.color.icon.success,
+  REJECTED: theme.color.icon.danger,
+  ERROR: theme.color.text.danger,
+});
 
 const STATUS_LABELS: Record<string, string> = {
   QUEUED: 'En Cola',
@@ -51,6 +52,9 @@ const REGIMEN_LABELS: Record<string, string> = {
 };
 
 export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const STATUS_COLORS = buildStatusColors(theme);
   const { retencionId } = route.params as { retencionId: string };
 
   const [retencion, setRetencion] = useState<Retencion | null>(null);
@@ -327,7 +331,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       <ScreenLayout navigation={navigation as any}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary[600]} />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando retención...</Text>
           </View>
         </SafeAreaView>
@@ -339,7 +343,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
     return null;
   }
 
-  const statusColor = STATUS_COLORS[retencion.status] || '#6B7280';
+  const statusColor = STATUS_COLORS[retencion.status] || theme.color.text.muted;
   const statusLabel = STATUS_LABELS[retencion.status] || retencion.status;
 
   return (
@@ -347,19 +351,19 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="receipt" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="receipt" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.headerTitle}>{retencion.serieNumero}</Text>
               </View>
@@ -369,7 +373,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
               <View
                 style={[
                   styles.statusBadgeHeader,
-                  { backgroundColor: retencion.isReversed ? colors.danger[500] : statusColor },
+                  { backgroundColor: retencion.isReversed ? theme.color.icon.danger : statusColor },
                 ]}
               >
                 <Text style={styles.statusTextHeader}>
@@ -381,7 +385,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 style={styles.refreshButtonHeader}
                 disabled={refreshing}
               >
-                <Ionicons name="refresh" size={20} color={colors.neutral[0]} />
+                <Ionicons name="refresh" size={20} color={theme.color.brand.onHeader} />
               </TouchableOpacity>
             </View>
           </View>
@@ -400,7 +404,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
               )}
               {retencion.isReversed && (
                 <View style={styles.reversedAlert}>
-                  <Ionicons name="warning" size={24} color={colors.danger[500]} />
+                  <Ionicons name="warning" size={24} color={theme.color.icon.danger} />
                   <View style={styles.reversedAlertContent}>
                     <Text style={styles.reversedAlertTitle}>⚠️ RETENCIÓN ANULADA</Text>
                     <Text style={styles.reversedAlertText}>
@@ -491,7 +495,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
               </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total Retenido:</Text>
-                <Text style={[styles.totalValue, { color: '#EF4444' }]}>
+                <Text style={[styles.totalValue, { color: theme.color.text.danger }]}>
                   {retencion.tipoMoneda || 'PEN'}{' '}
                   {getSafeNumber(retencion.importeTotalRetenido).toFixed(2)}
                 </Text>
@@ -539,7 +543,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                     </View>
                     <View style={styles.itemRow}>
                       <Text style={styles.itemLabel}>Importe Retenido:</Text>
-                      <Text style={[styles.itemValue, { color: '#EF4444' }]}>
+                      <Text style={[styles.itemValue, { color: theme.color.text.danger }]}>
                         {item.monedaImporteRetenido}{' '}
                         {getSafeNumber(item.importeRetenido).toFixed(2)}
                       </Text>
@@ -551,7 +555,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                           marginTop: 8,
                           paddingTop: 8,
                           borderTopWidth: 1,
-                          borderTopColor: '#E5E7EB',
+                          borderTopColor: theme.color.border.subtle,
                         },
                       ]}
                     >
@@ -587,7 +591,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 <Ionicons
                   name="document-text"
                   size={24}
-                  color={downloading === 'pdf' ? '#9CA3AF' : '#EF4444'}
+                  color={downloading === 'pdf' ? theme.color.icon.disabled : theme.color.icon.danger}
                 />
                 <Text style={styles.actionButtonText}>
                   {downloading === 'pdf' ? 'Descargando...' : 'PDF'}
@@ -602,7 +606,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 <Ionicons
                   name="code-slash"
                   size={24}
-                  color={downloading === 'xml' ? '#9CA3AF' : '#3B82F6'}
+                  color={downloading === 'xml' ? theme.color.icon.disabled : theme.color.icon.accent}
                 />
                 <Text style={styles.actionButtonText}>
                   {downloading === 'xml' ? 'Descargando...' : 'XML'}
@@ -611,7 +615,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
 
               {retencion.pdfUrl && (
                 <TouchableOpacity style={styles.actionButton} onPress={handleOpenPDF}>
-                  <Ionicons name="open-outline" size={24} color="#10B981" />
+                  <Ionicons name="open-outline" size={24} color={theme.color.icon.success} />
                   <Text style={styles.actionButtonText}>Abrir PDF</Text>
                 </TouchableOpacity>
               )}
@@ -627,7 +631,7 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
                 onPress={handleAnularRetencion}
                 disabled={loading}
               >
-                <Ionicons name="ban" size={24} color="#FFFFFF" />
+                <Ionicons name="ban" size={24} color={theme.color.text.inverse} />
                 <Text style={styles.anularButtonText}>
                   {loading ? 'Procesando...' : 'Anular Retención'}
                 </Text>
@@ -689,10 +693,10 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -700,16 +704,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing[3],
+    marginTop: theme.space[3],
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
-  // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[5],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[5],
   },
   headerTop: {
     flexDirection: 'row',
@@ -718,11 +721,11 @@ const styles = StyleSheet.create({
   backButtonGradient: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitleContainer: {
     flex: 1,
@@ -730,49 +733,49 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   headerActions: {
     alignItems: 'flex-end',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   statusBadgeHeader: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.full,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1.5],
+    borderRadius: theme.radii.full,
   },
   statusTextHeader: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     textTransform: 'uppercase',
   },
   refreshButtonHeader: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -780,130 +783,130 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[4],
-    paddingBottom: spacing[10],
+    padding: theme.space[4],
+    paddingBottom: theme.space[10],
   },
   card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   statusBadge: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.full,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1.5],
+    borderRadius: theme.radii.full,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   serieNumero: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   sunatMessage: {
-    padding: spacing[3],
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.lg,
+    padding: theme.space[3],
+    backgroundColor: theme.color.state.warning.background,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: colors.warning[200],
+    borderColor: theme.color.state.warning.border,
   },
   sunatMessageText: {
     fontSize: 12,
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[3],
   },
   infoGrid: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   infoItem: {
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   infoLabel: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     fontWeight: '600',
   },
   totalesContainer: {
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing[2],
+    paddingVertical: theme.space[2],
   },
   totalRowFinal: {
     borderTopWidth: 2,
-    borderTopColor: colors.neutral[200],
-    marginTop: spacing[2],
-    paddingTop: spacing[3],
+    borderTopColor: theme.color.border.subtle,
+    marginTop: theme.space[2],
+    paddingTop: theme.space[3],
   },
   totalLabel: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     fontWeight: '500',
   },
   totalValue: {
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     fontWeight: '600',
   },
   totalLabelFinal: {
     fontSize: 16,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     fontWeight: '700',
   },
   totalValueFinal: {
     fontSize: 18,
-    color: colors.success[600],
+    color: theme.color.text.success,
     fontWeight: '700',
   },
   itemCard: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginBottom: spacing[2],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[3],
+    marginBottom: theme.space[2],
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   itemNumero: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   itemFecha: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   itemBody: {
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   itemRow: {
     flexDirection: 'row',
@@ -912,40 +915,40 @@ const styles = StyleSheet.create({
   },
   itemLabel: {
     fontSize: 12,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
   },
   itemValue: {
     fontSize: 12,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     fontWeight: '600',
   },
   itemLabelBold: {
     fontSize: 13,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     fontWeight: '700',
   },
   itemValueBold: {
     fontSize: 13,
-    color: colors.success[600],
+    color: theme.color.text.success,
     fontWeight: '700',
   },
   observaciones: {
     fontSize: 14,
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
     lineHeight: 20,
   },
   actionsCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    ...shadows.sm,
+    borderColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   actionsGrid: {
     flexDirection: 'row',
-    gap: spacing[3],
+    gap: theme.space[3],
     flexWrap: 'wrap',
   },
   actionButton: {
@@ -953,12 +956,12 @@ const styles = StyleSheet.create({
     minWidth: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
+    padding: theme.space[4],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    gap: spacing[2],
+    borderColor: theme.color.border.subtle,
+    gap: theme.space[2],
   },
   actionButtonDisabled: {
     opacity: 0.5,
@@ -966,137 +969,137 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.neutral[700],
+    color: theme.color.text.body,
   },
   reversedAlert: {
     flexDirection: 'row',
-    backgroundColor: colors.danger[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginTop: spacing[3],
+    backgroundColor: theme.color.state.danger.background,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[3],
+    marginTop: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.danger[200],
-    gap: spacing[3],
+    borderColor: theme.color.state.danger.border,
+    gap: theme.space[3],
   },
   reversedAlertContent: {
     flex: 1,
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   reversedAlertTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.danger[600],
-    marginBottom: spacing[1],
+    color: theme.color.text.danger,
+    marginBottom: theme.space[1],
   },
   reversedAlertText: {
     fontSize: 12,
-    color: colors.danger[700],
+    color: theme.color.state.danger.text,
     lineHeight: 16,
   },
   anularButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.danger[500],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    gap: spacing[2],
-    marginTop: spacing[2],
+    backgroundColor: theme.color.action.danger.background,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    gap: theme.space[2],
+    marginTop: theme.space[2],
   },
   anularButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.action.danger.text,
   },
   anularWarning: {
     fontSize: 12,
-    color: colors.danger[600],
+    color: theme.color.text.danger,
     textAlign: 'center',
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
     fontStyle: 'italic',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[6],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[6],
     width: '100%',
     maxWidth: 500,
-    ...shadows.xl,
+    ...theme.shadow.xl,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[2],
     textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.primary[600],
-    marginBottom: spacing[4],
+    color: theme.color.brand.accent,
+    marginBottom: theme.space[4],
     textAlign: 'center',
   },
   modalWarning: {
     fontSize: 13,
-    color: colors.danger[600],
-    backgroundColor: colors.danger[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[4],
+    color: theme.color.text.danger,
+    backgroundColor: theme.color.state.danger.background,
+    padding: theme.space[3],
+    borderRadius: theme.radii.lg,
+    marginBottom: theme.space[4],
     textAlign: 'center',
     borderWidth: 1,
-    borderColor: colors.danger[200],
+    borderColor: theme.color.state.danger.border,
   },
   modalLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[3],
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
     minHeight: 100,
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   modalButtons: {
     flexDirection: 'row',
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   modalButtonCancel: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3.5],
+    backgroundColor: theme.color.action.secondary.background,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[3.5],
     alignItems: 'center',
   },
   modalButtonCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[600],
+    color: theme.color.action.secondary.text,
   },
   modalButtonConfirm: {
     flex: 1,
-    backgroundColor: colors.danger[500],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3.5],
+    backgroundColor: theme.color.action.danger.background,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[3.5],
     alignItems: 'center',
   },
   modalButtonConfirmText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.action.danger.text,
   },
 });

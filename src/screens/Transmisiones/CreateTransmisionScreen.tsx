@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -21,12 +20,17 @@ import {
 } from '@/types/transmisiones';
 import { PriceProfile } from '@/types/price-profiles';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface CreateTransmisionScreenProps {
   navigation: any;
 }
 
 export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TransmisionStatus>(TransmisionStatus.DRAFT);
@@ -147,7 +151,7 @@ export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = (
               value={name}
               onChangeText={setName}
               placeholder="Ej: Transmisión Enero 2024"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.color.text.placeholder}
               editable={!loading}
             />
           </View>
@@ -159,7 +163,7 @@ export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = (
               value={description}
               onChangeText={setDescription}
               placeholder="Descripción opcional de la transmisión"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.color.text.placeholder}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -175,7 +179,7 @@ export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = (
             </Text>
             {loadingProfiles ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator color="#0EA5E9" size="small" />
+                <ActivityIndicator color={theme.color.brand.accent} size="small" />
                 <Text style={styles.loadingText}>Cargando perfiles...</Text>
               </View>
             ) : (
@@ -215,7 +219,7 @@ export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = (
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={theme.color.text.inverse} />
             ) : (
               <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
                 Crear Transmisión
@@ -228,159 +232,160 @@ export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = (
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  backButton: {
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#0EA5E9',
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  headerTitleTablet: {
-    fontSize: 28,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  labelTablet: {
-    fontSize: 16,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  inputTablet: {
-    padding: 16,
-    fontSize: 18,
-    borderRadius: 12,
-  },
-  textArea: {
-    minHeight: 100,
-    paddingTop: 12,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  statusButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statusButtonTablet: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  statusButtonActive: {
-    backgroundColor: '#0EA5E9',
-    borderColor: '#0EA5E9',
-  },
-  statusButtonText: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  statusButtonTextTablet: {
-    fontSize: 16,
-  },
-  statusButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  pickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    color: '#1F2937',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  createButton: {
-    backgroundColor: '#0EA5E9',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  createButtonTablet: {
-    padding: 20,
-    borderRadius: 12,
-  },
-  createButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  createButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  createButtonTextTablet: {
-    fontSize: 18,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    backButton: {
+      paddingVertical: 8,
+      marginBottom: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    headerTitleTablet: {
+      fontSize: 28,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    content: {
+      padding: 16,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    labelTablet: {
+      fontSize: 16,
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    input: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    inputTablet: {
+      padding: 16,
+      fontSize: 18,
+      borderRadius: 12,
+    },
+    textArea: {
+      minHeight: 100,
+      paddingTop: 12,
+    },
+    statusContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    statusButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    statusButtonTablet: {
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+    },
+    statusButtonActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    statusButtonText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    statusButtonTextTablet: {
+      fontSize: 16,
+    },
+    statusButtonTextActive: {
+      color: theme.color.text.inverse,
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: 8,
+      gap: 8,
+    },
+    loadingText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 8,
+      fontStyle: 'italic',
+    },
+    createButton: {
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: 8,
+      padding: 16,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    createButtonTablet: {
+      padding: 20,
+      borderRadius: 12,
+    },
+    createButtonDisabled: {
+      backgroundColor: theme.color.action.primary.backgroundDisabled,
+    },
+    createButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    createButtonTextTablet: {
+      fontSize: 18,
+    },
+  });

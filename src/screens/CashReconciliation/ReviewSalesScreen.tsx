@@ -3,6 +3,8 @@
  * Pantalla para revisar ventas con filtros avanzados
  * Rediseñado con sistema de diseño global
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -12,7 +14,6 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
-  Alert,
   RefreshControl,
   Modal,
   Animated,
@@ -22,10 +23,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { Picker } from '@react-native-picker/picker';
 
-import { colors } from '@/design-system/tokens/colors';
-import { spacing, borderRadius } from '@/design-system/tokens/spacing';
-import { shadows } from '@/design-system/tokens/shadows';
-import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
+import { Pagination } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { durations } from '@/design-system/tokens/animations';
 
 import { config } from '@/utils/config';
@@ -75,6 +75,8 @@ interface Stats {
 
 export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { token } = useAuthStore();
 
   // Animations
@@ -105,6 +107,7 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   const [fechaFin, setFechaFin] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
 
   // Sedes
   const [sedes, setSedes] = useState<Site[]>([]);
@@ -269,30 +272,30 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   const getDocumentTypeColor = (type: string) => {
     switch (type) {
       case 'B':
-        return colors.success[500];
+        return theme.color.state.success.border;
       case 'F':
-        return colors.primary[500];
+        return theme.color.brand.primary;
       case 'NC':
-        return colors.danger[500];
+        return theme.color.state.danger.border;
       case 'ND':
-        return colors.warning[500];
+        return theme.color.state.warning.border;
       default:
-        return colors.neutral[500];
+        return theme.color.text.subtle;
     }
   };
 
   const getDocumentTypeBgColor = (type: string) => {
     switch (type) {
       case 'B':
-        return colors.success[50];
+        return theme.color.state.success.background;
       case 'F':
-        return colors.primary[50];
+        return theme.color.brand.primarySoft;
       case 'NC':
-        return colors.danger[50];
+        return theme.color.state.danger.background;
       case 'ND':
-        return colors.warning[50];
+        return theme.color.state.warning.background;
       default:
-        return colors.neutral[100];
+        return theme.color.background.muted;
     }
   };
 
@@ -445,7 +448,7 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="ID, serie, número, cliente..."
-              placeholderTextColor={colors.neutral[400]}
+              placeholderTextColor={theme.color.text.placeholder}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -518,11 +521,11 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.success[500]]} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[theme.color.state.success.border]} />}
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.success[500]} />
+            <ActivityIndicator size="large" color={theme.color.state.success.border} />
             <Text style={styles.loadingText}>Cargando ventas...</Text>
           </View>
         ) : sales.length === 0 ? (
@@ -540,31 +543,14 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Pagination */}
       {!isLoading && sales.length > 0 && (
-        <View style={styles.pagination}>
-          <TouchableOpacity
-            style={[styles.paginationButton, pagination.page === 1 && styles.paginationButtonDisabled]}
-            onPress={handlePreviousPage}
-            disabled={pagination.page === 1}
-          >
-            <Text style={[styles.paginationButtonText, pagination.page === 1 && styles.paginationButtonTextDisabled]}>
-              ← Anterior
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.paginationInfoContainer}>
-            <Text style={styles.paginationInfo}>
-              {pagination.page} / {pagination.total_pages}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.paginationButton, pagination.page === pagination.total_pages && styles.paginationButtonDisabled]}
-            onPress={handleNextPage}
-            disabled={pagination.page === pagination.total_pages}
-          >
-            <Text style={[styles.paginationButtonText, pagination.page === pagination.total_pages && styles.paginationButtonTextDisabled]}>
-              Siguiente →
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Pagination
+          currentPage={pagination.page}
+          totalPages={pagination.total_pages}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.limit}
+          onPageChange={loadSales}
+          loading={isLoading}
+        />
       )}
 
       {/* Custom Date Modal */}
@@ -652,207 +638,207 @@ export const ReviewSalesScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.neutral[0],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    ...shadows.sm,
+    borderBottomColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   backButton: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
-    fontSize: fontSizes['2xl'],
-    color: colors.neutral[700],
-    fontWeight: fontWeights.semibold,
+    fontSize: 24,
+    color: theme.color.text.body,
+    fontWeight: '600',
   },
   headerTitleContainer: {
     flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[500],
+    fontSize: 12,
+    color: theme.color.text.subtle,
     marginTop: 2,
   },
   filterButton: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterButtonText: {
-    fontSize: fontSizes.xl,
+    fontSize: 20,
   },
   quickFiltersContainer: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
     maxHeight: 50,
   },
   quickFiltersContent: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    gap: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    gap: theme.space[2],
     flexDirection: 'row',
   },
   quickFilterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.background.muted,
     borderWidth: 1,
     borderColor: 'transparent',
-    gap: spacing[1],
+    gap: theme.space[1],
   },
   quickFilterChipActive: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[500],
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
   },
   quickFilterIcon: {
-    fontSize: fontSizes.xs,
+    fontSize: 12,
   },
   quickFilterText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[600],
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.color.text.muted,
   },
   quickFilterTextActive: {
-    color: colors.success[700],
+    color: theme.color.state.success.text,
   },
   statsBar: {
     flexDirection: 'row',
-    backgroundColor: colors.neutral[0],
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    paddingVertical: theme.space[3],
+    paddingHorizontal: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    gap: spacing[2],
+    borderBottomColor: theme.color.border.subtle,
+    gap: theme.space[2],
   },
   statCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[2],
-    gap: spacing[2],
+    backgroundColor: theme.color.background.subtle,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[2],
+    gap: theme.space[2],
   },
   statIcon: {
-    fontSize: fontSizes.lg,
+    fontSize: 18,
   },
   statLabel: {
     fontSize: 9,
-    color: colors.neutral[500],
+    color: theme.color.text.subtle,
     textTransform: 'uppercase',
-    fontWeight: fontWeights.medium,
+    fontWeight: '500',
   },
   statValue: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   successText: {
-    color: colors.success[600],
+    color: theme.color.state.success.border,
   },
   filtersPanel: {
-    backgroundColor: colors.neutral[0],
+    backgroundColor: theme.color.surface.base,
     maxHeight: 400,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    borderBottomColor: theme.color.border.subtle,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
   },
   filterHeader: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   filterTitle: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   filterGroup: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   filterLabel: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   input: {
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    fontSize: fontSizes.sm,
-    color: colors.neutral[900],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    fontSize: 14,
+    color: theme.color.text.heading,
   },
   pickerContainer: {
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.lg,
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.lg,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: colors.neutral[900],
+    color: theme.color.text.heading,
   },
   filterActions: {
     flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[2],
+    gap: theme.space[3],
+    marginTop: theme.space[2],
   },
   clearButton: {
     flex: 1,
-    backgroundColor: colors.neutral[100],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.background.muted,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   clearButtonText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.text.body,
   },
   applyButton: {
     flex: 1,
-    backgroundColor: colors.success[500],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.state.success.border,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
   },
   applyButtonText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.surface.base,
   },
   content: {
     flex: 1,
@@ -861,272 +847,272 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: spacing[6] * 3,
+    paddingVertical: theme.space[6] * 3,
   },
   loadingText: {
-    marginTop: spacing[3],
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    marginTop: theme.space[3],
+    fontSize: 14,
+    color: theme.color.text.subtle,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: spacing[6] * 3,
+    paddingVertical: theme.space[6] * 3,
   },
   emptyIconContainer: {
     width: 80,
     height: 80,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   emptyIcon: {
     fontSize: 40,
   },
   emptyText: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.color.text.body,
+    marginBottom: theme.space[2],
   },
   emptySubtext: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[500],
+    fontSize: 14,
+    color: theme.color.text.subtle,
   },
   salesList: {
-    padding: spacing[4],
-    gap: spacing[3],
+    padding: theme.space[4],
+    gap: theme.space[3],
   },
   saleCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    ...shadows.md,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    ...theme.shadow.md,
   },
   saleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[3],
-    paddingBottom: spacing[3],
+    marginBottom: theme.space[3],
+    paddingBottom: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
+    borderBottomColor: theme.color.background.muted,
   },
   saleIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   saleId: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   badge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.md,
   },
   badgeText: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
+    fontSize: 12,
+    fontWeight: '700',
   },
   saleAmount: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.success[600],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.state.success.border,
   },
   saleDetails: {
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   detailRow: {
     flexDirection: 'row',
-    gap: spacing[4],
+    gap: theme.space[4],
   },
   detailItem: {
     flex: 1,
   },
   detailLabel: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[500],
+    fontSize: 12,
+    color: theme.color.text.subtle,
     marginBottom: 2,
   },
   detailValue: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[800],
-    fontWeight: fontWeights.medium,
+    fontSize: 14,
+    color: theme.color.text.heading,
+    fontWeight: '500',
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.neutral[0],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    ...shadows.sm,
+    borderTopColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   paginationButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.lg,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    backgroundColor: theme.color.state.success.border,
+    borderRadius: theme.radii.lg,
   },
   paginationButtonDisabled: {
-    backgroundColor: colors.neutral[200],
+    backgroundColor: theme.color.border.subtle,
   },
   paginationButtonText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.surface.base,
   },
   paginationButtonTextDisabled: {
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
   },
   paginationInfoContainer: {
-    backgroundColor: colors.neutral[100],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.background.muted,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   paginationInfo: {
-    fontSize: fontSizes.sm,
-    color: colors.neutral[700],
-    fontWeight: fontWeights.semibold,
+    fontSize: 14,
+    color: theme.color.text.body,
+    fontWeight: '600',
   },
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
     width: '90%',
     maxWidth: 500,
-    ...shadows.xl,
+    ...theme.shadow.xl,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing[5],
+    padding: theme.space[5],
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   modalTitle: {
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   modalCloseButton: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.background.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalClose: {
-    fontSize: fontSizes.lg,
-    color: colors.neutral[600],
-    fontWeight: fontWeights.semibold,
+    fontSize: 18,
+    color: theme.color.text.muted,
+    fontWeight: '600',
   },
   modalBody: {
-    padding: spacing[5],
+    padding: theme.space[5],
   },
   filterSection: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   filterSectionTitle: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
-    marginBottom: spacing[3],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.text.body,
+    marginBottom: theme.space[3],
   },
   dateRangeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    backgroundColor: colors.neutral[50],
-    gap: spacing[3],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[3],
+    backgroundColor: theme.color.background.subtle,
+    gap: theme.space[3],
   },
   dateRangeIcon: {
-    fontSize: fontSizes.xl,
+    fontSize: 20,
   },
   dateRangeTextContainer: {
     flex: 1,
   },
   dateRangeLabel: {
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.color.text.subtle,
+    marginBottom: theme.space[1],
   },
   dateRangeValue: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[800],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.text.heading,
   },
   dateRangeChevron: {
-    fontSize: fontSizes.xl,
-    color: colors.neutral[400],
+    fontSize: 20,
+    color: theme.color.text.placeholder,
   },
   dateHintContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing[3],
-    padding: spacing[3],
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.lg,
-    gap: spacing[2],
+    marginTop: theme.space[3],
+    padding: theme.space[3],
+    backgroundColor: theme.color.state.warning.background,
+    borderRadius: theme.radii.lg,
+    gap: theme.space[2],
   },
   dateHintIcon: {
-    fontSize: fontSizes.base,
+    fontSize: 16,
   },
   dateHint: {
-    fontSize: fontSizes.xs,
-    color: colors.warning[700],
-    fontWeight: fontWeights.medium,
+    fontSize: 12,
+    color: theme.color.state.warning.text,
+    fontWeight: '500',
   },
   modalFooter: {
     flexDirection: 'row',
-    gap: spacing[3],
-    padding: spacing[5],
+    gap: theme.space[3],
+    padding: theme.space[5],
     borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   modalButtonSecondary: {
     flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.background.muted,
   },
   modalButtonSecondaryText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[700],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.text.body,
   },
   modalButtonPrimary: {
     flex: 1,
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
+    paddingVertical: theme.space[3],
+    borderRadius: theme.radii.lg,
     alignItems: 'center',
-    backgroundColor: colors.success[500],
+    backgroundColor: theme.color.state.success.border,
   },
   modalButtonPrimaryText: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colors.neutral[0],
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.color.surface.base,
   },
 });

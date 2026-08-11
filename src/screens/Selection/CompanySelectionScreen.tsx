@@ -6,17 +6,18 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useAuthStore } from '@/store/auth';
 import { companiesApi, Company } from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '@/utils/config';
+import Alert from '@/utils/alert';
 
 interface CompanySelectionScreenProps {
   navigation: any;
@@ -24,6 +25,8 @@ interface CompanySelectionScreenProps {
 
 export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ navigation }) => {
   const { user, logout, setCurrentCompany } = useAuthStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -186,9 +189,9 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <View style={styles.loadingIconContainer}>
-            <Ionicons name="business" size={48} color={colors.accent[500]} />
+            <Ionicons name="business" size={48} color={theme.color.brand.accent} />
           </View>
-          <ActivityIndicator size="large" color={colors.accent[500]} style={{ marginTop: spacing[4] }} />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} style={{ marginTop: theme.space[4] }} />
           <Text style={styles.loadingText}>Cargando empresas...</Text>
         </View>
       </SafeAreaView>
@@ -199,14 +202,14 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header con gradiente */}
       <LinearGradient
-        colors={[colors.primary[900], colors.primary[800]]}
+        colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
         <View style={styles.headerContent}>
           <View style={styles.headerIconContainer}>
-            <Ionicons name="business" size={28} color={colors.neutral[0]} />
+            <Ionicons name="business" size={28} color={theme.color.brand.onHeader} />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
@@ -218,7 +221,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
           </View>
         </View>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton} activeOpacity={0.7}>
-          <Ionicons name="log-out-outline" size={20} color={colors.danger[400]} />
+          <Ionicons name="log-out-outline" size={20} color={theme.color.icon.danger} />
           <Text style={styles.logoutButtonText}>Salir</Text>
         </TouchableOpacity>
       </LinearGradient>
@@ -232,7 +235,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
         {/* Info Card */}
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="information-circle" size={24} color={colors.info[600]} />
+            <Ionicons name="information-circle" size={24} color={theme.color.state.info.border} />
           </View>
           <Text style={styles.infoText}>
             Selecciona la empresa con la que deseas trabajar
@@ -257,15 +260,15 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
                 <LinearGradient
                   colors={
                     selectedCompanyId === company.id
-                      ? [colors.accent[500], colors.accent[600]]
-                      : [colors.primary[800], colors.primary[900]]
+                      ? [theme.color.brand.avatarFrom, theme.color.brand.avatarTo]
+                      : [theme.color.brand.headerTo, theme.color.brand.headerFrom]
                   }
                   style={styles.companyIconContainer}
                 >
                   <Ionicons
                     name="business"
                     size={24}
-                    color={colors.neutral[0]}
+                    color={theme.color.brand.onHeader}
                   />
                 </LinearGradient>
                 <View style={styles.companyInfo}>
@@ -274,7 +277,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
                   </Text>
                   {company.ruc && (
                     <View style={styles.rucContainer}>
-                      <Ionicons name="document-text-outline" size={12} color={colors.neutral[400]} />
+                      <Ionicons name="document-text-outline" size={12} color={theme.color.text.placeholder} />
                       <Text style={styles.companyRuc}>RUC: {company.ruc}</Text>
                     </View>
                   )}
@@ -302,17 +305,17 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
                     </View>
                     {company.companyType === 'INTERNAL' && (
                       <View style={styles.internalBadge}>
-                        <Ionicons name="star" size={10} color={colors.warning[600]} />
+                        <Ionicons name="star" size={10} color={theme.color.state.warning.border} />
                         <Text style={styles.internalBadgeText}>Principal</Text>
                       </View>
                     )}
                   </View>
                 </View>
                 {selectedCompanyId === company.id ? (
-                  <ActivityIndicator size="small" color={colors.accent[500]} />
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
                 ) : (
                   <View style={styles.arrowContainer}>
-                    <Ionicons name="chevron-forward" size={24} color={colors.neutral[400]} />
+                    <Ionicons name="chevron-forward" size={24} color={theme.color.text.placeholder} />
                   </View>
                 )}
               </View>
@@ -324,7 +327,7 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
         <View style={styles.footer}>
           <View style={styles.footerDivider} />
           <View style={styles.footerContent}>
-            <Ionicons name="layers-outline" size={16} color={colors.neutral[400]} />
+            <Ionicons name="layers-outline" size={16} color={theme.color.text.placeholder} />
             <Text style={styles.footerText}>
               {companies.length} {companies.length === 1 ? 'empresa disponible' : 'empresas disponibles'}
             </Text>
@@ -335,14 +338,14 @@ export const CompanySelectionScreen: React.FC<CompanySelectionScreenProps> = ({ 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[6],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[6],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -355,11 +358,11 @@ const styles = StyleSheet.create({
   headerIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: borderRadius.xl,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.xl,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[4],
+    marginRight: theme.space[4],
   },
   headerTextContainer: {
     flex: 1,
@@ -367,8 +370,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: colors.neutral[0],
-    marginBottom: spacing[0.5],
+    color: theme.color.brand.onHeader,
+    marginBottom: theme.space[0.5],
     letterSpacing: 0.3,
   },
   headerTitleTablet: {
@@ -376,97 +379,97 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    gap: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2.5],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    gap: theme.space[2],
   },
   logoutButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.danger[400],
+    color: theme.color.icon.danger,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   loadingIconContainer: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: colors.accent[50],
+    backgroundColor: theme.color.brand.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[5],
-    paddingBottom: spacing[10],
+    padding: theme.space[5],
+    paddingBottom: theme.space[10],
   },
   contentContainerTablet: {
-    paddingHorizontal: spacing[8],
+    paddingHorizontal: theme.space[8],
     maxWidth: 900,
     alignSelf: 'center',
     width: '100%',
   },
   infoCard: {
-    backgroundColor: colors.info[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[6],
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[6],
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.info[100],
+    borderColor: theme.color.state.info.background,
   },
   infoIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.info[100],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.state.info.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: colors.info[800],
+    color: theme.color.state.info.text,
     lineHeight: 20,
     fontWeight: '500',
   },
   companiesContainer: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   companiesContainerTablet: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing[4],
+    gap: theme.space[4],
   },
   companyCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius['2xl'],
-    padding: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii['2xl'],
+    padding: theme.space[4],
     borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -478,9 +481,9 @@ const styles = StyleSheet.create({
     maxWidth: '48%',
   },
   companyCardSelected: {
-    borderColor: colors.accent[500],
-    backgroundColor: colors.accent[50],
-    shadowColor: colors.accent[500],
+    borderColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.accentSoft,
+    shadowColor: theme.color.brand.accent,
     shadowOpacity: 0.15,
   },
   companyCardContent: {
@@ -490,10 +493,10 @@ const styles = StyleSheet.create({
   companyIconContainer: {
     width: 52,
     height: 52,
-    borderRadius: borderRadius.xl,
+    borderRadius: theme.radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[4],
+    marginRight: theme.space[4],
   },
   companyInfo: {
     flex: 1,
@@ -501,8 +504,8 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 17,
     fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
     letterSpacing: 0.2,
   },
   companyNameTablet: {
@@ -511,43 +514,43 @@ const styles = StyleSheet.create({
   rucContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
-    marginBottom: spacing[2],
+    gap: theme.space[1],
+    marginBottom: theme.space[2],
   },
   companyRuc: {
     fontSize: 13,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontFamily: 'monospace',
   },
   companyFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
+    paddingHorizontal: theme.space[2.5],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.full,
   },
   statusActive: {
-    backgroundColor: colors.success[100],
+    backgroundColor: theme.color.state.success.background,
   },
   statusInactive: {
-    backgroundColor: colors.danger[100],
+    backgroundColor: theme.color.state.danger.background,
   },
   statusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: spacing[1.5],
+    marginRight: theme.space[1.5],
   },
   statusDotActive: {
-    backgroundColor: colors.success[500],
+    backgroundColor: theme.color.state.success.border,
   },
   statusDotInactive: {
-    backgroundColor: colors.danger[500],
+    backgroundColor: theme.color.state.danger.border,
   },
   statusText: {
     fontSize: 11,
@@ -556,24 +559,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   statusTextActive: {
-    color: colors.success[700],
+    color: theme.color.state.success.text,
   },
   statusTextInactive: {
-    color: colors.danger[700],
+    color: theme.color.state.danger.text,
   },
   internalBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.warning[100],
-    gap: spacing[1],
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.state.warning.background,
+    gap: theme.space[1],
   },
   internalBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
@@ -581,29 +584,29 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   footer: {
-    marginTop: spacing[8],
+    marginTop: theme.space[8],
     alignItems: 'center',
   },
   footerDivider: {
     width: 60,
     height: 3,
-    backgroundColor: colors.neutral[200],
-    borderRadius: borderRadius.full,
-    marginBottom: spacing[4],
+    backgroundColor: theme.color.border.subtle,
+    borderRadius: theme.radii.full,
+    marginBottom: theme.space[4],
   },
   footerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   footerText: {
     fontSize: 13,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
     fontWeight: '500',
   },
 });

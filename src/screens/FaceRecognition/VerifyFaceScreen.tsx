@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
@@ -15,10 +14,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { spacing, borderRadius } from '@/design-system/tokens';
+import { palette } from '@/design-system/tokens/palette';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { VideoCaptureCamera } from '@/components/FaceRecognition/VideoCaptureCamera';
 import { biometricApi, VerifyFromVideoResponse } from '@/services/api/biometric';
 import { usersApi, User } from '@/services/api/users';
+import Alert from '@/utils/alert';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,6 +45,8 @@ interface VideoCaptureResult {
 
 export const VerifyFaceScreen: React.FC = () => {
   const route = useRoute<RouteProp<RouteParams, 'VerifyFace'>>();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { userId, userName, prefilledEntityType, prefilledEntityId } = route.params || {};
 
   // Determine initial values
@@ -198,7 +203,7 @@ export const VerifyFaceScreen: React.FC = () => {
         onPress={() => handleSelectUser(item)}
       >
         <View style={styles.userAvatar}>
-          <MaterialIcons name="person" size={28} color={colors.success[500]} />
+          <MaterialIcons name="person" size={28} color={theme.color.icon.success} />
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{displayName}</Text>
@@ -209,7 +214,7 @@ export const VerifyFaceScreen: React.FC = () => {
             <Text style={styles.userNoBiometric}>⚠️ Sin biometría registrada</Text>
           )}
         </View>
-        <MaterialIcons name="chevron-right" size={24} color={colors.neutral[400]} />
+        <MaterialIcons name="chevron-right" size={24} color={theme.color.icon.disabled} />
       </TouchableOpacity>
     );
   }, [handleSelectUser]);
@@ -231,7 +236,7 @@ export const VerifyFaceScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.processingContainer}>
-          <ActivityIndicator size="large" color={colors.success[500]} />
+          <ActivityIndicator size="large" color={theme.color.icon.success} />
           <Text style={styles.processingText}>Verificando rostro...</Text>
           <Text style={styles.processingSubtext}>
             Comparando con el perfil registrado
@@ -255,11 +260,16 @@ export const VerifyFaceScreen: React.FC = () => {
             <MaterialIcons
               name={isVerified ? 'verified-user' : 'gpp-bad'}
               size={80}
-              color={isVerified ? colors.success[500] : colors.danger[500]}
+              color={isVerified ? theme.color.icon.success : theme.color.icon.danger}
             />
           </View>
 
-          <Text style={[styles.resultTitle, { color: isVerified ? colors.success[600] : colors.danger[600] }]}>
+          <Text
+            style={[
+              styles.resultTitle,
+              { color: isVerified ? theme.color.text.success : theme.color.text.danger },
+            ]}
+          >
             {isVerified ? '¡Verificación Exitosa!' : 'Verificación Fallida'}
           </Text>
           <Text style={styles.resultSubtitle}>
@@ -279,7 +289,12 @@ export const VerifyFaceScreen: React.FC = () => {
 
             <View style={styles.resultRow}>
               <Text style={styles.resultLabel}>Similitud</Text>
-              <Text style={[styles.resultValue, { color: isVerified ? colors.success[500] : colors.danger[500] }]}>
+              <Text
+                style={[
+                  styles.resultValue,
+                  { color: isVerified ? theme.color.text.success : theme.color.text.danger },
+                ]}
+              >
                 {(verifyResult.similarityScore ?? 0).toFixed(1)}%
               </Text>
             </View>
@@ -287,7 +302,12 @@ export const VerifyFaceScreen: React.FC = () => {
 
             <View style={styles.resultRow}>
               <Text style={styles.resultLabel}>Confianza</Text>
-              <Text style={[styles.resultValue, { color: isVerified ? colors.success[500] : colors.danger[500] }]}>
+              <Text
+                style={[
+                  styles.resultValue,
+                  { color: isVerified ? theme.color.text.success : theme.color.text.danger },
+                ]}
+              >
                 {(verifyResult.confidence ?? 0).toFixed(1)}%
               </Text>
             </View>
@@ -320,7 +340,7 @@ export const VerifyFaceScreen: React.FC = () => {
           </View>
 
           <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-            <MaterialIcons name="refresh" size={24} color={colors.neutral[0]} />
+            <MaterialIcons name="refresh" size={24} color={theme.color.text.inverse} />
             <Text style={styles.resetButtonText}>Verificar Otro Usuario</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -336,7 +356,7 @@ export const VerifyFaceScreen: React.FC = () => {
         style={styles.keyboardView}
       >
         <View style={styles.header}>
-          <MaterialIcons name="verified-user" size={48} color={colors.success[500]} />
+          <MaterialIcons name="verified-user" size={48} color={theme.color.icon.success} />
           <Text style={styles.title}>Verificar Rostro</Text>
           <Text style={styles.subtitle}>
             Busca un usuario para verificar su identidad
@@ -346,10 +366,11 @@ export const VerifyFaceScreen: React.FC = () => {
         {/* Barra de búsqueda */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
-            <MaterialIcons name="search" size={24} color={colors.neutral[400]} />
+            <MaterialIcons name="search" size={24} color={theme.color.icon.disabled} />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar por nombre, email o documento..."
+              placeholderTextColor={theme.color.text.placeholder}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearch}
@@ -359,7 +380,7 @@ export const VerifyFaceScreen: React.FC = () => {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <MaterialIcons name="close" size={20} color={colors.neutral[400]} />
+                <MaterialIcons name="close" size={20} color={theme.color.icon.disabled} />
               </TouchableOpacity>
             )}
           </View>
@@ -369,9 +390,9 @@ export const VerifyFaceScreen: React.FC = () => {
             disabled={isSearching}
           >
             {isSearching ? (
-              <ActivityIndicator size="small" color={colors.neutral[0]} />
+              <ActivityIndicator size="small" color={theme.color.text.inverse} />
             ) : (
-              <MaterialIcons name="search" size={24} color={colors.neutral[0]} />
+              <MaterialIcons name="search" size={24} color={theme.color.text.inverse} />
             )}
           </TouchableOpacity>
         </View>
@@ -384,7 +405,11 @@ export const VerifyFaceScreen: React.FC = () => {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <MaterialIcons name="person-search" size={64} color={colors.neutral[300]} />
+              <MaterialIcons
+                name="person-search"
+                size={64}
+                color={theme.color.icon.disabled}
+              />
               <Text style={styles.emptyText}>
                 {searchQuery ? 'Sin resultados' : 'Busca un usuario para verificar'}
               </Text>
@@ -394,7 +419,7 @@ export const VerifyFaceScreen: React.FC = () => {
 
         {/* Consejos */}
         <View style={styles.infoBox}>
-          <MaterialIcons name="info-outline" size={20} color={colors.success[500]} />
+          <MaterialIcons name="info-outline" size={20} color={theme.color.icon.success} />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Importante:</Text>
             <Text style={styles.infoText}>• El usuario debe tener biometría registrada</Text>
@@ -407,231 +432,232 @@ export const VerifyFaceScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  cameraContainer: {
-    flex: 1,
-    backgroundColor: colors.neutral[950],
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: spacing[5],
-    paddingHorizontal: spacing[5],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginTop: spacing[3],
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    marginTop: spacing[1],
-  },
-  // Search
-  searchContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    gap: spacing[3],
-    marginBottom: spacing[4],
-  },
-  searchInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    gap: spacing[2],
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  searchButton: {
-    backgroundColor: colors.success[500],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchButtonDisabled: {
-    backgroundColor: colors.success[300],
-  },
-  // User list
-  listContent: {
-    paddingHorizontal: spacing[5],
-    flexGrow: 1,
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  userAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.success[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[3],
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  userEmail: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
-  },
-  userBiometric: {
-    fontSize: 12,
-    color: colors.success[600],
-    marginTop: spacing[0.5],
-  },
-  userNoBiometric: {
-    fontSize: 12,
-    color: colors.warning[600],
-    marginTop: spacing[0.5],
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing[10],
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.neutral[400],
-    marginTop: spacing[4],
-    textAlign: 'center',
-  },
-  // Info box
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    marginHorizontal: spacing[5],
-    marginBottom: spacing[4],
-    gap: spacing[2],
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.success[600],
-    marginBottom: spacing[1],
-  },
-  infoText: {
-    fontSize: 12,
-    color: colors.neutral[600],
-  },
-  // Processing
-  processingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing[5],
-  },
-  processingText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginTop: spacing[5],
-  },
-  processingSubtext: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  // Result
-  resultContainer: {
-    padding: spacing[5],
-    alignItems: 'center',
-  },
-  resultIcon: {
-    marginBottom: spacing[4],
-  },
-  resultTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: spacing[2],
-  },
-  resultSubtitle: {
-    fontSize: 16,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    marginBottom: spacing[6],
-  },
-  resultCard: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[5],
-    width: '100%',
-    marginBottom: spacing[6],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  resultRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[3],
-  },
-  resultDivider: {
-    height: 1,
-    backgroundColor: colors.neutral[100],
-  },
-  resultLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  resultValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.success[500],
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[6],
-    borderRadius: borderRadius.lg,
-    gap: spacing[2],
-    width: '100%',
-  },
-  resetButtonText: {
-    color: colors.neutral[0],
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    cameraContainer: {
+      flex: 1,
+      backgroundColor: palette.neutral[950],
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    header: {
+      alignItems: 'center',
+      paddingVertical: spacing[5],
+      paddingHorizontal: spacing[5],
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginTop: spacing[3],
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginTop: spacing[1],
+    },
+    // Search
+    searchContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: spacing[5],
+      gap: spacing[3],
+      marginBottom: spacing[4],
+    },
+    searchInputContainer: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      gap: spacing[2],
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: spacing[3],
+      fontSize: 16,
+      color: theme.color.text.body,
+    },
+    searchButton: {
+      backgroundColor: theme.color.action.success.background,
+      borderRadius: borderRadius.lg,
+      padding: spacing[3],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    searchButtonDisabled: {
+      backgroundColor: palette.green[300],
+    },
+    // User list
+    listContent: {
+      paddingHorizontal: spacing[5],
+      flexGrow: 1,
+    },
+    userItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      marginBottom: spacing[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    userAvatar: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: theme.color.state.success.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing[3],
+    },
+    userInfo: {
+      flex: 1,
+    },
+    userName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    userEmail: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: spacing[0.5],
+    },
+    userBiometric: {
+      fontSize: 12,
+      color: theme.color.text.success,
+      marginTop: spacing[0.5],
+    },
+    userNoBiometric: {
+      fontSize: 12,
+      color: theme.color.text.warning,
+      marginTop: spacing[0.5],
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing[10],
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.color.text.disabled,
+      marginTop: spacing[4],
+      textAlign: 'center',
+    },
+    // Info box
+    infoBox: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: borderRadius.lg,
+      padding: spacing[3],
+      marginHorizontal: spacing[5],
+      marginBottom: spacing[4],
+      gap: spacing[2],
+    },
+    infoContent: {
+      flex: 1,
+    },
+    infoTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.success,
+      marginBottom: spacing[1],
+    },
+    infoText: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    // Processing
+    processingContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing[5],
+    },
+    processingText: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginTop: spacing[5],
+    },
+    processingSubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: spacing[2],
+      textAlign: 'center',
+    },
+    // Result
+    resultContainer: {
+      padding: spacing[5],
+      alignItems: 'center',
+    },
+    resultIcon: {
+      marginBottom: spacing[4],
+    },
+    resultTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: spacing[2],
+    },
+    resultSubtitle: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginBottom: spacing[6],
+    },
+    resultCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.xl,
+      padding: spacing[5],
+      width: '100%',
+      marginBottom: spacing[6],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    resultRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing[3],
+    },
+    resultDivider: {
+      height: 1,
+      backgroundColor: theme.color.background.muted,
+    },
+    resultLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    resultValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    resetButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.action.success.background,
+      paddingVertical: spacing[4],
+      paddingHorizontal: spacing[6],
+      borderRadius: borderRadius.lg,
+      gap: spacing[2],
+      width: '100%',
+    },
+    resetButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+  });

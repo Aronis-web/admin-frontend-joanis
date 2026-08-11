@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { Role } from '@/store/auth';
+import { Role } from '@/types/auth';
 
 export const useRoles = () => {
   const { user } = useAuthStore();
@@ -36,7 +36,7 @@ export const useRoles = () => {
   };
 
   const getRoleDescriptions = (): string[] => {
-    return roles.map((role) => role.description);
+    return roles.map((role) => role.description).filter((d): d is string => Boolean(d));
   };
 
   // Common role checks

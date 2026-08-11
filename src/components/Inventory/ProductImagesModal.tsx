@@ -6,7 +6,6 @@ import {
   Modal,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Image,
   Dimensions,
@@ -15,9 +14,10 @@ import {
   TextInput,
 } from 'react-native';
 import { Product } from '@/services/api/products';
+import Alert from '@/utils/alert';
 
-// Design System
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { filesApi } from '@/services/api/files';
 import { productsApi } from '@/services/api/products';
 import { priceProfilesApi } from '@/services/api/price-profiles';
@@ -73,6 +73,8 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
   onSuccess,
   product,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   // Tab state
   const [activeTab, setActiveTab] = useState<'gallery' | 'lens' | 'promo'>('gallery');
 
@@ -628,7 +630,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.accent[500]} />
+                <ActivityIndicator size="large" color={theme.color.brand.accent} />
                 <Text style={styles.loadingText}>Cargando imágenes...</Text>
               </View>
             ) : productImages.length === 0 ? (
@@ -752,7 +754,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                     placeholder="URL de imagen (opcional)"
                     value={lensImageUrl}
                     onChangeText={setLensImageUrl}
-                    placeholderTextColor={colors.neutral[400]}
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                   <TouchableOpacity
                     onPress={handleLensSearchByUrl}
@@ -781,7 +783,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
               {lensSearching && (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={colors.accent[500]} />
+                  <ActivityIndicator size="large" color={theme.color.brand.accent} />
                   <Text style={styles.loadingText}>Buscando con Google Lens...</Text>
                 </View>
               )}
@@ -1164,7 +1166,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
                 disabled={generatingPromo}
               >
                 {generatingPromo ? (
-                  <ActivityIndicator size="small" color={colors.neutral[0]} />
+                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
                 ) : (
                   <Text style={styles.promoSaveButtonText}>💾 Guardar en Galería</Text>
                 )}
@@ -1283,830 +1285,831 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 24,
-    color: colors.text.primary,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  content: {
-    flex: 1,
-    padding: spacing[4],
-  },
-  productInfo: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  productTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  productSku: {
-    fontSize: 14,
-    color: colors.text.secondary,
-  },
-  section: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[3],
-  },
-  loadingContainer: {
-    paddingVertical: spacing[8],
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 14,
-    color: colors.text.secondary,
-  },
-  noImagesContainer: {
-    paddingVertical: spacing[8],
-    alignItems: 'center',
-  },
-  noImagesText: {
-    fontSize: 48,
-    marginBottom: spacing[2],
-  },
-  noImagesSubtext: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    textAlign: 'center',
-  },
-  imagesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
-  },
-  imageCard: {
-    width: '48%',
-    marginHorizontal: '1%',
-    marginBottom: spacing[3],
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: 150,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.secondary,
-  },
-  mainImageBadge: {
-    position: 'absolute',
-    top: spacing[2],
-    left: spacing[2],
-    backgroundColor: colors.success[500],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
-  },
-  mainImageBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  imageActions: {
-    position: 'absolute',
-    top: spacing[2],
-    right: spacing[2],
-    flexDirection: 'row',
-    gap: spacing[1],
-  },
-  promoButton: {
-    backgroundColor: colors.accent[500],
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  promoButtonText: {
-    fontSize: 14,
-    color: colors.neutral[0],
-  },
-  deleteButton: {
-    backgroundColor: colors.danger[500],
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deleteButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  deleteButtonText: {
-    fontSize: 14,
-    color: colors.neutral[0],
-  },
-  imageFilename: {
-    fontSize: 11,
-    color: colors.text.secondary,
-    marginTop: spacing[1],
-    textAlign: 'center',
-  },
-  // Promotional Image Styles
-  promoModalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.dark,
-    paddingTop: spacing[5],
-    paddingBottom: spacing[5],
-    paddingHorizontal: spacing[4],
-  },
-  promoModalContainer: {
-    flex: 1,
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  promoModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[6],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  promoModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text.primary,
-    flex: 1,
-  },
-  promoCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  promoCloseButtonText: {
-    fontSize: 20,
-    color: colors.text.tertiary,
-    fontWeight: '600',
-  },
-  promoModalContentScroll: {
-    flex: 1,
-  },
-  promoModalContent: {
-    padding: spacing[6],
-    alignItems: 'center',
-  },
-  promoPreviewContainer: {
-    position: 'relative',
-    alignSelf: 'center',
-    borderRadius: borderRadius.xl,
-    borderWidth: 3,
-    borderColor: colors.accent[500],
-    overflow: 'visible', // Allow image to overflow while adjusting
-    backgroundColor: colors.neutral[950],
-  },
-  promoImageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-    overflow: 'visible', // Allow image to overflow
-  },
-  promoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  cropGuide: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderWidth: 2,
-    borderColor: 'rgba(139, 92, 246, 0.8)',
-    borderStyle: 'dashed',
-    pointerEvents: 'none',
-  },
-  cropCorner: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    borderColor: colors.accent[500],
-    borderWidth: 3,
-  },
-  cropCornerTopLeft: {
-    top: -2,
-    left: -2,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-  },
-  cropCornerTopRight: {
-    top: -2,
-    right: -2,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-  },
-  cropCornerBottomLeft: {
-    bottom: -2,
-    left: -2,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-  },
-  cropCornerBottomRight: {
-    bottom: -2,
-    right: -2,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-  },
-  promoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  promoTitleContainer: {
-    backgroundColor: 'rgba(139, 92, 246, 0.95)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 8,
-    alignSelf: 'flex-start',
-  },
-  promoProductTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    marginBottom: 2,
-  },
-  promoProductSku: {
-    fontSize: 12,
-    color: colors.accent[200],
-  },
-  promoPricesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  promoPricesTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.warning[300],
-    marginBottom: 6,
-    width: '100%',
-  },
-  promoPriceCard: {
-    backgroundColor: 'rgba(16, 185, 129, 0.95)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  promoPriceLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  promoPriceValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  promoBrandingTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    alignItems: 'flex-start',
-  },
-  promoBranding: {
-    backgroundColor: 'rgba(252, 211, 77, 0.95)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  promoBrandingText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.warning[900],
-    textAlign: 'center',
-  },
-  imageControls: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginTop: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  controlsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[3],
-    textAlign: 'center',
-  },
-  controlRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  controlLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.tertiary,
-    flex: 1,
-  },
-  controlButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  controlButton: {
-    backgroundColor: colors.primary[500],
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  controlButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  controlValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-    minWidth: 40,
-    textAlign: 'center',
-  },
-  resetControlsButton: {
-    backgroundColor: colors.surface.tertiary,
-    paddingVertical: spacing[2.5],
-    paddingHorizontal: spacing[4],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    marginTop: spacing[2],
-  },
-  resetControlsButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.tertiary,
-  },
-  helpContainer: {
-    marginTop: spacing[4],
-    alignItems: 'center',
-  },
-  helpBadge: {
-    backgroundColor: colors.accent[500],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    marginBottom: spacing[3],
-  },
-  helpBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.neutral[0],
-    letterSpacing: 1,
-  },
-  promoHelpText: {
-    fontSize: 13,
-    color: colors.text.tertiary,
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: spacing[5],
-  },
-  promoModalFooter: {
-    flexDirection: 'row',
-    padding: spacing[6],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[4],
-  },
-  promoCancelButton: {
-    flex: 1,
-    backgroundColor: colors.surface.tertiary,
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  promoCancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.tertiary,
-  },
-  promoSaveButton: {
-    flex: 2,
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[4],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  promoSaveButtonDisabled: {
-    backgroundColor: colors.accent[300],
-  },
-  promoSaveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  imageButtonsContainer: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[3],
-  },
-  imageButton: {
-    flex: 1,
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  imageButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  uploadButton: {
-    backgroundColor: colors.success[500],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-  },
-  uploadButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  uploadButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  infoText: {
-    fontSize: 13,
-    color: colors.text.secondary,
-    lineHeight: 20,
-  },
-  footer: {
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  closeButtonBottom: {
-    backgroundColor: colors.neutral[500],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  closeButtonBottomText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  // Tabs styles
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: colors.primary[500],
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  tabTextActive: {
-    color: colors.primary[500],
-  },
-  // Google Lens styles
-  lensSearchContainer: {
-    marginBottom: spacing[3],
-  },
-  lensUrlInput: {
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2.5],
-    fontSize: 14,
-    color: colors.text.primary,
-    marginBottom: spacing[2],
-  },
-  lensSearchButton: {
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  lensSearchButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  lensResultCard: {
-    width: '48%',
-    marginHorizontal: '1%',
-    marginBottom: spacing[3],
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  lensResultInfo: {
-    padding: spacing[2],
-  },
-  lensResultTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing[1],
-  },
-  lensResultPrice: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.success[500],
-    marginBottom: spacing[1],
-  },
-  lensResultSource: {
-    fontSize: 10,
-    color: colors.text.secondary,
-  },
-  lensResultActions: {
-    flexDirection: 'row',
-    gap: spacing[1],
-  },
-  lensAnalyzeButton: {
-    flex: 1,
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[2],
-    alignItems: 'center',
-  },
-  lensAnalyzeButtonText: {
-    fontSize: 16,
-  },
-  lensSelectButton: {
-    flex: 2,
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[2],
-    alignItems: 'center',
-  },
-  lensSelectButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  lensButton: {
-    backgroundColor: colors.accent[500],
-    width: 28,
-    height: 28,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lensButtonText: {
-    fontSize: 14,
-    color: colors.neutral[0],
-  },
-  promoEditButton: {
-    position: 'absolute',
-    bottom: 30,
-    left: spacing[2],
-    right: spacing[2],
-    backgroundColor: colors.accent[500],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.sm,
-    alignItems: 'center',
-  },
-  promoEditButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  // Image Quality Analysis styles
-  qualityBadgeContainer: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  qualityBadge: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    alignSelf: 'flex-start',
-    marginBottom: spacing[2],
-  },
-  qualityExcellent: {
-    backgroundColor: colors.success[500],
-  },
-  qualityHigh: {
-    backgroundColor: colors.primary[500],
-  },
-  qualityMedium: {
-    backgroundColor: colors.warning[500],
-  },
-  qualityLow: {
-    backgroundColor: colors.danger[500],
-  },
-  qualityBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  qualitySummary: {
-    marginTop: spacing[1],
-  },
-  qualitySummaryText: {
-    fontSize: 13,
-    color: colors.text.secondary,
-    marginBottom: spacing[1],
-  },
-  qualityTapText: {
-    fontSize: 12,
-    color: colors.accent[500],
-    fontWeight: '600',
-  },
-  // Quality Modal styles
-  qualityModalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.dark,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[4],
-  },
-  qualityModalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    width: Dimensions.get('window').width * 0.95,
-    height: Dimensions.get('window').height * 0.85,
-    maxWidth: 600,
-    ...shadows.xl,
-  },
-  qualityModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  qualityModalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text.primary,
-    flex: 1,
-  },
-  qualityModalCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  qualityModalCloseButtonText: {
-    fontSize: 20,
-    color: colors.text.secondary,
-    fontWeight: '600',
-  },
-  qualityModalContent: {
-    flex: 1,
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-  },
-  qualityBadgeLarge: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.xl,
-    alignSelf: 'center',
-    marginBottom: spacing[5],
-  },
-  qualityBadgeLargeText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  qualitySection: {
-    marginBottom: spacing[5],
-  },
-  qualitySectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[3],
-  },
-  qualityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surface.secondary,
-  },
-  qualityLabel: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    flex: 1,
-  },
-  qualityValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary,
-    flex: 1,
-    textAlign: 'right',
-  },
-  qualityGood: {
-    color: colors.success[500],
-  },
-  qualityBad: {
-    color: colors.danger[500],
-  },
-  qualityRecommendation: {
-    fontSize: 14,
-    color: colors.text.secondary,
-    lineHeight: 20,
-    marginBottom: spacing[2],
-  },
-  qualityModalFooter: {
-    padding: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  qualityModalCloseButtonBottom: {
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  qualityModalCloseButtonBottomText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    closeButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 24,
+      color: theme.color.text.body,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    content: {
+      flex: 1,
+      padding: theme.space[4],
+    },
+    productInfo: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    productTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    productSku: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    section: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    loadingContainer: {
+      paddingVertical: theme.space[8],
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    noImagesContainer: {
+      paddingVertical: theme.space[8],
+      alignItems: 'center',
+    },
+    noImagesText: {
+      fontSize: 48,
+      marginBottom: theme.space[2],
+    },
+    noImagesSubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    imagesGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginHorizontal: -6,
+    },
+    imageCard: {
+      width: '48%',
+      marginHorizontal: '1%',
+      marginBottom: theme.space[3],
+      position: 'relative',
+    },
+    image: {
+      width: '100%',
+      height: 150,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    mainImageBadge: {
+      position: 'absolute',
+      top: theme.space[2],
+      left: theme.space[2],
+      backgroundColor: theme.color.action.success.background,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.sm,
+    },
+    mainImageBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    imageActions: {
+      position: 'absolute',
+      top: theme.space[2],
+      right: theme.space[2],
+      flexDirection: 'row',
+      gap: theme.space[1],
+    },
+    promoButton: {
+      backgroundColor: theme.color.brand.accent,
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    promoButtonText: {
+      fontSize: 14,
+      color: theme.color.text.inverse,
+    },
+    deleteButton: {
+      backgroundColor: theme.color.action.danger.background,
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    deleteButtonDisabled: {
+      backgroundColor: theme.color.action.primary.backgroundDisabled,
+    },
+    deleteButtonText: {
+      fontSize: 14,
+      color: theme.color.text.inverse,
+    },
+    imageFilename: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      textAlign: 'center',
+    },
+    // Promotional Image Styles
+    promoModalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.strong,
+      paddingTop: theme.space[5],
+      paddingBottom: theme.space[5],
+      paddingHorizontal: theme.space[4],
+    },
+    promoModalContainer: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    promoModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[6],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    promoModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    promoCloseButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    promoCloseButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    promoModalContentScroll: {
+      flex: 1,
+    },
+    promoModalContent: {
+      padding: theme.space[6],
+      alignItems: 'center',
+    },
+    promoPreviewContainer: {
+      position: 'relative',
+      alignSelf: 'center',
+      borderRadius: theme.radii.xl,
+      borderWidth: 3,
+      borderColor: theme.color.brand.accent,
+      overflow: 'visible',
+      backgroundColor: theme.color.background.inverse,
+    },
+    promoImageContainer: {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      overflow: 'visible',
+    },
+    promoImage: {
+      width: '100%',
+      height: '100%',
+    },
+    cropGuide: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderWidth: 2,
+      borderColor: 'rgba(139, 92, 246, 0.8)',
+      borderStyle: 'dashed',
+      pointerEvents: 'none',
+    },
+    cropCorner: {
+      position: 'absolute',
+      width: 30,
+      height: 30,
+      borderColor: theme.color.brand.accent,
+      borderWidth: 3,
+    },
+    cropCornerTopLeft: {
+      top: -2,
+      left: -2,
+      borderRightWidth: 0,
+      borderBottomWidth: 0,
+    },
+    cropCornerTopRight: {
+      top: -2,
+      right: -2,
+      borderLeftWidth: 0,
+      borderBottomWidth: 0,
+    },
+    cropCornerBottomLeft: {
+      bottom: -2,
+      left: -2,
+      borderRightWidth: 0,
+      borderTopWidth: 0,
+    },
+    cropCornerBottomRight: {
+      bottom: -2,
+      right: -2,
+      borderLeftWidth: 0,
+      borderTopWidth: 0,
+    },
+    promoOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    promoTitleContainer: {
+      backgroundColor: 'rgba(139, 92, 246, 0.95)',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      marginBottom: 8,
+      alignSelf: 'flex-start',
+    },
+    promoProductTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+      marginBottom: 2,
+    },
+    promoProductSku: {
+      fontSize: 12,
+      color: theme.color.brand.accentSoft,
+    },
+    promoPricesContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    promoPricesTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.state.warning.border,
+      marginBottom: 6,
+      width: '100%',
+    },
+    promoPriceCard: {
+      backgroundColor: 'rgba(16, 185, 129, 0.95)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    promoPriceLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    promoPriceValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    promoBrandingTop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      alignItems: 'flex-start',
+    },
+    promoBranding: {
+      backgroundColor: 'rgba(252, 211, 77, 0.95)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+    },
+    promoBrandingText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.state.warning.text,
+      textAlign: 'center',
+    },
+    imageControls: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginTop: theme.space[5],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    controlsTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+      textAlign: 'center',
+    },
+    controlRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    controlLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      flex: 1,
+    },
+    controlButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    controlButton: {
+      backgroundColor: theme.color.action.primary.background,
+      width: 36,
+      height: 36,
+      borderRadius: theme.radii.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    controlButtonText: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    controlValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      minWidth: 40,
+      textAlign: 'center',
+    },
+    resetControlsButton: {
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+      marginTop: theme.space[2],
+    },
+    resetControlsButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    helpContainer: {
+      marginTop: theme.space[4],
+      alignItems: 'center',
+    },
+    helpBadge: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.full,
+      marginBottom: theme.space[3],
+    },
+    helpBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+      letterSpacing: 1,
+    },
+    promoHelpText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      lineHeight: 18,
+      paddingHorizontal: theme.space[5],
+    },
+    promoModalFooter: {
+      flexDirection: 'row',
+      padding: theme.space[6],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[4],
+    },
+    promoCancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[4],
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+    },
+    promoCancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    promoSaveButton: {
+      flex: 2,
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[4],
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+    },
+    promoSaveButtonDisabled: {
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    promoSaveButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    imageButtonsContainer: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    imageButton: {
+      flex: 1,
+      backgroundColor: theme.color.action.primary.background,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+    },
+    imageButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    uploadButton: {
+      backgroundColor: theme.color.action.success.background,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+    },
+    uploadButtonDisabled: {
+      backgroundColor: theme.color.action.primary.backgroundDisabled,
+    },
+    uploadButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    infoText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      lineHeight: 20,
+    },
+    footer: {
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    closeButtonBottom: {
+      backgroundColor: theme.color.text.muted,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+    },
+    closeButtonBottomText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    // Tabs styles
+    tabsContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabActive: {
+      borderBottomColor: theme.color.brand.primary,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    tabTextActive: {
+      color: theme.color.brand.primary,
+    },
+    // Google Lens styles
+    lensSearchContainer: {
+      marginBottom: theme.space[3],
+    },
+    lensUrlInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 14,
+      color: theme.color.text.body,
+      marginBottom: theme.space[2],
+    },
+    lensSearchButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+    },
+    lensSearchButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    lensResultCard: {
+      width: '48%',
+      marginHorizontal: '1%',
+      marginBottom: theme.space[3],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.md,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    lensResultInfo: {
+      padding: theme.space[2],
+    },
+    lensResultTitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    lensResultPrice: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.action.success.background,
+      marginBottom: theme.space[1],
+    },
+    lensResultSource: {
+      fontSize: 10,
+      color: theme.color.text.muted,
+    },
+    lensResultActions: {
+      flexDirection: 'row',
+      gap: theme.space[1],
+    },
+    lensAnalyzeButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[2],
+      alignItems: 'center',
+    },
+    lensAnalyzeButtonText: {
+      fontSize: 16,
+    },
+    lensSelectButton: {
+      flex: 2,
+      backgroundColor: theme.color.action.primary.background,
+      paddingVertical: theme.space[2],
+      alignItems: 'center',
+    },
+    lensSelectButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    lensButton: {
+      backgroundColor: theme.color.brand.accent,
+      width: 28,
+      height: 28,
+      borderRadius: theme.radii.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    lensButtonText: {
+      fontSize: 14,
+      color: theme.color.text.inverse,
+    },
+    promoEditButton: {
+      position: 'absolute',
+      bottom: 30,
+      left: theme.space[2],
+      right: theme.space[2],
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.sm,
+      alignItems: 'center',
+    },
+    promoEditButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    // Image Quality Analysis styles
+    qualityBadgeContainer: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    qualityBadge: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.full,
+      alignSelf: 'flex-start',
+      marginBottom: theme.space[2],
+    },
+    qualityExcellent: {
+      backgroundColor: theme.color.action.success.background,
+    },
+    qualityHigh: {
+      backgroundColor: theme.color.action.primary.background,
+    },
+    qualityMedium: {
+      backgroundColor: theme.color.state.warning.border,
+    },
+    qualityLow: {
+      backgroundColor: theme.color.action.danger.background,
+    },
+    qualityBadgeText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    qualitySummary: {
+      marginTop: theme.space[1],
+    },
+    qualitySummaryText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    qualityTapText: {
+      fontSize: 12,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+    // Quality Modal styles
+    qualityModalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.strong,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[4],
+    },
+    qualityModalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: Dimensions.get('window').width * 0.95,
+      height: Dimensions.get('window').height * 0.85,
+      maxWidth: 600,
+      ...theme.shadow.xl,
+    },
+    qualityModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    qualityModalTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    qualityModalCloseButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    qualityModalCloseButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    qualityModalContent: {
+      flex: 1,
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+    },
+    qualityBadgeLarge: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.xl,
+      alignSelf: 'center',
+      marginBottom: theme.space[5],
+    },
+    qualityBadgeLargeText: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
+    },
+    qualitySection: {
+      marginBottom: theme.space[5],
+    },
+    qualitySectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    qualityRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.subtle,
+    },
+    qualityLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      flex: 1,
+    },
+    qualityValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      flex: 1,
+      textAlign: 'right',
+    },
+    qualityGood: {
+      color: theme.color.action.success.background,
+    },
+    qualityBad: {
+      color: theme.color.action.danger.background,
+    },
+    qualityRecommendation: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      lineHeight: 20,
+      marginBottom: theme.space[2],
+    },
+    qualityModalFooter: {
+      padding: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    qualityModalCloseButtonBottom: {
+      backgroundColor: theme.color.action.primary.background,
+      paddingVertical: theme.space[3.5],
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+    },
+    qualityModalCloseButtonBottomText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+  });

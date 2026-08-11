@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CategoryBadgeProps {
   category: {
@@ -25,6 +26,8 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   size = 'medium',
   showCode = true,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const sizeStyles = {
     small: {
       container: styles.containerSmall,
@@ -62,14 +65,14 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
         style={[
           styles.mainBadge,
           currentSize.mainBadge,
-          { backgroundColor: category.color || colors.accent[500] },
+          { backgroundColor: category.color || theme.color.brand.accent },
         ]}
       >
         {category.icon && (
           <Ionicons
             name={safeIconName as any}
             size={currentSize.icon}
-            color={colors.neutral[0]}
+            color={theme.color.text.onAction}
             style={styles.icon}
           />
         )}
@@ -92,95 +95,96 @@ export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  containerSmall: {
-    gap: spacing[1],
-  },
-  containerMedium: {
-    gap: spacing[1.5],
-  },
-  containerLarge: {
-    gap: spacing[2],
-  },
-  mainBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-  },
-  mainBadgeSmall: {
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[1.5],
-    paddingVertical: spacing[0.5],
-  },
-  mainBadgeMedium: {
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-  },
-  mainBadgeLarge: {
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1.5],
-  },
-  icon: {
-    marginRight: spacing[1],
-  },
-  mainText: {
-    color: colors.neutral[0],
-    fontWeight: '600',
-  },
-  mainTextSmall: {
-    fontSize: 10,
-  },
-  mainTextMedium: {
-    fontSize: 12,
-  },
-  mainTextLarge: {
-    fontSize: 14,
-  },
-  subBadge: {
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-  },
-  subBadgeSmall: {
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[1.5],
-    paddingVertical: spacing[0.5],
-  },
-  subBadgeMedium: {
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-  },
-  subBadgeLarge: {
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1.5],
-  },
-  subText: {
-    color: colors.neutral[600],
-    fontWeight: '500',
-  },
-  subTextSmall: {
-    fontSize: 9,
-  },
-  subTextMedium: {
-    fontSize: 11,
-  },
-  subTextLarge: {
-    fontSize: 13,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+    },
+    containerSmall: {
+      gap: theme.space[1],
+    },
+    containerMedium: {
+      gap: theme.space[1.5],
+    },
+    containerLarge: {
+      gap: theme.space[2],
+    },
+    mainBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+    },
+    mainBadgeSmall: {
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[1.5],
+      paddingVertical: theme.space[0.5],
+    },
+    mainBadgeMedium: {
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+    },
+    mainBadgeLarge: {
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1.5],
+    },
+    icon: {
+      marginRight: theme.space[1],
+    },
+    mainText: {
+      color: theme.color.text.onAction,
+      fontWeight: '600',
+    },
+    mainTextSmall: {
+      fontSize: 10,
+    },
+    mainTextMedium: {
+      fontSize: 12,
+    },
+    mainTextLarge: {
+      fontSize: 14,
+    },
+    subBadge: {
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    subBadgeSmall: {
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[1.5],
+      paddingVertical: theme.space[0.5],
+    },
+    subBadgeMedium: {
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+    },
+    subBadgeLarge: {
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1.5],
+    },
+    subText: {
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    subTextSmall: {
+      fontSize: 9,
+    },
+    subTextMedium: {
+      fontSize: 11,
+    },
+    subTextLarge: {
+      fontSize: 13,
+    },
+  });
 
 export default CategoryBadge;

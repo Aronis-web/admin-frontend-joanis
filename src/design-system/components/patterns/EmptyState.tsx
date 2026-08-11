@@ -13,8 +13,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../primitives/Text';
 import { Button } from '../primitives/Button';
-import { colors } from '../../tokens/colors';
-import { spacing, iconSizes } from '../../tokens/spacing';
+import { iconSizes } from '../../tokens/spacing';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export interface EmptyStateProps {
   /**
@@ -68,6 +69,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   size = 'medium',
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const getIconSize = (): number => {
     switch (size) {
       case 'small':
@@ -101,7 +104,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <Ionicons
               name={icon}
               size={getIconSize()}
-              color={colors.icon.tertiary}
+              color={theme.color.icon.subtle}
             />
           </View>
         ) : (
@@ -109,7 +112,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <Ionicons
               name="folder-open-outline"
               size={getIconSize()}
-              color={colors.icon.tertiary}
+              color={theme.color.icon.subtle}
             />
           </View>
         )}
@@ -237,57 +240,57 @@ export const NoConnectionState: React.FC<NoConnectionStateProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   container_small: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
 
   container_medium: {
-    padding: spacing[6],
+    padding: theme.space[6],
   },
 
   container_large: {
-    padding: spacing[8],
+    padding: theme.space[8],
   },
 
   iconContainer: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
 
   iconContainer_small: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   iconContainer_medium: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
 
   iconContainer_large: {
-    marginBottom: spacing[6],
+    marginBottom: theme.space[6],
   },
 
   iconBackground: {
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     borderRadius: 9999,
-    padding: spacing[4],
+    padding: theme.space[4],
   },
 
   title: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 
   description: {
     maxWidth: 300,
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
 
   actionContainer: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
 });
 

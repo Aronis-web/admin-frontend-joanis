@@ -9,7 +9,8 @@ import {
   useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   TransmisionProduct,
   formatCentsToCurrency,
@@ -29,6 +30,7 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
   product,
   onClose,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768;
   const [loadingStock, setLoadingStock] = useState(false);
@@ -179,7 +181,7 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
               <Text style={styles.bannerLabel}>{stockLabel.toUpperCase()}</Text>
               {loadingStock ? (
                 <View style={styles.loadingStockContainer}>
-                  <ActivityIndicator size="large" color={colors.primary[400]} />
+                  <ActivityIndicator size="large" color={PRESENTATION_ACCENT} />
                   <Text style={styles.loadingStockText}>Cargando stock...</Text>
                 </View>
               ) : (
@@ -248,179 +250,197 @@ export const ProductBannerModal: React.FC<ProductBannerModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.dark,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.neutral[800],
-    position: 'relative',
-  },
-  containerTablet: {
-    width: '90%',
-    height: '90%',
-    borderRadius: borderRadius['2xl'],
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 40,
-    right: spacing[5],
-    zIndex: 10,
-    backgroundColor: colors.overlay.light,
-    width: 50,
-    height: 50,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.overlay.medium,
-  },
-  closeButtonText: {
-    fontSize: 28,
-    color: colors.neutral[0],
-    fontWeight: '700',
-  },
-  scrollContent: {
-    paddingTop: 80,
-    paddingBottom: 30,
-    paddingHorizontal: spacing[4],
-  },
-  bannerSection: {
-    backgroundColor: colors.neutral[700],
-    paddingVertical: spacing[5],
-    paddingHorizontal: spacing[5],
-    marginBottom: spacing[3],
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.neutral[600],
-  },
-  bannerSectionAlt: {
-    backgroundColor: colors.neutral[800],
-    borderColor: colors.neutral[600],
-  },
-  bannerSectionHighlight: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.success[500],
-    borderWidth: 4,
-    shadowColor: colors.success[500],
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 12,
-    marginVertical: spacing[4],
-    paddingVertical: spacing[7],
-  },
-  highlightBadge: {
-    position: 'absolute',
-    top: -15,
-    alignSelf: 'center',
-    backgroundColor: colors.success[500],
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius['2xl'],
-    borderWidth: 2,
-    borderColor: colors.neutral[0],
-  },
-  highlightBadgeText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.neutral[0],
-    letterSpacing: 1,
-  },
-  priceHighlightContainer: {
-    backgroundColor: colors.success[500] + '26',
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[5],
-    borderRadius: borderRadius.xl,
-    marginVertical: spacing[2],
-    borderWidth: 2,
-    borderColor: colors.success[500] + '4D',
-  },
-  bannerLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.neutral[400],
-    letterSpacing: 1.5,
-    marginBottom: spacing[2],
-  },
-  bannerLabelHighlight: {
-    fontSize: 18,
-    color: colors.success[500],
-    letterSpacing: 3,
-    fontWeight: '900',
-  },
-  bannerValue: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: colors.neutral[0],
-    textAlign: 'center',
-    lineHeight: 42,
-  },
-  bannerValueTablet: {
-    fontSize: 48,
-    lineHeight: 56,
-  },
-  bannerValueTabletHighlight: {
-    fontSize: 60,
-    lineHeight: 68,
-  },
-  bannerValueName: {
-    fontSize: 28,
-    lineHeight: 34,
-  },
-  stockValue: {
-    color: colors.primary[400],
-  },
-  costValue: {
-    color: colors.warning[400],
-  },
-  priceSociaValue: {
-    color: colors.success[400],
-  },
-  priceSociaValueHighlight: {
-    fontSize: 52,
-    fontWeight: '900',
-    color: colors.success[500],
-    textShadowColor: colors.success[500] + 'CC',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
-    letterSpacing: 1,
-  },
-  priceFranquiciaValue: {
-    color: colors.accent[400],
-  },
-  preliminaryNote: {
-    fontSize: 14,
-    color: colors.warning[500],
-    marginTop: spacing[3],
-    fontWeight: '600',
-  },
-  calculationNote: {
-    fontSize: 14,
-    color: colors.neutral[400],
-    marginTop: spacing[2],
-    fontStyle: 'italic',
-  },
-  calculationNoteHighlight: {
-    fontSize: 18,
-    color: colors.success[500],
-    marginTop: spacing[3],
-    fontStyle: 'italic',
-    fontWeight: '700',
-  },
-  loadingStockContainer: {
-    paddingVertical: spacing[5],
-    alignItems: 'center',
-  },
-  loadingStockText: {
-    fontSize: 14,
-    color: colors.neutral[400],
-    marginTop: spacing[3],
-  },
-});
+// Modo presentación: paleta oscura fija independiente del theme para máxima visibilidad.
+const PRESENTATION_BG = '#262626';
+const PRESENTATION_SURFACE = '#404040';
+const PRESENTATION_BORDER = '#525252';
+const PRESENTATION_TEXT = '#FFFFFF';
+const PRESENTATION_TEXT_MUTED = '#A3A3A3';
+const PRESENTATION_ACCENT = '#A1A1A1';
+const PRESENTATION_SUCCESS_STRONG = '#22C55E';
+const PRESENTATION_SUCCESS_LIGHT = '#4ADE80';
+const PRESENTATION_WARNING_STRONG = '#F59E0B';
+const PRESENTATION_WARNING_LIGHT = '#FBBF24';
+const PRESENTATION_FRANQUICIA = '#F472B6';
+const PRESENTATION_OVERLAY_LIGHT = 'rgba(0,0,0,0.3)';
+const PRESENTATION_OVERLAY_MEDIUM = 'rgba(0,0,0,0.5)';
+const PRESENTATION_OVERLAY_DARK = 'rgba(0,0,0,0.7)';
+const PRESENTATION_HIGHLIGHT_BG = '#000000';
+
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: PRESENTATION_OVERLAY_DARK,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    container: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: PRESENTATION_BG,
+      position: 'relative',
+    },
+    containerTablet: {
+      width: '90%',
+      height: '90%',
+      borderRadius: theme.radii['2xl'],
+    },
+    closeButton: {
+      position: 'absolute',
+      top: 40,
+      right: theme.space[5],
+      zIndex: 10,
+      backgroundColor: PRESENTATION_OVERLAY_LIGHT,
+      width: 50,
+      height: 50,
+      borderRadius: theme.radii.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: PRESENTATION_OVERLAY_MEDIUM,
+    },
+    closeButtonText: {
+      fontSize: 28,
+      color: PRESENTATION_TEXT,
+      fontWeight: '700',
+    },
+    scrollContent: {
+      paddingTop: 80,
+      paddingBottom: 30,
+      paddingHorizontal: theme.space[4],
+    },
+    bannerSection: {
+      backgroundColor: PRESENTATION_SURFACE,
+      paddingVertical: theme.space[5],
+      paddingHorizontal: theme.space[5],
+      marginBottom: theme.space[3],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: PRESENTATION_BORDER,
+    },
+    bannerSectionAlt: {
+      backgroundColor: PRESENTATION_BG,
+      borderColor: PRESENTATION_BORDER,
+    },
+    bannerSectionHighlight: {
+      backgroundColor: PRESENTATION_HIGHLIGHT_BG,
+      borderColor: PRESENTATION_SUCCESS_STRONG,
+      borderWidth: 4,
+      shadowColor: PRESENTATION_SUCCESS_STRONG,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.8,
+      shadowRadius: 20,
+      elevation: 12,
+      marginVertical: theme.space[4],
+      paddingVertical: theme.space[7],
+    },
+    highlightBadge: {
+      position: 'absolute',
+      top: -15,
+      alignSelf: 'center',
+      backgroundColor: PRESENTATION_SUCCESS_STRONG,
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii['2xl'],
+      borderWidth: 2,
+      borderColor: PRESENTATION_TEXT,
+    },
+    highlightBadgeText: {
+      fontSize: 14,
+      fontWeight: '900',
+      color: PRESENTATION_TEXT,
+      letterSpacing: 1,
+    },
+    priceHighlightContainer: {
+      backgroundColor: PRESENTATION_SUCCESS_STRONG + '26',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[5],
+      borderRadius: theme.radii.xl,
+      marginVertical: theme.space[2],
+      borderWidth: 2,
+      borderColor: PRESENTATION_SUCCESS_STRONG + '4D',
+    },
+    bannerLabel: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: PRESENTATION_TEXT_MUTED,
+      letterSpacing: 1.5,
+      marginBottom: theme.space[2],
+    },
+    bannerLabelHighlight: {
+      fontSize: 18,
+      color: PRESENTATION_SUCCESS_STRONG,
+      letterSpacing: 3,
+      fontWeight: '900',
+    },
+    bannerValue: {
+      fontSize: 36,
+      fontWeight: '900',
+      color: PRESENTATION_TEXT,
+      textAlign: 'center',
+      lineHeight: 42,
+    },
+    bannerValueTablet: {
+      fontSize: 48,
+      lineHeight: 56,
+    },
+    bannerValueTabletHighlight: {
+      fontSize: 60,
+      lineHeight: 68,
+    },
+    bannerValueName: {
+      fontSize: 28,
+      lineHeight: 34,
+    },
+    stockValue: {
+      color: PRESENTATION_ACCENT,
+    },
+    costValue: {
+      color: PRESENTATION_WARNING_LIGHT,
+    },
+    priceSociaValue: {
+      color: PRESENTATION_SUCCESS_LIGHT,
+    },
+    priceSociaValueHighlight: {
+      fontSize: 52,
+      fontWeight: '900',
+      color: PRESENTATION_SUCCESS_STRONG,
+      textShadowColor: PRESENTATION_SUCCESS_STRONG + 'CC',
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 20,
+      letterSpacing: 1,
+    },
+    priceFranquiciaValue: {
+      color: PRESENTATION_FRANQUICIA,
+    },
+    preliminaryNote: {
+      fontSize: 14,
+      color: PRESENTATION_WARNING_STRONG,
+      marginTop: theme.space[3],
+      fontWeight: '600',
+    },
+    calculationNote: {
+      fontSize: 14,
+      color: PRESENTATION_TEXT_MUTED,
+      marginTop: theme.space[2],
+      fontStyle: 'italic',
+    },
+    calculationNoteHighlight: {
+      fontSize: 18,
+      color: PRESENTATION_SUCCESS_STRONG,
+      marginTop: theme.space[3],
+      fontStyle: 'italic',
+      fontWeight: '700',
+    },
+    loadingStockContainer: {
+      paddingVertical: theme.space[5],
+      alignItems: 'center',
+    },
+    loadingStockText: {
+      fontSize: 14,
+      color: PRESENTATION_TEXT_MUTED,
+      marginTop: theme.space[3],
+    },
+  });

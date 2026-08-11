@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,12 +15,17 @@ import { expensesService } from '@/services/api';
 import { ExpenseCategory } from '@/types/expenses';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { CategoryCard } from '@/components/Expenses/CategoryCard';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ExpenseCategoriesScreenProps {
   navigation: any;
 }
 
 export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -77,7 +81,7 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando categorías...</Text>
         </View>
       );
@@ -86,7 +90,7 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
     if (categories.length === 0) {
       return (
         <View style={styles.centerContainer}>
-          <Ionicons name="folder-open-outline" size={64} color="#CBD5E1" />
+          <Ionicons name="folder-open-outline" size={64} color={theme.color.icon.subtle} />
           <Text style={styles.emptyText}>No hay categorías registradas</Text>
           <Text style={styles.emptySubtext}>
             Presiona el botón + para crear una nueva categoría
@@ -102,7 +106,7 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color="#6366F1" />
+          <Ionicons name="information-circle" size={20} color={theme.color.brand.accent} />
           <Text style={styles.infoText}>
             Las categorías se organizan en dos niveles: categorías principales y subcategorías
           </Text>
@@ -125,7 +129,7 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Categorías de Gastos</Text>
         <View style={styles.headerRight} />
@@ -133,20 +137,24 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
       <View style={styles.container}>
         {renderContent()}
         <ProtectedFAB
-          icon="+"
-          onPress={handleCreateCategory}
-          requiredPermissions={['expenses.categories.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'pricetag-outline',
+              label: 'Crear Categor\u00eda',
+              onPress: handleCreateCategory,
+              requiredPermissions: ['expenses.categories.create'],
+            },
+          ]}
         />
       </View>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   header: {
     flexDirection: 'row',
@@ -154,9 +162,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -164,7 +172,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -173,7 +181,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   scrollView: {
     flex: 1,
@@ -190,24 +198,24 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     textAlign: 'center',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     textAlign: 'center',
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
@@ -216,7 +224,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: '#4338CA',
+    color: theme.color.brand.primary,
     lineHeight: 18,
   },
 });

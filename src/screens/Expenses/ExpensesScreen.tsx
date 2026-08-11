@@ -4,13 +4,14 @@
  * Pantalla de listado de gastos profesional y moderna.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   FlatList,
   StyleSheet,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -31,26 +32,24 @@ import { ExpenseBulkUploadModal } from '@/components/Expenses/ExpenseBulkUploadM
 
 // Design System
 import {
-  colors,
-  spacing,
-  borderRadius,
-} from '@/design-system/tokens';
-import {
   Text,
   Title,
   Button,
   Chip,
   ChipGroup,
   EmptyState,
-  FABGroup,
   Pagination,
   Row,
 } from '@/design-system/components';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface ExpensesScreenProps {
   navigation: any;
@@ -58,6 +57,9 @@ interface ExpensesScreenProps {
 
 export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) => {
   useScreenTracking('ExpensesScreen', 'ExpensesScreen');
+
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [selectedStatus, setSelectedStatus] = useState<ExpenseStatus | 'ALL'>('ALL');
   const [reconcileModalVisible, setReconcileModalVisible] = useState(false);
@@ -230,16 +232,19 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
       icon: 'add' as const,
       label: 'Nuevo Gasto',
       onPress: handleCreateExpense,
+      requiredPermissions: [PERMISSIONS.EXPENSES.CREATE],
     },
     {
       icon: 'download-outline' as const,
       label: 'Descargar Reporte',
       onPress: () => setReportModalVisible(true),
+      requiredPermissions: [PERMISSIONS.EXPENSES.REPORTS.VIEW],
     },
     {
       icon: 'cloud-upload-outline' as const,
       label: 'Carga Masiva',
       onPress: () => setBulkUploadModalVisible(true),
+      requiredPermissions: [PERMISSIONS.EXPENSES.CREATE],
     },
   ], [handleCreateExpense]);
 
@@ -248,7 +253,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
     if (isLoading && !isRefetching) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
             Cargando gastos...
           </Text>
@@ -288,8 +293,8 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={handleRefresh}
-            tintColor={colors.primary[900]}
-            colors={[colors.primary[900]]}
+            tintColor={theme.color.brand.primary}
+            colors={[theme.color.brand.primary]}
           />
         }
         windowSize={5}
@@ -311,7 +316,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -320,7 +325,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="receipt-outline" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="receipt-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Gastos</Text>
               </View>
@@ -337,17 +342,17 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
           {/* Search Bar */}
           <View style={styles.searchContainerGradient}>
             <View style={styles.searchInputContainerGradient}>
-              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIconGradient} />
+              <Ionicons name="search" size={20} color={theme.color.text.placeholder} style={styles.searchIconGradient} />
               <TextInput
                 style={styles.searchInputGradient}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Buscar por factura, descripción..."
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButtonGradient}>
-                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
                 </TouchableOpacity>
               )}
             </View>
@@ -393,14 +398,7 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
         />
       )}
 
-      {/* FAB */}
-      <FABGroup
-        icon="add"
-        openIcon="close"
-        actions={fabActions}
-        variant="primary"
-        style={{ bottom: 90, right: 20 }}
-      />
+      <ProtectedFAB actions={fabActions} />
 
       {/* Modals */}
       {selectedExpense && (
@@ -445,23 +443,23 @@ export const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ navigation }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     position: 'relative',
   },
   // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   headerTitleContainer: {
     flex: 1,
@@ -469,94 +467,94 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   statsHeaderContainer: {
     alignItems: 'flex-end',
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
   searchContainerGradient: {
     flexDirection: 'row',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   searchInputContainerGradient: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[3],
   },
   searchIconGradient: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   searchInputGradient: {
     flex: 1,
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   clearButtonGradient: {
-    padding: spacing[1],
+    padding: theme.space[1],
   },
 
   filtersContainer: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[3],
-    paddingBottom: spacing[2],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[4],
+    paddingTop: theme.space[3],
+    paddingBottom: theme.space[2],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
 
   searchBar: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   chipContainer: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 
   searchInfo: {
-    paddingVertical: spacing[1],
+    paddingVertical: theme.space[1],
   },
 
   content: {
@@ -567,19 +565,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: spacing[8],
+    padding: theme.space[8],
   },
 
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
 
   listContent: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
 
   listFooter: {
-    height: spacing[20],
+    height: theme.space[20],
   },
 });
 

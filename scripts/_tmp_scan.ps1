@@ -1,0 +1,10 @@
+param([string]$Path)
+$c = Get-Content $Path -Raw
+Write-Output ("colors. refs:        " + ([regex]::Matches($c,'colors\.')).Count)
+Write-Output ("shadows. refs:       " + ([regex]::Matches($c,'shadows\.')).Count)
+Write-Output ("spacing[ refs:       " + ([regex]::Matches($c,'spacing\[')).Count)
+Write-Output ("borderRadius. refs:  " + ([regex]::Matches($c,'borderRadius\.')).Count)
+Write-Output ("hex literals:        " + ([regex]::Matches($c,'#[0-9A-Fa-f]{3,8}')).Count)
+Write-Output ("useTheme refs:       " + ([regex]::Matches($c,'useTheme')).Count)
+Write-Output ("useThemedStyles:     " + ([regex]::Matches($c,'useThemedStyles')).Count)
+Write-Output ("StyleSheet.create:   " + ([regex]::Matches($c,'StyleSheet\.create')).Count)

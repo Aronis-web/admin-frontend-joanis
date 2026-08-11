@@ -1,12 +1,6 @@
 // IMPORTANT: This must be imported FIRST before any other imports that use crypto/uuid
 import 'react-native-get-random-values';
 
-// Web-only: parchea Alert.alert/Alert.prompt para que funcionen en navegador
-// (no-op en iOS/Android). Debe ejecutarse antes de que cualquier pantalla
-// llame a Alert.alert.
-import { installWebAlertPatch } from '@/utils/installWebAlertPatch';
-installWebAlertPatch();
-
 import React, { useEffect, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar, AppState, AppStateStatus } from 'react-native';
@@ -21,7 +15,9 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { Loader } from '@/components/common/Loader';
 import { GlobalErrorBoundary } from '@/components/common/GlobalErrorBoundary';
+import { AlertHost } from '@/components/common/AlertHost';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { ThemeProvider, FloatingFooterProvider, useThemeValue } from '@/design-system';
 // Sentry has been removed - import commented out
 // import { initSentry } from '@/config/sentry';
 import { useSessionWarning } from '@/hooks/useSessionWarning';
@@ -100,19 +96,35 @@ export const App = () => {
     };
   }, []);
 
-  if (!fontsLoaded || authLoading) {
-    return <Loader fullScreen text="Iniciando aplicación..." />;
-  }
-
   return (
-    <GlobalErrorBoundary>
-      <QueryProvider>
-        <SafeAreaProvider>
-          <StatusBar barStyle="dark-content" translucent={true} backgroundColor="transparent" />
-          <Navigation />
-        </SafeAreaProvider>
-      </QueryProvider>
-    </GlobalErrorBoundary>
+    <ThemeProvider>
+      <GlobalErrorBoundary>
+        <QueryProvider>
+          <SafeAreaProvider>
+            <FloatingFooterProvider>
+              <ThemedStatusBar />
+              {!fontsLoaded || authLoading ? (
+                <Loader fullScreen text="Iniciando aplicación..." />
+              ) : (
+                <Navigation />
+              )}
+              <AlertHost />
+            </FloatingFooterProvider>
+          </SafeAreaProvider>
+        </QueryProvider>
+      </GlobalErrorBoundary>
+    </ThemeProvider>
+  );
+};
+
+const ThemedStatusBar = () => {
+  const { isDark } = useThemeValue();
+  return (
+    <StatusBar
+      barStyle={isDark ? 'light-content' : 'dark-content'}
+      translucent
+      backgroundColor="transparent"
+    />
   );
 };
 

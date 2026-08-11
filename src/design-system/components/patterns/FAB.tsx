@@ -14,10 +14,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../primitives/Text';
-import { colors } from '../../tokens/colors';
-import { spacing, borderRadius, iconSizes, zIndex } from '../../tokens/spacing';
-import { shadows } from '../../tokens/shadows';
+import { iconSizes } from '../../tokens/spacing';
 import { activeOpacity, springConfigs, durations } from '../../tokens/animations';
+import { useTheme, useThemedStyles } from '../../themes';
+import type { Theme } from '../../themes';
 
 export type FABSize = 'small' | 'medium' | 'large';
 export type FABVariant = 'primary' | 'secondary' | 'surface';
@@ -80,6 +80,8 @@ export const FAB: React.FC<FABProps> = ({
   style,
   testID,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -121,32 +123,33 @@ export const FAB: React.FC<FABProps> = ({
   };
 
   const getBackgroundColor = (): string => {
-    if (disabled) return colors.neutral[300];
+    if (disabled) return theme.color.action.primary.backgroundDisabled;
     switch (variant) {
       case 'secondary':
-        return colors.accent[600];
+        return theme.color.brand.accent;
       case 'surface':
-        return colors.surface.primary;
+        return theme.color.surface.base;
       default:
-        return colors.primary[900];
+        return theme.color.action.primary.background;
     }
   };
 
   const getIconColor = (): string => {
-    if (disabled) return colors.text.disabled;
+    if (disabled) return theme.color.text.disabled;
     switch (variant) {
       case 'surface':
-        return colors.icon.primary;
+        return theme.color.icon.default;
       default:
-        return colors.icon.inverse;
+        return theme.color.icon.inverse;
     }
   };
 
   const fabSize = getSize();
 
+  const positionKey = `position_${position.replace('-', '_')}` as keyof typeof styles;
   const containerStyles = [
     styles.container,
-    styles[`position_${position.replace('-', '_')}`],
+    styles[positionKey],
     style,
   ];
 
@@ -155,11 +158,11 @@ export const FAB: React.FC<FABProps> = ({
     {
       width: label ? undefined : fabSize,
       height: fabSize,
-      borderRadius: label ? borderRadius.xl : fabSize / 2,
+      borderRadius: label ? theme.radii.xl : fabSize / 2,
       backgroundColor: getBackgroundColor(),
     },
-    variant !== 'surface' && shadows['2xl'],
-    variant === 'surface' && shadows.lg,
+    variant !== 'surface' && theme.shadow['2xl'],
+    variant === 'surface' && theme.shadow.lg,
     label && styles.extended,
   ];
 
@@ -179,7 +182,7 @@ export const FAB: React.FC<FABProps> = ({
           {label && (
             <Text
               variant="buttonMedium"
-              color={variant === 'surface' ? 'primary' : colors.text.inverse}
+              color={variant === 'surface' ? 'primary' : theme.color.text.onAction}
               style={styles.label}
             >
               {label}
@@ -234,6 +237,8 @@ export const FABGroup: React.FC<FABGroupProps> = ({
   variant = 'primary',
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [isOpen, setIsOpen] = useState(false);
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const actionAnimations = useRef(actions.map(() => new Animated.Value(0))).current;
@@ -312,11 +317,11 @@ export const FABGroup: React.FC<FABGroupProps> = ({
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.actionFab, shadows.md]}
+              style={[styles.actionFab, theme.shadow.md]}
               onPress={() => handleActionPress(action)}
               activeOpacity={activeOpacity.medium}
             >
-              <Ionicons name={action.icon} size={iconSizes.md} color={colors.icon.primary} />
+              <Ionicons name={action.icon} size={iconSizes.md} color={theme.color.icon.default} />
             </TouchableOpacity>
           </Animated.View>
         ))}
@@ -326,10 +331,10 @@ export const FABGroup: React.FC<FABGroupProps> = ({
           <TouchableOpacity
             style={[
               styles.mainFabButton,
-              variant === 'primary' && { backgroundColor: colors.primary[900] },
-              variant === 'secondary' && { backgroundColor: colors.accent[600] },
-              variant === 'surface' && { backgroundColor: colors.surface.primary },
-              shadows['2xl'],
+              variant === 'primary' && { backgroundColor: theme.color.action.primary.background },
+              variant === 'secondary' && { backgroundColor: theme.color.brand.accent },
+              variant === 'surface' && { backgroundColor: theme.color.surface.base },
+              theme.shadow['2xl'],
             ]}
             onPress={toggleOpen}
             activeOpacity={activeOpacity.medium}
@@ -337,7 +342,7 @@ export const FABGroup: React.FC<FABGroupProps> = ({
             <Ionicons
               name={isOpen ? openIcon : icon}
               size={iconSizes.lg}
-              color={variant === 'surface' ? colors.icon.primary : colors.icon.inverse}
+              color={variant === 'surface' ? theme.color.icon.default : theme.color.icon.inverse}
             />
           </TouchableOpacity>
         </Animated.View>
@@ -346,7 +351,7 @@ export const FABGroup: React.FC<FABGroupProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     position: 'absolute',
     zIndex: 1100, // Más alto que FloatingActionButton (1000)
@@ -377,11 +382,11 @@ const styles = StyleSheet.create({
   },
 
   extended: {
-    paddingHorizontal: spacing[4],
+    paddingHorizontal: theme.space[4],
   },
 
   label: {
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
 
   // FAB Group styles
@@ -408,7 +413,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: colors.overlay.light,
+    backgroundColor: theme.color.overlay.subtle,
     zIndex: 1050, // Entre el FloatingActionButton (1000) y el FABGroup (1100)
     elevation: 14,
   },
@@ -416,23 +421,23 @@ const styles = StyleSheet.create({
   actionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   actionLabel: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.sm,
-    marginRight: spacing[3],
-    ...shadows.sm,
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[1.5],
+    borderRadius: theme.radii.sm,
+    marginRight: theme.space[3],
+    ...theme.shadow.sm,
   },
 
   actionFab: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     alignItems: 'center',
     justifyContent: 'center',
   },

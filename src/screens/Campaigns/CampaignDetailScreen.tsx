@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,10 +19,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { saveAndSharePdf } from '@/utils/fileDownload';
+import { generateCampaignPhotosPdf } from '@/utils/campaignPhotosPdf';
 import { campaignsService, repartosService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
-import { productsApi, priceProfilesApi } from '@/services/api';
+import { productsApi, priceProfilesApi, photoCampaignsApi } from '@/services/api';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
 import logger from '@/utils/logger';
 import {
@@ -38,6 +39,7 @@ import {
   AddProductRequest,
 } from '@/types/campaigns';
 import { useCampaignProductsDetail } from '@/hooks/api/useCampaigns';
+import { useTenantStore } from '@/store/tenant';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
 import { Product } from '@/services/api/products';
@@ -45,14 +47,18 @@ import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
 import { ParticipantTotalsResponse } from '@/types/participant-totals';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
+import { ProductPhotoManagerModal } from '@/components/Photos/ProductPhotoManagerModal';
+import { LinkPhotoCampaignModal } from '@/components/Photos/LinkPhotoCampaignModal';
 import { ProductDistributionsBySiteModal } from '@/components/Campaigns/ProductDistributionsBySiteModal';
+import { usePhotoGenerationStore } from '@/store/photoGeneration';
 import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 import { BulkDistributionModal } from '@/components/Campaigns/BulkDistributionModal';
 import { CopyParticipantsModal } from '@/components/Campaigns/CopyParticipantsModal';
-import { AddButton } from '@/components/Navigation/AddButton';
-import { ProtectedElement } from '@/components/auth/ProtectedRoute';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CampaignDetailScreenProps {
   navigation: any;
@@ -70,10 +76,100 @@ interface CampaignDetailScreenProps {
 
 type TabType = 'overview' | 'participants' | 'products';
 
+/**
+ * Miniatura para cada resultado del buscador global.
+ * - Intenta primero las fuentes ya presentes en el producto (photos, imageUrl…).
+ * - Si no hay ninguna, hace un lazy-fetch a photoCampaignsApi.getProductPhotos.
+ * Mantiene una cache en memoria por productId para no repetir requests.
+ */
+const searchResultPhotoCache = new Map<string, string | null>();
+
+const SearchResultThumb: React.FC<{
+  product: any;
+  style: any;
+  placeholderStyle: any;
+  placeholderTextStyle: any;
+}> = ({ product, style, placeholderStyle, placeholderTextStyle }) => {
+  const pickPhotoUrl = (p: any): string | undefined => {
+    if (!p) return undefined;
+    if (typeof p === 'string') return p;
+    if (typeof p === 'object' && typeof p.url === 'string') return p.url;
+    if (typeof p === 'object' && typeof p.fileUrl === 'string') return p.fileUrl;
+    return undefined;
+  };
+  const pickPreferredPhotoUrl = (arr: any): string | undefined => {
+    if (!Array.isArray(arr)) return undefined;
+    const byType = (t: string) =>
+      arr.find((p) => {
+        if (!p || typeof p !== 'object') return false;
+        const t1 = typeof p.type === 'string' ? p.type.toLowerCase() : '';
+        const t2 = typeof p.photoType === 'string' ? p.photoType.toLowerCase() : '';
+        return t1 === t || t2 === t;
+      });
+    for (const t of ['design', 'reference', 'price', 'catalog']) {
+      const found = byType(t);
+      if (found) {
+        const url = pickPhotoUrl(found);
+        if (url) return url;
+      }
+    }
+    for (const p of arr) {
+      const url = pickPhotoUrl(p);
+      if (url) return url;
+    }
+    return undefined;
+  };
+
+  const initialUri =
+    pickPreferredPhotoUrl(product?.photos) ||
+    pickPreferredPhotoUrl(product?.photoUrls) ||
+    (typeof product?.imageUrl === 'string' ? product.imageUrl : undefined) ||
+    pickPreferredPhotoUrl(product?.imageUrls) ||
+    (product?.id ? (searchResultPhotoCache.get(product.id) ?? undefined) : undefined);
+
+  const [uri, setUri] = useState<string | undefined>(initialUri);
+
+  useEffect(() => {
+    if (uri || !product?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const assets = await photoCampaignsApi.getProductPhotos(product.id);
+        if (cancelled) return;
+        const picked = pickPreferredPhotoUrl(assets);
+        searchResultPhotoCache.set(product.id, picked ?? null);
+        if (picked) setUri(picked);
+      } catch {
+        if (!cancelled) searchResultPhotoCache.set(product.id, null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.id, uri]);
+
+  if (!uri) {
+    return (
+      <View style={placeholderStyle}>
+        <Text style={placeholderTextStyle}>📦</Text>
+      </View>
+    );
+  }
+
+  return <Image source={{ uri }} style={style} resizeMode="cover" />;
+};
+
 export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   navigation,
   route,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  // Sede actual seleccionada en el login. Se usa para filtrar `stockBySite`
+  // en la lista de "Productos disponibles para agregar" y validar la
+  // cantidad al agregar sólo contra el stock de esa sede.
+  const currentSiteId = useTenantStore((s) => s.selectedSite?.id);
+  const currentSiteName = useTenantStore((s) => s.selectedSite?.name);
   const { campaignId } = route.params;
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -86,6 +182,29 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [products, setProducts] = useState<Record<string, Product>>({});
   const [selectedProduct, setSelectedProduct] = useState<CampaignProduct | null>(null);
   const [showBannerModal, setShowBannerModal] = useState(false);
+  const [photoManagerProduct, setPhotoManagerProduct] = useState<{
+    productId: string;
+    title: string;
+    sku: string;
+    catalogPhotoUrl?: string;
+    fallbackImageUrl?: string;
+    /**
+     * Fotos de referencia que ya existen para el producto según el endpoint
+     * compacto (típicamente las fotos de validación de la compra). No son
+     * assets de la campaña de fotos todavía; se ofrecen en el modal para
+     * adoptarlas como referencia con un toque.
+     */
+    existingReferenceUrls?: string[];
+  } | null>(null);
+  // Visibilidad separada del producto activo: al cerrar solo ocultamos el modal,
+  // pero lo mantenemos montado si aún hay una generación en curso para no
+  // interrumpir la subida en segundo plano (Gemini / diseño con precio).
+  const [photoManagerVisible, setPhotoManagerVisible] = useState(false);
+  const [showLinkPhotoCampaignModal, setShowLinkPhotoCampaignModal] = useState(false);
+  // Campaña de fotos anexada a esta campaña. Se envía en las subidas de fotos
+  // para que el backend no caiga en su ruta de auto-resolución (que arma un
+  // uuid duplicado cuando hay vínculos y devuelve 500).
+  const [linkedPhotoCampaignId, setLinkedPhotoCampaignId] = useState<string | undefined>(undefined);
   const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
   const [productSalePrices, setProductSalePrices] = useState<Record<string, ProductSalePrice[]>>(
     {}
@@ -147,6 +266,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [selectedProductForBannerSearch, setSelectedProductForBannerSearch] = useState<any>(null);
   const [productDetailsForBannerSearch, setProductDetailsForBannerSearch] = useState<any>(null);
 
+  // Descarga del PDF de fotos de productos activos
+  const [downloadingPhotosPdf, setDownloadingPhotosPdf] = useState(false);
+
   // Pagination states
   const [displayedItemsCount, setDisplayedItemsCount] = useState(20);
   const ITEMS_PER_PAGE = 20;
@@ -167,6 +289,77 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     });
     return map;
   }, [productsDetailData]);
+
+  // Genera un PDF con las fotos, nombre, SKU, stock disponible/repartido, costo
+  // y precio socia de los productos activos de la campaña.
+  const handleDownloadPhotosPdf = useCallback(async () => {
+    const items = productsDetailData?.items ?? [];
+    if (items.length === 0) {
+      Alert.alert('Sin datos', 'Aún no se cargaron los productos de la campaña.');
+      return;
+    }
+    setDownloadingPhotosPdf(true);
+    try {
+      const count = await generateCampaignPhotosPdf({
+        campaignName: campaign?.name ?? 'Campaña',
+        items,
+      });
+      logger.debug(`📄 PDF de fotos generado con ${count} productos activos`);
+    } catch (error) {
+      logger.error('Error generando PDF de fotos de campaña:', error);
+      Alert.alert('Error', 'No se pudo generar el PDF de fotos.');
+    } finally {
+      setDownloadingPhotosPdf(false);
+    }
+  }, [productsDetailData, campaign?.name]);
+
+  const loadLinkedPhotoCampaign = useCallback(async () => {
+    if (!campaignId) {
+      return;
+    }
+    try {
+      const linked = await photoCampaignsApi.getPhotoCampaignsByCampaign(campaignId);
+      // De-duplicamos y tomamos la primera; basta una para asociar las fotos.
+      setLinkedPhotoCampaignId(linked[0]?.id);
+    } catch (error) {
+      logger.error('Error loading linked photo campaign:', error);
+      setLinkedPhotoCampaignId(undefined);
+    }
+  }, [campaignId]);
+
+  useEffect(() => {
+    void loadLinkedPhotoCampaign();
+  }, [loadLinkedPhotoCampaign]);
+
+  // ¿Hay una generación de fotos (diseño / precio) en curso para el producto
+  // cuyo modal está (o estuvo) abierto? Nos suscribimos al store global para
+  // no desmontar el modal mientras la subida en segundo plano no termine.
+  const photoGeneratingForProduct = usePhotoGenerationStore((s) => {
+    const id = photoManagerProduct?.productId;
+    if (!id) return false;
+    // Las flags se llavean por grupo (`${productId}::${parentAssetId}`); basta
+    // con que cualquier grupo del producto esté generando.
+    return Object.entries(s.generating).some(
+      ([key, flags]) => key.startsWith(`${id}::`) && (flags.design || flags.price)
+    );
+  });
+
+  const prevPhotoGeneratingRef = useRef(false);
+  useEffect(() => {
+    const wasGenerating = prevPhotoGeneratingRef.current;
+    prevPhotoGeneratingRef.current = photoGeneratingForProduct;
+
+    // Al terminar la generación, refrescamos las fotos del detalle para que la
+    // nueva imagen se refleje aunque el modal se haya cerrado durante la espera.
+    if (wasGenerating && !photoGeneratingForProduct) {
+      void refetchProductsDetail?.();
+    }
+
+    // Solo desmontamos el modal cuando está oculto y ya no hay generación activa.
+    if (!photoManagerVisible && !photoGeneratingForProduct && photoManagerProduct) {
+      setPhotoManagerProduct(null);
+    }
+  }, [photoGeneratingForProduct, photoManagerVisible, photoManagerProduct, refetchProductsDetail]);
 
   const loadCampaign = useCallback(async () => {
     try {
@@ -354,6 +547,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   // Track whether stock has been loaded (lazy: only when user starts searching)
   const stockLoadedRef = useRef(false);
 
+  // Ref a handleOpenBannerFromSearch para poder usarlo desde handleSearchSubmit
+  // sin generar TDZ (la función real se asigna más abajo en el render).
+  const handleOpenBannerFromSearchRef = useRef<((product: any) => Promise<void>) | null>(null);
+
   // Load stock items for quick add functionality (lazy)
   const loadStockItems = useCallback(async () => {
     try {
@@ -382,6 +579,26 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   // Get product stock from search results (backend now returns stock structure)
   const getProductStock = useCallback(
     (product: any): { available: number; reserved: number; total: number } => {
+      // ✅ Prioridad 1: si el backend devolvió stockBySite (v2 search), usamos
+      // sólo la sede actual seleccionada en el login. Así tanto la lista
+      // "Productos disponibles para agregar" como la validación de cantidad
+      // al agregar respetan el contexto de sede.
+      if (Array.isArray(product?.stockBySite) && product.stockBySite.length > 0) {
+        const siteEntry = currentSiteId
+          ? product.stockBySite.find((s: any) => s?.siteId === currentSiteId)
+          : null;
+        if (siteEntry) {
+          return {
+            available: Number(siteEntry.available) || 0,
+            reserved: Number(siteEntry.reserved) || 0,
+            total: Number(siteEntry.total) || 0,
+          };
+        }
+        // Sede actual sin stock (o no está en la lista): mostramos 0 en vez
+        // de caer al consolidado para no permitir agregar más de lo real.
+        return { available: 0, reserved: 0, total: 0 };
+      }
+
       // If product has stock from backend (v2 search), use it
       if (product.stock) {
         // Backend returns stock structure for both preliminary and active products
@@ -416,7 +633,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       }, 0);
       return { available: totalStock, reserved: 0, total: totalStock };
     },
-    [stockItems]
+    [stockItems, currentSiteId]
   );
 
   // Global search for products not in campaign
@@ -481,15 +698,19 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   /**
    * Cuando el usuario escanea con un lector de código de barras, el
    * dispositivo envía todo el código rápido seguido de Enter. Capturamos
-   * `onSubmitEditing`: si el texto coincide exactamente con el barcode de
-   * algún producto de la campaña, abrimos directamente su banner.
+   * `onSubmitEditing`:
+   *  1. Si el texto coincide con el barcode de un producto YA en la campaña,
+   *     abrimos su banner directamente.
+   *  2. Si no, buscamos el producto en el catálogo global por barcode y
+   *     abrimos su banner (modal "desde búsqueda") para poder agregarlo.
    */
-  const handleSearchSubmit = useCallback(() => {
+  const handleSearchSubmit = useCallback(async () => {
     const raw = searchQuery.trim();
-    if (!raw || !campaign?.products) return;
+    if (!raw) return;
     const target = raw.toLowerCase();
 
-    const match = campaign.products.find((product) => {
+    // 1) Buscar en productos de la campaña
+    const match = campaign?.products?.find((product) => {
       const detail = productsDetailMap[product.id];
       const productDetails = product.product || products[product.productId];
       const barcode = (detail?.barcode || (productDetails as any)?.barcode || '')
@@ -505,6 +726,40 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       setSearchQuery('');
       setGlobalSearchResults([]);
       setShowGlobalSearchSuggestions(false);
+      return;
+    }
+
+    // 2) Buscar en el catálogo global por barcode (lector de barras)
+    try {
+      setIsGlobalSearching(true);
+      let candidates: any[] = [];
+      try {
+        const response = await productsApi.searchProductsV2({
+          q: raw,
+          limit: 20,
+          status: 'active,preliminary',
+          includePhotos: true,
+        });
+        candidates = response.results || [];
+      } catch (v2Error) {
+        const response = await productsApi.getProducts({ q: raw, limit: 20 });
+        candidates = response.products || [];
+      }
+
+      const apiMatch = candidates.find(
+        (p: any) => (p?.barcode || '').toString().toLowerCase() === target
+      );
+
+      if (apiMatch) {
+        setSearchQuery('');
+        setGlobalSearchResults([]);
+        setShowGlobalSearchSuggestions(false);
+        await handleOpenBannerFromSearchRef.current?.(apiMatch);
+      }
+    } catch (error) {
+      console.error('Error buscando producto por barcode:', error);
+    } finally {
+      setIsGlobalSearching(false);
     }
   }, [searchQuery, campaign?.products, productsDetailMap, products]);
 
@@ -605,6 +860,32 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         console.log('📦 Full product details:', fullProductDetails);
         console.log('💰 Cost from API:', (fullProductDetails as any).costCents);
 
+        // Fusionamos la data del resultado de búsqueda v2 (que ya trae photos,
+        // stock y a veces costCents) con el detalle del producto. El endpoint
+        // /admin/campaigns/:c/products/:p/full devuelve 404 cuando el producto
+        // todavía no está en la campaña, así que sin este merge el banner de
+        // recomendaciones se quedaría sin foto ni stock.
+        const mergedDetails: any = {
+          ...fullProductDetails,
+          photos:
+            (fullProductDetails as any).photos ||
+            (product as any).photos ||
+            (product as any).photoUrls,
+          imageUrl: (fullProductDetails as any).imageUrl || (product as any).imageUrl,
+          imageUrls: (fullProductDetails as any).imageUrls || (product as any).imageUrls,
+          stock: (product as any).stock ?? (fullProductDetails as any).stock,
+          costCents:
+            (fullProductDetails as any).costCents ??
+            (fullProductDetails as any).costCentsBase ??
+            (product as any).costCents,
+          // Preservamos supplier/purchase si el backend los devuelve (ambas
+          // formas), para que el banner de recomendaciones muestre PROVEEDOR.
+          supplier: (fullProductDetails as any).supplier || (product as any).supplier || undefined,
+          purchase: (fullProductDetails as any).purchase || (product as any).purchase || undefined,
+          supplierName:
+            (fullProductDetails as any).supplierName || (product as any).supplierName || undefined,
+        };
+
         // Create a mock campaign product structure for the banner modal
         const mockCampaignProduct = {
           productId: product.id,
@@ -613,11 +894,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           productStatus:
             product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE,
           distributionGenerated: false,
-          product: fullProductDetails, // Use fullProductDetails instead of product to ensure we have costCents
+          product: mergedDetails,
         };
 
         setSelectedProductForBannerSearch(mockCampaignProduct);
-        setProductDetailsForBannerSearch(fullProductDetails);
+        setProductDetailsForBannerSearch(mergedDetails);
         setShowBannerModalFromSearch(true);
       } catch (error) {
         console.error('Error loading product details for banner:', error);
@@ -626,6 +907,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     },
     [campaignId]
   );
+
+  // Mantener el ref sincronizado para handleSearchSubmit (lector de barras)
+  handleOpenBannerFromSearchRef.current = handleOpenBannerFromSearch;
 
   // Handle custom add product with specific quantity
   const handleCustomAddProduct = useCallback(async () => {
@@ -1647,6 +1931,54 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     // No need to reload campaign - the modal updates its own state locally
   }, []);
 
+  // Abre el gestor de fotos para el producto mostrado en el banner. Reúne los
+  // mismos datos (título, sku, foto de catálogo, referencias) que el botón de
+  // "Fotos" de la lista, a partir del endpoint compacto `products-detail`.
+  const handleOpenPhotoManagerFromBanner = useCallback(
+    (product: CampaignProduct) => {
+      const detail = productsDetailMap[product.id];
+      const embedded = product.product || products[product.productId];
+
+      const pickUrl = (p: any): string | undefined => {
+        if (!p) return undefined;
+        if (typeof p === 'string') return p;
+        if (typeof p === 'object' && typeof p.url === 'string') return p.url;
+        return undefined;
+      };
+      const photos: any[] = Array.isArray(detail?.photos) ? detail!.photos : [];
+      const byType = (t: string) =>
+        photos.find(
+          (p) =>
+            p && typeof p === 'object' && typeof p.type === 'string' && p.type.toLowerCase() === t
+        );
+      const catalogPhotoUrl = pickUrl(byType('catalog'));
+      const referencePhotos = photos.filter((p) => {
+        const t =
+          p && typeof p === 'object' && typeof p.type === 'string' ? p.type.toLowerCase() : '';
+        return t === 'reference';
+      });
+      const existingReferenceUrls = referencePhotos
+        .map(pickUrl)
+        .filter((u): u is string => typeof u === 'string' && u.length > 0);
+      const fallbackImageUrl =
+        pickUrl(byType('design')) ||
+        pickUrl(byType('reference')) ||
+        pickUrl(photos[0]) ||
+        catalogPhotoUrl;
+
+      setPhotoManagerProduct({
+        productId: product.productId,
+        title: detail?.title || embedded?.title || '',
+        sku: detail?.sku || embedded?.sku || '',
+        catalogPhotoUrl,
+        fallbackImageUrl,
+        existingReferenceUrls,
+      });
+      setPhotoManagerVisible(true);
+    },
+    [productsDetailMap, products]
+  );
+
   const handleRefreshProductFromBanner = useCallback(
     async (updatedProductParam?: CampaignProduct) => {
       if (!selectedProduct) {
@@ -1998,7 +2330,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       filtered = filtered.filter((product) => {
         const detail = productsDetailMap[product.id];
         const raw = (detail?.productStatus || product.productStatus || '').toString().toLowerCase();
-        const isPreliminary = raw === 'preliminary';
+        const masterRaw =
+          ((products[product.productId] || product.product) as any)?.status
+            ?.toString()
+            .toLowerCase() || '';
+        // Un producto se considera preliminar si lo es en la campaña O si el
+        // producto maestro aún está preliminar (compra no validada).
+        const isPreliminary = raw === 'preliminary' || masterRaw === 'preliminary';
         return productStatusFilter === 'preliminary' ? isPreliminary : !isPreliminary;
       });
     }
@@ -2162,11 +2500,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // Fuentes válidas para saber si el campaign product es preliminar:
       //   1) `detail.productStatus` — endpoint products-detail (fresco)
       //   2) `product.productStatus` — campo del CampaignProduct
-      // NO usar `productDetails.status`: ése es el status del Product
-      // maestro (siempre 'active'), no del campaign product, y enmascaraba
-      // productos realmente preliminares.
+      //   3) `productDetails.status` — status del Product maestro: marca
+      //      como preliminar también a los productos cuyo origen en compras
+      //      aún no fue validado (aunque en la campaña ya estén "ACTIVE").
       const productStatusRaw = (detail?.productStatus || product.productStatus || '').toString();
-      const isPreliminary = productStatusRaw.toLowerCase() === 'preliminary';
+      const masterStatusRaw = (productDetails as any)?.status?.toString() || '';
+      const isPreliminary =
+        productStatusRaw.toLowerCase() === 'preliminary' ||
+        masterStatusRaw.toLowerCase() === 'preliminary';
       const title = detail?.title || productDetails?.title || `Producto ID: ${product.productId}`;
       const sku = detail?.sku || productDetails?.sku || 'N/A';
       const barcode = detail?.barcode || (productDetails as any)?.barcode || null;
@@ -2238,6 +2579,48 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           ? (productDetails as any).imageUrl
           : undefined) ||
         pickPreferredPhotoUrl((productDetails as any)?.imageUrls);
+      // Foto de catálogo del producto. El backend garantiza que `photos`
+      // incluye un item `type: 'catalog'` cuando el producto no tiene fotos
+      // de design/reference. Pasamos estrictamente esa url (no un diseño).
+      const catalogPhotoUrl = Array.isArray(detail?.photos)
+        ? pickPhotoUrl(
+            detail.photos.find(
+              (p: any) =>
+                p &&
+                typeof p === 'object' &&
+                typeof p.type === 'string' &&
+                p.type.toLowerCase() === 'catalog'
+            )
+          )
+        : undefined;
+      // Estado de fotos del producto por grupo (referencia / diseño / precio) para
+      // el badge del botón "Fotos". Cada referencia define un grupo de 3 fotos
+      // (referencia + diseño + precio), por lo que con N referencias el total es N*3.
+      const relevantPhotos = Array.isArray(detail?.photos)
+        ? detail.photos.filter((p) => {
+            const t =
+              p && typeof p === 'object' && typeof p.type === 'string' ? p.type.toLowerCase() : '';
+            return t === 'reference' || t === 'design' || t === 'price';
+          })
+        : [];
+      const referencePhotos = relevantPhotos.filter((p) => {
+        const t =
+          typeof (p as { type?: unknown }).type === 'string'
+            ? (p as { type: string }).type.toLowerCase()
+            : '';
+        return t === 'reference';
+      });
+      const referenceCount = referencePhotos.length;
+      // URLs de referencia existentes (p. ej. fotos de validación de la compra)
+      // que aún no son assets de la campaña de fotos. Se ofrecen en el modal
+      // para adoptarlas como referencia.
+      const existingReferenceUrls = referencePhotos
+        .map((p) => pickPhotoUrl(p))
+        .filter((u): u is string => typeof u === 'string' && u.length > 0);
+      // Con 0 referencias mantenemos el total en 3 para mostrar "0/3".
+      const photoGroupCount = Math.max(referenceCount, 1);
+      const photoCompletion = relevantPhotos.length;
+      const photoTotal = photoGroupCount * 3;
       const currencyCode = detail?.currency || 'PEN';
       const currencyPrefix = currencyCode === 'PEN' ? 'S/' : currencyCode;
       const fmt = (cents: number) => `${currencyPrefix} ${(cents / 100).toFixed(2)}`;
@@ -2263,9 +2646,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       // (lo que el backend devuelve primero, mostrarlo al final).
       const orderedDetailPrices = [...detailPrices].reverse();
       const orderedFallbackPrices = [...fallbackPrices].reverse();
-      const displayPrices =
+      const allPrices =
         orderedDetailPrices.length > 0 ? orderedDetailPrices : orderedFallbackPrices;
-      const extraPricesCount = Math.max(orderedDetailPrices.length - 2, 0);
+      // En las tarjetas sólo mostramos el precio Socia junto al costo.
+      const displayPrices = allPrices.filter((p) => p.profileName.toLowerCase().includes('socia'));
 
       return (
         <View
@@ -2340,7 +2724,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       disabled={activatingProductIds.has(product.id)}
                     >
                       {activatingProductIds.has(product.id) ? (
-                        <ActivityIndicator size="small" color="#fff" />
+                        <ActivityIndicator size="small" color={theme.color.surface.base} />
                       ) : (
                         <Text style={styles.badgeSmallText}>✅ Activar</Text>
                       )}
@@ -2415,7 +2799,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   <Text style={styles.productCompactPriceLabel}>Costo</Text>
                   <Text style={styles.productCompactPriceValue}>{fmt(costCents)}</Text>
                 </View>
-                {displayPrices.slice(0, 2).map((p) => {
+                {displayPrices.map((p) => {
                   const lower = p.priceCents < costCents && costCents > 0;
                   return (
                     <View
@@ -2446,13 +2830,6 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     </View>
                   );
                 })}
-                {extraPricesCount > 0 && (
-                  <View style={styles.productCompactPriceChipMuted}>
-                    <Text style={styles.productCompactPriceLabel}>
-                      +{extraPricesCount} perfiles
-                    </Text>
-                  </View>
-                )}
               </View>
 
               {/* Línea 4: proveedor / compra (siempre visible) */}
@@ -2492,6 +2869,27 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               <Text style={styles.productActionButtonText}>📸 Banner</Text>
             </TouchableOpacity>
 
+            {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.PRODUCTS.READ) && (
+              <TouchableOpacity
+                style={[styles.productActionButton, styles.productPhotosButton]}
+                onPress={() => {
+                  setPhotoManagerProduct({
+                    productId: product.productId,
+                    title,
+                    sku,
+                    catalogPhotoUrl,
+                    fallbackImageUrl: imageUri,
+                    existingReferenceUrls,
+                  });
+                  setPhotoManagerVisible(true);
+                }}
+              >
+                <Text style={styles.productActionButtonText}>
+                  🖼️ Fotos {photoCompletion}/{photoTotal}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {(campaign!.status === CampaignStatus.DRAFT ||
               campaign!.status === CampaignStatus.ACTIVE) && (
               <TouchableOpacity
@@ -2526,7 +2924,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       disabled={savingPrice}
                     >
                       {savingPrice ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator size="small" color={theme.color.surface.base} />
                       ) : (
                         <Text style={styles.saveButtonText}>✔</Text>
                       )}
@@ -2652,6 +3050,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       formatCurrency,
       handleCalculateFranquiciaFromSocia,
       calculatedFranquicia,
+      hasPermission,
     ]
   );
 
@@ -2675,7 +3074,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }, 0);
   }, [filteredProducts, products, productsDetailMap]);
 
-  const renderProducts = () => {
+  // Encabezado de la lista de productos (título, buscador y filtros).
+  // Se usa como `ListHeaderComponent` del FlatList virtualizado para que
+  // el scroll en Android no se trabe montando todas las tarjetas a la vez.
+  const renderProductsHeader = () => {
     if (!campaign) {
       return null;
     }
@@ -2698,27 +3100,39 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 </View>
               )}
             </View>
-            {(campaign.status === CampaignStatus.DRAFT ||
-              campaign.status === CampaignStatus.ACTIVE) && (
-              <View style={styles.headerButtonsContainer}>
+            <View style={styles.headerButtonsContainer}>
+              {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.READ) && (
                 <TouchableOpacity
                   style={[styles.bulkButton, isTablet && styles.bulkButtonTablet]}
-                  onPress={() => setIsBulkDistributionModalVisible(true)}
+                  onPress={() => setShowLinkPhotoCampaignModal(true)}
                 >
                   <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
-                    📦 Masivo
+                    🖼️ Campaña de fotos
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.addButton, isTablet && styles.addButtonTablet]}
-                  onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
-                >
-                  <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
-                    + Agregar
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              )}
+              {(campaign.status === CampaignStatus.DRAFT ||
+                campaign.status === CampaignStatus.ACTIVE) && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.bulkButton, isTablet && styles.bulkButtonTablet]}
+                    onPress={() => setIsBulkDistributionModalVisible(true)}
+                  >
+                    <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
+                      📦 Masivo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.addButton, isTablet && styles.addButtonTablet]}
+                    onPress={() => navigation.navigate('AddCampaignProduct', { campaignId })}
+                  >
+                    <Text style={[styles.addButtonText, isTablet && styles.addButtonTextTablet]}>
+                      + Agregar
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
 
           {/* Search bar + supplier picker */}
@@ -2732,7 +3146,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 onSubmitEditing={handleSearchSubmit}
                 returnKeyType="search"
                 blurOnSubmit={false}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.subtle}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
@@ -2756,7 +3170,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   onValueChange={(v) => setSupplierFilter(String(v))}
                   style={styles.supplierPicker}
                   mode="dropdown"
-                  dropdownIconColor="#475569"
+                  dropdownIconColor={theme.color.text.muted}
                 >
                   <Picker.Item
                     label={`Todos los proveedores (${availableSuppliers.length})`}
@@ -2889,41 +3303,50 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </Text>
           )}
 
-          {/* Productos filtrados de la campaña (vacío si la campaña aún no tiene productos) */}
+          {/* Sin coincidencias al filtrar dentro de la campaña */}
           {filteredProducts.length === 0 &&
-          searchQuery.trim() &&
-          campaign.products &&
-          campaign.products.length > 0 ? (
-            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
-              No se encontraron productos en la campaña que coincidan con "{searchQuery}"
-            </Text>
-          ) : (
-            <>
-              {paginatedProducts.map((product) => (
-                <View key={product.id}>{renderProductItem({ item: product })}</View>
-              ))}
-              {displayedItemsCount < filteredProducts.length && (
-                <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
-                  <Text style={styles.loadMoreButtonText}>
-                    Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {displayedItemsCount >= filteredProducts.length &&
-                filteredProducts.length > ITEMS_PER_PAGE && (
-                  <View style={styles.endOfListContainer}>
-                    <Text style={styles.endOfListText}>
-                      ✓ Mostrando todos los productos ({filteredProducts.length})
-                    </Text>
-                  </View>
-                )}
-            </>
+            searchQuery.trim() &&
+            campaign.products &&
+            campaign.products.length > 0 && (
+              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                No se encontraron productos en la campaña que coincidan con "{searchQuery}"
+              </Text>
+            )}
+        </View>
+      </View>
+    );
+  };
+
+  // Pie de la lista de productos: botón "cargar más", indicador de fin y
+  // el buscador global con sugerencias. Se usa como `ListFooterComponent`.
+  const renderProductsFooter = () => {
+    if (!campaign) {
+      return null;
+    }
+
+    return (
+      <View style={styles.tabContent}>
+        <View style={[styles.section, isTablet && styles.sectionTablet]}>
+          {displayedItemsCount < filteredProducts.length && (
+            <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
+              <Text style={styles.loadMoreButtonText}>
+                Cargar más productos ({displayedItemsCount} de {filteredProducts.length})
+              </Text>
+            </TouchableOpacity>
           )}
+          {displayedItemsCount >= filteredProducts.length &&
+            filteredProducts.length > ITEMS_PER_PAGE && (
+              <View style={styles.endOfListContainer}>
+                <Text style={styles.endOfListText}>
+                  ✓ Mostrando todos los productos ({filteredProducts.length})
+                </Text>
+              </View>
+            )}
 
           {/* Loading indicator for global search */}
           {searchQuery.trim() && isGlobalSearching && (
             <View style={styles.globalSearchLoading}>
-              <ActivityIndicator size="small" color="#6366F1" />
+              <ActivityIndicator size="small" color={theme.color.brand.primary} />
               <Text style={styles.globalSearchLoadingText}>Buscando en todos los productos...</Text>
             </View>
           )}
@@ -2967,20 +3390,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                           <Text style={styles.globalSearchBannerButtonLeftText}>📋</Text>
                         </TouchableOpacity>
 
-                        {(() => {
-                          const firstPhoto: any = (product as any).photos?.[0];
-                          const photoUrl =
-                            typeof firstPhoto === 'string' ? firstPhoto : firstPhoto?.url;
-                          const uri = photoUrl || product.imageUrl;
-                          if (!uri) return null;
-                          return (
-                            <Image
-                              source={{ uri }}
-                              style={styles.globalSearchImage}
-                              resizeMode="cover"
-                            />
-                          );
-                        })()}
+                        <SearchResultThumb
+                          product={product}
+                          style={styles.globalSearchImage}
+                          placeholderStyle={styles.globalSearchImagePlaceholder}
+                          placeholderTextStyle={styles.productImagePlaceholderText}
+                        />
+
                         <View style={styles.globalSearchContent}>
                           <Text
                             style={[
@@ -3009,6 +3425,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               >
                                 {isPreliminary ? '📦 Stock preliminar: ' : '✅ Disponible: '}
                                 {stockInfo.available}
+                                {currentSiteName ? ` (${currentSiteName})` : ''}
                               </Text>
                               {!isPreliminary && stockInfo.reserved > 0 && (
                                 <Text style={styles.stockReserved}>
@@ -3059,7 +3476,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando campaña...</Text>
         </View>
       </SafeAreaView>
@@ -3087,15 +3504,42 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         {renderTabs}
 
         {/* Content */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        >
-          {activeTab === 'overview' && renderOverview()}
-          {activeTab === 'participants' && renderParticipants()}
-          {activeTab === 'products' && renderProducts()}
-        </ScrollView>
+        {activeTab === 'products' ? (
+          // Lista virtualizada: FlatList recicla las tarjetas fuera de
+          // pantalla, evitando el lag de scroll en Android cuando hay
+          // muchos productos (el ScrollView montaba todas a la vez).
+          <FlatList
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            data={paginatedProducts}
+            keyExtractor={keyExtractor}
+            renderItem={renderProductItem}
+            // Pasamos ELEMENTOS (no referencias de función) para que el
+            // encabezado se reconcilie en lugar de remontarse en cada render.
+            // Si se pasa la función, su identidad cambia por render y FlatList
+            // desmonta el TextInput de búsqueda, rompiendo el lector de barras
+            // (pierde foco/valor y nunca dispara onSubmitEditing).
+            ListHeaderComponent={renderProductsHeader()}
+            ListFooterComponent={renderProductsFooter()}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            removeClippedSubviews={Platform.OS !== 'web'}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={11}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            keyboardShouldPersistTaps="handled"
+          />
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+          >
+            {activeTab === 'overview' && renderOverview()}
+            {activeTab === 'participants' && renderParticipants()}
+          </ScrollView>
+        )}
 
         {/* Action Buttons */}
         {campaign.status === CampaignStatus.DRAFT && (
@@ -3121,7 +3565,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               disabled={actionLoading}
             >
               {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.surface.base} />
               ) : (
                 <Text
                   style={[styles.activateButtonText, isTablet && styles.activateButtonTextTablet]}
@@ -3141,7 +3585,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               disabled={actionLoading}
             >
               {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.color.surface.base} />
               ) : (
                 <Text style={[styles.closeButtonText, isTablet && styles.closeButtonTextTablet]}>
                   Cerrar Campaña
@@ -3184,6 +3628,34 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 }
               : undefined
           }
+          onManagePhotos={
+            selectedProduct ? () => handleOpenPhotoManagerFromBanner(selectedProduct) : undefined
+          }
+        />
+
+        {/* Gestión de fotos del producto (referencia / diseño / precio) */}
+        {photoManagerProduct && (
+          <ProductPhotoManagerModal
+            visible={photoManagerVisible}
+            productId={photoManagerProduct.productId}
+            productTitle={photoManagerProduct.title}
+            productSku={photoManagerProduct.sku}
+            catalogPhotoUrl={photoManagerProduct.catalogPhotoUrl}
+            fallbackImageUrl={photoManagerProduct.fallbackImageUrl}
+            existingReferenceUrls={photoManagerProduct.existingReferenceUrls}
+            photoCampaignId={linkedPhotoCampaignId}
+            onPhotosChanged={() => void refetchProductsDetail?.()}
+            onClose={() => setPhotoManagerVisible(false)}
+          />
+        )}
+
+        {/* Anexar campaña a una campaña de fotos */}
+        <LinkPhotoCampaignModal
+          visible={showLinkPhotoCampaignModal}
+          campaignId={campaignId}
+          campaignName={campaign?.name}
+          onChanged={loadLinkedPhotoCampaign}
+          onClose={() => setShowLinkPhotoCampaignModal(false)}
         />
 
         {/* Repartos por sede (modal con scroll) */}
@@ -3420,7 +3892,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       disabled={addingQuickProduct}
                     >
                       {addingQuickProduct ? (
-                        <ActivityIndicator color="#FFFFFF" />
+                        <ActivityIndicator color={theme.color.surface.base} />
                       ) : (
                         <Text style={styles.customAddModalConfirmButtonText}>Agregar</Text>
                       )}
@@ -3432,1739 +3904,1754 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           </View>
         </Modal>
 
-        {/* Floating Action Button for Bulk Update */}
-        <ProtectedElement
-          requiredPermissions={[
-            PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD,
-            PERMISSIONS.PRODUCTS.PRICES_UPDATE,
-          ]}
-          requireAll={false}
-          fallback={null}
-        >
-          {activeTab === 'products' && campaign?.products && campaign.products.length > 0 && (
-            <View style={styles.floatingButtonContainer} pointerEvents="box-none">
-              <AddButton
-                onPress={() => setIsBulkUpdateModalVisible(true)}
-                icon="💵"
-                label="Precios"
-              />
-            </View>
-          )}
-        </ProtectedElement>
+        {/* Floating Action Button (pestaña de productos) */}
+        {activeTab === 'products' && campaign?.products && campaign.products.length > 0 && (
+          <ProtectedFAB
+            actions={[
+              {
+                icon: 'cash-outline',
+                label: 'Precios',
+                onPress: () => setIsBulkUpdateModalVisible(true),
+                requiredPermissions: [
+                  PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD,
+                  PERMISSIONS.PRODUCTS.PRICES_UPDATE,
+                ],
+                requireAll: false,
+              },
+              {
+                icon: downloadingPhotosPdf ? 'hourglass-outline' : 'images-outline',
+                label: 'Fotos PDF',
+                onPress: () => {
+                  if (downloadingPhotosPdf) return;
+                  void handleDownloadPhotosPdf();
+                },
+                requiredPermissions: [PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD],
+              },
+            ]}
+          />
+        )}
       </SafeAreaView>
     </ScreenLayout>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#64748B',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabTablet: {
-    paddingVertical: 16,
-  },
-  tabActive: {
-    borderBottomColor: '#6366F1',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748B',
-  },
-  tabTextTablet: {
-    fontSize: 16,
-  },
-  tabTextActive: {
-    color: '#6366F1',
-    fontWeight: '600',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  scrollContentTablet: {
-    padding: 32,
-  },
-  overviewContainer: {
-    gap: 16,
-  },
-  tabContent: {
-    gap: 16,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTablet: {
-    padding: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  sectionHeaderLeft: {
-    flex: 1,
-    gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 16,
-  },
-  sectionTitleTablet: {
-    fontSize: 22,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748B',
-    minWidth: 120,
-  },
-  infoLabelTablet: {
-    fontSize: 16,
-    minWidth: 150,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    flex: 1,
-  },
-  infoValueTablet: {
-    fontSize: 16,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextTablet: {
-    fontSize: 14,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-  },
-  statCardTablet: {
-    padding: 20,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#6366F1',
-    marginBottom: 4,
-  },
-  statValueTablet: {
-    fontSize: 28,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  statLabelTablet: {
-    fontSize: 14,
-  },
-  notesText: {
-    fontSize: 14,
-    color: '#64748B',
-    lineHeight: 20,
-  },
-  notesTextTablet: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  headerButtonsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  bulkButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  bulkButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  bulkButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  bulkButtonTextTablet: {
-    fontSize: 14,
-  },
-  addButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  addButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  addButtonTextTablet: {
-    fontSize: 14,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  emptyTextTablet: {
-    fontSize: 16,
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  listItemTablet: {
-    paddingVertical: 16,
-  },
-  listItemContent: {
-    flex: 1,
-  },
-  listItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  listItemTitleTablet: {
-    fontSize: 18,
-  },
-  listItemSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  listItemSubtitleTablet: {
-    fontSize: 15,
-  },
-  listItemAmount: {
-    fontSize: 14,
-    color: '#10B981',
-    fontWeight: '500',
-  },
-  listItemAmountTablet: {
-    fontSize: 16,
-  },
-  participantCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-  },
-  participantCardTablet: {
-    borderRadius: 12,
-  },
-  participantCardMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-  },
-  participantHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    gap: 8,
-  },
-  editParticipantButton: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  editParticipantButtonTablet: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  editParticipantButtonText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  editParticipantButtonTextTablet: {
-    fontSize: 13,
-  },
-  totalsContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 6,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  totalLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  totalLabelTablet: {
-    fontSize: 15,
-  },
-  totalValuePurchase: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#F59E0B',
-  },
-  totalValueSale: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  totalValueMargin: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  totalValueExpected: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#8B5CF6',
-  },
-  totalValueTablet: {
-    fontSize: 16,
-  },
-  marginValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  marginPercentage: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6366F1',
-    opacity: 0.8,
-  },
-  marginPercentageTablet: {
-    fontSize: 14,
-  },
-  summaryCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#6366F1',
-  },
-  summaryCardTablet: {
-    padding: 24,
-    marginBottom: 20,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  summaryTitleTablet: {
-    fontSize: 22,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  summaryItem: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  summaryLabelTablet: {
-    fontSize: 14,
-  },
-  summaryValuePurchase: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#F59E0B',
-    textAlign: 'center',
-  },
-  summaryValueSale: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#10B981',
-    textAlign: 'center',
-  },
-  summaryValueMargin: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#6366F1',
-    textAlign: 'center',
-  },
-  summaryValueExpected: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#8B5CF6',
-    textAlign: 'center',
-  },
-  summaryValueTablet: {
-    fontSize: 22,
-  },
-  summaryPercentage: {
-    fontSize: 12,
-    color: '#6366F1',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  summaryPercentageTablet: {
-    fontSize: 14,
-  },
-  downloadGeneralReportButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  downloadGeneralReportButtonTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    marginBottom: 20,
-  },
-  downloadGeneralReportButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  downloadGeneralReportButtonTextTablet: {
-    fontSize: 16,
-  },
-  downloadButtonDisabled: {
-    opacity: 0.5,
-  },
-  quickPriceValue: {
-    fontWeight: '700',
-    color: '#10B981',
-  },
-  productBadges: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  badgeActive: {
-    backgroundColor: '#10B98120',
-  },
-  badgePreliminary: {
-    backgroundColor: '#F59E0B40',
-    borderWidth: 1,
-    borderColor: '#F59E0B',
-  },
-  badgeActivate: {
-    backgroundColor: '#10B981',
-    borderWidth: 1,
-    borderColor: '#059669',
-    minHeight: 22,
-    justifyContent: 'center',
-  },
-  badgeGenerated: {
-    backgroundColor: '#6366F120',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  productTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  preliminaryIndicator: {
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
-    borderColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  preliminaryIndicatorText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#D97706',
-    letterSpacing: 0.5,
-  },
-  arrowIcon: {
-    fontSize: 24,
-    color: '#CBD5E1',
-    fontWeight: 'bold',
-  },
-  arrowIconTablet: {
-    fontSize: 32,
-  },
-  productCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-  },
-  // ============================================
-  // Compact product card (new endpoint design)
-  // ============================================
-  productCardCompact: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-  },
-  productCardCompactMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    gap: 10,
-  },
-  productImageCompact: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-  },
-  productImageCompactPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productCompactContent: {
-    flex: 1,
-    gap: 6,
-  },
-  productCompactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  productCompactSku: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    letterSpacing: 0.3,
-  },
-  productCompactBarcode: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#0F766E',
-    backgroundColor: '#CCFBF1',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    letterSpacing: 0.3,
-    maxWidth: 160,
-  },
-  productCompactTitle: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
-    minWidth: 120,
-  },
-  productCompactTitleTablet: {
-    fontSize: 15,
-  },
-  productCompactBadges: {
-    flexDirection: 'row',
-    gap: 4,
-    flexShrink: 0,
-  },
-  badgeSmall: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  badgeSmallText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#1E293B',
-    letterSpacing: 0.2,
-  },
-  productCompactMetricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  productCompactMetric: {
-    flexDirection: 'column',
-  },
-  productCompactDivider: {
-    width: 1,
-    height: 18,
-    backgroundColor: '#E2E8F0',
-  },
-  productCompactMetricLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#94A3B8',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  productCompactMetricValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
-    lineHeight: 16,
-  },
-  productCompactMetricValueOk: {
-    color: '#059669',
-  },
-  productCompactMetricValueWarn: {
-    color: '#D97706',
-  },
-  productCompactMetricValueMuted: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    lineHeight: 16,
-  },
-  productCompactPricesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  productCompactPriceChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  productCompactPriceChipMuted: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  productCompactPriceChipWarn: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-  },
-  productCompactPriceLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#475569',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  productCompactPriceLabelWarn: {
-    color: '#B91C1C',
-  },
-  productCompactPriceValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1E40AF',
-  },
-  productCompactPriceValueWarn: {
-    color: '#B91C1C',
-  },
-  productCompactSupplierRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  productCompactSupplierIcon: {
-    fontSize: 12,
-  },
-  productCompactSupplierText: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#64748B',
-  },
-  productCompactSupplierTextEmpty: {
-    color: '#CBD5E1',
-    fontStyle: 'italic',
-  },
-  productCardPreliminary: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 2,
-    borderColor: '#F59E0B',
-    borderLeftWidth: 4,
-  },
-  productCardTablet: {
-    borderRadius: 12,
-  },
-  productCardMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  productImagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  productImagePlaceholderText: {
-    fontSize: 28,
-  },
-  productCardActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-  },
-  productActionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  productBannerButton: {
-    borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
-  },
-  productActionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  productDeleteButton: {
-    backgroundColor: '#FEF2F2',
-  },
-  productDeleteButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#EF4444',
-  },
-  productExpandButton: {
-    borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
-  },
-  priceDetailsContainer: {
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  priceLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-    flex: 1,
-  },
-  priceDisplayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  priceValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  priceLowerThanCost: {
-    color: '#DC2626',
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  priceEditRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  currencySymbol: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  priceInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#6366F1',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    minWidth: 80,
-  },
-  editButton: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  editButtonText: {
-    fontSize: 14,
-    color: '#3B82F6',
-  },
-  saveButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  cancelEditButton: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  cancelEditButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  calculateButton: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginLeft: 4,
-  },
-  calculateButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  searchContainer: {
-    marginBottom: 16,
-    position: 'relative',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-    flexWrap: 'wrap',
-  },
-  searchInputWrap: {
-    flex: 1,
-    minWidth: 220,
-    position: 'relative',
-  },
-  supplierPickerWrap: {
-    minWidth: 220,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  supplierPickerWrapTablet: {
-    minWidth: 280,
-  },
-  supplierPicker: {
-    height: 44,
-    color: '#1E293B',
-  },
-  searchInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  searchInputTablet: {
-    fontSize: 16,
-    paddingVertical: 12,
-  },
-  clearSearchButton: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    transform: [{ translateY: -12 }],
-    backgroundColor: '#94A3B8',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearSearchText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  filterContainer: {
-    marginBottom: 16,
-  },
-  filterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
-  },
-  filterButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  filterButtonActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
-  },
-  filterButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  filterButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  estimatedTotalHeaderCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F0F9FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-  },
-  estimatedTotalHeaderLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1E40AF',
-  },
-  estimatedTotalHeaderValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1E40AF',
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  footerTablet: {
-    padding: 24,
-    gap: 16,
-  },
-  cancelCampaignButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelCampaignButtonTablet: {
-    paddingVertical: 16,
-  },
-  cancelCampaignButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#EF4444',
-  },
-  cancelCampaignButtonTextTablet: {
-    fontSize: 18,
-  },
-  activateButton: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activateButtonTablet: {
-    paddingVertical: 16,
-  },
-  activateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  activateButtonTextTablet: {
-    fontSize: 18,
-  },
-  closeButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonTablet: {
-    paddingVertical: 16,
-  },
-  closeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  closeButtonTextTablet: {
-    fontSize: 18,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  copyButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  copyButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  copyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  copyButtonTextTablet: {
-    fontSize: 14,
-  },
-  deleteAllButton: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  deleteAllButtonTablet: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  deleteAllButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  deleteAllButtonTextTablet: {
-    fontSize: 14,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 24,
-    width: '100%',
-    maxWidth: 500,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  modalContentTablet: {
-    padding: 32,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  modalTitleTablet: {
-    fontSize: 24,
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 20,
-  },
-  modalDescriptionTablet: {
-    fontSize: 16,
-  },
-  pickerContainer: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 24,
-  },
-  pickerContainerTablet: {
-    borderRadius: 10,
-  },
-  picker: {
-    height: 50,
-    color: '#1F2937',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalCancelButton: {
-    flex: 1,
-    backgroundColor: '#E2E8F0',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalConfirmButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalButtonTablet: {
-    paddingVertical: 16,
-  },
-  modalButtonDisabled: {
-    opacity: 0.5,
-  },
-  modalCancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  modalConfirmButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  modalButtonTextTablet: {
-    fontSize: 16,
-  },
-  floatingButtonContainer: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    zIndex: 9998,
-    pointerEvents: 'box-none',
-  },
-  imageModalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageModalBackdrop: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageModalContent: {
-    width: '90%',
-    height: '80%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageModalImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imageModalCloseButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  imageModalCloseText: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  // Global search styles
-  globalSearchLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 12,
-  },
-  globalSearchLoadingText: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  globalSearchContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  globalSearchTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  globalSearchHint: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 12,
-  },
-  globalSearchList: {
-    maxHeight: 400,
-  },
-  globalSearchItem: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  globalSearchItemPreliminary: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  globalSearchItemDisabled: {
-    backgroundColor: '#F1F5F9',
-    opacity: 0.6,
-  },
-  globalSearchImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  globalSearchContent: {
-    flex: 1,
-  },
-  globalSearchItemTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  globalSearchItemTitleDisabled: {
-    color: '#94A3B8',
-  },
-  globalSearchWarning: {
-    fontSize: 12,
-    color: '#F59E0B',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  globalSearchMeta: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  globalSearchStock: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  stockInfoContainer: {
-    flexDirection: 'column',
-    gap: 2,
-  },
-  stockReserved: {
-    fontSize: 11,
-    color: '#F59E0B',
-    fontWeight: '500',
-  },
-  stockTotal: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  globalSearchStatus: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  globalSearchActions: {
-    flexDirection: 'column',
-    gap: 6,
-    minWidth: 100,
-  },
-  globalSearchActionButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  globalSearchActionButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  globalSearchActionButtonSecondary: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#6366F1',
-    alignItems: 'center',
-  },
-  globalSearchActionButtonSecondaryText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
-  globalSearchBannerButtonLeft: {
-    backgroundColor: '#8B5CF6',
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  globalSearchBannerButtonLeftText: {
-    fontSize: 20,
-  },
-  stockAvailable: {
-    color: '#10B981',
-  },
-  stockUnavailable: {
-    color: '#EF4444',
-  },
-  editPriceIconButton: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  editPriceIcon: {
-    fontSize: 14,
-  },
-  savePriceIconButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  savePriceIcon: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  cancelPriceIconButton: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    minWidth: 32,
-    alignItems: 'center',
-  },
-  cancelPriceIcon: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  calculateFranquiciaContainer: {
-    marginTop: 8,
-  },
-  calculateFranquiciaButton: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  calculateFranquiciaButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  calculatedBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  calculatedBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  // Custom Add Modal Styles
-  customAddModalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  customAddModalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  customAddModalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    maxHeight: '80%',
-  },
-  customAddModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  customAddModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    flex: 1,
-  },
-  customAddModalCloseButton: {
-    fontSize: 28,
-    color: '#64748B',
-    fontWeight: '300',
-    paddingHorizontal: 8,
-  },
-  customAddModalProductInfo: {
-    backgroundColor: '#F8FAFC',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  customAddModalProductTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  customAddModalWarning: {
-    fontSize: 13,
-    color: '#F59E0B',
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  customAddModalStockInfo: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  customAddModalStockTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 12,
-  },
-  customAddModalStockRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  customAddModalStockLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  customAddModalStockValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  customAddModalQuantitySection: {
-    marginBottom: 24,
-  },
-  customAddModalQuantityLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  customAddModalQuantityInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
-    color: '#1E293B',
-  },
-  customAddModalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  customAddModalCancelButton: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  customAddModalCancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  customAddModalConfirmButton: {
-    flex: 1,
-    backgroundColor: '#6366F1',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  customAddModalConfirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  // Pagination styles
-  loadMoreButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginVertical: 16,
-    marginHorizontal: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  loadMoreButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  loadingMoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 12,
-  },
-  loadingMoreText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  endOfListContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  endOfListText: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTablet: {
+      paddingHorizontal: 32,
+      paddingVertical: 24,
+    },
+    backButton: {
+      marginBottom: 8,
+    },
+    backButtonText: {
+      fontSize: 16,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    backButtonTextTablet: {
+      fontSize: 18,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: 12,
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabTablet: {
+      paddingVertical: 16,
+    },
+    tabActive: {
+      borderBottomColor: theme.color.brand.primary,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+    },
+    tabTextTablet: {
+      fontSize: 16,
+    },
+    tabTextActive: {
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    scrollContentTablet: {
+      padding: 32,
+    },
+    overviewContainer: {
+      gap: 16,
+    },
+    tabContent: {
+      gap: 16,
+    },
+    section: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    sectionTablet: {
+      padding: 24,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    sectionHeaderLeft: {
+      flex: 1,
+      gap: 8,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 16,
+    },
+    sectionTitleTablet: {
+      fontSize: 22,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 8,
+    },
+    infoLabel: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+      minWidth: 120,
+    },
+    infoLabelTablet: {
+      fontSize: 16,
+      minWidth: 150,
+    },
+    infoValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    infoValueTablet: {
+      fontSize: 16,
+    },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    statusBadgeTablet: {
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    statusTextTablet: {
+      fontSize: 14,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    statCard: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 8,
+      padding: 16,
+      alignItems: 'center',
+    },
+    statCardTablet: {
+      padding: 20,
+    },
+    statValue: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.brand.primary,
+      marginBottom: 4,
+    },
+    statValueTablet: {
+      fontSize: 28,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    statLabelTablet: {
+      fontSize: 14,
+    },
+    notesText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      lineHeight: 20,
+    },
+    notesTextTablet: {
+      fontSize: 16,
+      lineHeight: 24,
+    },
+    headerButtonsContainer: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    bulkButton: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    bulkButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    bulkButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    bulkButtonTextTablet: {
+      fontSize: 14,
+    },
+    addButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    addButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    addButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    addButtonTextTablet: {
+      fontSize: 14,
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      textAlign: 'center',
+      paddingVertical: 20,
+    },
+    emptyTextTablet: {
+      fontSize: 16,
+    },
+    listItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    listItemTablet: {
+      paddingVertical: 16,
+    },
+    listItemContent: {
+      flex: 1,
+    },
+    listItemTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    listItemTitleTablet: {
+      fontSize: 18,
+    },
+    listItemSubtitle: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: 4,
+    },
+    listItemSubtitleTablet: {
+      fontSize: 15,
+    },
+    listItemAmount: {
+      fontSize: 14,
+      color: theme.color.icon.success,
+      fontWeight: '500',
+    },
+    listItemAmountTablet: {
+      fontSize: 16,
+    },
+    participantCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    participantCardTablet: {
+      borderRadius: 12,
+    },
+    participantCardMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 12,
+    },
+    participantHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+      gap: 8,
+    },
+    editParticipantButton: {
+      backgroundColor: theme.color.icon.warning,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 6,
+      alignSelf: 'flex-start',
+    },
+    editParticipantButtonTablet: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    editParticipantButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    editParticipantButtonTextTablet: {
+      fontSize: 13,
+    },
+    totalsContainer: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: 6,
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    totalLabel: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    totalLabelTablet: {
+      fontSize: 15,
+    },
+    totalValuePurchase: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.icon.warning,
+    },
+    totalValueSale: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.icon.success,
+    },
+    totalValueMargin: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    totalValueExpected: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    totalValueTablet: {
+      fontSize: 16,
+    },
+    marginValueContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    marginPercentage: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+      opacity: 0.8,
+    },
+    marginPercentageTablet: {
+      fontSize: 14,
+    },
+    summaryCard: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+    },
+    summaryCardTablet: {
+      padding: 24,
+      marginBottom: 20,
+    },
+    summaryTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 16,
+      textAlign: 'center',
+    },
+    summaryTitleTablet: {
+      fontSize: 22,
+    },
+    summaryGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    summaryItem: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 12,
+      alignItems: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    summaryLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+      marginBottom: 6,
+      textAlign: 'center',
+    },
+    summaryLabelTablet: {
+      fontSize: 14,
+    },
+    summaryValuePurchase: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.icon.warning,
+      textAlign: 'center',
+    },
+    summaryValueSale: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.icon.success,
+      textAlign: 'center',
+    },
+    summaryValueMargin: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.brand.primary,
+      textAlign: 'center',
+    },
+    summaryValueExpected: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+      textAlign: 'center',
+    },
+    summaryValueTablet: {
+      fontSize: 22,
+    },
+    summaryPercentage: {
+      fontSize: 12,
+      color: theme.color.brand.primary,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    summaryPercentageTablet: {
+      fontSize: 14,
+    },
+    downloadGeneralReportButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      marginBottom: 16,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    downloadGeneralReportButtonTablet: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+      marginBottom: 20,
+    },
+    downloadGeneralReportButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    downloadGeneralReportButtonTextTablet: {
+      fontSize: 16,
+    },
+    downloadButtonDisabled: {
+      opacity: 0.5,
+    },
+    quickPriceValue: {
+      fontWeight: '700',
+      color: theme.color.icon.success,
+    },
+    productBadges: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 4,
+    },
+    badge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 10,
+    },
+    badgeActive: {
+      backgroundColor: theme.color.state.success.background,
+    },
+    badgePreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 1,
+      borderColor: theme.color.icon.warning,
+    },
+    badgeActivate: {
+      backgroundColor: theme.color.icon.success,
+      borderWidth: 1,
+      borderColor: theme.color.text.success,
+      minHeight: 22,
+      justifyContent: 'center',
+    },
+    badgeGenerated: {
+      backgroundColor: theme.color.brand.primarySoft,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    productTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    preliminaryIndicator: {
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 1,
+      borderColor: theme.color.icon.warning,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    preliminaryIndicatorText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.warning,
+      letterSpacing: 0.5,
+    },
+    arrowIcon: {
+      fontSize: 24,
+      color: theme.color.border.default,
+      fontWeight: 'bold',
+    },
+    arrowIconTablet: {
+      fontSize: 32,
+    },
+    productCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    // ============================================
+    // Compact product card (new endpoint design)
+    // ============================================
+    productCardCompact: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 10,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    productCardCompactMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 10,
+      gap: 10,
+    },
+    productImageCompact: {
+      width: 56,
+      height: 56,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+    },
+    productImageCompactPlaceholder: {
+      width: 56,
+      height: 56,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    productCompactContent: {
+      flex: 1,
+      gap: 6,
+    },
+    productCompactHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    productCompactSku: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      letterSpacing: 0.3,
+    },
+    productCompactBarcode: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.success,
+      backgroundColor: theme.color.state.success.background,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      letterSpacing: 0.3,
+      maxWidth: 160,
+    },
+    productCompactTitle: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      minWidth: 120,
+    },
+    productCompactTitleTablet: {
+      fontSize: 15,
+    },
+    productCompactBadges: {
+      flexDirection: 'row',
+      gap: 4,
+      flexShrink: 0,
+    },
+    badgeSmall: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    badgeSmallText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      letterSpacing: 0.2,
+    },
+    productCompactMetricsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap',
+    },
+    productCompactMetric: {
+      flexDirection: 'column',
+    },
+    productCompactDivider: {
+      width: 1,
+      height: 18,
+      backgroundColor: theme.color.border.subtle,
+    },
+    productCompactMetricLabel: {
+      fontSize: 9,
+      fontWeight: '600',
+      color: theme.color.text.subtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    productCompactMetricValue: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      lineHeight: 16,
+    },
+    productCompactMetricValueOk: {
+      color: theme.color.text.success,
+    },
+    productCompactMetricValueWarn: {
+      color: theme.color.text.warning,
+    },
+    productCompactMetricValueMuted: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      lineHeight: 16,
+    },
+    productCompactPricesRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexWrap: 'wrap',
+    },
+    productCompactPriceChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: theme.color.state.info.background,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.background,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+    },
+    productCompactPriceChipMuted: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+    },
+    productCompactPriceChipWarn: {
+      backgroundColor: theme.color.state.danger.background,
+      borderColor: theme.color.state.danger.border,
+    },
+    productCompactPriceLabel: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+    },
+    productCompactPriceLabelWarn: {
+      color: theme.color.state.danger.text,
+    },
+    productCompactPriceValue: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+    },
+    productCompactPriceValueWarn: {
+      color: theme.color.state.danger.text,
+    },
+    productCompactSupplierRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    productCompactSupplierIcon: {
+      fontSize: 12,
+    },
+    productCompactSupplierText: {
+      flex: 1,
+      fontSize: 11,
+      fontWeight: '500',
+      color: theme.color.text.muted,
+    },
+    productCompactSupplierTextEmpty: {
+      color: theme.color.border.default,
+      fontStyle: 'italic',
+    },
+    productCardPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderWidth: 2,
+      borderColor: theme.color.icon.warning,
+      borderLeftWidth: 4,
+    },
+    productCardTablet: {
+      borderRadius: 12,
+    },
+    productCardMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+    },
+    productImage: {
+      width: 60,
+      height: 60,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+    },
+    productImagePlaceholder: {
+      width: 60,
+      height: 60,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    productImagePlaceholderText: {
+      fontSize: 28,
+    },
+    productCardActions: {
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      backgroundColor: theme.color.background.subtle,
+    },
+    productActionButton: {
+      flex: 1,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    productBannerButton: {
+      borderRightWidth: 1,
+      borderRightColor: theme.color.border.subtle,
+    },
+    productPhotosButton: {
+      borderRightWidth: 1,
+      borderRightColor: theme.color.border.subtle,
+    },
+    productActionButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    productDeleteButton: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    productDeleteButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.icon.danger,
+    },
+    productExpandButton: {
+      borderRightWidth: 1,
+      borderRightColor: theme.color.border.subtle,
+    },
+    priceDetailsContainer: {
+      backgroundColor: theme.color.background.subtle,
+      padding: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    priceLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      flex: 1,
+    },
+    priceDisplayRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    priceValue: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    priceLowerThanCost: {
+      color: theme.color.text.danger,
+      backgroundColor: theme.color.state.danger.background,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    priceEditRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    currencySymbol: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    priceInput: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primary,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      minWidth: 80,
+    },
+    editButton: {
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    editButtonText: {
+      fontSize: 14,
+      color: theme.color.text.link,
+    },
+    saveButton: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      minWidth: 32,
+      alignItems: 'center',
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    cancelEditButton: {
+      backgroundColor: theme.color.icon.danger,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      minWidth: 32,
+      alignItems: 'center',
+    },
+    cancelEditButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    calculateButton: {
+      backgroundColor: theme.color.icon.warning,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      marginLeft: 4,
+    },
+    calculateButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    searchContainer: {
+      marginBottom: 16,
+      position: 'relative',
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 16,
+      flexWrap: 'wrap',
+    },
+    searchInputWrap: {
+      flex: 1,
+      minWidth: 220,
+      position: 'relative',
+    },
+    supplierPickerWrap: {
+      minWidth: 220,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    supplierPickerWrapTablet: {
+      minWidth: 280,
+    },
+    supplierPicker: {
+      height: 44,
+      color: theme.color.text.heading,
+    },
+    searchInput: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    searchInputTablet: {
+      fontSize: 16,
+      paddingVertical: 12,
+    },
+    clearSearchButton: {
+      position: 'absolute',
+      right: 12,
+      top: '50%',
+      transform: [{ translateY: -12 }],
+      backgroundColor: theme.color.text.subtle,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    clearSearchText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    filterContainer: {
+      marginBottom: 16,
+    },
+    filterLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 8,
+    },
+    filterButtons: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    filterButton: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.icon.success,
+      borderColor: theme.color.icon.success,
+    },
+    filterButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterButtonTextActive: {
+      color: theme.color.surface.base,
+    },
+    estimatedTotalHeaderCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.text.link,
+    },
+    estimatedTotalHeaderLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.info.text,
+    },
+    estimatedTotalHeaderValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.color.state.info.text,
+    },
+    footer: {
+      flexDirection: 'row',
+      gap: 12,
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    footerTablet: {
+      padding: 24,
+      gap: 16,
+    },
+    cancelCampaignButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.icon.danger,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelCampaignButtonTablet: {
+      paddingVertical: 16,
+    },
+    cancelCampaignButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.icon.danger,
+    },
+    cancelCampaignButtonTextTablet: {
+      fontSize: 18,
+    },
+    activateButton: {
+      flex: 1,
+      backgroundColor: theme.color.icon.success,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    activateButtonTablet: {
+      paddingVertical: 16,
+    },
+    activateButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    activateButtonTextTablet: {
+      fontSize: 18,
+    },
+    closeButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeButtonTablet: {
+      paddingVertical: 16,
+    },
+    closeButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    closeButtonTextTablet: {
+      fontSize: 18,
+    },
+    headerButtons: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    copyButton: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    copyButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    copyButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    copyButtonTextTablet: {
+      fontSize: 14,
+    },
+    deleteAllButton: {
+      backgroundColor: theme.color.icon.danger,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    deleteAllButtonTablet: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    deleteAllButtonText: {
+      color: theme.color.surface.base,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    deleteAllButtonTextTablet: {
+      fontSize: 14,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 24,
+      width: '100%',
+      maxWidth: 500,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    modalContentTablet: {
+      padding: 32,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    modalTitleTablet: {
+      fontSize: 24,
+    },
+    modalDescription: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 20,
+    },
+    modalDescriptionTablet: {
+      fontSize: 16,
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      overflow: 'hidden',
+      marginBottom: 24,
+    },
+    pickerContainerTablet: {
+      borderRadius: 10,
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    modalCancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.border.subtle,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    modalConfirmButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    modalButtonTablet: {
+      paddingVertical: 16,
+    },
+    modalButtonDisabled: {
+      opacity: 0.5,
+    },
+    modalCancelButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    modalConfirmButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    modalButtonTextTablet: {
+      fontSize: 16,
+    },
+
+    imageModalContainer: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    imageModalBackdrop: {
+      flex: 1,
+      width: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    imageModalContent: {
+      width: '90%',
+      height: '80%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    imageModalImage: {
+      width: '100%',
+      height: '100%',
+    },
+    imageModalCloseButton: {
+      position: 'absolute',
+      top: 20,
+      right: 20,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
+    },
+    imageModalCloseText: {
+      fontSize: 24,
+      color: theme.color.surface.base,
+      fontWeight: 'bold',
+    },
+    // Global search styles
+    globalSearchLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+      gap: 12,
+    },
+    globalSearchLoadingText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    globalSearchContainer: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    globalSearchTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    globalSearchHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: 12,
+    },
+    globalSearchList: {
+      maxHeight: 400,
+    },
+    globalSearchItem: {
+      flexDirection: 'row',
+      padding: 12,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+    },
+    globalSearchItemPreliminary: {
+      backgroundColor: theme.color.state.warning.background,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.icon.warning,
+    },
+    globalSearchItemDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      opacity: 0.6,
+    },
+    globalSearchImage: {
+      width: 50,
+      height: 50,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+    },
+    globalSearchImagePlaceholder: {
+      width: 50,
+      height: 50,
+      borderRadius: 8,
+      marginRight: 12,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    globalSearchContent: {
+      flex: 1,
+    },
+    globalSearchItemTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    globalSearchItemTitleDisabled: {
+      color: theme.color.text.subtle,
+    },
+    globalSearchWarning: {
+      fontSize: 12,
+      color: theme.color.icon.warning,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    globalSearchMeta: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+    },
+    globalSearchStock: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    stockInfoContainer: {
+      flexDirection: 'column',
+      gap: 2,
+    },
+    stockReserved: {
+      fontSize: 11,
+      color: theme.color.icon.warning,
+      fontWeight: '500',
+    },
+    stockTotal: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    globalSearchStatus: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    globalSearchActions: {
+      flexDirection: 'column',
+      gap: 6,
+      minWidth: 100,
+    },
+    globalSearchActionButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    globalSearchActionButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    globalSearchActionButtonSecondary: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: theme.color.brand.primary,
+      alignItems: 'center',
+    },
+    globalSearchActionButtonSecondaryText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.brand.primary,
+    },
+    globalSearchBannerButtonLeft: {
+      backgroundColor: theme.color.brand.accent,
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+    },
+    globalSearchBannerButtonLeftText: {
+      fontSize: 20,
+    },
+    stockAvailable: {
+      color: theme.color.icon.success,
+    },
+    stockUnavailable: {
+      color: theme.color.icon.danger,
+    },
+    editPriceIconButton: {
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+    },
+    editPriceIcon: {
+      fontSize: 14,
+    },
+    savePriceIconButton: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      minWidth: 32,
+      alignItems: 'center',
+    },
+    savePriceIcon: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    cancelPriceIconButton: {
+      backgroundColor: theme.color.icon.danger,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      minWidth: 32,
+      alignItems: 'center',
+    },
+    cancelPriceIcon: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.surface.base,
+    },
+    calculateFranquiciaContainer: {
+      marginTop: 8,
+    },
+    calculateFranquiciaButton: {
+      backgroundColor: theme.color.icon.warning,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      alignItems: 'center',
+    },
+    calculateFranquiciaButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    calculatedBadge: {
+      backgroundColor: theme.color.icon.success,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      alignItems: 'center',
+      marginTop: 4,
+    },
+    calculatedBadgeText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    // Custom Add Modal Styles
+    customAddModalContainer: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    customAddModalBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    customAddModalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 24,
+      maxHeight: '80%',
+    },
+    customAddModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    customAddModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      flex: 1,
+    },
+    customAddModalCloseButton: {
+      fontSize: 28,
+      color: theme.color.text.muted,
+      fontWeight: '300',
+      paddingHorizontal: 8,
+    },
+    customAddModalProductInfo: {
+      backgroundColor: theme.color.background.subtle,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 16,
+    },
+    customAddModalProductTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    customAddModalWarning: {
+      fontSize: 13,
+      color: theme.color.icon.warning,
+      fontWeight: '500',
+      marginTop: 4,
+    },
+    customAddModalStockInfo: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+    },
+    customAddModalStockTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    customAddModalStockRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    customAddModalStockLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    customAddModalStockValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    customAddModalQuantitySection: {
+      marginBottom: 24,
+    },
+    customAddModalQuantityLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    customAddModalQuantityInput: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      padding: 14,
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    customAddModalActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    customAddModalCancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    customAddModalCancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    customAddModalConfirmButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 14,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    customAddModalConfirmButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    // Pagination styles
+    loadMoreButton: {
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      borderRadius: 8,
+      marginVertical: 16,
+      marginHorizontal: 16,
+      alignItems: 'center',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    loadMoreButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.surface.base,
+    },
+    loadingMoreContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+      gap: 12,
+    },
+    loadingMoreText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    endOfListContainer: {
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+    },
+    endOfListText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+  });

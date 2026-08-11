@@ -3,10 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 export const FaceRecognitionMenuScreen: React.FC = () => {
   const navigation = useNavigation();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const menuOptions = [
     {
@@ -14,7 +18,7 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
       title: 'Ver Perfiles',
       description: 'Lista de perfiles biométricos registrados',
       icon: 'people' as const,
-      color: colors.accent[600],
+      color: theme.color.icon.accent,
       screen: 'BiometricProfiles',
     },
     {
@@ -22,7 +26,7 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
       title: 'Registrar Rostro',
       description: 'Captura y registra un nuevo rostro en el sistema',
       icon: 'face' as const,
-      color: colors.primary[500],
+      color: theme.color.brand.accent,
       screen: 'RegisterFace',
     },
     {
@@ -30,7 +34,7 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
       title: 'Verificar Rostro',
       description: 'Verifica la identidad comparando con un perfil registrado',
       icon: 'verified-user' as const,
-      color: colors.success[500],
+      color: theme.color.icon.success,
       screen: 'VerifyFace',
     },
   ];
@@ -39,7 +43,11 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <MaterialIcons name="face-retouching-natural" size={80} color={colors.primary[500]} />
+          <MaterialIcons
+            name="face-retouching-natural"
+            size={80}
+            color={theme.color.brand.accent}
+          />
           <Text style={styles.title}>Reconocimiento Facial</Text>
           <Text style={styles.subtitle}>
             Sistema de verificación biométrica para autenticación segura
@@ -61,7 +69,7 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
                 <Text style={styles.menuTitle}>{option.title}</Text>
                 <Text style={styles.menuDescription}>{option.description}</Text>
               </View>
-              <MaterialIcons name="chevron-right" size={24} color="#ccc" />
+              <MaterialIcons name="chevron-right" size={24} color={theme.color.icon.disabled} />
             </TouchableOpacity>
           ))}
         </View>
@@ -69,19 +77,19 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
         <View style={styles.featuresContainer}>
           <Text style={styles.featuresTitle}>Características</Text>
           <View style={styles.featureItem}>
-            <MaterialIcons name="check-circle" size={20} color={colors.success[500]} />
+            <MaterialIcons name="check-circle" size={20} color={theme.color.icon.success} />
             <Text style={styles.featureText}>Detección de vivacidad (anti-spoofing)</Text>
           </View>
           <View style={styles.featureItem}>
-            <MaterialIcons name="check-circle" size={20} color={colors.success[500]} />
+            <MaterialIcons name="check-circle" size={20} color={theme.color.icon.success} />
             <Text style={styles.featureText}>Reconocimiento facial de alta precisión</Text>
           </View>
           <View style={styles.featureItem}>
-            <MaterialIcons name="check-circle" size={20} color={colors.success[500]} />
+            <MaterialIcons name="check-circle" size={20} color={theme.color.icon.success} />
             <Text style={styles.featureText}>Verificación 1:1 contra perfil específico</Text>
           </View>
           <View style={styles.featureItem}>
-            <MaterialIcons name="check-circle" size={20} color={colors.success[500]} />
+            <MaterialIcons name="check-circle" size={20} color={theme.color.icon.success} />
             <Text style={styles.featureText}>Procesamiento seguro y privado</Text>
           </View>
         </View>
@@ -90,93 +98,94 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  scrollContent: {
-    padding: spacing[5],
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginTop: spacing[4],
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    marginTop: spacing[2],
-    paddingHorizontal: spacing[5],
-  },
-  menuContainer: {
-    gap: spacing[4],
-    marginBottom: spacing[8],
-  },
-  menuCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[4],
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  menuDescription: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  featuresContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[5],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    marginBottom: spacing[4],
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    gap: spacing[2.5],
-  },
-  featureText: {
-    fontSize: 14,
-    color: colors.neutral[600],
-    flex: 1,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    scrollContent: {
+      padding: spacing[5],
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: 30,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginTop: spacing[4],
+    },
+    subtitle: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginTop: spacing[2],
+      paddingHorizontal: spacing[5],
+    },
+    menuContainer: {
+      gap: spacing[4],
+      marginBottom: spacing[8],
+    },
+    menuCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.xl,
+      padding: spacing[4],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    iconContainer: {
+      width: 64,
+      height: 64,
+      borderRadius: borderRadius.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing[4],
+    },
+    menuContent: {
+      flex: 1,
+    },
+    menuTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: spacing[1],
+    },
+    menuDescription: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    featuresContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.xl,
+      padding: spacing[5],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    featuresTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: spacing[4],
+    },
+    featureItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+      gap: spacing[2.5],
+    },
+    featureText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      flex: 1,
+    },
+  });

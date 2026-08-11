@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
@@ -13,7 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { suppliersService } from '@/services/api/suppliers';
 import { companiesApi } from '@/services/api/companies';
 import { SupplierDebtTransaction } from '@/types/suppliers';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface AssignCompanyModalProps {
   visible: boolean;
@@ -30,6 +31,8 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
@@ -90,7 +93,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Asignar a Empresa</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.neutral[0]} />
+              <Ionicons name="close" size={24} color={theme.color.text.inverse} />
             </TouchableOpacity>
           </View>
 
@@ -114,7 +117,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
           <Text style={styles.sectionTitle}>Seleccione una empresa:</Text>
           <ScrollView style={styles.companiesList}>
             {loading ? (
-              <ActivityIndicator size="large" color={colors.accent[500]} style={styles.loader} />
+              <ActivityIndicator size="large" color={theme.color.brand.accent} style={styles.loader} />
             ) : (
               companies.map((company) => (
                 <TouchableOpacity
@@ -129,7 +132,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
                     <Ionicons
                       name={selectedCompanyId === company.id ? 'radio-button-on' : 'radio-button-off'}
                       size={24}
-                      color={selectedCompanyId === company.id ? colors.accent[500] : colors.neutral[300]}
+                      color={selectedCompanyId === company.id ? theme.color.brand.accent : theme.color.border.default}
                     />
                     <View style={styles.companyTexts}>
                       <Text style={styles.companyName}>{company.name}</Text>
@@ -152,7 +155,7 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
               disabled={!selectedCompanyId || loading}
             >
               {loading ? (
-                <ActivityIndicator color={colors.neutral[0]} />
+                <ActivityIndicator color={theme.color.text.inverse} />
               ) : (
                 <Text style={styles.assignButtonText}>Asignar</Text>
               )}
@@ -164,134 +167,135 @@ export const AssignCompanyModal: React.FC<AssignCompanyModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    width: '90%',
-    maxWidth: 500,
-    maxHeight: '80%',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing[4],
-    backgroundColor: colors.accent[500],
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-  closeButton: {
-    padding: spacing[1],
-  },
-  transactionInfo: {
-    padding: spacing[4],
-    backgroundColor: colors.background.secondary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[2],
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginTop: spacing[0.5],
-  },
-  amount: {
-    fontSize: 18,
-    color: colors.danger[500],
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-    padding: spacing[4],
-    paddingBottom: spacing[2],
-  },
-  companiesList: {
-    flex: 1,
-    paddingHorizontal: spacing[4],
-  },
-  loader: {
-    marginVertical: spacing[8],
-  },
-  companyItem: {
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing[2],
-  },
-  companyItemSelected: {
-    borderColor: colors.accent[500],
-    backgroundColor: colors.accent[50],
-  },
-  companyInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  companyTexts: {
-    flex: 1,
-  },
-  companyName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  companyRuc: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[0.5],
-  },
-  footer: {
-    flexDirection: 'row',
-    padding: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[3],
-  },
-  cancelButton: {
-    flex: 1,
-    padding: spacing[3],
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.neutral[500],
-  },
-  assignButton: {
-    flex: 1,
-    padding: spacing[3],
-    backgroundColor: colors.accent[500],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  assignButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-  },
-  assignButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    container: {
+      width: '90%',
+      maxWidth: 500,
+      maxHeight: '80%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[4],
+      backgroundColor: theme.color.brand.accent,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.inverse,
+    },
+    closeButton: {
+      padding: theme.space[1],
+    },
+    transactionInfo: {
+      padding: theme.space[4],
+      backgroundColor: theme.color.surface.subtle,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    infoLabel: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[2],
+    },
+    infoValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginTop: theme.space[0.5],
+    },
+    amount: {
+      fontSize: 18,
+      color: theme.color.text.danger,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      padding: theme.space[4],
+      paddingBottom: theme.space[2],
+    },
+    companiesList: {
+      flex: 1,
+      paddingHorizontal: theme.space[4],
+    },
+    loader: {
+      marginVertical: theme.space[8],
+    },
+    companyItem: {
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.space[2],
+    },
+    companyItemSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    companyInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    companyTexts: {
+      flex: 1,
+    },
+    companyName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    companyRuc: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[0.5],
+    },
+    footer: {
+      flexDirection: 'row',
+      padding: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    cancelButton: {
+      flex: 1,
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.color.text.subtle,
+    },
+    assignButton: {
+      flex: 1,
+      padding: theme.space[3],
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    assignButtonDisabled: {
+      backgroundColor: theme.color.action.primary.backgroundDisabled,
+    },
+    assignButtonText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.color.text.inverse,
+    },
+  });
 
 export default AssignCompanyModal;

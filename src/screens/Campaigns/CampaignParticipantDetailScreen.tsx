@@ -19,6 +19,8 @@ import { CampaignParticipant } from '@/types/campaigns';
 import { ParticipantTotalsDetail } from '@/types/participant-totals';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import logger from '@/utils/logger';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CampaignParticipantDetailScreenProps {
   navigation: any;
@@ -43,6 +45,8 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const loadData = useCallback(async () => {
     try {
@@ -141,7 +145,7 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
           <Text style={styles.loadingText}>Cargando información...</Text>
         </View>
       </SafeAreaView>
@@ -414,10 +418,10 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
   },
   loadingContainer: {
     flex: 1,
@@ -427,14 +431,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   headerTablet: {
     paddingHorizontal: 32,
@@ -445,7 +449,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#6366F1',
+    color: theme.color.brand.primary,
     fontWeight: '600',
   },
   backButtonTextTablet: {
@@ -457,7 +461,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   titleTablet: {
     fontSize: 32,
@@ -477,17 +481,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   typeBadgeCompany: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.primarySoft,
+    borderColor: theme.color.brand.primary,
   },
   typeBadgeSite: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#10B981',
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
   },
   typeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   typeTextTablet: {
     fontSize: 14,
@@ -502,11 +506,11 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -519,7 +523,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   sectionTitleTablet: {
@@ -538,21 +542,21 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   purchaseCard: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.background,
+    borderColor: theme.color.state.warning.border,
   },
   saleCard: {
-    backgroundColor: '#D1FAE5',
-    borderColor: '#10B981',
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
   },
   marginCard: {
-    backgroundColor: '#E0E7FF',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.primarySoft,
+    borderColor: theme.color.brand.primary,
   },
   totalLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginBottom: 4,
   },
   totalLabelTablet: {
@@ -566,18 +570,18 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   purchaseValue: {
-    color: '#F59E0B',
+    color: theme.color.text.warning,
   },
   saleValue: {
-    color: '#10B981',
+    color: theme.color.text.success,
   },
   marginValue: {
-    color: '#6366F1',
+    color: theme.color.brand.primary,
   },
   marginPercentage: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.primary,
     marginTop: 4,
   },
   marginPercentageTablet: {
@@ -589,11 +593,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
   infoLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   infoLabelTablet: {
     fontSize: 16,
@@ -601,7 +605,7 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   infoValueTablet: {
     fontSize: 16,
@@ -609,10 +613,10 @@ const styles = StyleSheet.create({
   productCard: {
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.muted,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   productCardTablet: {
     padding: 16,
@@ -626,15 +630,15 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
   },
   productNameTablet: {
     fontSize: 18,
   },
   preliminaryBadge: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#F59E0B',
+    backgroundColor: theme.color.state.warning.background,
+    borderColor: theme.color.state.warning.border,
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -643,11 +647,11 @@ const styles = StyleSheet.create({
   preliminaryText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: theme.color.text.warning,
   },
   productSku: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginBottom: 12,
   },
   productSkuTablet: {
@@ -663,7 +667,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.subtle,
   },
   detailLabelTablet: {
     fontSize: 15,
@@ -671,7 +675,7 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   detailValueTablet: {
     fontSize: 15,
@@ -679,14 +683,14 @@ const styles = StyleSheet.create({
   totalRow: {
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
     marginTop: 4,
   },
   totalLabelBold: {
     fontWeight: '600',
   },
   downloadButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.primary,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 8,
@@ -701,7 +705,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   downloadButtonText: {
-    color: '#FFFFFF',
+    color: theme.color.text.onAction,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -717,7 +721,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.subtle,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -726,7 +730,7 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     textAlign: 'center',
   },
   emptySubtextTablet: {

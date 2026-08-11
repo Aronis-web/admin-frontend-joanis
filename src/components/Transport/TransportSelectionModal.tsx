@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Vehicle,
   Driver,
@@ -29,6 +29,7 @@ import {
   TransporterDocumentType,
 } from '@/types/transport';
 import { transportService } from '@/services/api';
+import Alert from '@/utils/alert';
 
 interface TransportSelectionModalProps {
   visible: boolean;
@@ -41,6 +42,8 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
   onClose,
   onConfirm,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   // Usar ref para trackear si ya se cargaron los datos
   const dataLoadedRef = useRef(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -287,13 +290,13 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Seleccionar Transporte</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={colors.neutral[500]} />
+                <Ionicons name="close" size={24} color={theme.color.text.muted} />
               </TouchableOpacity>
             </View>
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.accent[500]} />
+                <ActivityIndicator size="large" color={theme.color.brand.accent} />
                 <Text style={styles.loadingText}>Cargando datos...</Text>
               </View>
             ) : (
@@ -318,7 +321,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                       <Ionicons
                         name="business"
                         size={24}
-                        color={transportType === 'public' ? colors.success[500] : colors.neutral[500]}
+                        color={transportType === 'public' ? theme.color.text.success : theme.color.text.muted}
                       />
                       <Text
                         style={[
@@ -343,7 +346,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                       <Ionicons
                         name="car"
                         size={24}
-                        color={transportType === 'private' ? colors.success[500] : colors.neutral[500]}
+                        color={transportType === 'private' ? theme.color.text.success : theme.color.text.muted}
                       />
                       <Text
                         style={[
@@ -362,24 +365,25 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                 {transportType === 'public' && (
                   <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                      <Ionicons name="business" size={24} color={colors.accent[500]} />
+                      <Ionicons name="business" size={24} color={theme.color.brand.accent} />
                       <Text style={styles.sectionTitle}>Transportista</Text>
                       <TouchableOpacity
                         style={styles.createButton}
                         onPress={handleCreateTransporter}
                         activeOpacity={0.7}
                       >
-                        <Ionicons name="add-circle" size={24} color={colors.success[500]} />
+                        <Ionicons name="add-circle" size={24} color={theme.color.text.success} />
                         <Text style={styles.createButtonText}>Crear Nuevo</Text>
                       </TouchableOpacity>
                     </View>
 
                     {/* Search Input */}
                     <View style={styles.searchContainer}>
-                      <Ionicons name="search" size={20} color={colors.neutral[500]} style={styles.searchIcon} />
+                      <Ionicons name="search" size={20} color={theme.color.text.muted} style={styles.searchIcon} />
                       <TextInput
                         style={styles.searchInput}
                         placeholder="Buscar por razón social o RUC..."
+                        placeholderTextColor={theme.color.text.placeholder}
                         value={transporterSearch}
                         onChangeText={setTransporterSearch}
                         onFocus={() => setShowTransporterDropdown(true)}
@@ -391,7 +395,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                             setSelectedTransporter(null);
                           }}
                         >
-                          <Ionicons name="close-circle" size={20} color={colors.neutral[500]} />
+                          <Ionicons name="close-circle" size={20} color={theme.color.text.muted} />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -446,24 +450,25 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
               {transportType === 'private' && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="car" size={24} color={colors.accent[500]} />
+                  <Ionicons name="car" size={24} color={theme.color.brand.accent} />
                   <Text style={styles.sectionTitle}>Vehículo</Text>
                   <TouchableOpacity
                     style={styles.createButton}
                     onPress={handleCreateVehicle}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="add-circle" size={24} color="#10B981" />
+                    <Ionicons name="add-circle" size={24} color={theme.color.text.success} />
                     <Text style={styles.createButtonText}>Crear Nuevo</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Search Input */}
                 <View style={styles.searchContainer}>
-                  <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                  <Ionicons name="search" size={20} color={theme.color.text.muted} style={styles.searchIcon} />
                   <TextInput
                     style={styles.searchInput}
                     placeholder="Buscar por placa, marca o modelo..."
+                    placeholderTextColor={theme.color.text.placeholder}
                     value={vehicleSearch}
                     onChangeText={setVehicleSearch}
                     onFocus={() => setShowVehicleDropdown(true)}
@@ -475,7 +480,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                         setSelectedVehicle(null);
                       }}
                     >
-                      <Ionicons name="close-circle" size={20} color="#6B7280" />
+                      <Ionicons name="close-circle" size={20} color={theme.color.text.muted} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -525,24 +530,25 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
               {transportType === 'private' && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="person" size={24} color={colors.accent[500]} />
+                  <Ionicons name="person" size={24} color={theme.color.brand.accent} />
                   <Text style={styles.sectionTitle}>Conductor</Text>
                   <TouchableOpacity
                     style={styles.createButton}
                     onPress={handleCreateDriver}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="add-circle" size={24} color="#10B981" />
+                    <Ionicons name="add-circle" size={24} color={theme.color.text.success} />
                     <Text style={styles.createButtonText}>Crear Nuevo</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Search Input */}
                 <View style={styles.searchContainer}>
-                  <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                  <Ionicons name="search" size={20} color={theme.color.text.muted} style={styles.searchIcon} />
                   <TextInput
                     style={styles.searchInput}
                     placeholder="Buscar por nombre, documento o licencia..."
+                    placeholderTextColor={theme.color.text.placeholder}
                     value={driverSearch}
                     onChangeText={setDriverSearch}
                     onFocus={() => setShowDriverDropdown(true)}
@@ -554,7 +560,7 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
                         setSelectedDriver(null);
                       }}
                     >
-                      <Ionicons name="close-circle" size={20} color="#6B7280" />
+                      <Ionicons name="close-circle" size={20} color={theme.color.text.muted} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -672,325 +678,322 @@ const TransportSelectionModalComponent: React.FC<TransportSelectionModalProps> =
 // Exportar con React.memo para evitar re-renders innecesarios desde el componente padre
 export const TransportSelectionModal = React.memo(TransportSelectionModalComponent);
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.dark,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius['2xl'],
-    width: '90%',
-    maxWidth: 600,
-    height: '85%',
-    shadowColor: colors.neutral[900],
-    shadowOffset: {
-      width: 0,
-      height: 2,
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.strong,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    padding: 4,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
-  },
-  section: {
-    marginTop: spacing[3],
-    marginBottom: spacing[3],
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[2],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginLeft: spacing[2],
-    flex: 1,
-  },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: 6,
-    backgroundColor: colors.success[50],
-    borderRadius: borderRadius.lg,
-    gap: spacing[1],
-  },
-  createButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.success[500],
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    marginBottom: spacing[2],
-  },
-  searchIcon: {
-    marginRight: spacing[2],
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.neutral[800],
-    paddingVertical: spacing[1],
-  },
-  dropdown: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    maxHeight: 200,
-    marginBottom: spacing[2],
-    shadowColor: colors.neutral[900],
-    shadowOffset: {
-      width: 0,
-      height: 2,
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      width: '90%',
+      maxWidth: 600,
+      height: '85%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  dropdownScroll: {
-    maxHeight: 200,
-  },
-  dropdownItem: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  dropdownItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  dropdownItemSubtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  detailsCard: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    marginTop: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing[1],
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    fontWeight: '500',
-  },
-  detailValue: {
-    fontSize: 14,
-    color: colors.neutral[800],
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'right',
-  },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-    gap: spacing[3],
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: colors.neutral[100],
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  confirmButton: {
-    backgroundColor: colors.accent[500],
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  buttonDisabled: {
-    backgroundColor: colors.neutral[300],
-    opacity: 0.6,
-  },
-  publicTransportCard: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[4],
-    borderWidth: 2,
-    borderColor: colors.neutral[200],
-  },
-  publicTransportCardActive: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[500],
-  },
-  publicTransportHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  publicTransportTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginLeft: spacing[2],
-  },
-  publicTransportTitleActive: {
-    color: colors.success[500],
-  },
-  publicTransportSubtext: {
-    fontSize: 13,
-    color: colors.neutral[500],
-    marginLeft: spacing[8],
-  },
-  sectionDisabled: {
-    opacity: 0.4,
-  },
-  transportTypeContainer: {
-    marginBottom: spacing[5],
-  },
-  transportTypeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[3],
-  },
-  transportTypeButtons: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  transportTypeCard: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    borderWidth: 2,
-    borderColor: colors.neutral[200],
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 120,
-  },
-  transportTypeCardActive: {
-    backgroundColor: colors.success[50],
-    borderColor: colors.success[500],
-  },
-  transportTypeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginTop: spacing[2],
-    textAlign: 'center',
-  },
-  transportTypeTitleActive: {
-    color: colors.success[500],
-  },
-  transportTypeSubtext: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-    textAlign: 'center',
-  },
-  // Estilos para modales secundarios (modal sobre modal)
-  secondaryModalContent: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius['2xl'],
-    width: '85%',
-    maxWidth: 500,
-    height: '70%',
-    shadowColor: colors.neutral[900],
-    shadowOffset: {
-      width: 0,
-      height: 4,
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  formInput: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    paddingHorizontal: spacing[3],
-    paddingVertical: 10,
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  formLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    marginBottom: spacing[2],
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-});
-
-
-
-
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      padding: 4,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[2],
+    },
+    section: {
+      marginTop: theme.space[3],
+      marginBottom: theme.space[3],
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginLeft: theme.space[2],
+      flex: 1,
+    },
+    createButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 6,
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: theme.radii.lg,
+      gap: theme.space[1],
+    },
+    createButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.success,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      marginBottom: theme.space[2],
+    },
+    searchIcon: {
+      marginRight: theme.space[2],
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 16,
+      color: theme.color.text.heading,
+      paddingVertical: theme.space[1],
+    },
+    dropdown: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      maxHeight: 200,
+      marginBottom: theme.space[2],
+      shadowColor: theme.color.shadow,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    dropdownScroll: {
+      maxHeight: 200,
+    },
+    dropdownItem: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    dropdownItemTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    dropdownItemSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    detailsCard: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      marginTop: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: theme.space[1],
+    },
+    detailLabel: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    detailValue: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+      fontWeight: '600',
+      flex: 1,
+      textAlign: 'right',
+    },
+    footer: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButton: {
+      backgroundColor: theme.color.surface.muted,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    confirmButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    confirmButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    buttonDisabled: {
+      backgroundColor: theme.color.border.default,
+      opacity: 0.6,
+    },
+    publicTransportCard: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+    },
+    publicTransportCardActive: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.text.success,
+    },
+    publicTransportHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    publicTransportTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginLeft: theme.space[2],
+    },
+    publicTransportTitleActive: {
+      color: theme.color.text.success,
+    },
+    publicTransportSubtext: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginLeft: theme.space[8],
+    },
+    sectionDisabled: {
+      opacity: 0.4,
+    },
+    transportTypeContainer: {
+      marginBottom: theme.space[5],
+    },
+    transportTypeLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[3],
+    },
+    transportTypeButtons: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    transportTypeCard: {
+      flex: 1,
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 120,
+    },
+    transportTypeCardActive: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.text.success,
+    },
+    transportTypeTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginTop: theme.space[2],
+      textAlign: 'center',
+    },
+    transportTypeTitleActive: {
+      color: theme.color.text.success,
+    },
+    transportTypeSubtext: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      textAlign: 'center',
+    },
+    // Estilos para modales secundarios (modal sobre modal)
+    secondaryModalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      width: '85%',
+      maxWidth: 500,
+      height: '70%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 5,
+      elevation: 10,
+    },
+    formInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 10,
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    formLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[2],
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+  });
 
 
 
@@ -1006,6 +1009,8 @@ const CreateVehicleModal: React.FC<{
   onClose: () => void;
   onSubmit: (data: CreateVehicleRequest) => void;
 }> = ({ visible, onClose, onSubmit }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [formData, setFormData] = useState<CreateVehicleRequest>({
     numeroPlaca: '',
     tipoVehiculo: VehicleType.PRINCIPAL,
@@ -1033,7 +1038,7 @@ const CreateVehicleModal: React.FC<{
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Crear Vehículo</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={colors.neutral[500]} />
+              <Ionicons name="close" size={24} color={theme.color.text.muted} />
             </TouchableOpacity>
           </View>
 
@@ -1043,6 +1048,7 @@ const CreateVehicleModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: ABC-123"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroPlaca}
                 onChangeText={(text) => setFormData({ ...formData, numeroPlaca: text.toUpperCase() })}
                 autoCapitalize="characters"
@@ -1054,6 +1060,7 @@ const CreateVehicleModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: Toyota"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.marca}
                 onChangeText={(text) => setFormData({ ...formData, marca: text })}
               />
@@ -1064,6 +1071,7 @@ const CreateVehicleModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: Hilux"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.modelo}
                 onChangeText={(text) => setFormData({ ...formData, modelo: text })}
               />
@@ -1074,6 +1082,7 @@ const CreateVehicleModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: 2023"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.anio?.toString() || ''}
                 onChangeText={(text) => setFormData({ ...formData, anio: parseInt(text) || undefined })}
                 keyboardType="numeric"
@@ -1085,6 +1094,7 @@ const CreateVehicleModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: Blanco"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.color || ''}
                 onChangeText={(text) => setFormData({ ...formData, color: text })}
               />
@@ -1110,6 +1120,8 @@ const CreateDriverModal: React.FC<{
   onClose: () => void;
   onSubmit: (data: CreateDriverRequest) => void;
 }> = ({ visible, onClose, onSubmit }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [formData, setFormData] = useState<CreateDriverRequest>({
     tipoDocumento: DocumentType.DNI,
     numeroDocumento: '',
@@ -1146,7 +1158,7 @@ const CreateDriverModal: React.FC<{
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Crear Conductor</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color={theme.color.text.muted} />
             </TouchableOpacity>
           </View>
 
@@ -1156,6 +1168,7 @@ const CreateDriverModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Nombre"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.nombre}
                 onChangeText={(text) => setFormData({ ...formData, nombre: text })}
               />
@@ -1166,6 +1179,7 @@ const CreateDriverModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Apellido"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.apellido}
                 onChangeText={(text) => setFormData({ ...formData, apellido: text })}
               />
@@ -1176,6 +1190,7 @@ const CreateDriverModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="DNI"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroDocumento}
                 onChangeText={(text) => setFormData({ ...formData, numeroDocumento: text })}
                 keyboardType="numeric"
@@ -1187,6 +1202,7 @@ const CreateDriverModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: Q12345678"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroLicencia}
                 onChangeText={(text) => setFormData({ ...formData, numeroLicencia: text.toUpperCase() })}
                 autoCapitalize="characters"
@@ -1198,6 +1214,7 @@ const CreateDriverModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: A-IIIb"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.categoriaLicencia}
                 onChangeText={(text) => setFormData({ ...formData, categoriaLicencia: text })}
               />
@@ -1208,6 +1225,7 @@ const CreateDriverModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: 987654321"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.telefono || ''}
                 onChangeText={(text) => setFormData({ ...formData, telefono: text })}
                 keyboardType="phone-pad"
@@ -1234,6 +1252,8 @@ const CreateTransporterModal: React.FC<{
   onClose: () => void;
   onSubmit: (data: CreateTransporterRequest) => void;
 }> = ({ visible, onClose, onSubmit }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [formData, setFormData] = useState<CreateTransporterRequest>({
     numeroRuc: '',
     tipoDocumento: TransporterDocumentType.RUC,
@@ -1260,7 +1280,7 @@ const CreateTransporterModal: React.FC<{
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Crear Transportista</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color={theme.color.text.muted} />
             </TouchableOpacity>
           </View>
 
@@ -1270,6 +1290,7 @@ const CreateTransporterModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: 20123456789"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroRuc}
                 onChangeText={(text) => setFormData({ ...formData, numeroRuc: text })}
                 keyboardType="numeric"
@@ -1282,6 +1303,7 @@ const CreateTransporterModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Nombre de la empresa"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.razonSocial}
                 onChangeText={(text) => setFormData({ ...formData, razonSocial: text })}
               />
@@ -1292,6 +1314,7 @@ const CreateTransporterModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Número de registro MTC"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroRegistroMTC || ''}
                 onChangeText={(text) => setFormData({ ...formData, numeroRegistroMTC: text })}
               />
@@ -1302,6 +1325,7 @@ const CreateTransporterModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Ej: 987654321"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.telefono || ''}
                 onChangeText={(text) => setFormData({ ...formData, telefono: text })}
                 keyboardType="phone-pad"
@@ -1313,6 +1337,7 @@ const CreateTransporterModal: React.FC<{
               <TextInput
                 style={styles.formInput}
                 placeholder="Dirección de la empresa"
+                placeholderTextColor={theme.color.text.placeholder}
                 value={formData.direccion || ''}
                 onChangeText={(text) => setFormData({ ...formData, direccion: text })}
               />

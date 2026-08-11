@@ -4,6 +4,8 @@
  * Pantalla de listado de productos profesional y moderna.
  */
 
+import Alert from '@/utils/alert';
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
@@ -12,7 +14,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   useWindowDimensions,
   Modal,
   Image,
@@ -38,12 +39,8 @@ import { BulkUpdateModal } from '@/components/Products/BulkUpdateModal';
 import { logger } from '@/utils/logger';
 
 // Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -67,14 +64,17 @@ interface ProductsScreenProps {
 }
 
 // Status configuration
-const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  active: { color: colors.success[500], label: 'Activo' },
-  preliminary: { color: colors.warning[500], label: '⚠️ Preliminar' },
-  draft: { color: colors.warning[500], label: 'Borrador' },
-  archived: { color: colors.neutral[500], label: 'Archivado' },
-};
+const getStatusConfig = (theme: Theme): Record<string, { color: string; label: string }> => ({
+  active: { color: theme.color.icon.success, label: 'Activo' },
+  preliminary: { color: theme.color.icon.warning, label: '⚠️ Preliminar' },
+  draft: { color: theme.color.icon.warning, label: 'Borrador' },
+  archived: { color: theme.color.icon.subtle, label: 'Archivado' },
+});
 
 export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const STATUS_CONFIG = useMemo(() => getStatusConfig(theme), [theme]);
   const { user, logout } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -322,14 +322,14 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               </Text>
               <View style={styles.productMetaRow}>
                 {product.correlativeNumber && (
-                  <Text variant="labelMedium" color={colors.accent[600]} style={styles.productCorrelative}>
+                  <Text variant="labelMedium" color={theme.color.brand.accent} style={styles.productCorrelative}>
                     #{product.correlativeNumber}
                   </Text>
                 )}
                 <Caption color="tertiary">SKU: {product.sku}</Caption>
                 {hasDuplicateSKU(product.sku) && (
                   <View style={styles.duplicateBadge}>
-                    <Text variant="labelSmall" color={colors.warning[700]}>⚠️ Duplicado</Text>
+                    <Text variant="labelSmall" color={theme.color.text.warning}>⚠️ Duplicado</Text>
                   </View>
                 )}
               </View>
@@ -337,11 +337,11 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
             <View style={styles.badgesContainer}>
               <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
-                <Text variant="labelSmall" color={colors.text.inverse}>{statusConfig.label}</Text>
+                <Text variant="labelSmall" color={theme.color.text.inverse}>{statusConfig.label}</Text>
               </View>
               {!hasImage && (
                 <View style={styles.noPhotoBadge}>
-                  <Text variant="labelSmall" color={colors.danger[600]}>📷 Sin foto</Text>
+                  <Text variant="labelSmall" color={theme.color.text.danger}>📷 Sin foto</Text>
                 </View>
               )}
             </View>
@@ -379,7 +379,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 <Caption color="tertiary">📦 Stock preliminar: {product.stock.available || 0} unidades</Caption>
               )}
             </View>
-            <Text variant="titleLarge" color={colors.neutral[300]}>›</Text>
+            <Text variant="titleLarge" color={theme.color.text.placeholder}>›</Text>
           </View>
         </TouchableOpacity>
 
@@ -389,21 +389,21 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             style={[styles.actionButton, styles.viewButton]}
             onPress={() => handleViewProduct(product)}
           >
-            <Text variant="labelMedium" color={colors.accent[600]}>👁️ Ver</Text>
+            <Text variant="labelMedium" color={theme.color.brand.accent}>👁️ Ver</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionButton, styles.imagesButton]}
             onPress={() => handleManageImages(product)}
           >
-            <Text variant="labelMedium" color={colors.warning[600]}>📸 Fotos</Text>
+            <Text variant="labelMedium" color={theme.color.text.warning}>📸 Fotos</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionButton, styles.pricesButton]}
             onPress={() => handleManagePrices(product)}
           >
-            <Text variant="labelMedium" color={colors.success[600]}>💰 Precios</Text>
+            <Text variant="labelMedium" color={theme.color.text.success}>💰 Precios</Text>
           </TouchableOpacity>
 
           <ProtectedTouchableOpacity
@@ -412,7 +412,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             requiredPermissions={[PERMISSIONS.PRODUCTS.UPDATE]}
             hideIfNoPermission={true}
           >
-            <Text variant="labelMedium" color={colors.text.secondary}>✏️ Editar</Text>
+            <Text variant="labelMedium" color={theme.color.text.muted}>✏️ Editar</Text>
           </ProtectedTouchableOpacity>
 
           <ProtectedTouchableOpacity
@@ -421,12 +421,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             requiredPermissions={[PERMISSIONS.PRODUCTS.DELETE]}
             hideIfNoPermission={true}
           >
-            <Text variant="labelMedium" color={colors.danger[600]}>🗑️ Eliminar</Text>
+            <Text variant="labelMedium" color={theme.color.text.danger}>🗑️ Eliminar</Text>
           </ProtectedTouchableOpacity>
         </View>
       </Card>
     );
-  }, [hasDuplicateSKU, handleEditProduct, handleViewProduct, handleManageImages, handleManagePrices, handleDeleteProduct]);
+  }, [theme, styles, STATUS_CONFIG, hasDuplicateSKU, handleEditProduct, handleViewProduct, handleManageImages, handleManagePrices, handleDeleteProduct]);
 
   // Loading state
   if (isLoading && !productsResponse) {
@@ -434,7 +434,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <LinearGradient
-            colors={[colors.primary[900], colors.primary[800]]}
+            colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.headerGradient}
@@ -443,7 +443,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
               <View style={styles.headerTitleContainer}>
                 <View style={styles.headerIconRow}>
                   <View style={styles.headerIconContainer}>
-                    <Ionicons name="cube" size={22} color={colors.neutral[0]} />
+                    <Ionicons name="cube" size={22} color={theme.color.brand.onHeader} />
                   </View>
                   <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
                 </View>
@@ -452,7 +452,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             </View>
           </LinearGradient>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary[900]} />
+            <ActivityIndicator size="large" color={theme.color.brand.primary} />
             <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
               Cargando productos...
             </Text>
@@ -467,7 +467,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header con gradiente */}
       <LinearGradient
-        colors={[colors.primary[900], colors.primary[800]]}
+        colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -476,7 +476,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           <View style={styles.headerTitleContainer}>
             <View style={styles.headerIconRow}>
               <View style={styles.headerIconContainer}>
-                <Ionicons name="cube" size={22} color={colors.neutral[0]} />
+                <Ionicons name="cube" size={22} color={theme.color.brand.onHeader} />
               </View>
               <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
             </View>
@@ -495,7 +495,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
-            <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+            <Ionicons name="search" size={20} color={theme.color.text.placeholder} style={styles.searchIcon} />
             <TextInput
               style={[styles.searchInput, isTablet && styles.searchInputTablet]}
               value={searchQuery}
@@ -507,11 +507,11 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                     ? 'Buscar por SKU...'
                     : 'Buscar por nombre, SKU o #correlativo...'
               }
-              placeholderTextColor={colors.neutral[400]}
+              placeholderTextColor={theme.color.text.placeholder}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
               </TouchableOpacity>
             )}
           </View>
@@ -570,8 +570,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         <View style={styles.warningBanner}>
           <Text style={styles.warningIcon}>⚠️</Text>
           <View style={styles.warningContent}>
-            <Text variant="titleSmall" color={colors.warning[800]}>SKUs Duplicados Detectados</Text>
-            <Caption color={colors.warning[700]}>
+            <Text variant="titleSmall" color={theme.color.text.warning}>SKUs Duplicados Detectados</Text>
+            <Caption color={theme.color.text.warning}>
               Hay {duplicateSKUs.length} SKU(s) con productos duplicados.
             </Caption>
           </View>
@@ -589,8 +589,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={onRefresh}
-            tintColor={colors.primary[900]}
-            colors={[colors.primary[900]]}
+            tintColor={theme.color.brand.primary}
+            colors={[theme.color.brand.primary]}
           />
         }
         ListEmptyComponent={
@@ -624,26 +624,21 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         />
       )}
 
-      {/* Floating Action Buttons */}
-      <ProtectedElement
-        requiredPermissions={[PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE]}
-        requireAll={false}
-        fallback={null}
-      >
-        <TouchableOpacity
-          style={styles.pricesFloatingButton}
-          onPress={() => setIsBulkUpdateModalVisible(true)}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.floatingButtonText}>💵</Text>
-        </TouchableOpacity>
-      </ProtectedElement>
-
       <ProtectedFAB
-        icon="+"
-        onPress={handleCreateProduct}
-        requiredPermissions={[PERMISSIONS.PRODUCTS.CREATE]}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'cube-outline',
+            label: 'Crear Producto',
+            onPress: handleCreateProduct,
+            requiredPermissions: [PERMISSIONS.PRODUCTS.CREATE],
+          },
+          {
+            icon: 'cash-outline',
+            label: 'Actualizar Precios',
+            onPress: () => setIsBulkUpdateModalVisible(true),
+            requiredPermissions: [PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD, PERMISSIONS.PRODUCTS.PRICES_UPDATE],
+          },
+        ]}
       />
 
       {/* Product Form Modal */}
@@ -720,7 +715,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 {viewProduct.correlativeNumber && (
                   <View style={styles.viewRow}>
                     <Caption color="tertiary">#Correlativo:</Caption>
-                    <Text variant="numericMedium" color={colors.accent[600]}>{viewProduct.correlativeNumber}</Text>
+                    <Text variant="numericMedium" color={theme.color.brand.accent}>{viewProduct.correlativeNumber}</Text>
                   </View>
                 )}
                 <View style={styles.viewRow}>
@@ -735,8 +730,8 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 )}
                 <View style={styles.viewRow}>
                   <Caption color="tertiary">Estado:</Caption>
-                  <View style={[styles.viewStatusBadge, { backgroundColor: STATUS_CONFIG[viewProduct.status]?.color || colors.neutral[500] }]}>
-                    <Text variant="labelSmall" color={colors.text.inverse}>{STATUS_CONFIG[viewProduct.status]?.label}</Text>
+                  <View style={[styles.viewStatusBadge, { backgroundColor: STATUS_CONFIG[viewProduct.status]?.color || theme.color.icon.subtle }]}>
+                    <Text variant="labelSmall" color={theme.color.text.inverse}>{STATUS_CONFIG[viewProduct.status]?.label}</Text>
                   </View>
                 </View>
               </Card>
@@ -748,7 +743,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 </Text>
                 <View style={styles.viewRow}>
                   <Caption color="tertiary">Costo:</Caption>
-                  <Text variant="numericMedium" color={colors.success[600]}>
+                  <Text variant="numericMedium" color={theme.color.text.success}>
                     S/ {((viewProduct.costCents || viewProduct.priceCents || 0) / 100).toFixed(2)}
                   </Text>
                 </View>
@@ -780,7 +775,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                         </Text>
                         {pres.isBase && (
                           <View style={styles.baseBadge}>
-                            <Text variant="labelSmall" color={colors.text.inverse}>BASE</Text>
+                            <Text variant="labelSmall" color={theme.color.text.inverse}>BASE</Text>
                           </View>
                         )}
                       </View>
@@ -815,23 +810,23 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
 
   // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   headerTitleContainer: {
     flex: 1,
@@ -839,21 +834,21 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   titleTablet: {
@@ -861,98 +856,98 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   statsHeaderContainer: {
     alignItems: 'flex-end',
   },
   statHeaderItem: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.lg,
   },
   statHeaderValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
   },
   statHeaderLabel: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
   searchContainer: {
     flexDirection: 'row',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[3],
   },
   searchIcon: {
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
   searchInput: {
     flex: 1,
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     fontSize: 15,
-    color: colors.neutral[800],
+    color: theme.color.text.body,
   },
   searchInputTablet: {
     fontSize: 16,
-    paddingVertical: spacing[3.5],
+    paddingVertical: theme.space[3.5],
   },
   clearButton: {
-    padding: spacing[1],
+    padding: theme.space[1],
   },
   quickFiltersContainer: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   quickFiltersContent: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    gap: theme.space[2],
     flexDirection: 'row',
     alignItems: 'center',
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    paddingHorizontal: theme.space[3],
+    paddingVertical: theme.space[2],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.muted,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
   },
   filterChipActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
+    borderColor: theme.color.brand.primary,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.neutral[600],
+    color: theme.color.text.muted,
   },
   filterChipTextActive: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
   },
   filterDivider: {
     width: 1,
     height: 24,
-    backgroundColor: colors.neutral[200],
-    marginHorizontal: spacing[2],
+    backgroundColor: theme.color.border.subtle,
+    marginHorizontal: theme.space[2],
   },
 
   loadingContainer: {
@@ -962,24 +957,24 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    marginTop: spacing[4],
+    marginTop: theme.space[4],
   },
 
   // Warning Banner
   warningBanner: {
     flexDirection: 'row',
-    backgroundColor: colors.warning[50],
-    marginHorizontal: spacing[4],
-    marginVertical: spacing[2],
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.color.state.warning.background,
+    marginHorizontal: theme.space[4],
+    marginVertical: theme.space[2],
+    padding: theme.space[3],
+    borderRadius: theme.radii.md,
     borderWidth: 1,
-    borderColor: colors.warning[300],
+    borderColor: theme.color.state.warning.border,
   },
 
   warningIcon: {
     fontSize: 20,
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
 
   warningContent: {
@@ -992,39 +987,39 @@ const styles = StyleSheet.create({
   },
 
   listContent: {
-    padding: spacing[4],
-    paddingBottom: spacing[24],
+    padding: theme.space[4],
+    paddingBottom: theme.space[24],
   },
 
   // Product Card
   productCard: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   productCardContent: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
 
   productHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   productThumbnail: {
     width: 60,
     height: 60,
-    borderRadius: borderRadius.md,
-    marginRight: spacing[3],
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.md,
+    marginRight: theme.space[3],
+    backgroundColor: theme.color.surface.subtle,
   },
 
   productThumbnailPlaceholder: {
     width: 60,
     height: 60,
-    borderRadius: borderRadius.md,
-    marginRight: spacing[3],
-    backgroundColor: colors.surface.secondary,
+    borderRadius: theme.radii.md,
+    marginRight: theme.space[3],
+    backgroundColor: theme.color.surface.subtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1035,15 +1030,15 @@ const styles = StyleSheet.create({
 
   productInfo: {
     flex: 1,
-    marginRight: spacing[2],
+    marginRight: theme.space[2],
   },
 
   productMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: spacing[2],
-    marginTop: spacing[1],
+    gap: theme.space[2],
+    marginTop: theme.space[1],
   },
 
   productCorrelative: {
@@ -1051,47 +1046,47 @@ const styles = StyleSheet.create({
   },
 
   duplicateBadge: {
-    backgroundColor: colors.warning[100],
-    paddingHorizontal: spacing[1.5],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.xs,
+    backgroundColor: theme.color.state.warning.background,
+    paddingHorizontal: theme.space[1.5],
+    paddingVertical: theme.space[0.5],
+    borderRadius: theme.radii.xs,
     borderWidth: 1,
-    borderColor: colors.warning[300],
+    borderColor: theme.color.state.warning.border,
   },
 
   badgesContainer: {
     flexDirection: 'column',
-    gap: spacing[1.5],
+    gap: theme.space[1.5],
     alignItems: 'flex-end',
   },
 
   statusBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
 
   noPhotoBadge: {
-    backgroundColor: colors.danger[50],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    backgroundColor: theme.color.state.danger.background,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
     borderWidth: 1,
-    borderColor: colors.danger[200],
+    borderColor: theme.color.state.danger.border,
   },
 
   productDetails: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   productDetailItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing[1.5],
+    marginBottom: theme.space[1.5],
   },
 
   productDivider: {
-    marginVertical: spacing[3],
+    marginVertical: theme.space[3],
   },
 
   productFooter: {
@@ -1102,125 +1097,125 @@ const styles = StyleSheet.create({
 
   productFooterInfo: {
     flex: 1,
-    gap: spacing[1],
+    gap: theme.space[1],
   },
 
   productActions: {
     flexDirection: 'row',
-    gap: spacing[2],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    gap: theme.space[2],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+    borderTopColor: theme.color.border.subtle,
   },
 
   actionButton: {
     flex: 1,
-    backgroundColor: colors.surface.secondary,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[2],
-    borderRadius: borderRadius.sm,
+    backgroundColor: theme.color.surface.subtle,
+    paddingVertical: theme.space[2],
+    paddingHorizontal: theme.space[2],
+    borderRadius: theme.radii.sm,
     alignItems: 'center',
   },
 
   viewButton: {
-    backgroundColor: colors.accent[50],
+    backgroundColor: theme.color.brand.accentSoft,
   },
 
   imagesButton: {
-    backgroundColor: colors.warning[50],
+    backgroundColor: theme.color.state.warning.background,
   },
 
   pricesButton: {
-    backgroundColor: colors.success[50],
+    backgroundColor: theme.color.state.success.background,
   },
 
   deleteButton: {
-    backgroundColor: colors.danger[50],
+    backgroundColor: theme.color.state.danger.background,
   },
 
   // Modal
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
 
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
 
   modalContent: {
     flex: 1,
-    padding: spacing[4],
+    padding: theme.space[4],
   },
 
   viewSection: {
-    marginBottom: spacing[4],
-    padding: spacing[4],
+    marginBottom: theme.space[4],
+    padding: theme.space[4],
   },
 
   viewSectionTitle: {
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
 
   viewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
 
   viewStatusBadge: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[1],
+    borderRadius: theme.radii.sm,
   },
 
   imageGallery: {
     flexDirection: 'row',
-    gap: spacing[3],
-    paddingVertical: spacing[2],
+    gap: theme.space[3],
+    paddingVertical: theme.space[2],
   },
 
   productImage: {
     width: 180,
     height: 180,
-    borderRadius: borderRadius.lg,
+    borderRadius: theme.radii.lg,
   },
 
   presentationCard: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    marginBottom: spacing[2],
+    backgroundColor: theme.color.surface.subtle,
+    borderRadius: theme.radii.md,
+    padding: theme.space[3],
+    marginBottom: theme.space[2],
   },
 
   presentationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
 
   baseBadge: {
-    backgroundColor: colors.success[500],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.xs,
+    backgroundColor: theme.color.icon.success,
+    paddingHorizontal: theme.space[2],
+    paddingVertical: theme.space[0.5],
+    borderRadius: theme.radii.xs,
   },
 
   modalFooter: {
-    padding: spacing[4],
-    backgroundColor: colors.surface.primary,
+    padding: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
+    borderTopColor: theme.color.border.subtle,
   },
 
   // Floating Button
@@ -1231,12 +1226,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primary[900],
+    backgroundColor: theme.color.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...shadows['2xl'],
+    ...theme.shadow['2xl'],
     borderWidth: 3,
-    borderColor: colors.surface.primary,
+    borderColor: theme.color.surface.base,
     zIndex: 9997,
   },
 

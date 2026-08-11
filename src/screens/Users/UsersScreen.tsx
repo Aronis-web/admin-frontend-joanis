@@ -6,21 +6,22 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { usersApi, User, GetUsersParams } from '@/services/api';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
 import { UserDetailModal } from '@/components/users/UserDetailModal';
 import { EditUserModal } from '@/components/users/EditUserModal';
-import { PaginationControls } from '@/components/Pagination/PaginationControls';
+import { Pagination } from '@/design-system';
 import { MAIN_ROUTES } from '@/constants/routes';
+import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
@@ -31,6 +32,8 @@ interface UsersScreenProps {
 
 export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   const { user, logout } = useAuthStore();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -241,7 +244,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   };
 
   const getStatusColor = (status: string) => {
-    return status === 'active' ? colors.success[500] : colors.danger[500];
+    return status === 'active' ? theme.color.state.success.border : theme.color.state.danger.border;
   };
 
   const getStatusText = (status: string) => {
@@ -330,7 +333,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
-            placeholderTextColor={colors.neutral[400]}
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="default"
             returnKeyType="search"
           />
@@ -365,7 +368,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
       >
         {loading && !refreshing ? (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={colors.primary[500]} />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
           </View>
         ) : users.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -380,14 +383,12 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
       {/* Pagination Controls */}
       {pagination.totalPages > 0 && (
-        <PaginationControls
+        <Pagination
           currentPage={pagination.page}
           totalPages={pagination.totalPages}
           totalItems={pagination.total}
           itemsPerPage={pagination.limit}
-          onPreviousPage={handlePreviousPage}
-          onNextPage={handleNextPage}
-          itemLabel="usuarios"
+          onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
         />
       )}
 
@@ -419,47 +420,51 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
       {/* Add Button */}
       <ProtectedFAB
-        icon="👥"
-        onPress={handleCreateUser}
-        requiredPermissions={['users.create']}
-        hideIfNoPermission={true}
+        actions={[
+          {
+            icon: 'person-add-outline',
+            label: 'Crear Usuario',
+            onPress: handleCreateUser,
+            requiredPermissions: ['users.create'],
+          },
+        ]}
       />
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.neutral[100],
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
     fontSize: 20,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   headerSpacer: {
     width: 40,
@@ -471,45 +476,45 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
   },
   searchContainer: {
     flexDirection: 'row',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.surface.primary,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    gap: spacing[3],
+    borderBottomColor: theme.color.border.subtle,
+    gap: theme.space[3],
   },
   searchInputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
+    borderColor: theme.color.border.subtle,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[4],
   },
   searchInput: {
     flex: 1,
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
     fontSize: 16,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   clearButton: {
-    padding: spacing[2],
+    padding: theme.space[2],
   },
   clearButtonText: {
     fontSize: 16,
-    color: colors.neutral[400],
+    color: theme.color.text.placeholder,
   },
   searchButton: {
-    backgroundColor: colors.primary[500],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    backgroundColor: theme.color.brand.accent,
+    borderRadius: theme.radii.xl,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -520,28 +525,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.primary[50],
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[2],
+    backgroundColor: theme.color.brand.accentSoft,
   },
   searchIndicatorText: {
     fontSize: 13,
-    color: colors.primary[700],
+    color: theme.color.brand.accent,
   },
   searchIndicatorClear: {
     fontSize: 13,
-    color: colors.primary[500],
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   loadingOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: spacing[10],
+    paddingVertical: theme.space[10],
   },
   usersList: {
     flex: 1,
-    paddingHorizontal: spacing[5],
+    paddingHorizontal: theme.space[5],
     paddingBottom: 100,
   },
   usersListLandscape: {
@@ -551,13 +556,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[3],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
-    shadowColor: colors.neutral[950],
+    borderColor: theme.color.border.subtle,
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -572,15 +577,15 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.primary[500],
+    backgroundColor: theme.color.brand.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   avatarText: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.neutral[0],
+    color: theme.color.text.onAction,
   },
   userDetails: {
     flex: 1,
@@ -588,31 +593,31 @@ const styles = StyleSheet.create({
   userNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
+    gap: theme.space[2],
   },
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   biometricBadge: {
-    backgroundColor: colors.success[100],
-    paddingHorizontal: spacing[1.5],
+    backgroundColor: theme.color.state.success.background,
+    paddingHorizontal: theme.space[1.5],
     paddingVertical: 2,
-    borderRadius: borderRadius.md,
+    borderRadius: theme.radii.md,
   },
   biometricBadgeText: {
     fontSize: 12,
   },
   userEmail: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     marginBottom: 2,
   },
   userRoles: {
     fontSize: 12,
-    color: colors.primary[500],
+    color: theme.color.brand.accent,
     fontWeight: '500',
   },
   userStatus: {
@@ -636,7 +641,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     textAlign: 'center',
   },
 });

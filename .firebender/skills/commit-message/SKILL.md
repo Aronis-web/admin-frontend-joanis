@@ -11,7 +11,7 @@ version: 1.0.0
 - **Idioma**: español.
 - **Modo**: imperativo, presente. No "agregado", no "agregando" → "agrega".
 - **Sin prefijos tipo Conventional Commits** (`feat:`, `fix:`) salvo que el usuario lo pida explícitamente.
-- **Longitud**: subject ��72 caracteres.
+- **Longitud**: subject ≤72 caracteres.
 - **Foco**: explica el **por qué** o el efecto de negocio, no el "qué" obvio del diff.
 - Si hay varios cambios cohesivos, agruparlos en una sola frase.
 - Si hay cambios muy distintos, sugerir al usuario partir en varios commits.

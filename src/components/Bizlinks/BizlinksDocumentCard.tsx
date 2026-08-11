@@ -7,7 +7,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { BizlinksDocument } from '../../types/bizlinks';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   getBizlinksStatusSunatLabel,
   getBizlinksStatusSunatColor,
@@ -30,6 +31,8 @@ export const BizlinksDocumentCard: React.FC<BizlinksDocumentCardProps> = ({
   onDownload,
   refreshing = false,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const statusColor = getBizlinksStatusSunatColor(document.statusSunat);
   const statusLabel = getBizlinksStatusSunatLabel(document.statusSunat);
 
@@ -107,7 +110,7 @@ export const BizlinksDocumentCard: React.FC<BizlinksDocumentCardProps> = ({
                 disabled={refreshing}
               >
                 {refreshing ? (
-                  <ActivityIndicator size="small" color="#17a2b8" />
+                  <ActivityIndicator size="small" color={theme.color.text.link} />
                 ) : (
                   <Text style={styles.actionButtonText}>Actualizar</Text>
                 )}
@@ -129,107 +132,108 @@ export const BizlinksDocumentCard: React.FC<BizlinksDocumentCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    marginHorizontal: spacing[4],
-    marginVertical: spacing[2],
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: spacing[4],
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  documentType: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  serieNumero: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.neutral[700],
-  },
-  statusBadge: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.xl,
-  },
-  statusText: {
-    color: colors.neutral[0],
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.neutral[200],
-    marginHorizontal: spacing[4],
-  },
-  body: {
-    padding: spacing[4],
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing[2],
-  },
-  label: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    fontWeight: '500',
-  },
-  value: {
-    fontSize: 14,
-    color: colors.neutral[700],
-    flex: 1,
-    textAlign: 'right',
-  },
-  valueAmount: {
-    fontSize: 16,
-    color: colors.success[500],
-    fontWeight: 'bold',
-  },
-  messageContainer: {
-    marginTop: spacing[3],
-    padding: spacing[3],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-  },
-  messageLabel: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    fontWeight: '600',
-    marginBottom: spacing[1],
-  },
-  messageText: {
-    fontSize: 12,
-    color: colors.neutral[700],
-  },
-  actions: {
-    flexDirection: 'row',
-    padding: spacing[3],
-    gap: spacing[2],
-  },
-  actionButton: {
-    flex: 1,
-    padding: spacing[3],
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    fontSize: 14,
-    color: colors.info[500],
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      marginHorizontal: theme.space[4],
+      marginVertical: theme.space[2],
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      padding: theme.space[4],
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    documentType: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    serieNumero: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.color.text.body,
+    },
+    statusBadge: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 6,
+      borderRadius: theme.radii.xl,
+    },
+    statusText: {
+      color: theme.color.text.inverse,
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    divider: {
+      height: 1,
+      backgroundColor: theme.color.border.subtle,
+      marginHorizontal: theme.space[4],
+    },
+    body: {
+      padding: theme.space[4],
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: theme.space[2],
+    },
+    label: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    value: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      flex: 1,
+      textAlign: 'right',
+    },
+    valueAmount: {
+      fontSize: 16,
+      color: theme.color.text.success,
+      fontWeight: 'bold',
+    },
+    messageContainer: {
+      marginTop: theme.space[3],
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+    },
+    messageLabel: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+      marginBottom: theme.space[1],
+    },
+    messageText: {
+      fontSize: 12,
+      color: theme.color.text.body,
+    },
+    actions: {
+      flexDirection: 'row',
+      padding: theme.space[3],
+      gap: theme.space[2],
+    },
+    actionButton: {
+      flex: 1,
+      padding: theme.space[3],
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    actionButtonText: {
+      fontSize: 14,
+      color: theme.color.text.link,
+      fontWeight: '600',
+    },
+  });

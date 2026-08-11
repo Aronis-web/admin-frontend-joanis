@@ -22,7 +22,9 @@ import {
   formatCurrency,
 } from '../../utils/bizlinksHelpers';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 type Props = NativeStackScreenProps<any, 'BizlinksDocumentDetail'>;
 
@@ -30,6 +32,8 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
   const { documentId } = route.params as { documentId: string };
   const { getDocumentById, refreshDocumentStatus, downloadArtifacts, retryDocument, loading } =
     useBizlinksDocuments();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [document, setDocument] = useState<BizlinksDocument | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -119,7 +123,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
       <ScreenLayout navigation={navigation as any}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary[600]} />
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
             <Text style={styles.loadingText}>Cargando documento...</Text>
           </View>
         </SafeAreaView>
@@ -134,19 +138,19 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="document-text" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="document-text" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.headerTitle}>{document.serieNumero}</Text>
               </View>
@@ -291,7 +295,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
               onPress={handleRefresh}
               disabled={refreshing}
             >
-              <Ionicons name="refresh" size={20} color={colors.neutral[0]} />
+              <Ionicons name="refresh" size={20} color={theme.color.text.inverse} />
               <Text style={styles.buttonText}>
                 {refreshing ? 'Actualizando...' : 'Actualizar Estado'}
               </Text>
@@ -303,7 +307,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
                 onPress={handleRetry}
                 disabled={retrying}
               >
-                <Ionicons name="reload" size={20} color={colors.neutral[0]} />
+                <Ionicons name="reload" size={20} color={theme.color.text.inverse} />
                 <Text style={styles.buttonText}>
                   {retrying ? 'Reintentando...' : 'Reintentar envío'}
                 </Text>
@@ -314,7 +318,7 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
               style={[styles.button, styles.downloadButton]}
               onPress={handleDownload}
             >
-              <Ionicons name="download" size={20} color={colors.neutral[0]} />
+              <Ionicons name="download" size={20} color={theme.color.text.inverse} />
               <Text style={styles.buttonText}>Descargar Archivos</Text>
             </TouchableOpacity>
           </View>
@@ -324,10 +328,10 @@ export const BizlinksDocumentDetailScreen: React.FC<Props> = ({ navigation, rout
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
   },
   content: {
     flex: 1,
@@ -344,7 +348,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing[4],
     fontSize: 16,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   // Header con gradiente
@@ -361,7 +365,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -378,7 +382,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing[3],
@@ -386,12 +390,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
     marginLeft: spacing[12],
   },
@@ -401,24 +405,24 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   statusTextHeader: {
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   section: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderRadius: borderRadius.xl,
     padding: spacing[4],
     marginBottom: spacing[4],
     borderWidth: 1,
-    borderColor: colors.neutral[200],
+    borderColor: theme.color.border.subtle,
     ...shadows.sm,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     marginBottom: spacing[4],
   },
   infoRow: {
@@ -428,19 +432,19 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: colors.neutral[500],
+    color: theme.color.text.muted,
     fontWeight: '500',
   },
   value: {
     fontSize: 14,
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
   },
   valueSmall: {
     fontSize: 12,
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     flex: 1,
     textAlign: 'right',
   },
@@ -450,41 +454,41 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
     paddingTop: spacing[3],
     borderTopWidth: 2,
-    borderTopColor: colors.neutral[200],
+    borderTopColor: theme.color.border.subtle,
   },
   totalLabel: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.neutral[800],
+    color: theme.color.text.heading,
   },
   totalValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.success[600],
+    color: theme.color.text.success,
   },
   messageContainer: {
-    backgroundColor: colors.warning[50],
+    backgroundColor: theme.color.state.warning.background,
     padding: spacing[3],
     borderRadius: borderRadius.lg,
     marginTop: spacing[2],
     borderWidth: 1,
-    borderColor: colors.warning[200],
+    borderColor: theme.color.state.warning.border,
   },
   messageLabel: {
     fontSize: 12,
-    color: colors.warning[700],
+    color: theme.color.state.warning.text,
     fontWeight: '600',
     marginBottom: spacing[1],
   },
   messageText: {
     fontSize: 14,
-    color: colors.warning[800],
+    color: theme.color.state.warning.text,
   },
   fileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing[2],
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.background.subtle,
     padding: spacing[3],
     borderRadius: borderRadius.lg,
   },
@@ -494,7 +498,7 @@ const styles = StyleSheet.create({
   },
   fileName: {
     fontSize: 14,
-    color: colors.neutral[700],
+    color: theme.color.text.body,
     fontWeight: '500',
   },
   actions: {
@@ -511,16 +515,16 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   refreshButton: {
-    backgroundColor: colors.primary[600],
+    backgroundColor: theme.color.brand.accent,
   },
   downloadButton: {
-    backgroundColor: colors.success[600],
+    backgroundColor: theme.color.action.success.background,
   },
   retryButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: theme.color.action.danger.background,
   },
   buttonText: {
-    color: colors.neutral[0],
+    color: theme.color.text.inverse,
     fontSize: 16,
     fontWeight: '600',
   },

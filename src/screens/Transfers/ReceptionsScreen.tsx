@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   TextInput,
   ActivityIndicator,
   Modal,
@@ -34,6 +33,10 @@ import {
   ValidateItemDto,
   CompleteReceptionDto,
 } from '@/types/transfers';
+import { Pagination } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ReceptionsScreenProps {
   navigation: any;
@@ -78,6 +81,8 @@ interface PersistedReceptionForm {
 const getReceptionFormStorageKey = (transferId: string) => `reception-form:${transferId}`;
 
 export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentSite } = useAuthStore();
   const { selectedSite } = useTenantStore();
 
@@ -107,7 +112,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   const [showItemViewModal, setShowItemViewModal] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [currentReception, setCurrentReception] = useState<TransferReception | null>(null);
-  const [itemValidationsById, setItemValidationsById] = useState<Record<string, ItemValidation>>({});
+  const [itemValidationsById, setItemValidationsById] = useState<Record<string, ItemValidation>>(
+    {}
+  );
   const [qualityCheckNotes, setQualityCheckNotes] = useState('');
   const [productSearchTerm, setProductSearchTerm] = useState('');
 
@@ -179,21 +186,18 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
     [areasByWarehouse]
   );
 
-  const loadWarehouses = useCallback(
-    async (siteId?: string): Promise<Warehouse[]> => {
-      try {
-        const response = await warehousesApi.getWarehouses(undefined, siteId);
-        const loaded = response || [];
-        setWarehouses(loaded);
-        return loaded;
-      } catch (error) {
-        console.error('Error loading warehouses:', error);
-        setWarehouses([]);
-        return [];
-      }
-    },
-    []
-  );
+  const loadWarehouses = useCallback(async (siteId?: string): Promise<Warehouse[]> => {
+    try {
+      const response = await warehousesApi.getWarehouses(undefined, siteId);
+      const loaded = response || [];
+      setWarehouses(loaded);
+      return loaded;
+    } catch (error) {
+      console.error('Error loading warehouses:', error);
+      setWarehouses([]);
+      return [];
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -268,11 +272,13 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   };
 
   const handleRemissionGuidePress = async (target: Transfer | TransferReception) => {
-    const guide = 'transferNumber' in target
-      ? target.remissionGuide
-      : target.remissionGuide || target.transfer?.remissionGuide;
+    const guide =
+      'transferNumber' in target
+        ? target.remissionGuide
+        : target.remissionGuide || target.transfer?.remissionGuide;
 
-    const transferId = 'transferNumber' in target ? target.id : target.transferId || target.transfer?.id;
+    const transferId =
+      'transferNumber' in target ? target.id : target.transferId || target.transfer?.id;
     if (!transferId) {
       Alert.alert('Error', 'No se encontró el traslado asociado a esta recepción');
       return;
@@ -307,12 +313,15 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
     pendingBultosModalRef.current = false;
   }, []);
 
-  const handleTransportConfirm = useCallback((vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
-    setPendingTransportData({ vehicle, driver, transporter });
-    setNumeroBultos('1');
-    pendingBultosModalRef.current = true;
-    setShowTransportModal(false);
-  }, []);
+  const handleTransportConfirm = useCallback(
+    (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
+      setPendingTransportData({ vehicle, driver, transporter });
+      setNumeroBultos('1');
+      pendingBultosModalRef.current = true;
+      setShowTransportModal(false);
+    },
+    []
+  );
 
   const handleGenerateGuideConfirm = async () => {
     if (!selectedTransfer?.id || !pendingTransportData) {
@@ -371,13 +380,16 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
             Alert.alert(
               'Éxito',
-              response.message || `Guía ${response.remissionGuide.serieNumero || response.remissionGuide.number || ''} generada exitosamente`
+              response.message ||
+                `Guía ${response.remissionGuide.serieNumero || response.remissionGuide.number || ''} generada exitosamente`
             );
           } catch (error: any) {
             console.error('Error generating remission guide:', error);
             Alert.alert(
               'Error',
-              error.response?.data?.message || error.message || 'No se pudo generar la guía de remisión'
+              error.response?.data?.message ||
+                error.message ||
+                'No se pudo generar la guía de remisión'
             );
           } finally {
             setGeneratingRemissionGuide(false);
@@ -498,7 +510,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
     const quantityReceivedFromApi = Number(item.quantityReceived ?? local.quantityReceived ?? 0);
     const quantityDamagedFromApi = Number(item.quantityDamaged ?? local.quantityDamaged ?? 0);
-    const destinationWarehouseId = String(item.destinationWarehouseId || local.destinationWarehouseId || '');
+    const destinationWarehouseId = String(
+      item.destinationWarehouseId || local.destinationWarehouseId || ''
+    );
     const destinationAreaId = String(item.destinationAreaId || local.destinationAreaId || '');
     const damagedWarehouseId = String(item.damagedWarehouseId || local.damagedWarehouseId || '');
     const damagedAreaId = String(item.damagedAreaId || local.damagedAreaId || '');
@@ -535,7 +549,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
     const quantityReceivedFromApi = Number(item.quantityReceived ?? local.quantityReceived ?? 0);
     const quantityDamagedFromApi = Number(item.quantityDamaged ?? local.quantityDamaged ?? 0);
 
-    const destinationWarehouseId = String(item.destinationWarehouseId || local.destinationWarehouseId || '');
+    const destinationWarehouseId = String(
+      item.destinationWarehouseId || local.destinationWarehouseId || ''
+    );
     const destinationAreaId = String(item.destinationAreaId || local.destinationAreaId || '');
     const damagedWarehouseId = String(item.damagedWarehouseId || local.damagedWarehouseId || '');
     const damagedAreaId = String(item.damagedAreaId || local.damagedAreaId || '');
@@ -589,7 +605,10 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
       }
 
       if (quantityDamaged > quantityReceived) {
-        Alert.alert('Dato inválido', 'La cantidad dañada no puede ser mayor a la cantidad recibida');
+        Alert.alert(
+          'Dato inválido',
+          'La cantidad dañada no puede ser mayor a la cantidad recibida'
+        );
         return;
       }
 
@@ -608,8 +627,11 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           quantityReceived,
           quantityDamaged: errorModalForm.hasDamaged ? quantityDamaged : 0,
           notes: errorModalForm.notes || undefined,
-          damageNotes: errorModalForm.hasDamaged ? errorModalForm.damageNotes || undefined : undefined,
-          destinationWarehouseId: errorModalForm.destinationWarehouseId || existing?.destinationWarehouseId || '',
+          damageNotes: errorModalForm.hasDamaged
+            ? errorModalForm.damageNotes || undefined
+            : undefined,
+          destinationWarehouseId:
+            errorModalForm.destinationWarehouseId || existing?.destinationWarehouseId || '',
           destinationAreaId: errorModalForm.destinationAreaId || existing?.destinationAreaId || '',
           damagedWarehouseId: errorModalForm.hasDamaged ? errorModalForm.damagedWarehouseId : '',
           damagedAreaId: errorModalForm.hasDamaged ? errorModalForm.damagedAreaId : '',
@@ -643,7 +665,11 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
     const quantityDamaged = Number(errorModalForm.quantityDamaged || 0);
     if (errorModalForm.hasDamaged) {
-      if (Number.isNaN(quantityDamaged) || quantityDamaged < 0 || quantityDamaged > quantityReceived) {
+      if (
+        Number.isNaN(quantityDamaged) ||
+        quantityDamaged < 0 ||
+        quantityDamaged > quantityReceived
+      ) {
         Alert.alert('Dato inválido', 'La cantidad dañada debe ser válida y no mayor a la recibida');
         return;
       }
@@ -668,7 +694,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
             : undefined,
           damagedAreaId: errorModalForm.hasDamaged ? errorModalForm.damagedAreaId : undefined,
           notes: errorModalForm.notes || undefined,
-          damageNotes: errorModalForm.hasDamaged ? errorModalForm.damageNotes || undefined : undefined,
+          damageNotes: errorModalForm.hasDamaged
+            ? errorModalForm.damageNotes || undefined
+            : undefined,
         },
       };
 
@@ -706,7 +734,6 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
     setShowValidateModal(false);
   };
 
-
   const handleCompleteReception = async () => {
     if (!selectedTransfer || !currentReception) {
       return;
@@ -714,7 +741,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
     Alert.alert(
       'Completar Recepción',
-      '¿Estás seguro de completar esta recepción? El stock se actualizará en el almacén destino.',
+      '¿Estás seguro de completar esta recepción? El stock ya fue trasladado al almacén destino durante el despacho; al completar solo se confirma la llegada y quedan registradas las diferencias (faltante/dañado) como discrepancias para conciliación posterior.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -731,7 +758,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
               Alert.alert(
                 'Recepción Completada',
-                'La recepción ha sido completada exitosamente. El stock ha sido actualizado.',
+                'La recepción ha sido completada exitosamente. El stock ya estaba disponible en el almacén destino desde el despacho; las diferencias registradas quedan como discrepancias para su conciliación.',
                 [
                   {
                     text: 'OK',
@@ -784,23 +811,39 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         {receptions.map((reception) => {
           const transfer = reception.transfer;
           const displayNumber = reception.receptionNumber || transfer?.transferNumber || 'N/A';
-          const displayDate = reception.receivedAt || reception.createdAt || new Date().toISOString();
+          const displayDate =
+            reception.receivedAt || reception.createdAt || new Date().toISOString();
           const guide = reception.remissionGuide || transfer?.remissionGuide;
           const transferId = reception.transferId || transfer?.id;
 
           const statusConfig =
             reception.status === ReceptionStatus.PENDING
-              ? { label: 'Pendiente', backgroundColor: '#FEF3C7', borderColor: '#F59E0B', textColor: '#F59E0B' }
+              ? {
+                  label: 'Pendiente',
+                  backgroundColor: theme.color.state.warning.background,
+                  borderColor: theme.color.state.warning.border,
+                  textColor: theme.color.state.warning.text,
+                }
               : reception.status === ReceptionStatus.PARTIAL
-                ? { label: 'Parcial', backgroundColor: '#EDE9FE', borderColor: '#8B5CF6', textColor: '#8B5CF6' }
+                ? {
+                    label: 'Parcial',
+                    backgroundColor: theme.color.state.partial.background,
+                    borderColor: theme.color.state.partial.border,
+                    textColor: theme.color.state.partial.text,
+                  }
                 : reception.status === ReceptionStatus.WITH_DIFFERENCES
                   ? {
                       label: 'Con diferencias',
-                      backgroundColor: '#FFEDD5',
-                      borderColor: '#EA580C',
-                      textColor: '#C2410C',
+                      backgroundColor: theme.color.state.warning.background,
+                      borderColor: theme.color.state.warning.border,
+                      textColor: theme.color.state.warning.text,
                     }
-                  : { label: 'Completo', backgroundColor: '#D1FAE5', borderColor: '#10B981', textColor: '#10B981' };
+                  : {
+                      label: 'Completo',
+                      backgroundColor: theme.color.state.success.background,
+                      borderColor: theme.color.state.success.border,
+                      textColor: theme.color.state.success.text,
+                    };
           const expectedItemsCount =
             Number(
               reception.totalItemsExpected ??
@@ -871,7 +914,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                     <View style={styles.statDivider} />
                     <View style={styles.stat}>
                       <Text style={styles.statLabel}>Diferencias</Text>
-                      <Text style={[styles.statValue, { color: '#F59E0B' }]}>Sí</Text>
+                      <Text style={[styles.statValue, { color: theme.color.state.warning.border }]}>
+                        Sí
+                      </Text>
                     </View>
                   </>
                 )}
@@ -907,31 +952,6 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
             </TouchableOpacity>
           );
         })}
-
-        <View style={styles.paginationContainer}>
-          <TouchableOpacity
-            style={[styles.paginationButton, currentPage <= 1 && styles.paginationButtonDisabled]}
-            onPress={handlePrevPage}
-            disabled={currentPage <= 1}
-          >
-            <Text style={styles.paginationButtonText}>Anterior</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.paginationInfo}>
-            Página {currentPage} de {Math.max(totalPages, 1)} • Total: {totalReceptions}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.paginationButton,
-              currentPage >= totalPages && styles.paginationButtonDisabled,
-            ]}
-            onPress={handleNextPage}
-            disabled={currentPage >= totalPages}
-          >
-            <Text style={styles.paginationButtonText}>Siguiente</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     );
   };
@@ -946,7 +966,8 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
     const shippedQty = Number(item.quantityShipped ?? item.quantityRequested ?? 0);
     const receivedQty = Number(item.quantityReceived ?? local.quantityReceived ?? 0);
 
-    const isValidatedFromApi = item.quantityReceived !== null && item.quantityReceived !== undefined;
+    const isValidatedFromApi =
+      item.quantityReceived !== null && item.quantityReceived !== undefined;
     const hasDamagedFromApi =
       Number(item.quantityDamaged ?? local.quantityDamaged ?? 0) > 0 ||
       Boolean(item.damageNotes || local.damageNotes);
@@ -959,19 +980,24 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           : 'Validado'
       : 'Pendiente';
 
-    const statusColor = isValidatedFromApi ? '#10B981' : '#64748B';
+    const statusColor = isValidatedFromApi
+      ? theme.color.state.success.text
+      : theme.color.text.muted;
 
     return (
       <View style={styles.validateItemCard}>
         <View style={styles.validateItemTopRow}>
           <View style={styles.validateItemHeader}>
-            <Text style={styles.validateItemTitle}>{item.product?.title || 'Producto sin nombre'}</Text>
+            <Text style={styles.validateItemTitle}>
+              {item.product?.title || 'Producto sin nombre'}
+            </Text>
             <Text style={styles.validateItemSku}>Código: {item.product?.sku || 'N/A'}</Text>
             <Text style={styles.validateItemSku}>
-              Correlativo: {item.product?.correlativeNumber ? `#${item.product.correlativeNumber}` : 'N/A'}
+              Correlativo:{' '}
+              {item.product?.correlativeNumber ? `#${item.product.correlativeNumber}` : 'N/A'}
             </Text>
           </View>
-          <View style={[styles.itemStatusBadge, { borderColor: statusColor }]}> 
+          <View style={[styles.itemStatusBadge, { borderColor: statusColor }]}>
             <Text style={[styles.itemStatusText, { color: statusColor }]}>{statusLabel}</Text>
           </View>
         </View>
@@ -994,7 +1020,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                 styles.itemActionButton,
                 isValidatedFromApi ? styles.fullEntryDoneButton : styles.validateFixedButton,
               ]}
-              onPress={() => (isValidatedFromApi ? openItemViewModal(item) : openItemErrorModal(item))}
+              onPress={() =>
+                isValidatedFromApi ? openItemViewModal(item) : openItemErrorModal(item)
+              }
               disabled={isReadOnlyMode && !isValidatedFromApi}
             >
               <Text style={styles.itemActionText}>{isValidatedFromApi ? 'Ver' : 'Validar'}</Text>
@@ -1019,11 +1047,22 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando recepciones...</Text>
         </View>
       ) : (
         renderList()
+      )}
+
+      {!loading && totalReceptions > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.max(totalPages, 1)}
+          totalItems={totalReceptions}
+          itemsPerPage={pageSize}
+          onPageChange={setCurrentPage}
+          loading={loading}
+        />
       )}
 
       <Modal visible={showValidateModal} animationType="slide" presentationStyle="pageSheet">
@@ -1032,7 +1071,10 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
             <Text style={styles.validateTitle}>
               {isReadOnlyMode ? 'Detalle de Recepción' : 'Validar Items Recibidos'}
             </Text>
-            <TouchableOpacity onPress={() => void handleCloseValidationModal()} style={styles.closeButton}>
+            <TouchableOpacity
+              onPress={() => void handleCloseValidationModal()}
+              style={styles.closeButton}
+            >
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
@@ -1047,7 +1089,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                 const sku = item.product?.sku?.toLowerCase() || '';
                 const correlative = String(item.product?.correlativeNumber || '').toLowerCase();
 
-                return title.includes(search) || sku.includes(search) || correlative.includes(search);
+                return (
+                  title.includes(search) || sku.includes(search) || correlative.includes(search)
+                );
               })
               .sort((a, b) => {
                 const aName = (a.product?.title || a.product?.sku || '').toLowerCase();
@@ -1065,7 +1109,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
             ListHeaderComponent={
               <>
                 <View style={styles.validateInfo}>
-                  <Text style={styles.validateInfoText}>📦 Traslado: {selectedTransfer?.transferNumber}</Text>
+                  <Text style={styles.validateInfoText}>
+                    📦 Traslado: {selectedTransfer?.transferNumber}
+                  </Text>
                   <Text style={styles.validateInfoText}>
                     📥 Recepción: {currentReception?.receptionNumber || currentReception?.id}
                   </Text>
@@ -1075,14 +1121,18 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   <Text style={styles.guideDetailTitle}>Guía de remisión</Text>
                   {selectedTransfer?.remissionGuide ? (
                     <>
-                      <Text style={styles.guideDetailValue}>{selectedTransfer.remissionGuide.number}</Text>
+                      <Text style={styles.guideDetailValue}>
+                        {selectedTransfer.remissionGuide.number}
+                      </Text>
                       <Text style={styles.guideDetailMeta}>
                         Estado: {selectedTransfer.remissionGuide.status}
                         {selectedTransfer.remissionGuide.isDevelopment ? ' • Desarrollo' : ''}
                       </Text>
                     </>
                   ) : (
-                    <Text style={styles.guideDetailMeta}>Este traslado aún no tiene guía de remisión.</Text>
+                    <Text style={styles.guideDetailMeta}>
+                      Este traslado aún no tiene guía de remisión.
+                    </Text>
                   )}
                   {selectedTransfer?.remissionGuide && (
                     <TouchableOpacity
@@ -1090,12 +1140,15 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                       style={[
                         styles.guideActionButton,
                         styles.downloadGuideButton,
-                        downloadingGuideId === selectedTransfer.id && styles.guideActionButtonDisabled,
+                        downloadingGuideId === selectedTransfer.id &&
+                          styles.guideActionButtonDisabled,
                       ]}
                       onPress={() => void handleRemissionGuidePress(selectedTransfer)}
                     >
                       <Text style={styles.guideActionButtonText}>
-                        {downloadingGuideId === selectedTransfer.id ? 'Descargando guía...' : 'Descargar guía'}
+                        {downloadingGuideId === selectedTransfer.id
+                          ? 'Descargando guía...'
+                          : 'Descargar guía'}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -1115,7 +1168,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   placeholder="Buscar por nombre, código o correlativo"
                   value={productSearchTerm}
                   onChangeText={setProductSearchTerm}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                 />
               </>
             }
@@ -1130,7 +1183,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   multiline
                   numberOfLines={3}
                   editable={!isReadOnlyMode}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={theme.color.text.placeholder}
                 />
               </View>
             }
@@ -1185,7 +1238,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               onChangeText={setNumeroBultos}
               keyboardType="numeric"
               placeholder="Ej: 10"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={theme.color.text.placeholder}
             />
 
             <View style={styles.modalActionsRow}>
@@ -1229,7 +1282,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                 keyboardType="numeric"
                 value={errorModalForm?.quantityReceived || ''}
                 onChangeText={(value) => updateErrorModalForm('quantityReceived', value)}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
 
               <Text style={styles.label}>Almacén destino *</Text>
@@ -1254,12 +1307,16 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={errorModalForm?.destinationAreaId || ''}
-                  onValueChange={(value) => updateErrorModalForm('destinationAreaId', String(value))}
+                  onValueChange={(value) =>
+                    updateErrorModalForm('destinationAreaId', String(value))
+                  }
                 >
                   <Picker.Item label="Seleccione área" value="" />
-                  {(areasByWarehouse[errorModalForm?.destinationWarehouseId || ''] || []).map((area) => (
-                    <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
-                  ))}
+                  {(areasByWarehouse[errorModalForm?.destinationWarehouseId || ''] || []).map(
+                    (area) => (
+                      <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
+                    )
+                  )}
                 </Picker>
               </View>
 
@@ -1271,7 +1328,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                 onChangeText={(value) => updateErrorModalForm('notes', value)}
                 multiline
                 numberOfLines={2}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.color.text.placeholder}
               />
 
               <View style={styles.damagedToggleRow}>
@@ -1299,7 +1356,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                     keyboardType="numeric"
                     value={errorModalForm?.quantityDamaged || ''}
                     onChangeText={(value) => updateErrorModalForm('quantityDamaged', value)}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
 
                   <Text style={styles.label}>Almacén de dañados *</Text>
@@ -1315,7 +1372,11 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                     >
                       <Picker.Item label="Seleccione almacén" value="" />
                       {warehouses.map((warehouse) => (
-                        <Picker.Item key={warehouse.id} label={warehouse.name} value={warehouse.id} />
+                        <Picker.Item
+                          key={warehouse.id}
+                          label={warehouse.name}
+                          value={warehouse.id}
+                        />
                       ))}
                     </Picker>
                   </View>
@@ -1324,12 +1385,20 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   <View style={styles.pickerContainer}>
                     <Picker
                       selectedValue={errorModalForm?.damagedAreaId || ''}
-                      onValueChange={(value) => updateErrorModalForm('damagedAreaId', String(value))}
+                      onValueChange={(value) =>
+                        updateErrorModalForm('damagedAreaId', String(value))
+                      }
                     >
                       <Picker.Item label="Seleccione área" value="" />
-                      {(areasByWarehouse[errorModalForm?.damagedWarehouseId || ''] || []).map((area) => (
-                        <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
-                      ))}
+                      {(areasByWarehouse[errorModalForm?.damagedWarehouseId || ''] || []).map(
+                        (area) => (
+                          <Picker.Item
+                            key={area.id}
+                            label={area.name || area.code}
+                            value={area.id}
+                          />
+                        )
+                      )}
                     </Picker>
                   </View>
 
@@ -1341,7 +1410,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                     onChangeText={(value) => updateErrorModalForm('damageNotes', value)}
                     multiline
                     numberOfLines={2}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={theme.color.text.placeholder}
                   />
                 </>
               )}
@@ -1379,7 +1448,8 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
             <Text style={styles.viewRowLabel}>Almacén destino</Text>
             <Text style={styles.viewRowValue}>
-              {warehouses.find((w) => w.id === errorModalForm?.destinationWarehouseId)?.name || 'N/A'}
+              {warehouses.find((w) => w.id === errorModalForm?.destinationWarehouseId)?.name ||
+                'N/A'}
             </Text>
 
             <Text style={styles.viewRowLabel}>Área destino</Text>
@@ -1399,7 +1469,8 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
                 <Text style={styles.viewRowLabel}>Almacén dañados</Text>
                 <Text style={styles.viewRowValue}>
-                  {warehouses.find((w) => w.id === errorModalForm?.damagedWarehouseId)?.name || 'N/A'}
+                  {warehouses.find((w) => w.id === errorModalForm?.damagedWarehouseId)?.name ||
+                    'N/A'}
                 </Text>
 
                 <Text style={styles.viewRowLabel}>Área dañados</Text>
@@ -1433,578 +1504,579 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: '#334155',
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#64748B',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'center',
-  },
-  receptionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  receptionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  receptionInfo: {
-    flex: 1,
-  },
-  receptionNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  receptionDate: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  transferInfoText: {
-    fontSize: 13,
-    color: '#475569',
-    marginVertical: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  receptionStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E2E8F0',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  receptionNotes: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  guideActionButton: {
-    marginTop: 12,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  downloadGuideButton: {
-    backgroundColor: '#6366F1',
-  },
-  createGuideButton: {
-    backgroundColor: '#F59E0B',
-  },
-  guideActionButtonDisabled: {
-    opacity: 0.7,
-  },
-  guideActionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  notesLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  notesText: {
-    fontSize: 13,
-    color: '#475569',
-    lineHeight: 18,
-  },
-  paginationContainer: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  paginationButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#CBD5E1',
-  },
-  paginationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  paginationInfo: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#475569',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  validateModalContainer: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  validateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  validateTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: '#64748B',
-    fontWeight: 'bold',
-  },
-  validateList: {
-    flex: 1,
-  },
-  validateListContent: {
-    padding: 16,
-    paddingBottom: 120,
-  },
-  validateInfo: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  validateInfoText: {
-    fontSize: 13,
-    color: '#4338CA',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  guideDetailCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  guideDetailTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  guideDetailValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  guideDetailMeta: {
-    marginTop: 4,
-    fontSize: 12,
-    color: '#64748B',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 12,
-  },
-  searchInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#1E293B',
-    marginBottom: 16,
-  },
-  qualityCheckSectionInline: {
-    backgroundColor: '#F0F9FF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    marginTop: 8,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 12,
-  },
-  validateItemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  validateItemTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    gap: 8,
-  },
-  validateItemHeader: {
-    flex: 1,
-  },
-  validateItemTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  validateItemSku: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  itemStatusBadge: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#FFFFFF',
-  },
-  itemStatusText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  quantityInfo: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 10,
-  },
-  quantityBox: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 6,
-    padding: 10,
-    alignItems: 'center',
-  },
-  quantityLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  quantityValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  inlineDestinationSection: {
-    marginBottom: 10,
-  },
-  inlineDestinationLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  destinationInfoText: {
-    fontSize: 12,
-    color: '#475569',
-    marginBottom: 10,
-  },
-  itemActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  itemActionButton: {
-    flex: 1,
-    borderRadius: 8,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  fullEntryButton: {
-    backgroundColor: '#10B981',
-  },
-  fullEntryDoneButton: {
-    backgroundColor: '#047857',
-  },
-  errorEntryButton: {
-    backgroundColor: '#F59E0B',
-  },
-  itemActionText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-  },
-  fixedActionsBar: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  fixedActionButton: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  cancelFixedButton: {
-    backgroundColor: '#475569',
-  },
-  validateFixedButton: {
-    backgroundColor: '#8B5CF6',
-  },
-  fixedActionText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'center',
-    padding: 18,
-  },
-  itemErrorModalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 18,
-    maxHeight: '92%',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  itemModalScroll: {
-    maxHeight: 520,
-  },
-  itemModalScrollContent: {
-    paddingBottom: 8,
-  },
-  itemErrorModalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  modalTextArea: {
-    minHeight: 72,
-    textAlignVertical: 'top',
-  },
-  damagedToggleRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  damagedToggleLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  modalActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-  },
-  modalActionButton: {
-    flex: 1,
-    minHeight: 44,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalCancelButton: {
-    backgroundColor: '#E2E8F0',
-  },
-  modalSaveButton: {
-    backgroundColor: '#6D28D9',
-  },
-  modalActionText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  modalActionTextCancel: {
-    color: '#1E293B',
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  viewRowLabel: {
-    marginTop: 10,
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#64748B',
-    textTransform: 'uppercase',
-  },
-  viewRowValue: {
-    marginTop: 2,
-    fontSize: 14,
-    color: '#1E293B',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    backButtonText: {
+      fontSize: 20,
+      color: theme.color.text.body,
+    },
+    headerTitleContainer: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    headerSubtitle: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 100,
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    receptionCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    receptionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    receptionInfo: {
+      flex: 1,
+    },
+    receptionNumber: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    receptionDate: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    transferInfoText: {
+      fontSize: 13,
+      color: theme.color.text.body,
+      marginVertical: 2,
+    },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    statusText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    receptionStats: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.surface.subtle,
+    },
+    stat: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statDivider: {
+      width: 1,
+      height: 40,
+      backgroundColor: theme.color.border.subtle,
+    },
+    statLabel: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    statValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    receptionNotes: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.surface.subtle,
+    },
+    guideActionButton: {
+      marginTop: 12,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+    },
+    downloadGuideButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    createGuideButton: {
+      backgroundColor: theme.color.state.warning.border,
+    },
+    guideActionButtonDisabled: {
+      opacity: 0.7,
+    },
+    guideActionButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    notesLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 4,
+    },
+    notesText: {
+      fontSize: 13,
+      color: theme.color.text.body,
+      lineHeight: 18,
+    },
+    paginationContainer: {
+      marginTop: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    paginationButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+    },
+    paginationButtonDisabled: {
+      backgroundColor: theme.color.border.default,
+    },
+    paginationButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    paginationInfo: {
+      flex: 1,
+      textAlign: 'center',
+      color: theme.color.text.body,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    validateModalContainer: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    validateHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    validateTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: 'bold',
+    },
+    validateList: {
+      flex: 1,
+    },
+    validateListContent: {
+      padding: 16,
+      paddingBottom: 120,
+    },
+    validateInfo: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
+    validateInfoText: {
+      fontSize: 13,
+      color: theme.color.state.info.text,
+      fontWeight: '500',
+      marginBottom: 4,
+    },
+    guideDetailCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    guideDetailTitle: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+      marginBottom: 6,
+    },
+    guideDetailValue: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    guideDetailMeta: {
+      marginTop: 4,
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    sectionSubtitle: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: 12,
+    },
+    searchInput: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      marginBottom: 16,
+    },
+    qualityCheckSectionInline: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+      marginTop: 8,
+      marginBottom: 8,
+      paddingHorizontal: 12,
+      paddingTop: 8,
+      paddingBottom: 12,
+    },
+    validateItemCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    validateItemTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+      gap: 8,
+    },
+    validateItemHeader: {
+      flex: 1,
+    },
+    validateItemTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    validateItemSku: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    itemStatusBadge: {
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      backgroundColor: theme.color.surface.base,
+    },
+    itemStatusText: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    quantityInfo: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 10,
+    },
+    quantityBox: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: 6,
+      padding: 10,
+      alignItems: 'center',
+    },
+    quantityLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    quantityValue: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    inlineDestinationSection: {
+      marginBottom: 10,
+    },
+    inlineDestinationLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 6,
+      marginTop: 8,
+    },
+    destinationInfoText: {
+      fontSize: 12,
+      color: theme.color.text.body,
+      marginBottom: 10,
+    },
+    itemActionsRow: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    itemActionButton: {
+      flex: 1,
+      borderRadius: 8,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    fullEntryButton: {
+      backgroundColor: theme.color.state.success.text,
+    },
+    fullEntryDoneButton: {
+      backgroundColor: theme.color.action.success.backgroundPressed,
+    },
+    errorEntryButton: {
+      backgroundColor: theme.color.state.warning.border,
+    },
+    itemActionText: {
+      color: theme.color.text.inverse,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+      marginTop: 12,
+    },
+    input: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    pickerContainer: {
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      overflow: 'hidden',
+      backgroundColor: theme.color.surface.base,
+    },
+    fixedActionsBar: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 14,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    fixedActionButton: {
+      flex: 1,
+      borderRadius: 10,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    cancelFixedButton: {
+      backgroundColor: theme.color.text.body,
+    },
+    validateFixedButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    fixedActionText: {
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+      fontSize: 14,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      padding: 18,
+    },
+    itemErrorModalCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 16,
+      padding: 18,
+      maxHeight: '92%',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    itemModalScroll: {
+      maxHeight: 520,
+    },
+    itemModalScrollContent: {
+      paddingBottom: 8,
+    },
+    itemErrorModalTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    modalTextArea: {
+      minHeight: 72,
+      textAlignVertical: 'top',
+    },
+    damagedToggleRow: {
+      marginTop: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    damagedToggleLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    modalActionsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 16,
+    },
+    modalActionButton: {
+      flex: 1,
+      minHeight: 44,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalCancelButton: {
+      backgroundColor: theme.color.border.subtle,
+    },
+    modalSaveButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    modalActionText: {
+      color: theme.color.text.inverse,
+      fontWeight: '800',
+      fontSize: 14,
+    },
+    modalActionTextCancel: {
+      color: theme.color.text.heading,
+      fontWeight: '800',
+      fontSize: 14,
+    },
+    viewRowLabel: {
+      marginTop: 10,
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+    },
+    viewRowValue: {
+      marginTop: 2,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+  });
 
 export default ReceptionsScreen;

@@ -264,6 +264,20 @@ export function useDistributionFormV2(
    */
   const [freshStock, setFreshStock] = useState<StockDetailByWarehouse[] | null>(null);
 
+  /**
+   * Presentaciones frescas del producto, refetcheadas al abrir el modal.
+   *
+   * El prop `product.product.presentations` puede venir vacío o incompleto
+   * cuando el padre carga la campaña sin el include correcto o antes de que
+   * termine el hydrate (`getProductsDetail` no siempre trae presentations).
+   * Para blindar el modo "por cajas" y evitar que aparezca sin chips, aquí
+   * volvemos a batchear el producto vía `campaignsService.getProduct`, que
+   * incluye explícitamente `product.presentations`.
+   */
+  const [freshPresentations, setFreshPresentations] = useState<NonNullable<
+    NonNullable<CampaignProduct['product']>['presentations']
+  > | null>(null);
+
   const [mode, setMode] = useState<DistributionMode>('units');
   const [allowHalfBox, setAllowHalfBox] = useState(false);
   // Por defecto desactivado: queremos repartos limpios en cajas/medias y que
@@ -288,10 +302,15 @@ export function useDistributionFormV2(
   // Para no disparar el primer reparto antes de tener datos cargados.
   const loadedRef = useRef(false);
 
-  const presentations = useMemo(
-    () => product?.product?.presentations ?? [],
-    [product?.product?.presentations]
-  );
+  const presentations = useMemo(() => {
+    // Preferimos las presentaciones frescas refetcheadas al abrir el modal
+    // (ver efecto abajo). Si aún no cargaron o vinieron vacías, caemos a las
+    // que trae el prop para no bloquear al usuario.
+    if (freshPresentations && freshPresentations.length > 0) {
+      return freshPresentations;
+    }
+    return product?.product?.presentations ?? [];
+  }, [freshPresentations, product?.product?.presentations]);
 
   const presentationFactor = useMemo(() => {
     if (!presentationId) return 1;
@@ -358,6 +377,41 @@ export function useDistributionFormV2(
       cancelled = true;
     };
   }, [visible, currentSite?.id, currentCompany?.id]);
+
+  // ====== Refetch de presentations del producto ======
+  //
+  // Al abrir el modal, volvemos a pedir el CampaignProduct al backend con el
+  // include explícito de `product.presentations`. Esto resuelve el bug de que
+  // el prop llegara sin presentations (padre cargó campaign con include
+  // incompleto o el hydrate parcial de `getProductsDetail`), lo que dejaba el
+  // modo "por cajas" sin chips y forzaba a repartir sólo en unidades.
+  useEffect(() => {
+    if (!visible || !product?.id) {
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const fresh = await campaignsService.getProduct(campaignId, product.id);
+        if (cancelled) return;
+        const pres = fresh?.product?.presentations ?? [];
+        logger.debug('📦 [V2-PRES] Presentations refetcheadas', {
+          campaignId,
+          productId: product.id,
+          count: pres.length,
+          fromProp: product?.product?.presentations?.length ?? 0,
+        });
+        setFreshPresentations(pres);
+      } catch (e) {
+        if (cancelled) return;
+        logger.warn('⚠️ [V2-PRES] No se pudo refetchear presentations', e);
+        // Silencioso: caemos al prop.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, campaignId, product?.id, product?.product?.presentations?.length]);
 
   // ====== Carga fresca de stock del producto en la sede actual ======
   //
@@ -518,6 +572,61 @@ export function useDistributionFormV2(
     [stockAllocations]
   );
 
+  // ====== Sembrado + poda reactiva de allocations contra la sede actual ======
+  //
+  // `stockBuckets` se recalcula de forma asíncrona: primero con `localStockData`
+  // del padre (sin el filtro estricto por almacén) y luego, cuando llegan el
+  // stock fresco (`freshStock`) y los almacenes de la sede (`siteWarehouseIds`),
+  // queda filtrado correctamente a la sede actual.
+  //
+  // Si las allocations se sembraran una sola vez, el "total a repartir" se
+  // quedaría con buckets de OTRAS sedes (que ya no aparecen en la UI), haciendo
+  // imposible generar el reparto por "falta de stock". Por eso:
+  //   - Primer sembrado (`seededRef`): tomar todo el disponible de la sede.
+  //   - Cada vez que `stockBuckets` cambia: PODAR las keys que ya no pertenecen
+  //     a la sede actual y CLAMP al disponible, respetando las ediciones del
+  //     usuario sobre buckets que siguen siendo válidos.
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (!visible) {
+      seededRef.current = false;
+      return;
+    }
+    if (stockBuckets.length === 0) {
+      return;
+    }
+
+    setStockAllocations((prev) => {
+      // Primer sembrado: todo el disponible de la sede actual.
+      if (!seededRef.current) {
+        seededRef.current = true;
+        const seeded: Record<string, number> = {};
+        stockBuckets.forEach((b) => {
+          if (b.available > 0) seeded[b.key] = b.available;
+        });
+        return seeded;
+      }
+
+      // Re-sincronización: descartar buckets de otras sedes y clamp al
+      // disponible, preservando las cantidades editadas por el usuario.
+      const bucketByKey = new Map(stockBuckets.map((b) => [b.key, b] as const));
+      const next: Record<string, number> = {};
+      let changed = false;
+      for (const [key, qty] of Object.entries(prev)) {
+        const bucket = bucketByKey.get(key);
+        if (!bucket) {
+          // Key de otra sede (ya no visible) → se elimina del total.
+          changed = true;
+          continue;
+        }
+        const clamped = Math.min(Math.max(0, Math.round(qty)), bucket.available);
+        next[key] = clamped;
+        if (clamped !== qty) changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [visible, stockBuckets]);
+
   // ====== Carga inicial ======
   useEffect(() => {
     if (!visible || !product) {
@@ -625,12 +734,12 @@ export function useDistributionFormV2(
         }
         setPreviousSaleByParticipant(accum);
 
-        // Allocations iniciales: todo el stock disponible de la sede actual.
-        const initialAllocs: Record<string, number> = {};
-        stockBuckets.forEach((b) => {
-          if (b.available > 0) initialAllocs[b.key] = b.available;
-        });
-        setStockAllocations(initialAllocs);
+        // Las allocations iniciales se siembran de forma reactiva en un efecto
+        // dedicado que observa `stockBuckets` (ver más abajo). Aquí NO se
+        // siembran porque en este punto `stockBuckets` puede estar incompleto:
+        // el stock fresco (`freshStock`) y los almacenes de la sede
+        // (`siteWarehouseIds`) aún se están cargando de forma asíncrona, así
+        // que sembrar acá arrastraría stock de otras sedes al total a repartir.
       } catch (e: any) {
         logger.error('Error cargando datos V2', e);
         if (!cancelled) setError(e?.message ?? 'Error cargando datos');
@@ -656,6 +765,7 @@ export function useDistributionFormV2(
       setStockAllocations({});
       setSiteWarehouseIds(null);
       setFreshStock(null);
+      setFreshPresentations(null);
       setRows([]);
       setMode('units');
       setAllowHalfBox(false);

@@ -4,13 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SupplierDebtSummaryResponse } from '@/types/suppliers';
 
 // Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-  iconSizes,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -29,6 +24,8 @@ interface DebtSummaryCardProps {
 }
 
 export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, formatCurrency }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Total Summary */}
@@ -38,7 +35,7 @@ export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, forma
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
             <Label size="medium" color="secondary">Total Deuda Asignada</Label>
-            <Numeric size="large" color={colors.danger[600]}>
+            <Numeric size="large" color={theme.color.text.danger}>
               {formatCurrency(summary.totalDebtAllCompaniesCents)}
             </Numeric>
           </View>
@@ -47,7 +44,7 @@ export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, forma
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
             <Label size="medium" color="secondary">Balance Sin Asignar</Label>
-            <Numeric size="large" color={colors.warning[600]}>
+            <Numeric size="large" color={theme.color.text.warning}>
               {formatCurrency(summary.unassignedBalanceCents)}
             </Numeric>
           </View>
@@ -74,7 +71,7 @@ export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, forma
             <View key={debt.companyId} style={styles.companyItem}>
               <View style={styles.companyHeader}>
                 <View style={styles.companyInfo}>
-                  <Ionicons name="business" size={iconSizes.md} color={colors.accent[500]} />
+                  <Ionicons name="business" size={theme.icon.md} color={theme.color.brand.accent} />
                   <View style={styles.companyTexts}>
                     <Title size="small">{debt.companyName}</Title>
                     {debt.legalEntity && (
@@ -86,7 +83,7 @@ export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, forma
                 </View>
                 <Numeric
                   size="medium"
-                  color={debt.totalDebtCents > 0 ? colors.danger[600] : colors.success[600]}
+                  color={debt.totalDebtCents > 0 ? theme.color.text.danger : theme.color.text.success}
                 >
                   {formatCurrency(debt.totalDebtCents)}
                 </Numeric>
@@ -96,7 +93,7 @@ export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, forma
                 <View style={styles.companyDates}>
                   {debt.lastPurchaseDate && (
                     <View style={styles.dateRow}>
-                      <Ionicons name="cart-outline" size={iconSizes.sm} color={colors.icon.tertiary} />
+                      <Ionicons name="cart-outline" size={theme.icon.sm} color={theme.color.icon.subtle} />
                       <Caption color="tertiary">
                         Última compra: {new Date(debt.lastPurchaseDate).toLocaleDateString('es-PE')}
                       </Caption>
@@ -104,7 +101,7 @@ export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, forma
                   )}
                   {debt.lastPaymentDate && (
                     <View style={styles.dateRow}>
-                      <Ionicons name="cash-outline" size={iconSizes.sm} color={colors.icon.tertiary} />
+                      <Ionicons name="cash-outline" size={theme.icon.sm} color={theme.color.icon.subtle} />
                       <Caption color="tertiary">
                         Último pago: {new Date(debt.lastPaymentDate).toLocaleDateString('es-PE')}
                       </Caption>
@@ -133,50 +130,51 @@ export const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ summary, forma
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  card: {
-    marginHorizontal: spacing[4],
-    marginVertical: spacing[2],
-  },
-  cardTitle: {
-    marginBottom: spacing[4],
-  },
-  summaryRow: {
-    marginBottom: spacing[3],
-  },
-  summaryItem: {
-    gap: spacing[1],
-  },
-  companyItem: {
-    marginBottom: spacing[3],
-  },
-  companyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing[2],
-  },
-  companyInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    flex: 1,
-    gap: spacing[3],
-  },
-  companyTexts: {
-    flex: 1,
-  },
-  companyDates: {
-    gap: spacing[1],
-    marginLeft: spacing[8],
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1.5],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    card: {
+      marginHorizontal: theme.space[4],
+      marginVertical: theme.space[2],
+    },
+    cardTitle: {
+      marginBottom: theme.space[4],
+    },
+    summaryRow: {
+      marginBottom: theme.space[3],
+    },
+    summaryItem: {
+      gap: theme.space[1],
+    },
+    companyItem: {
+      marginBottom: theme.space[3],
+    },
+    companyHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[2],
+    },
+    companyInfo: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      flex: 1,
+      gap: theme.space[3],
+    },
+    companyTexts: {
+      flex: 1,
+    },
+    companyDates: {
+      gap: theme.space[1],
+      marginLeft: theme.space[8],
+    },
+    dateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+    },
+  });
 
 export default DebtSummaryCard;

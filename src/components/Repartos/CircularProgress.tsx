@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle, G, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { colors } from '@/design-system/tokens';
+import { useTheme } from '@/design-system/themes';
 
 interface CircularProgressProps {
   size?: number;
@@ -24,10 +24,12 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   validated,
   showLabel = true,
   color,
-  backgroundColor = colors.border.default,
+  backgroundColor,
   textColor,
   fontSize = 16,
 }) => {
+  const theme = useTheme();
+  const resolvedBackgroundColor = backgroundColor ?? theme.color.border.default;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const progressOffset = circumference - (progress / 100) * circumference;
@@ -35,40 +37,40 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   // Determinar color y gradiente basado en el progreso
   const getProgressColors = () => {
     if (color) {
-      return { color, gradient: null, textColor: textColor || colors.neutral[800] };
+      return { color, gradient: null, textColor: textColor || theme.color.text.heading };
     }
     if (progress === 100) {
       return {
         color: 'url(#gradient-green)',
-        gradient: { start: colors.success[500], end: colors.success[600] },
-        textColor: textColor || colors.success[600]
+        gradient: { start: theme.color.state.success.border, end: theme.color.text.success },
+        textColor: textColor || theme.color.text.success
       }; // Verde brillante
     }
     if (progress >= 75) {
       return {
         color: 'url(#gradient-blue)',
-        gradient: { start: colors.primary[500], end: colors.primary[600] },
-        textColor: textColor || colors.primary[600]
+        gradient: { start: theme.color.state.info.border, end: theme.color.text.link },
+        textColor: textColor || theme.color.text.link
       }; // Azul vibrante
     }
     if (progress >= 50) {
       return {
         color: 'url(#gradient-yellow)',
-        gradient: { start: colors.warning[400], end: colors.warning[500] },
-        textColor: textColor || colors.warning[600]
+        gradient: { start: theme.color.state.warning.border, end: theme.color.state.warning.border },
+        textColor: textColor || theme.color.text.warning
       }; // Amarillo/Naranja
     }
     if (progress >= 25) {
       return {
         color: 'url(#gradient-orange)',
-        gradient: { start: colors.warning[400], end: colors.warning[500] },
-        textColor: textColor || colors.warning[600]
+        gradient: { start: theme.color.state.warning.border, end: theme.color.state.warning.border },
+        textColor: textColor || theme.color.text.warning
       }; // Naranja
     }
     return {
       color: 'url(#gradient-red)',
-      gradient: { start: colors.danger[400], end: colors.danger[500] },
-      textColor: textColor || colors.danger[600]
+      gradient: { start: theme.color.state.danger.border, end: theme.color.text.danger },
+      textColor: textColor || theme.color.text.danger
     }; // Rojo
   };
 
@@ -109,7 +111,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={backgroundColor}
+            stroke={resolvedBackgroundColor}
             strokeWidth={strokeWidth}
             fill="none"
           />

@@ -5,7 +5,8 @@ import { ExpenseCategory } from '@/types/expenses';
 import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 
 // Design System
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CategoryCardProps {
   category: ExpenseCategory;
@@ -22,6 +23,8 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
   isSubcategory = false,
   showSubcategories = true,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [isExpanded, setIsExpanded] = React.useState(false);
   const hasSubcategories = category.subcategories && category.subcategories.length > 0;
   const safeIconName = getSafeIconName(category.icon, getCategoryFallbackIcon(category.name));
@@ -62,14 +65,14 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
             <Ionicons
               name={safeIconName as any}
               size={isSubcategory ? 24 : 32}
-              color={category.color || colors.accent[500]}
+              color={category.color || theme.color.brand.accent}
             />
           ) : (
             <View
               style={[
                 styles.iconPlaceholder,
                 isSubcategory && styles.iconPlaceholderSmall,
-                { backgroundColor: category.color || colors.accent[500] },
+                { backgroundColor: category.color || theme.color.brand.accent },
               ]}
             >
               <Text
@@ -104,7 +107,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           )}
           {!isSubcategory && hasSubcategories && (
             <View style={styles.subcategoryCountBadge}>
-              <Ionicons name="folder-outline" size={12} color={colors.accent[500]} />
+              <Ionicons name="folder-outline" size={12} color={theme.color.brand.accent} />
               <Text style={styles.subcategoryCountText}>{category.subcategories!.length}</Text>
             </View>
           )}
@@ -115,17 +118,17 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           <View style={styles.actionButtons}>
             {onCreateSubcategory && (
               <TouchableOpacity onPress={handleCreateSubcategory} style={styles.addButton}>
-                <Ionicons name="add-circle-outline" size={20} color={colors.success[500]} />
+                <Ionicons name="add-circle-outline" size={20} color={theme.color.icon.success} />
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={handleEditPress} style={styles.editButton}>
-              <Ionicons name="create-outline" size={20} color={colors.accent[500]} />
+              <Ionicons name="create-outline" size={20} color={theme.color.icon.accent} />
             </TouchableOpacity>
             {hasSubcategories && (
               <Ionicons
                 name={isExpanded ? 'chevron-up' : 'chevron-down'}
                 size={20}
-                color={colors.neutral[500]}
+                color={theme.color.icon.subtle}
                 style={styles.expandIcon}
               />
             )}
@@ -151,137 +154,138 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing[2],
-  },
-  card: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    ...shadows.sm,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  subcategoryCard: {
-    marginLeft: spacing[6],
-    marginTop: spacing[2],
-    backgroundColor: colors.surface.secondary,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent[500],
-    elevation: 1,
-  },
-  subcategoryIndicator: {
-    position: 'absolute',
-    left: -24,
-    top: '50%',
-    width: 20,
-    height: 2,
-    backgroundColor: colors.border.default,
-  },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconText: {
-    fontSize: 32,
-  },
-  iconPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconPlaceholderSmall: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-  },
-  iconPlaceholderText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  iconPlaceholderTextSmall: {
-    fontSize: 18,
-  },
-  content: {
-    flex: 1,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.primary,
-    marginBottom: spacing[0.5],
-  },
-  subcategoryName: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  categoryCode: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.accent[500],
-    marginBottom: spacing[1],
-  },
-  categoryDescription: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    lineHeight: 16,
-  },
-  badges: {
-    gap: spacing[1],
-    alignItems: 'flex-end',
-  },
-  inactiveBadge: {
-    backgroundColor: colors.neutral[400],
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-  },
-  inactiveBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  subcategoryCountBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.accent[50],
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    gap: spacing[1],
-  },
-  subcategoryCountText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    marginLeft: spacing[2],
-  },
-  addButton: {
-    padding: spacing[1],
-  },
-  editButton: {
-    padding: spacing[1],
-  },
-  expandIcon: {
-    marginLeft: spacing[1],
-  },
-  subcategoriesContainer: {
-    marginTop: spacing[1],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      marginBottom: theme.space[2],
+    },
+    card: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      ...theme.shadow.sm,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    subcategoryCard: {
+      marginLeft: theme.space[6],
+      marginTop: theme.space[2],
+      backgroundColor: theme.color.surface.subtle,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.color.brand.accent,
+      elevation: 1,
+    },
+    subcategoryIndicator: {
+      position: 'absolute',
+      left: -24,
+      top: '50%',
+      width: 20,
+      height: 2,
+      backgroundColor: theme.color.border.default,
+    },
+    iconContainer: {
+      width: 56,
+      height: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconText: {
+      fontSize: 32,
+    },
+    iconPlaceholder: {
+      width: 56,
+      height: 56,
+      borderRadius: theme.radii.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconPlaceholderSmall: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.full,
+    },
+    iconPlaceholderText: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.color.text.onAction,
+    },
+    iconPlaceholderTextSmall: {
+      fontSize: 18,
+    },
+    content: {
+      flex: 1,
+    },
+    categoryName: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[0.5],
+    },
+    subcategoryName: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    categoryCode: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+      marginBottom: theme.space[1],
+    },
+    categoryDescription: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      lineHeight: 16,
+    },
+    badges: {
+      gap: theme.space[1],
+      alignItems: 'flex-end',
+    },
+    inactiveBadge: {
+      backgroundColor: theme.color.border.strong,
+      borderRadius: theme.radii.full,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[0.5],
+    },
+    inactiveBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    subcategoryCountBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.accentSoft,
+      borderRadius: theme.radii.full,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[0.5],
+      gap: theme.space[1],
+    },
+    subcategoryCountText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      marginLeft: theme.space[2],
+    },
+    addButton: {
+      padding: theme.space[1],
+    },
+    editButton: {
+      padding: theme.space[1],
+    },
+    expandIcon: {
+      marginLeft: theme.space[1],
+    },
+    subcategoriesContainer: {
+      marginTop: theme.space[1],
+    },
+  });
 
 export default CategoryCard;

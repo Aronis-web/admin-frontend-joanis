@@ -12,6 +12,12 @@ const { autoUpdater } = require('electron-updater');
 
 console.log('[ELECTRON] ✅ electron-updater cargado');
 
+// Windows: fija el AppUserModelID (== appId de electron-builder) para que la
+// barra de tareas use el MISMO icono que el acceso directo del instalador.
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.erpaio.admin');
+}
+
 // Detectar modo desarrollo: por variable de entorno O si la app no está empaquetada
 // También se puede forzar con el argumento --devtools
 const forceDevTools = process.argv.includes('--devtools');
@@ -146,8 +152,11 @@ function createWindow(port) {
       enableRemoteModule: false,
       webSecurity: false, // Disable to allow loading local resources
       allowRunningInsecureContent: true,
+      // Habilita el tag <webview> para embeber sitios externos (p.ej. panel.izipay.pe)
+      // dentro de la app y capturar tokens de sesión (Izipay Report Sync).
+      webviewTag: true,
     },
-    icon: path.join(__dirname, 'build/icon.png'),
+    icon: path.join(__dirname, 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     title: 'ERP-aio - Panel de Administración',
     backgroundColor: '#ffffff',
     autoHideMenuBar: true,
@@ -169,6 +178,46 @@ function createWindow(port) {
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
+
+  // ---- Web Bluetooth: handler de selección de dispositivos ----
+  // Sin esto, navigator.bluetooth.requestDevice() se cuelga en Electron
+  // porque Chromium delega la elección al embedder. Como nuestros filtros
+  // ya restringen a una única etiqueta (LK<código>), seleccionamos el
+  // primer dispositivo encontrado automáticamente.
+  // Estado por-request para evitar bloqueos: si tras N segundos no aparece
+  // ningún candidato, cancelamos el picker para que requestDevice() falle
+  // con NotFoundError y el frontend pueda reintentar.
+  let bleTimer = null;
+  let bleCallback = null;
+  const BLE_TIMEOUT_MS = 12000;
+  const cancelBlePicker = (reason) => {
+    if (bleTimer) { clearTimeout(bleTimer); bleTimer = null; }
+    if (bleCallback) {
+      console.log(`[BLE] cancelando picker: ${reason}`);
+      try { bleCallback(''); } catch (e) { /* ya consumido */ }
+      bleCallback = null;
+    }
+  };
+  mainWindow.webContents.on('select-bluetooth-device', (event, devices, callback) => {
+    event.preventDefault();
+    console.log('[BLE] select-bluetooth-device candidatos:', devices.map((d) => `${d.deviceName} (${d.deviceId})`));
+    if (devices && devices.length > 0) {
+      if (bleTimer) { clearTimeout(bleTimer); bleTimer = null; }
+      bleCallback = null;
+      callback(devices[0].deviceId);
+      return;
+    }
+    // Si no hay candidatos todavía, guardamos el callback más reciente y
+    // armamos un timeout. Chromium re-emite el evento con nuevos candidatos
+    // y refrescamos el callback en cada emit.
+    bleCallback = callback;
+    if (!bleTimer) {
+      bleTimer = setTimeout(() => {
+        bleTimer = null;
+        cancelBlePicker('timeout sin candidatos');
+      }, BLE_TIMEOUT_MS);
+    }
+  });
 
   // Log any errors
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
@@ -305,6 +354,91 @@ ipcMain.handle('get-app-version', async () => {
     version: app.getVersion(),
     name: app.getName()
   };
+});
+
+// ===== HANDLERS IPC PARA IMPRESIÓN (etiquetas térmicas 80mm) =====
+
+// Lista las impresoras detectadas por el sistema operativo. Sirve para
+// diagnosticar la conexión: si la impresora térmica no aparece aquí, el
+// problema es de driver/conexión a nivel de Windows, no de la app.
+ipcMain.handle('get-printers', async () => {
+  try {
+    if (!mainWindow || !mainWindow.webContents) return [];
+    const printers = await mainWindow.webContents.getPrintersAsync();
+    console.log('[PRINT] Impresoras detectadas:', printers.map((p) => p.name));
+    return printers.map((p) => ({
+      name: p.name,
+      displayName: p.displayName || p.name,
+      description: p.description || '',
+      status: p.status,
+      isDefault: !!p.isDefault,
+    }));
+  } catch (err) {
+    console.error('[PRINT] Error listando impresoras:', err);
+    return [];
+  }
+});
+
+// Imprime un HTML usando una ventana oculta y webContents.print(). Esto llega
+// directamente a la impresora instalada (silencioso cuando se indica deviceName)
+// en lugar del iframe del renderer, que en Electron es poco fiable.
+ipcMain.handle('print-html', async (event, options = {}) => {
+  const { html, deviceName, silent = false, pageSize, landscape } = options;
+  if (!html) return { success: false, error: 'HTML vacío' };
+
+  return await new Promise((resolve) => {
+    let printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: { sandbox: true, contextIsolation: true },
+    });
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      try {
+        if (printWindow && !printWindow.isDestroyed()) printWindow.close();
+      } catch (_) {
+        /* noop */
+      }
+      printWindow = null;
+      resolve(result);
+    };
+
+    printWindow.webContents.once('did-finish-load', () => {
+      // Pequeña espera para asegurar el render del código de barras (SVG).
+      setTimeout(() => {
+        try {
+          printWindow.webContents.print(
+            {
+              silent: !!silent && !!deviceName,
+              printBackground: true,
+              margins: { marginType: 'none' },
+              // pageSize personalizado en micrones ({ width, height }) para
+              // rollos de stickers (ej. 104×20 mm). Si no se indica, respeta el
+              // @page del HTML (etiqueta 80mm).
+              ...(pageSize ? { pageSize } : {}),
+              ...(typeof landscape === 'boolean' ? { landscape } : {}),
+              ...(deviceName ? { deviceName } : {}),
+            },
+            (success, failureReason) => {
+              finish({ success, error: success ? undefined : failureReason });
+            }
+          );
+        } catch (err) {
+          console.error('[PRINT] Error al imprimir:', err);
+          finish({ success: false, error: String(err && err.message ? err.message : err) });
+        }
+      }, 350);
+    });
+
+    printWindow.webContents.once('did-fail-load', (e, code, desc) => {
+      finish({ success: false, error: `did-fail-load ${code}: ${desc}` });
+    });
+
+    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+    printWindow.loadURL(dataUrl);
+  });
 });
 
 // Verificar actualizaciones manualmente

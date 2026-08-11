@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   Modal,
 } from 'react-native';
@@ -25,6 +24,10 @@ import {
 } from '@/types/expenses';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { ReconcileAmountModal } from '@/components/Expenses/ReconcileAmountModal';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface ExpenseProjectDetailScreenProps {
   route: {
@@ -39,6 +42,8 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
   route,
   navigation,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { projectId } = route.params;
   const [project, setProject] = useState<ExpenseProject | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,11 +229,11 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
   // Render expense status badge
   const renderExpenseStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-      DRAFT: { label: 'Borrador', color: '#64748B', bgColor: '#F1F5F9' },
-      ACTIVE: { label: 'Activo', color: '#10B981', bgColor: '#D1FAE5' },
-      PAID: { label: 'Pagado', color: '#059669', bgColor: '#A7F3D0' },
-      CANCELLED: { label: 'Cancelado', color: '#DC2626', bgColor: '#FEE2E2' },
-      OVERDUE: { label: 'Vencido', color: '#F59E0B', bgColor: '#FEF3C7' },
+      DRAFT: { label: 'Borrador', color: theme.color.text.muted, bgColor: theme.color.surface.subtle },
+      ACTIVE: { label: 'Activo', color: theme.color.state.success.border, bgColor: theme.color.state.success.background },
+      PAID: { label: 'Pagado', color: theme.color.state.success.border, bgColor: theme.color.state.success.background },
+      CANCELLED: { label: 'Cancelado', color: theme.color.state.danger.border, bgColor: theme.color.state.danger.background },
+      OVERDUE: { label: 'Vencido', color: theme.color.state.warning.border, bgColor: theme.color.state.warning.background },
     };
 
     const config = statusConfig[status] || statusConfig.ACTIVE;
@@ -243,9 +248,9 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
   // Render payment status badge
   const renderPaymentStatusBadge = (paymentStatus: string) => {
     const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-      UNPAID: { label: 'Sin Pagar', color: '#DC2626', bgColor: '#FEE2E2' },
-      PARTIAL: { label: 'Parcial', color: '#F59E0B', bgColor: '#FEF3C7' },
-      PAID: { label: 'Pagado', color: '#10B981', bgColor: '#D1FAE5' },
+      UNPAID: { label: 'Sin Pagar', color: theme.color.state.danger.border, bgColor: theme.color.state.danger.background },
+      PARTIAL: { label: 'Parcial', color: theme.color.state.warning.border, bgColor: theme.color.state.warning.background },
+      PAID: { label: 'Pagado', color: theme.color.state.success.border, bgColor: theme.color.state.success.background },
     };
 
     const config = statusConfig[paymentStatus] || statusConfig.UNPAID;
@@ -288,17 +293,17 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
       case ProjectStatus.PLANNING:
-        return '#F59E0B';
+        return theme.color.state.warning.border;
       case ProjectStatus.ACTIVE:
-        return '#10B981';
+        return theme.color.state.success.border;
       case ProjectStatus.ON_HOLD:
-        return '#6366F1';
+        return theme.color.brand.accent;
       case ProjectStatus.COMPLETED:
-        return '#059669';
+        return theme.color.state.success.border;
       case ProjectStatus.CANCELLED:
-        return '#EF4444';
+        return theme.color.state.danger.border;
       default:
-        return '#64748B';
+        return theme.color.text.muted;
     }
   };
 
@@ -309,25 +314,25 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
   };
 
   const getBudgetColor = () => {
-    if (!project) return '#10B981';
+    if (!project) return theme.color.state.success.border;
     const percentage = (project.spentCents / project.budgetCents) * 100;
-    if (percentage >= 100) return '#EF4444';
-    if (percentage >= 80) return '#F59E0B';
-    return '#10B981';
+    if (percentage >= 100) return theme.color.state.danger.border;
+    if (percentage >= 80) return theme.color.state.warning.border;
+    return theme.color.state.success.border;
   };
 
   const getPaymentStatusColor = (status: PaymentStatus) => {
     switch (status) {
       case PaymentStatus.PENDING:
-        return '#F59E0B';
+        return theme.color.state.warning.border;
       case PaymentStatus.APPROVED:
-        return '#10B981';
+        return theme.color.state.success.border;
       case PaymentStatus.REJECTED:
-        return '#EF4444';
+        return theme.color.state.danger.border;
       case PaymentStatus.CANCELLED:
-        return '#94A3B8';
+        return theme.color.text.placeholder;
       default:
-        return '#64748B';
+        return theme.color.text.muted;
     }
   };
 
@@ -386,13 +391,13 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalle del Proyecto</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando proyecto...</Text>
         </View>
       </SafeAreaView>
@@ -404,7 +409,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalle del Proyecto</Text>
           <View style={styles.headerRight} />
@@ -420,15 +425,15 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1E293B" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalle del Proyecto</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={handleViewHistory} style={styles.headerActionButton}>
-            <Ionicons name="time-outline" size={24} color="#6366F1" />
+            <Ionicons name="time-outline" size={24} color={theme.color.brand.accent} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleDeleteProject} style={styles.headerActionButton}>
-            <Ionicons name="trash-outline" size={24} color="#EF4444" />
+            <Ionicons name="trash-outline" size={24} color={theme.color.state.danger.border} />
           </TouchableOpacity>
         </View>
       </View>
@@ -500,13 +505,13 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Fechas</Text>
           <View style={styles.dateRow}>
-            <Ionicons name="calendar-outline" size={20} color="#64748B" />
+            <Ionicons name="calendar-outline" size={20} color={theme.color.text.muted} />
             <Text style={styles.dateLabel}>Inicio:</Text>
             <Text style={styles.dateValue}>{formatDate(project.startDate)}</Text>
           </View>
           {project.endDate && (
             <View style={styles.dateRow}>
-              <Ionicons name="calendar-outline" size={20} color="#64748B" />
+              <Ionicons name="calendar-outline" size={20} color={theme.color.text.muted} />
               <Text style={styles.dateLabel}>Fin:</Text>
               <Text style={styles.dateValue}>{formatDate(project.endDate)}</Text>
             </View>
@@ -518,7 +523,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Sede</Text>
             <View style={styles.siteInfo}>
-              <Ionicons name="business-outline" size={20} color="#64748B" />
+              <Ionicons name="business-outline" size={20} color={theme.color.text.muted} />
               <Text style={styles.siteName}>{project.site.name}</Text>
             </View>
           </View>
@@ -562,7 +567,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
             <Text style={styles.cardTitle}>Gastos del Proyecto</Text>
             <TouchableOpacity onPress={handleViewExpenses} style={styles.viewAllButton}>
               <Text style={styles.viewAllButtonText}>Ver Todos</Text>
-              <Ionicons name="chevron-forward" size={16} color="#6366F1" />
+              <Ionicons name="chevron-forward" size={16} color={theme.color.brand.accent} />
             </TouchableOpacity>
           </View>
           {project.expenses && project.expenses.length > 0 ? (
@@ -615,7 +620,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                             onPress={() => handleReconcileAmount(expense)}
                             style={styles.actionButtonSmall}
                           >
-                            <Ionicons name="receipt-outline" size={16} color="#6366F1" />
+                            <Ionicons name="receipt-outline" size={16} color={theme.color.brand.accent} />
                           </TouchableOpacity>
                         )}
                         {remainingAmount > 0 && (
@@ -623,28 +628,28 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                             onPress={() => handleAddPayment(expense)}
                             style={styles.actionButtonSmall}
                           >
-                            <Ionicons name="cash-outline" size={16} color="#10B981" />
+                            <Ionicons name="cash-outline" size={16} color={theme.color.state.success.border} />
                           </TouchableOpacity>
                         )}
                         <TouchableOpacity
                           onPress={() => handleViewPayments(expense)}
                           style={styles.actionButtonSmall}
                         >
-                          <Ionicons name="card" size={16} color="#6366F1" />
+                          <Ionicons name="card" size={16} color={theme.color.brand.accent} />
                         </TouchableOpacity>
                         {remainingAmount > 0 && (
                           <TouchableOpacity
                             onPress={() => handleEditExpense(expense)}
                             style={styles.actionButtonSmall}
                           >
-                            <Ionicons name="create-outline" size={16} color="#6366F1" />
+                            <Ionicons name="create-outline" size={16} color={theme.color.brand.accent} />
                           </TouchableOpacity>
                         )}
                         <TouchableOpacity
                           onPress={() => handleDeleteExpense(expense)}
                           style={styles.actionButtonSmall}
                         >
-                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                          <Ionicons name="trash-outline" size={16} color={theme.color.state.danger.border} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -664,7 +669,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
             </>
           ) : (
             <View style={styles.emptyExpenses}>
-              <Ionicons name="receipt-outline" size={40} color="#CBD5E1" />
+              <Ionicons name="receipt-outline" size={40} color={theme.color.border.subtle} />
               <Text style={styles.emptyExpensesText}>No hay gastos asociados</Text>
               <Text style={styles.emptyExpensesSubtext}>
                 Presiona el botón + para agregar un gasto
@@ -674,10 +679,15 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
         </View>
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab} onPress={handleAddExpense}>
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
+      <ProtectedFAB
+        actions={[
+          {
+            icon: 'add',
+            label: 'Agregar Gasto',
+            onPress: handleAddExpense,
+          },
+        ]}
+      />
 
       {/* Expenses Modal */}
       <Modal
@@ -689,7 +699,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
         <SafeAreaView style={styles.modalSafeArea} edges={['top']}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowExpensesModal(false)} style={styles.modalBackButton}>
-              <Ionicons name="close" size={24} color="#1E293B" />
+              <Ionicons name="close" size={24} color={theme.color.icon.default} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Gastos del Proyecto</Text>
             <View style={styles.modalHeaderRight} />
@@ -745,14 +755,14 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                     )}
                     <View style={styles.expenseDetailMeta}>
                       <View style={styles.expenseDetailMetaItem}>
-                        <Ionicons name="pricetag" size={14} color="#64748B" />
+                        <Ionicons name="pricetag" size={14} color={theme.color.text.muted} />
                         <Text style={styles.expenseDetailMetaText}>
                           {expense.category?.name || 'Sin categoría'}
                         </Text>
                       </View>
                       {expense.dueDate && (
                         <View style={styles.expenseDetailMetaItem}>
-                          <Ionicons name="calendar" size={14} color="#64748B" />
+                          <Ionicons name="calendar" size={14} color={theme.color.text.muted} />
                           <Text style={styles.expenseDetailMetaText}>
                             {formatDate(expense.dueDate)}
                           </Text>
@@ -768,7 +778,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                           }}
                           style={styles.expenseDetailAction}
                         >
-                          <Ionicons name="receipt-outline" size={18} color="#6366F1" />
+                          <Ionicons name="receipt-outline" size={18} color={theme.color.brand.accent} />
                           <Text style={styles.expenseDetailActionText}>Monto Real</Text>
                         </TouchableOpacity>
                       )}
@@ -776,7 +786,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                         onPress={() => handleViewPayments(expense)}
                         style={styles.expenseDetailAction}
                       >
-                        <Ionicons name="card" size={18} color="#6366F1" />
+                        <Ionicons name="card" size={18} color={theme.color.brand.accent} />
                         <Text style={styles.expenseDetailActionText}>Ver Pagos</Text>
                       </TouchableOpacity>
                       {remainingAmount > 0 && (
@@ -788,7 +798,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                             }}
                             style={styles.expenseDetailAction}
                           >
-                            <Ionicons name="add-circle" size={18} color="#10B981" />
+                            <Ionicons name="add-circle" size={18} color={theme.color.state.success.border} />
                             <Text style={styles.expenseDetailActionText}>Agregar Pago</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
@@ -798,7 +808,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                             }}
                             style={styles.expenseDetailAction}
                           >
-                            <Ionicons name="create-outline" size={18} color="#6366F1" />
+                            <Ionicons name="create-outline" size={18} color={theme.color.brand.accent} />
                             <Text style={styles.expenseDetailActionText}>Editar</Text>
                           </TouchableOpacity>
                         </>
@@ -810,7 +820,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                         }}
                         style={styles.expenseDetailAction}
                       >
-                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                        <Ionicons name="trash-outline" size={18} color={theme.color.state.danger.border} />
                         <Text style={styles.expenseDetailActionText}>Eliminar</Text>
                       </TouchableOpacity>
                     </View>
@@ -819,7 +829,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
               })
             ) : (
               <View style={styles.modalEmpty}>
-                <Ionicons name="receipt-outline" size={60} color="#CBD5E1" />
+                <Ionicons name="receipt-outline" size={60} color={theme.color.border.subtle} />
                 <Text style={styles.modalEmptyText}>No hay gastos asociados</Text>
               </View>
             )}
@@ -837,7 +847,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
         <SafeAreaView style={styles.modalSafeArea} edges={['top']}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowPaymentsModal(false)} style={styles.modalBackButton}>
-              <Ionicons name="close" size={24} color="#1E293B" />
+              <Ionicons name="close" size={24} color={theme.color.icon.default} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Pagos del Gasto</Text>
             <View style={styles.modalHeaderRight} />
@@ -857,13 +867,13 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                     </View>
                     <View style={styles.paymentAmountItem}>
                       <Text style={styles.paymentAmountLabel}>Pagado:</Text>
-                      <Text style={[styles.paymentAmountValue, { color: '#10B981' }]}>
+                      <Text style={[styles.paymentAmountValue, { color: theme.color.state.success.border }]}>
                         {selectedExpense.currency || 'PEN'} {(calculatePaidAmount(selectedExpense) / 100).toFixed(2)}
                       </Text>
                     </View>
                     <View style={styles.paymentAmountItem}>
                       <Text style={styles.paymentAmountLabel}>Pendiente:</Text>
-                      <Text style={[styles.paymentAmountValue, { color: '#F59E0B' }]}>
+                      <Text style={[styles.paymentAmountValue, { color: theme.color.state.warning.border }]}>
                         {selectedExpense.currency || 'PEN'} {(((selectedExpense.actualAmountCents || selectedExpense.amountCents || 0) - calculatePaidAmount(selectedExpense)) / 100).toFixed(2)}
                       </Text>
                     </View>
@@ -872,7 +882,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
 
                 {loadingPayments ? (
                   <View style={styles.modalLoading}>
-                    <ActivityIndicator size="large" color="#6366F1" />
+                    <ActivityIndicator size="large" color={theme.color.brand.accent} />
                     <Text style={styles.modalLoadingText}>Cargando pagos...</Text>
                   </View>
                 ) : expensePayments.length > 0 ? (
@@ -906,7 +916,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                         </Text>
                       </View>
                       <View style={styles.paymentMethodRow}>
-                        <Ionicons name="card" size={14} color="#64748B" />
+                        <Ionicons name="card" size={14} color={theme.color.text.muted} />
                         <Text style={styles.paymentMethodText}>
                           {payment.paymentMethod}
                           {payment.bankName && ` - ${payment.bankName}`}
@@ -914,7 +924,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                       </View>
                       {payment.transactionReference && (
                         <View style={styles.paymentRefRow}>
-                          <Ionicons name="document-text" size={14} color="#64748B" />
+                          <Ionicons name="document-text" size={14} color={theme.color.text.muted} />
                           <Text style={styles.paymentRefText}>{payment.transactionReference}</Text>
                         </View>
                       )}
@@ -925,7 +935,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                   ))
                 ) : (
                   <View style={styles.modalEmpty}>
-                    <Ionicons name="card-outline" size={60} color="#CBD5E1" />
+                    <Ionicons name="card-outline" size={60} color={theme.color.border.subtle} />
                     <Text style={styles.modalEmptyText}>No hay pagos registrados</Text>
                   </View>
                 )}
@@ -937,7 +947,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
                   }}
                   style={styles.addPaymentButton}
                 >
-                  <Ionicons name="add" size={20} color="#FFFFFF" />
+                  <Ionicons name="add" size={20} color={theme.color.text.inverse} />
                   <Text style={styles.addPaymentButtonText}>Agregar Pago</Text>
                 </TouchableOpacity>
               </>
@@ -962,10 +972,10 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
 };
 
 // Styles for ExpenseProjectDetailScreen - Updated 2026-01-05
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   header: {
     flexDirection: 'row',
@@ -973,9 +983,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -983,7 +993,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -1015,20 +1025,20 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   errorText: {
     fontSize: 18,
-    color: '#EF4444',
+    color: theme.color.state.danger.border,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   projectHeader: {
     flexDirection: 'row',
@@ -1041,13 +1051,13 @@ const styles = StyleSheet.create({
   },
   projectCode: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 4,
   },
   projectName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   statusText: {
     fontSize: 12,
@@ -1055,13 +1065,13 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: '#475569',
+    color: theme.color.text.body,
     lineHeight: 20,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   budgetInfo: {
@@ -1074,12 +1084,12 @@ const styles = StyleSheet.create({
   },
   budgetLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   budgetValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -1089,7 +1099,7 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -1100,7 +1110,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     minWidth: 45,
   },
   dateRow: {
@@ -1111,12 +1121,12 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   dateValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   siteInfo: {
     flexDirection: 'row',
@@ -1126,7 +1136,7 @@ const styles = StyleSheet.create({
   siteName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   metaRow: {
     flexDirection: 'row',
@@ -1135,24 +1145,24 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   metaValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   statusActions: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   statusActionsTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   statusButtons: {
@@ -1164,21 +1174,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   statusButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   statusButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   statusButtonTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   fab: {
     position: 'absolute',
@@ -1187,10 +1197,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -1211,7 +1221,7 @@ const styles = StyleSheet.create({
   viewAllButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
   // Expense Items
   expenseItem: {
@@ -1220,7 +1230,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   expenseInfo: {
     flex: 1,
@@ -1234,12 +1244,12 @@ const styles = StyleSheet.create({
   expenseName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
   },
   expenseCode: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   expenseStatusRow: {
     flexDirection: 'row',
@@ -1250,7 +1260,7 @@ const styles = StyleSheet.create({
   expensePending: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#DC2626',
+    color: theme.color.state.danger.border,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -1268,7 +1278,7 @@ const styles = StyleSheet.create({
   expenseAmountText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   expenseActions: {
     flexDirection: 'row',
@@ -1277,7 +1287,7 @@ const styles = StyleSheet.create({
   },
   actionButtonSmall: {
     padding: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderRadius: 8,
   },
   paymentProgressContainer: {
@@ -1285,14 +1295,14 @@ const styles = StyleSheet.create({
   },
   progressBarSmall: {
     height: 4,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: theme.color.border.subtle,
     borderRadius: 2,
     overflow: 'hidden',
     marginBottom: 4,
   },
   progressFillSmall: {
     height: '100%',
-    backgroundColor: '#10B981',
+    backgroundColor: theme.color.state.success.border,
     borderRadius: 2,
   },
   paymentAmountsRow: {
@@ -1302,7 +1312,7 @@ const styles = StyleSheet.create({
   },
   paymentAmountSmall: {
     fontSize: 10,
-    color: '#10B981',
+    color: theme.color.state.success.border,
     fontWeight: '500',
   },
   paymentsButton: {
@@ -1311,13 +1321,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderRadius: 16,
   },
   paymentsButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
   showMoreButton: {
     alignItems: 'center',
@@ -1327,7 +1337,7 @@ const styles = StyleSheet.create({
   showMoreButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
   emptyExpenses: {
     alignItems: 'center',
@@ -1336,19 +1346,19 @@ const styles = StyleSheet.create({
   emptyExpensesText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginTop: 12,
   },
   emptyExpensesSubtext: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
     marginTop: 4,
     textAlign: 'center',
   },
   // Modal Styles
   modalSafeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1356,9 +1366,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   modalBackButton: {
     padding: 4,
@@ -1366,7 +1376,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -1375,7 +1385,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
   },
   modalLoading: {
     flex: 1,
@@ -1386,7 +1396,7 @@ const styles = StyleSheet.create({
   modalLoadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   modalEmpty: {
     flex: 1,
@@ -1397,17 +1407,17 @@ const styles = StyleSheet.create({
   modalEmptyText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   // Expense Detail Card
   expenseDetailCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     marginHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   expenseDetailHeader: {
     flexDirection: 'row',
@@ -1421,12 +1431,12 @@ const styles = StyleSheet.create({
   expenseDetailName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   expenseDetailCode: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   expenseDetailBadges: {
     flexDirection: 'row',
@@ -1439,21 +1449,21 @@ const styles = StyleSheet.create({
   expenseDetailAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   expenseDetailPaid: {
     fontSize: 12,
-    color: '#10B981',
+    color: theme.color.state.success.border,
     marginTop: 2,
   },
   expenseDetailPending: {
     fontSize: 12,
-    color: '#DC2626',
+    color: theme.color.state.danger.border,
     marginTop: 2,
   },
   expenseDetailDescription: {
     fontSize: 14,
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -1470,7 +1480,7 @@ const styles = StyleSheet.create({
   },
   expenseDetailMetaText: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   expenseDetailProgressContainer: {
     marginTop: 12,
@@ -1478,7 +1488,7 @@ const styles = StyleSheet.create({
   },
   progressPercentageText: {
     fontSize: 11,
-    color: '#64748B',
+    color: theme.color.text.muted,
     textAlign: 'right',
     marginTop: 4,
   },
@@ -1488,7 +1498,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: theme.color.border.subtle,
   },
   expenseDetailAction: {
     flexDirection: 'row',
@@ -1496,35 +1506,35 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   expenseDetailActionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   // Payment Expense Info
   paymentExpenseInfo: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     marginHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   paymentExpenseName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   paymentExpenseCode: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     marginBottom: 12,
   },
   paymentExpenseAmounts: {
@@ -1536,22 +1546,22 @@ const styles = StyleSheet.create({
   },
   paymentAmountLabel: {
     fontSize: 14,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   paymentAmountValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   // Payment Card
   paymentCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     marginHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
   },
   paymentHeader: {
     flexDirection: 'row',
@@ -1565,12 +1575,12 @@ const styles = StyleSheet.create({
   paymentCode: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 4,
   },
   paymentDate: {
     fontSize: 12,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   paymentBadge: {
     paddingHorizontal: 10,
@@ -1593,12 +1603,12 @@ const styles = StyleSheet.create({
   },
   paymentCardAmountLabel: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
   },
   paymentAmount: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   paymentMethodRow: {
     flexDirection: 'row',
@@ -1608,7 +1618,7 @@ const styles = StyleSheet.create({
   },
   paymentMethodText: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.body,
   },
   paymentRefRow: {
     flexDirection: 'row',
@@ -1618,23 +1628,23 @@ const styles = StyleSheet.create({
   },
   paymentRefText: {
     fontSize: 13,
-    color: '#475569',
+    color: theme.color.text.body,
   },
   paymentNotes: {
     fontSize: 13,
-    color: '#64748B',
+    color: theme.color.text.muted,
     fontStyle: 'italic',
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: theme.color.surface.subtle,
   },
   addPaymentButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
     marginHorizontal: 16,
     marginBottom: 24,
     paddingVertical: 14,
@@ -1643,7 +1653,7 @@ const styles = StyleSheet.create({
   addPaymentButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
 });
 

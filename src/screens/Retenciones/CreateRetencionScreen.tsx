@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   TextInput,
   Modal,
@@ -24,6 +23,9 @@ import { suppliersService } from '@/services/api/suppliers';
 import { Supplier } from '@/types/suppliers';
 import { salesApi } from '@/services/api/sales';
 import { Sale, DocumentType as SaleDocumentType } from '@/types/sales';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 type Props = NativeStackScreenProps<any, 'CreateRetencion'>;
 
@@ -48,6 +50,8 @@ const TIPO_MONEDA_OPTIONS = [
 ];
 
 export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentCompany, currentSite } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [loadingSeries, setLoadingSeries] = useState(true);
@@ -111,8 +115,8 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
 
   // Recalcular totales cuando cambian los items
   useEffect(() => {
-    const totalPagado = items.reduce((sum, item) => sum + item.importePagoSinRetencion, 0);
-    const totalRetenido = items.reduce((sum, item) => sum + item.importeRetenido, 0);
+    const totalPagado = items.reduce((sum, item) => sum + (item.importePagoSinRetencion ?? 0), 0);
+    const totalRetenido = items.reduce((sum, item) => sum + (item.importeRetenido ?? 0), 0);
     setImporteTotalPagado(totalPagado);
     setImporteTotalRetenido(totalRetenido);
   }, [items]);
@@ -320,19 +324,20 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
 
               // Nota: El backend generará el número correlativo automáticamente
               // Solo enviamos la serie, no el número completo
+              const company = currentCompany as any;
               const dto: CreateRetencionDto = {
                 serieNumero, // Solo la serie (ej: "R001"), el backend agregará el correlativo
                 fechaEmision,
-                rucEmisor: currentCompany.ruc || '',
-                razonSocialEmisor: currentCompany.razonSocial || currentCompany.name,
-                nombreComercialEmisor: currentCompany.nombreComercial,
-                ubigeoEmisor: currentCompany.ubigeo || '150101',
-                direccionEmisor: currentCompany.direccion || '',
-                provinciaEmisor: currentCompany.provincia || 'LIMA',
-                departamentoEmisor: currentCompany.departamento || 'LIMA',
-                distritoEmisor: currentCompany.distrito || 'LIMA',
+                rucEmisor: company.ruc || '',
+                razonSocialEmisor: company.razonSocial || company.name,
+                nombreComercialEmisor: company.nombreComercial,
+                ubigeoEmisor: company.ubigeo || '150101',
+                direccionEmisor: company.direccion || '',
+                provinciaEmisor: company.provincia || 'LIMA',
+                departamentoEmisor: company.departamento || 'LIMA',
+                distritoEmisor: company.distrito || 'LIMA',
                 codigoPaisEmisor: 'PE',
-                correoEmisor: currentCompany.email || '',
+                correoEmisor: company.email || '',
                 correoAdquiriente: proveedor.razonSocialProveedor.toLowerCase().includes('@')
                   ? proveedor.razonSocialProveedor
                   : undefined,
@@ -405,13 +410,13 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+            <Ionicons name="arrow-back" size={24} color={theme.color.text.heading} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Nueva Retención</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
+          <ActivityIndicator size="large" color={theme.color.action.primary.background} />
           <Text style={styles.loadingText}>Cargando series...</Text>
         </View>
       </SafeAreaView>
@@ -423,7 +428,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color={theme.color.text.heading} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Nueva Retención</Text>
         <View style={styles.placeholder} />
@@ -454,7 +459,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           ) : (
             <View style={styles.noSeriesContainer}>
-              <Ionicons name="alert-circle-outline" size={24} color="#F59E0B" />
+              <Ionicons name="alert-circle-outline" size={24} color={theme.color.icon.warning} />
               <Text style={styles.noSeriesText}>
                 No hay series configuradas para retenciones
               </Text>
@@ -496,7 +501,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={(text) => setTasaRetencion(parseFloat(text) || 0)}
             keyboardType="decimal-pad"
             placeholder="3.00"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.color.text.placeholder}
             editable={regimenRetencion === '03'}
           />
 
@@ -520,7 +525,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.sectionTitle}>🏢 Datos del Proveedor</Text>
             {selectedSupplier && (
               <TouchableOpacity onPress={handleClearSupplier} style={styles.clearButton}>
-                <Ionicons name="close-circle" size={20} color="#EF4444" />
+                <Ionicons name="close-circle" size={20} color={theme.color.icon.danger} />
                 <Text style={styles.clearButtonText}>Limpiar</Text>
               </TouchableOpacity>
             )}
@@ -530,7 +535,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.label}>Buscar Proveedor</Text>
           <View style={styles.searchContainer}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+              <Ionicons name="search" size={20} color={theme.color.text.subtle} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 value={searchQuery}
@@ -539,10 +544,10 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
                   searchSuppliers(text);
                 }}
                 placeholder="Buscar por nombre o RUC..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchingSuppliers && (
-                <ActivityIndicator size="small" color="#8B5CF6" style={styles.searchLoader} />
+                <ActivityIndicator size="small" color={theme.color.action.primary.background} style={styles.searchLoader} />
               )}
             </View>
 
@@ -567,7 +572,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
                             <Text style={styles.searchResultAddress}>{supplier.addressLine1}</Text>
                           )}
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                        <Ionicons name="chevron-forward" size={20} color={theme.color.text.placeholder} />
                       </TouchableOpacity>
                     );
                   })}
@@ -577,7 +582,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
 
             {showSearchResults && searchResults.length === 0 && searchQuery.length >= 2 && !searchingSuppliers && (
               <View style={styles.noResultsContainer}>
-                <Ionicons name="search-outline" size={32} color="#9CA3AF" />
+                <Ionicons name="search-outline" size={32} color={theme.color.text.placeholder} />
                 <Text style={styles.noResultsText}>No se encontraron proveedores</Text>
                 <Text style={styles.noResultsSubtext}>Intenta con otro término de búsqueda</Text>
               </View>
@@ -586,7 +591,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
 
           {selectedSupplier && (
             <View style={styles.selectedSupplierBadge}>
-              <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+              <Ionicons name="checkmark-circle" size={20} color={theme.color.icon.success} />
               <Text style={styles.selectedSupplierText}>
                 Proveedor seleccionado: {selectedSupplier.commercialName}
               </Text>
@@ -614,7 +619,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             value={proveedor.numeroDocumentoProveedor}
             onChangeText={(text) => setProveedor({ ...proveedor, numeroDocumentoProveedor: text })}
             placeholder={proveedor.tipoDocumentoProveedor === '6' ? '20100000000' : '12345678'}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="numeric"
             maxLength={proveedor.tipoDocumentoProveedor === '6' ? 11 : 8}
             editable={!selectedSupplier}
@@ -626,7 +631,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             value={proveedor.razonSocialProveedor}
             onChangeText={(text) => setProveedor({ ...proveedor, razonSocialProveedor: text })}
             placeholder="PROVEEDOR SAC"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.color.text.placeholder}
             editable={!selectedSupplier}
           />
 
@@ -636,7 +641,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             value={proveedor.nombreComercialProveedor}
             onChangeText={(text) => setProveedor({ ...proveedor, nombreComercialProveedor: text })}
             placeholder="Nombre comercial (opcional)"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.color.text.placeholder}
             editable={!selectedSupplier}
           />
 
@@ -646,7 +651,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             value={proveedor.direccionProveedor}
             onChangeText={(text) => setProveedor({ ...proveedor, direccionProveedor: text })}
             placeholder="Av. Principal 123"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.color.text.placeholder}
             editable={!selectedSupplier}
           />
 
@@ -658,7 +663,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
                 value={proveedor.departamentoProveedor}
                 onChangeText={(text) => setProveedor({ ...proveedor, departamentoProveedor: text })}
                 placeholder="LIMA"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 editable={!selectedSupplier}
               />
             </View>
@@ -669,7 +674,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
                 value={proveedor.provinciaProveedor}
                 onChangeText={(text) => setProveedor({ ...proveedor, provinciaProveedor: text })}
                 placeholder="LIMA"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={theme.color.text.placeholder}
                 editable={!selectedSupplier}
               />
             </View>
@@ -681,7 +686,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             value={proveedor.distritoProveedor}
             onChangeText={(text) => setProveedor({ ...proveedor, distritoProveedor: text })}
             placeholder="MIRAFLORES"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.color.text.placeholder}
             editable={!selectedSupplier}
           />
 
@@ -691,7 +696,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             value={proveedor.ubigeoProveedor}
             onChangeText={(text) => setProveedor({ ...proveedor, ubigeoProveedor: text })}
             placeholder="150122"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.color.text.placeholder}
             keyboardType="numeric"
             maxLength={6}
             editable={!selectedSupplier}
@@ -706,13 +711,13 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.addButton}
               onPress={() => setShowAddItemModal(true)}
             >
-              <Ionicons name="add-circle" size={24} color="#8B5CF6" />
+              <Ionicons name="add-circle" size={24} color={theme.color.action.primary.background} />
             </TouchableOpacity>
           </View>
 
           {items.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="document-outline" size={48} color="#9CA3AF" />
+              <Ionicons name="document-outline" size={48} color={theme.color.text.placeholder} />
               <Text style={styles.emptyText}>No hay documentos agregados</Text>
               <Text style={styles.emptySubtext}>
                 Agregue las facturas o documentos a los que se aplicará la retención
@@ -727,7 +732,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
                       {TIPO_DOCUMENTO_OPTIONS.find(t => t.value === item.tipoDocumentoRelacionado)?.label} {item.numeroDocumentoRelacionado}
                     </Text>
                     <TouchableOpacity onPress={() => handleRemoveItem(index)}>
-                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                      <Ionicons name="trash-outline" size={20} color={theme.color.icon.danger} />
                     </TouchableOpacity>
                   </View>
                   <View style={styles.itemDetails}>
@@ -735,16 +740,16 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
                       Fecha: {item.fechaEmisionDocumentoRelacionado}
                     </Text>
                     <Text style={styles.itemDetailText}>
-                      Total Doc: {item.tipoMonedaDocumentoRelacionado} {item.importeTotalDocumentoRelacionado.toFixed(2)}
+                      Total Doc: {item.tipoMonedaDocumentoRelacionado} {(item.importeTotalDocumentoRelacionado ?? 0).toFixed(2)}
                     </Text>
                     <Text style={styles.itemDetailText}>
-                      Pago: {item.monedaPago} {item.importePagoSinRetencion.toFixed(2)}
+                      Pago: {item.monedaPago} {(item.importePagoSinRetencion ?? 0).toFixed(2)}
                     </Text>
                     <Text style={styles.itemDetailTextBold}>
-                      Retenido: {item.monedaImporteRetenido} {item.importeRetenido.toFixed(2)}
+                      Retenido: {item.monedaImporteRetenido} {(item.importeRetenido ?? 0).toFixed(2)}
                     </Text>
                     <Text style={styles.itemDetailTextSuccess}>
-                      Neto: {item.monedaMontoNetoPagado} {item.importeTotalPagarNeto.toFixed(2)}
+                      Neto: {item.monedaMontoNetoPagado} {(item.importeTotalPagarNeto ?? 0).toFixed(2)}
                     </Text>
                   </View>
                 </View>
@@ -788,7 +793,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
             value={observaciones}
             onChangeText={setObservaciones}
             placeholder="Observaciones adicionales (opcional)"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.color.text.placeholder}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -802,10 +807,10 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.color.text.inverse} />
           ) : (
             <>
-              <Ionicons name="send" size={20} color="#FFFFFF" />
+              <Ionicons name="send" size={20} color={theme.color.text.inverse} />
               <Text style={styles.submitButtonText}>Emitir Retención</Text>
             </>
           )}
@@ -815,7 +820,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
       {/* Date Picker */}
       <DatePicker
         visible={showFechaEmisionPicker}
-        date={fechaEmision}
+        date={fechaEmision ? new Date(fechaEmision) : new Date()}
         onConfirm={(date) => {
           setFechaEmision(formatDateToString(date));
           setShowFechaEmisionPicker(false);
@@ -854,6 +859,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
   tipoMoneda,
   nextItemNumber,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+
   // Modo de entrada: 'search' o 'manual'
   const [inputMode, setInputMode] = useState<'search' | 'manual'>('search');
 
@@ -888,7 +896,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
         limit: 10,
         includeDocuments: true,
         documentType: SaleDocumentType.FACTURA, // Solo facturas
-      });
+      } as any);
       setSearchResults(response.data || []);
       setShowSearchResults(true);
     } catch (error: any) {
@@ -1010,7 +1018,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Agregar Documento</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color={theme.color.text.subtle} />
             </TouchableOpacity>
           </View>
 
@@ -1027,7 +1035,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
                 <Ionicons
                   name="search"
                   size={20}
-                  color={inputMode === 'search' ? '#8B5CF6' : '#6B7280'}
+                  color={inputMode === 'search' ? theme.color.action.primary.background : theme.color.text.subtle}
                 />
                 <Text style={[styles.modeButtonText, inputMode === 'search' && styles.modeButtonTextActive]}>
                   Buscar Factura
@@ -1043,7 +1051,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
                 <Ionicons
                   name="create"
                   size={20}
-                  color={inputMode === 'manual' ? '#8B5CF6' : '#6B7280'}
+                  color={inputMode === 'manual' ? theme.color.action.primary.background : theme.color.text.subtle}
                 />
                 <Text style={[styles.modeButtonText, inputMode === 'manual' && styles.modeButtonTextActive]}>
                   Ingresar Manual
@@ -1057,7 +1065,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
                 <Text style={styles.label}>Buscar Factura</Text>
                 <View style={styles.searchContainer}>
                   <View style={styles.searchInputContainer}>
-                    <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+                    <Ionicons name="search" size={20} color={theme.color.text.subtle} style={styles.searchIcon} />
                     <TextInput
                       style={styles.searchInput}
                       value={searchQuery}
@@ -1066,10 +1074,10 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
                         searchSales(text);
                       }}
                       placeholder="Buscar por código o número de factura..."
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor={theme.color.text.placeholder}
                     />
                     {searchingSales && (
-                      <ActivityIndicator size="small" color="#8B5CF6" style={styles.searchLoader} />
+                      <ActivityIndicator size="small" color={theme.color.action.primary.background} style={styles.searchLoader} />
                     )}
                   </View>
 
@@ -1096,7 +1104,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
                                   Total: {tipoMoneda} {(sale.totalCents / 100).toFixed(2)} | {sale.saleDate}
                                 </Text>
                               </View>
-                              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                              <Ionicons name="chevron-forward" size={20} color={theme.color.text.placeholder} />
                             </TouchableOpacity>
                           );
                         })}
@@ -1106,7 +1114,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
 
                   {showSearchResults && searchResults.length === 0 && searchQuery.length >= 2 && !searchingSales && (
                     <View style={styles.noResultsContainer}>
-                      <Ionicons name="search-outline" size={32} color="#9CA3AF" />
+                      <Ionicons name="search-outline" size={32} color={theme.color.text.placeholder} />
                       <Text style={styles.noResultsText}>No se encontraron facturas</Text>
                       <Text style={styles.noResultsSubtext}>Intenta con otro término de búsqueda</Text>
                     </View>
@@ -1115,7 +1123,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
 
                 {selectedSale && (
                   <View style={styles.selectedSupplierBadge}>
-                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                    <Ionicons name="checkmark-circle" size={20} color={theme.color.icon.success} />
                     <Text style={styles.selectedSupplierText}>
                       Factura seleccionada: {selectedSale.documents?.find(d => d.documentType === SaleDocumentType.FACTURA)?.fullNumber || selectedSale.code}
                     </Text>
@@ -1145,7 +1153,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
               value={numeroDocumento}
               onChangeText={setNumeroDocumento}
               placeholder="F001-00000050"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.color.text.placeholder}
               editable={inputMode === 'manual'}
             />
 
@@ -1162,7 +1170,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
               value={importeTotal}
               onChangeText={setImporteTotal}
               placeholder="0.00"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.color.text.placeholder}
               keyboardType="decimal-pad"
               editable={inputMode === 'manual'}
             />
@@ -1180,7 +1188,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
               value={importePago}
               onChangeText={setImportePago}
               placeholder="0.00"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={theme.color.text.placeholder}
               keyboardType="decimal-pad"
             />
 
@@ -1214,14 +1222,14 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
               <Text style={styles.modalCancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalAddButton} onPress={handleAdd}>
-              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Ionicons name="add" size={20} color={theme.color.text.inverse} />
               <Text style={styles.modalAddButtonText}>Agregar</Text>
             </TouchableOpacity>
           </View>
 
           <DatePicker
             visible={showFechaEmisionPicker}
-            date={fechaEmision}
+            date={fechaEmision ? new Date(fechaEmision) : new Date()}
             onConfirm={(date) => {
               setFechaEmision(formatDateToString(date));
               setShowFechaEmisionPicker(false);
@@ -1231,7 +1239,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
 
           <DatePicker
             visible={showFechaPagoPicker}
-            date={fechaPago}
+            date={fechaPago ? new Date(fechaPago) : new Date()}
             onConfirm={(date) => {
               setFechaPago(formatDateToString(date));
               setShowFechaPagoPicker(false);
@@ -1244,10 +1252,10 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -1255,9 +1263,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 8,
@@ -1265,7 +1273,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -1281,7 +1289,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B7280',
+    color: theme.color.text.subtle,
     textAlign: 'center',
   },
   content: {
@@ -1292,32 +1300,32 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   noSeriesContainer: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: theme.color.state.warning.background,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: theme.color.state.warning.border,
   },
   noSeriesText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#92400E',
+    color: theme.color.state.warning.text,
     marginTop: 8,
     textAlign: 'center',
   },
   noSeriesSubtext: {
     fontSize: 12,
-    color: '#B45309',
+    color: theme.color.text.warning,
     marginTop: 4,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -1326,7 +1334,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   sectionHeader: {
@@ -1341,51 +1349,51 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: theme.color.text.muted,
     marginBottom: 8,
     marginTop: 12,
   },
   hint: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.subtle,
     marginTop: 4,
     fontStyle: 'italic',
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   inputDisabled: {
-    backgroundColor: '#F3F4F6',
-    color: '#6B7280',
+    backgroundColor: theme.color.surface.subtle,
+    color: theme.color.text.subtle,
   },
   textArea: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#1F2937',
+    color: theme.color.text.heading,
     minHeight: 100,
   },
   pickerContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   row: {
     flexDirection: 'row',
@@ -1401,12 +1409,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.subtle,
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -1414,11 +1422,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   itemCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
   },
   itemHeader: {
     flexDirection: 'row',
@@ -1429,7 +1437,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     flex: 1,
   },
   itemDetails: {
@@ -1437,17 +1445,17 @@ const styles = StyleSheet.create({
   },
   itemDetailText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.subtle,
   },
   itemDetailTextBold: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: theme.color.icon.warning,
   },
   itemDetailTextSuccess: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#10B981',
+    color: theme.color.icon.success,
   },
   totalsContainer: {
     gap: 12,
@@ -1459,54 +1467,54 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.color.text.subtle,
   },
   totalValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   totalLabelBold: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   totalValueBold: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.color.icon.success,
   },
   totalValueHighlight: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: theme.color.icon.warning,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#8B5CF6',
+    backgroundColor: theme.color.action.primary.background,
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
     marginTop: 8,
   },
   submitButtonDisabled: {
-    backgroundColor: '#C4B5FD',
+    backgroundColor: theme.color.action.primary.backgroundDisabled,
   },
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
@@ -1518,12 +1526,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.color.border.subtle,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   modalBody: {
     paddingHorizontal: 20,
@@ -1536,19 +1544,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: theme.color.border.subtle,
   },
   modalCancelButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     alignItems: 'center',
   },
   modalCancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.subtle,
   },
   modalAddButton: {
     flex: 1,
@@ -1557,26 +1565,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: theme.color.action.primary.background,
     gap: 8,
   },
   modalAddButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
   calculationCard: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.accentSoft,
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: theme.color.state.info.border,
   },
   calculationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4338CA',
+    color: theme.color.state.info.text,
     marginBottom: 8,
   },
   calculationRow: {
@@ -1587,27 +1595,27 @@ const styles = StyleSheet.create({
   },
   calculationLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.color.text.subtle,
   },
   calculationValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   calculationLabelBold: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   calculationValueBold: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#10B981',
+    color: theme.color.icon.success,
   },
   calculationValueHighlight: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: theme.color.icon.warning,
   },
   // Supplier search styles
   clearButton: {
@@ -1620,7 +1628,7 @@ const styles = StyleSheet.create({
   clearButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#EF4444',
+    color: theme.color.icon.danger,
   },
   searchContainer: {
     marginBottom: 16,
@@ -1628,9 +1636,9 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
   },
@@ -1641,19 +1649,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#1F2937',
+    color: theme.color.text.heading,
   },
   searchLoader: {
     marginLeft: 8,
   },
   searchResultsContainer: {
     marginTop: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     maxHeight: 250,
-    shadowColor: '#000',
+    shadowColor: theme.color.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1668,7 +1676,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: theme.color.surface.subtle,
   },
   searchResultContent: {
     flex: 1,
@@ -1676,17 +1684,17 @@ const styles = StyleSheet.create({
   searchResultName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: theme.color.text.heading,
     marginBottom: 2,
   },
   searchResultRuc: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.color.text.subtle,
     marginBottom: 2,
   },
   searchResultAddress: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
   },
   noResultsContainer: {
     alignItems: 'center',
@@ -1696,19 +1704,19 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.subtle,
     marginTop: 8,
   },
   noResultsSubtext: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: theme.color.text.placeholder,
     marginTop: 4,
     textAlign: 'center',
   },
   selectedSupplierBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: theme.color.state.success.background,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -1717,7 +1725,7 @@ const styles = StyleSheet.create({
   selectedSupplierText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#065F46',
+    color: theme.color.state.success.text,
     flex: 1,
   },
   // Mode selector styles
@@ -1734,21 +1742,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: theme.color.border.subtle,
     gap: 8,
   },
   modeButtonActive: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#8B5CF6',
+    backgroundColor: theme.color.brand.accentSoft,
+    borderColor: theme.color.action.primary.background,
   },
   modeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.color.text.subtle,
   },
   modeButtonTextActive: {
-    color: '#8B5CF6',
+    color: theme.color.action.primary.background,
   },
 });

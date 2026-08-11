@@ -8,18 +8,22 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { transportService } from '@/services/api/transport';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import type { Transporter, TransportersResponse } from '@/types/transport';
+import Alert from '@/utils/alert';
 
 export const TransportersScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { hasPermission } = usePermissions();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [transporters, setTransporters] = useState<Transporter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,13 +125,12 @@ export const TransportersScreen: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return '#10B981';
-      case 'INACTIVE':
-        return '#6B7280';
+        return theme.color.action.success.background;
       case 'SUSPENDED':
-        return '#EF4444';
+        return theme.color.action.danger.background;
+      case 'INACTIVE':
       default:
-        return '#6B7280';
+        return theme.color.text.muted;
     }
   };
 
@@ -219,7 +222,7 @@ export const TransportersScreen: React.FC = () => {
     if (!loading || page === 1) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#6366F1" />
+        <ActivityIndicator size="small" color={theme.color.brand.accent} />
       </View>
     );
   };
@@ -249,7 +252,7 @@ export const TransportersScreen: React.FC = () => {
           placeholder="Buscar por RUC, razón social o registro MTC..."
           value={searchQuery}
           onChangeText={handleSearch}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={theme.color.text.placeholder}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => handleSearch('')}>
@@ -268,7 +271,7 @@ export const TransportersScreen: React.FC = () => {
       {/* List */}
       {loading && page === 1 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366F1" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando transportistas...</Text>
         </View>
       ) : (
@@ -280,7 +283,12 @@ export const TransportersScreen: React.FC = () => {
           ListEmptyComponent={renderEmptyState}
           ListFooterComponent={renderFooter}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#6366F1']} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[theme.color.brand.accent]}
+              tintColor={theme.color.brand.accent}
+            />
           }
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
@@ -290,218 +298,219 @@ export const TransportersScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: '#1F2937',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 40,
-    alignItems: 'flex-end',
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#6366F1',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1F2937',
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: '#9CA3AF',
-    padding: 4,
-  },
-  statsContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-  },
-  statsText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  statsValue: {
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  listContent: {
-    padding: 20,
-    paddingTop: 8,
-  },
-  transporterCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  transporterHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  transporterInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  transporterName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  transporterRuc: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  transporterDetails: {
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    paddingTop: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  detailLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    flex: 1,
-  },
-  detailValue: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#1F2937',
-    flex: 1,
-    textAlign: 'right',
-  },
-  deleteButton: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  deleteButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#DC2626',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: '#6B7280',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 40,
-  },
-  emptyStateButton: {
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  emptyStateButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  footerLoader: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backButtonText: {
+      fontSize: 24,
+      color: theme.color.text.heading,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      flex: 1,
+      textAlign: 'center',
+    },
+    headerRight: {
+      width: 40,
+      alignItems: 'flex-end',
+    },
+    addButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    addButtonText: {
+      fontSize: 24,
+      color: theme.color.text.inverse,
+      fontWeight: '600',
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      marginHorizontal: 20,
+      marginTop: 16,
+      marginBottom: 12,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    searchIcon: {
+      fontSize: 18,
+      marginRight: 8,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: theme.color.text.heading,
+    },
+    clearIcon: {
+      fontSize: 18,
+      color: theme.color.text.placeholder,
+      padding: 4,
+    },
+    statsContainer: {
+      paddingHorizontal: 20,
+      paddingVertical: 8,
+    },
+    statsText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    statsValue: {
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    listContent: {
+      padding: 20,
+      paddingTop: 8,
+    },
+    transporterCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    transporterHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    transporterInfo: {
+      flex: 1,
+      marginRight: 12,
+    },
+    transporterName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    transporterRuc: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    statusBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    transporterDetails: {
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      paddingTop: 12,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    detailLabel: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      flex: 1,
+    },
+    detailValue: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.heading,
+      flex: 1,
+      textAlign: 'right',
+    },
+    deleteButton: {
+      marginTop: 12,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    deleteButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.danger,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 15,
+      color: theme.color.text.muted,
+    },
+    emptyState: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 60,
+    },
+    emptyStateIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyStateTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    emptyStateText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      marginBottom: 24,
+      paddingHorizontal: 40,
+    },
+    emptyStateButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    emptyStateButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.inverse,
+    },
+    footerLoader: {
+      paddingVertical: 20,
+      alignItems: 'center',
+    },
+  });

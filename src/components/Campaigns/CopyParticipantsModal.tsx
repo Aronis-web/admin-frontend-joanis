@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import Alert from '@/utils/alert';
 import { campaignsService } from '@/services/api';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Campaign } from '@/types/campaigns';
 import { ParticipantTotalsResponse } from '@/types/participant-totals';
 import { logger } from '@/utils/logger';
@@ -28,6 +29,7 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const styles = useThemedStyles(createStyles);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignTotals, setCampaignTotals] = useState<Record<string, ParticipantTotalsResponse>>(
     {}
@@ -399,217 +401,218 @@ export const CopyParticipantsModal: React.FC<CopyParticipantsModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[5],
-  },
-  modalContainer: {
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    width: '100%',
-    maxWidth: 600,
-    height: '80%',
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[5],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    color: colors.neutral[500],
-    fontWeight: 'bold',
-  },
-  description: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: spacing[4],
-    lineHeight: 20,
-    paddingHorizontal: spacing[5],
-  },
-  scrollViewContainer: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollViewContent: {
-    paddingHorizontal: spacing[5],
-    paddingBottom: spacing[5],
-    paddingTop: spacing[2.5],
-  },
-  loadingContainer: {
-    padding: spacing[10],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  emptyContainer: {
-    padding: spacing[10],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral[400],
-    fontStyle: 'italic',
-  },
-  campaignCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  campaignCardDisabled: {
-    opacity: 0.6,
-  },
-  campaignHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing[3],
-  },
-  campaignHeaderLeft: {
-    flex: 1,
-  },
-  campaignCode: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  campaignName: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  campaignsCount: {
-    padding: spacing[2.5],
-    fontSize: 12,
-    color: colors.neutral[500],
-  },
-  statusBadge: {
-    paddingHorizontal: spacing[2.5],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  campaignInfo: {
-    gap: spacing[1.5],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  infoLabel: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  infoValue: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.neutral[800],
-  },
-  copyingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.overlay.light,
-    borderRadius: borderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  copyingText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-  totalsSection: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  totalsSectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  totalsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  totalItem: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.md,
-    padding: spacing[2],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  totalLabel: {
-    fontSize: 11,
-    color: colors.neutral[500],
-    marginBottom: spacing[0.5],
-  },
-  totalValuePurchase: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.danger[600],
-  },
-  totalValueSale: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.success[500],
-  },
-  totalValueMargin: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.accent[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    modalContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      width: '100%',
+      maxWidth: 600,
+      height: '80%',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[5],
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: 'bold',
+    },
+    description: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[4],
+      lineHeight: 20,
+      paddingHorizontal: theme.space[5],
+    },
+    scrollViewContainer: {
+      flex: 1,
+      overflow: 'hidden',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollViewContent: {
+      paddingHorizontal: theme.space[5],
+      paddingBottom: theme.space[5],
+      paddingTop: theme.space[2.5],
+    },
+    loadingContainer: {
+      padding: theme.space[10],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    emptyContainer: {
+      padding: theme.space[10],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+      fontStyle: 'italic',
+    },
+    campaignCard: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    campaignCardDisabled: {
+      opacity: 0.6,
+    },
+    campaignHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[3],
+    },
+    campaignHeaderLeft: {
+      flex: 1,
+    },
+    campaignCode: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    campaignName: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    campaignsCount: {
+      padding: theme.space[2.5],
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    statusBadge: {
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.xl,
+      borderWidth: 1,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    campaignInfo: {
+      gap: theme.space[1.5],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    infoLabel: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    infoValue: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.heading,
+    },
+    copyingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.color.overlay.subtle,
+      borderRadius: theme.radii.lg,
+      justifyContent: 'center',
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    copyingText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+    totalsSection: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    totalsSectionTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    totalsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    totalItem: {
+      flex: 1,
+      minWidth: '45%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.md,
+      padding: theme.space[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    totalLabel: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[0.5],
+    },
+    totalValuePurchase: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.danger,
+    },
+    totalValueSale: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.success,
+    },
+    totalValueMargin: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
+    },
+  });

@@ -10,7 +10,8 @@ import {
   Modal,
 } from 'react-native';
 import { customersService } from '@/services/api/customers';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Customer } from '@/types/customers';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -27,6 +28,8 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
   initialValue = '',
   documentTypeFilter = 'ALL',
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [searchText, setSearchText] = useState(initialValue);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
@@ -148,13 +151,13 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
             }
           }}
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={theme.color.text.placeholder}
           editable={!selectedCustomer}
         />
         {loading && (
           <ActivityIndicator
             size="small"
-            color="#007bff"
+            color={theme.color.brand.accent}
             style={styles.loader}
           />
         )}
@@ -196,131 +199,133 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing[4],
-    zIndex: 1000,
-  },
-  inputContainer: {
-    position: 'relative',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    fontSize: 16,
-    backgroundColor: colors.surface.primary,
-  },
-  inputSelected: {
-    borderColor: colors.success[500],
-    backgroundColor: colors.success[50],
-  },
-  loader: {
-    position: 'absolute',
-    right: 40,
-    top: 12,
-  },
-  clearButton: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.danger[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    color: colors.neutral[0],
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  selectedBadge: {
-    marginTop: spacing[2],
-    padding: spacing[2],
-    backgroundColor: colors.success[100],
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  selectedBadgeText: {
-    color: colors.success[600],
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  dropdown: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    maxHeight: 250,
-    shadowColor: colors.neutral[950],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    zIndex: 1001,
-  },
-  dropdownList: {
-    maxHeight: 250,
-  },
-  dropdownItem: {
-    padding: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  customerInfo: {
-    gap: spacing[1],
-  },
-  customerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  customerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[700],
-    flex: 1,
-  },
-  companyBadge: {
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.sm,
-  },
-  companyBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.primary[700],
-  },
-  personBadge: {
-    backgroundColor: colors.warning[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5],
-    borderRadius: borderRadius.sm,
-  },
-  personBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.warning[700],
-  },
-  customerDocument: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  customerEmail: {
-    fontSize: 12,
-    color: colors.neutral[400],
-  },
-  emptyText: {
-    padding: spacing[4],
-    textAlign: 'center',
-    color: colors.neutral[400],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      marginBottom: theme.space[4],
+      zIndex: 1000,
+    },
+    inputContainer: {
+      position: 'relative',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[3],
+      fontSize: 16,
+      backgroundColor: theme.color.surface.base,
+      color: theme.color.text.body,
+    },
+    inputSelected: {
+      borderColor: theme.color.text.success,
+      backgroundColor: theme.color.state.success.background,
+    },
+    loader: {
+      position: 'absolute',
+      right: 40,
+      top: 12,
+    },
+    clearButton: {
+      position: 'absolute',
+      right: 12,
+      top: 12,
+      width: 24,
+      height: 24,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.text.danger,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    clearButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    selectedBadge: {
+      marginTop: theme.space[2],
+      padding: theme.space[2],
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+    },
+    selectedBadgeText: {
+      color: theme.color.state.success.text,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    dropdown: {
+      position: 'absolute',
+      top: 50,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      maxHeight: 250,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 5,
+      zIndex: 1001,
+    },
+    dropdownList: {
+      maxHeight: 250,
+    },
+    dropdownItem: {
+      padding: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.surface.muted,
+    },
+    customerInfo: {
+      gap: theme.space[1],
+    },
+    customerNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    customerName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      flex: 1,
+    },
+    companyBadge: {
+      backgroundColor: theme.color.state.info.background,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: 2,
+      borderRadius: theme.radii.sm,
+    },
+    companyBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.state.info.text,
+    },
+    personBadge: {
+      backgroundColor: theme.color.state.warning.background,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: 2,
+      borderRadius: theme.radii.sm,
+    },
+    personBadgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+    },
+    customerDocument: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    customerEmail: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+    },
+    emptyText: {
+      padding: theme.space[4],
+      textAlign: 'center',
+      color: theme.color.text.placeholder,
+    },
+  });

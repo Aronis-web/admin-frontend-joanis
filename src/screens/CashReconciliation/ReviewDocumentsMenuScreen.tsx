@@ -16,15 +16,18 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors } from '@/design-system/tokens/colors';
-import { spacing, borderRadius } from '@/design-system/tokens/spacing';
-import { shadows } from '@/design-system/tokens/shadows';
-import { fontSizes, fontWeights } from '@/design-system/tokens/typography';
 import { durations } from '@/design-system/tokens/animations';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { useTheme } from '@/design-system/themes';
+import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
+import type { Theme } from '@/design-system/themes/defaultLight';
 
 type Props = NativeStackScreenProps<any, 'ReviewDocumentsMenu'>;
+
+// Prosegur vendor brand color (no equivalente semantico en theme)
+const PROSEGUR_BRAND = '#8B5CF6';
+const PROSEGUR_BRAND_SOFT = '#F3E8FF';
 
 interface MenuOption {
   id: string;
@@ -38,6 +41,8 @@ interface MenuOption {
 
 export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -82,8 +87,8 @@ export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
       description: 'Consultar y filtrar ventas registradas en el sistema',
       icon: '💰',
       route: 'ReviewSales',
-      color: colors.success[500],
-      lightColor: colors.success[50],
+      color: theme.color.state.success.border,
+      lightColor: theme.color.state.success.background,
     },
     {
       id: 'review-izipay',
@@ -91,8 +96,8 @@ export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
       description: 'Consultar transacciones de Izipay con filtros avanzados',
       icon: '💳',
       route: 'ReviewIzipay',
-      color: colors.primary[500],
-      lightColor: colors.primary[50],
+      color: theme.color.brand.accent,
+      lightColor: theme.color.brand.accentSoft,
     },
     {
       id: 'review-prosegur',
@@ -100,8 +105,8 @@ export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
       description: 'Consultar depósitos y recogidas de Prosegur',
       icon: '🏦',
       route: 'ReviewProsegur',
-      color: '#8B5CF6',
-      lightColor: '#F3E8FF',
+      color: PROSEGUR_BRAND,
+      lightColor: PROSEGUR_BRAND_SOFT,
     },
   ];
 
@@ -151,19 +156,19 @@ export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonGradient}>
-              <Ionicons name="arrow-back" size={24} color={colors.neutral[0]} />
+              <Ionicons name="arrow-back" size={24} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="document-text-outline" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="document-text-outline" size={22} color={theme.color.brand.onHeader} />
                 </View>
                 <Text style={styles.titleGradient}>Revisar Documentos</Text>
               </View>
@@ -222,16 +227,16 @@ export const ReviewDocumentsMenuScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: theme.color.background.subtle,
   },
   // Header con gradiente
   headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingHorizontal: theme.space[5],
+    paddingTop: theme.space[4],
+    paddingBottom: theme.space[4],
   },
   headerTop: {
     flexDirection: 'row',
@@ -240,11 +245,11 @@ const styles = StyleSheet.create({
   backButtonGradient: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   headerTitleContainer: {
     flex: 1,
@@ -252,62 +257,62 @@ const styles = StyleSheet.create({
   headerIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: theme.space[1],
   },
   headerIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   titleGradient: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.neutral[0],
+    color: theme.color.brand.onHeader,
     letterSpacing: 0.3,
   },
   subtitleGradient: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.color.brand.onHeaderMuted,
     fontWeight: '500',
-    marginLeft: spacing[12],
+    marginLeft: theme.space[12],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    backgroundColor: colors.neutral[0],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[4],
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-    ...shadows.sm,
+    borderBottomColor: theme.color.border.subtle,
+    ...theme.shadow.sm,
   },
   backButton: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
+    borderRadius: theme.radii.full,
+    backgroundColor: theme.color.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonText: {
-    fontSize: fontSizes['2xl'],
-    color: colors.neutral[700],
-    fontWeight: fontWeights.semibold,
+    fontSize: 24,
+    color: theme.color.text.body,
+    fontWeight: '600',
   },
   headerTitle: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.color.text.heading,
   },
   headerSubtitle: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
+    fontSize: 12,
+    color: theme.color.text.subtle,
+    marginTop: theme.space[1],
   },
   placeholder: {
     width: 44,
@@ -316,25 +321,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuContainer: {
-    padding: spacing[4],
+    padding: theme.space[4],
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[5],
+    backgroundColor: theme.color.state.info.background,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    marginBottom: theme.space[5],
     borderWidth: 1,
-    borderColor: colors.primary[100],
+    borderColor: theme.color.state.info.border,
   },
   infoIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[100],
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.accentSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   infoIcon: {
     fontSize: 24,
@@ -343,34 +348,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoTitle: {
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
-    color: colors.primary[800],
-    marginBottom: spacing[1],
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.color.state.info.text,
+    marginBottom: theme.space[1],
   },
   infoText: {
-    fontSize: fontSizes.xs,
-    color: colors.primary[600],
+    fontSize: 12,
+    color: theme.color.state.info.text,
     lineHeight: 18,
   },
   cardsContainer: {
-    gap: spacing[3],
+    gap: theme.space[3],
   },
   menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    ...shadows.md,
+    backgroundColor: theme.color.surface.base,
+    borderRadius: theme.radii.xl,
+    padding: theme.space[4],
+    ...theme.shadow.md,
   },
   iconContainer: {
     width: 56,
     height: 56,
-    borderRadius: borderRadius.lg,
+    borderRadius: theme.radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing[4],
+    marginRight: theme.space[4],
   },
   icon: {
     fontSize: 28,
@@ -379,46 +384,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuTitle: {
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
-    color: colors.neutral[900],
-    marginBottom: spacing[1],
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.color.text.heading,
+    marginBottom: theme.space[1],
   },
   menuDescription: {
-    fontSize: fontSizes.xs,
-    color: colors.neutral[500],
+    fontSize: 12,
+    color: theme.color.text.subtle,
     lineHeight: 18,
   },
   arrowContainer: {
     width: 36,
     height: 36,
-    borderRadius: borderRadius.full,
+    borderRadius: theme.radii.full,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: spacing[2],
+    marginLeft: theme.space[2],
   },
   arrow: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
+    fontSize: 20,
+    fontWeight: '700',
   },
   helpCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.warning[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    marginTop: spacing[5],
+    backgroundColor: theme.color.state.warning.background,
+    borderRadius: theme.radii.lg,
+    padding: theme.space[4],
+    marginTop: theme.space[5],
     borderWidth: 1,
-    borderColor: colors.warning[100],
+    borderColor: theme.color.state.warning.border,
   },
   helpIcon: {
     fontSize: 20,
-    marginRight: spacing[3],
+    marginRight: theme.space[3],
   },
   helpText: {
     flex: 1,
-    fontSize: fontSizes.xs,
-    color: colors.warning[700],
+    fontSize: 12,
+    color: theme.color.state.warning.text,
     lineHeight: 18,
   },
 });

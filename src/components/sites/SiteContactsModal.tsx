@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Alert as RNAlert,
   ActivityIndicator,
 } from 'react-native';
 import Alert from '@/utils/alert';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { Site } from '@/types/sites';
 import {
   SiteContact,
@@ -33,6 +33,8 @@ export const SiteContactsModal: React.FC<SiteContactsModalProps> = ({
   site,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [contacts, setContacts] = useState<SiteContact[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -479,7 +481,7 @@ export const SiteContactsModal: React.FC<SiteContactsModalProps> = ({
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Buscar contactos..."
-                  placeholderTextColor={colors.neutral[400]}
+                  placeholderTextColor={theme.color.text.placeholder}
                 />
               </View>
 
@@ -487,7 +489,7 @@ export const SiteContactsModal: React.FC<SiteContactsModalProps> = ({
               <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {loading ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.primary[500]} />
+                    <ActivityIndicator size="large" color={theme.color.brand.primary} />
                     <Text style={styles.loadingText}>Cargando contactos...</Text>
                   </View>
                 ) : filteredContacts.length === 0 ? (
@@ -532,401 +534,402 @@ export const SiteContactsModal: React.FC<SiteContactsModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    maxHeight: '90%',
-    paddingBottom: spacing[5],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  modalIcon: {
-    fontSize: 32,
-    marginRight: spacing[3],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginTop: 2,
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: colors.neutral[500],
-    fontWeight: '600',
-  },
-  searchContainer: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  searchInput: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[800],
-  },
-  scrollContent: {
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[4],
-    maxHeight: 400,
-  },
-  loadingContainer: {
-    paddingVertical: spacing[10],
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  emptyContainer: {
-    paddingVertical: spacing[10],
-    alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing[3],
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[2],
-  },
-  emptyHint: {
-    fontSize: 14,
-    color: colors.neutral[400],
-  },
-  contactCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[4],
-    marginBottom: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  contactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  contactAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[500],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  contactAvatarText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  contactInfo: {
-    flex: 1,
-  },
-  contactName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  contactPosition: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.lg,
-  },
-  statusActive: {
-    backgroundColor: colors.success[100],
-  },
-  statusInactive: {
-    backgroundColor: colors.danger[100],
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.neutral[800],
-  },
-  contactDetails: {
-    marginBottom: spacing[3],
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  detailIcon: {
-    fontSize: 16,
-    marginRight: spacing[2],
-  },
-  detailText: {
-    fontSize: 14,
-    color: colors.neutral[800],
-  },
-  channelsContainer: {
-    marginBottom: spacing[3],
-  },
-  channelsLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: 6,
-  },
-  channelsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  channelBadge: {
-    backgroundColor: colors.primary[100],
-    paddingHorizontal: 10,
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-  },
-  channelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary[800],
-  },
-  notificationsContainer: {
-    marginBottom: spacing[3],
-  },
-  notificationsLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: 6,
-  },
-  notificationsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  notificationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.warning[100],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-  },
-  notificationIcon: {
-    fontSize: 12,
-    marginRight: spacing[1],
-  },
-  notificationText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.warning[800],
-  },
-  notesContainer: {
-    marginBottom: spacing[3],
-  },
-  notesLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  notesText: {
-    fontSize: 13,
-    color: colors.neutral[800],
-    fontStyle: 'italic',
-  },
-  contactActions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[2],
-  },
-  editContactButton: {
-    flex: 1,
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  editContactButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  deleteContactButton: {
-    flex: 1,
-    backgroundColor: colors.danger[500],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  deleteContactButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  statsFooter: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  statsText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  addButton: {
-    marginHorizontal: spacing[6],
-    marginTop: spacing[3],
-    backgroundColor: colors.primary[500],
-    paddingVertical: 14,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-  formContainer: {
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[4],
-    maxHeight: 500,
-  },
-  formTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[5],
-  },
-  formGroup: {
-    marginBottom: spacing[4],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  input: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.neutral[800],
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  checkboxGroup: {
-    gap: spacing[3],
-  },
-  checkboxItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[1],
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: borderRadius.sm,
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary[500],
-    borderColor: colors.primary[500],
-  },
-  checkboxIcon: {
-    fontSize: 12,
-    color: colors.neutral[0],
-    fontWeight: '700',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: colors.neutral[800],
-  },
-  formActions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[5],
-    marginBottom: spacing[5],
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: colors.neutral[100],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[500],
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: colors.primary[500],
-    paddingVertical: spacing[3],
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[0],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '90%',
+      paddingBottom: theme.space[5],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    modalIcon: {
+      fontSize: 32,
+      marginRight: theme.space[3],
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    modalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    closeButtonText: {
+      fontSize: 18,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    searchContainer: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    searchInput: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    scrollContent: {
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[4],
+      maxHeight: 400,
+    },
+    loadingContainer: {
+      paddingVertical: theme.space[10],
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    emptyContainer: {
+      paddingVertical: theme.space[10],
+      alignItems: 'center',
+    },
+    emptyIcon: {
+      fontSize: 48,
+      marginBottom: theme.space[3],
+    },
+    emptyText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+    },
+    emptyHint: {
+      fontSize: 14,
+      color: theme.color.text.placeholder,
+    },
+    contactCard: {
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    contactHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    contactAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.brand.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    contactAvatarText: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    contactInfo: {
+      flex: 1,
+    },
+    contactName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    contactPosition: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.lg,
+    },
+    statusActive: {
+      backgroundColor: theme.color.state.success.background,
+    },
+    statusInactive: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    contactDetails: {
+      marginBottom: theme.space[3],
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    detailIcon: {
+      fontSize: 16,
+      marginRight: theme.space[2],
+    },
+    detailText: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    channelsContainer: {
+      marginBottom: theme.space[3],
+    },
+    channelsLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 6,
+    },
+    channelsList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    channelBadge: {
+      backgroundColor: theme.color.surface.muted,
+      paddingHorizontal: 10,
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.md,
+    },
+    channelText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    notificationsContainer: {
+      marginBottom: theme.space[3],
+    },
+    notificationsLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 6,
+    },
+    notificationsList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    notificationBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.state.warning.background,
+      paddingHorizontal: theme.space[2],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.md,
+    },
+    notificationIcon: {
+      fontSize: 12,
+      marginRight: theme.space[1],
+    },
+    notificationText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+    },
+    notesContainer: {
+      marginBottom: theme.space[3],
+    },
+    notesLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[1],
+    },
+    notesText: {
+      fontSize: 13,
+      color: theme.color.text.heading,
+      fontStyle: 'italic',
+    },
+    contactActions: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      marginTop: theme.space[2],
+    },
+    editContactButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    editContactButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    deleteContactButton: {
+      flex: 1,
+      backgroundColor: theme.color.action.danger.background,
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    deleteContactButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    statsFooter: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    statsText: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    addButton: {
+      marginHorizontal: theme.space[6],
+      marginTop: theme.space[3],
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: 14,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+    },
+    addButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    formContainer: {
+      paddingHorizontal: theme.space[6],
+      paddingTop: theme.space[4],
+      maxHeight: 500,
+    },
+    formTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[5],
+    },
+    formGroup: {
+      marginBottom: theme.space[4],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    input: {
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 10,
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    checkboxGroup: {
+      gap: theme.space[3],
+    },
+    checkboxItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[1],
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: theme.radii.sm,
+      borderWidth: 2,
+      borderColor: theme.color.border.default,
+      marginRight: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    checkboxIcon: {
+      fontSize: 12,
+      color: theme.color.text.onAction,
+      fontWeight: '700',
+    },
+    checkboxLabel: {
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    formActions: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      marginTop: theme.space[5],
+      marginBottom: theme.space[5],
+    },
+    cancelButton: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    cancelButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    saveButton: {
+      flex: 1,
+      backgroundColor: theme.color.brand.primary,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+    },
+    saveButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+  });
 
 export default SiteContactsModal;

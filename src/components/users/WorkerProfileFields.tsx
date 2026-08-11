@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { FormTextInput } from '@/components/ui/FormTextInput';
 import { FormPicker } from '@/components/ui/FormPicker';
 import { FormDatePicker } from '@/components/ui/FormDatePicker';
@@ -40,6 +41,7 @@ export const WorkerProfileFields: React.FC<WorkerProfileFieldsProps> = ({
   errors = {},
   disabled = false,
 }) => {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.container}>
       {/* Section Header */}
@@ -223,50 +225,51 @@ export const WorkerProfileFields: React.FC<WorkerProfileFieldsProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginTop: spacing[2],
-  },
-  sectionHeader: {
-    marginBottom: spacing[5],
-    paddingBottom: spacing[4],
-    borderBottomWidth: 2,
-    borderBottomColor: colors.neutral[200],
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: colors.neutral[500],
-  },
-  subsection: {
-    marginBottom: spacing[6],
-  },
-  subsectionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[600],
-    marginBottom: spacing[3],
-    paddingLeft: spacing[1],
-  },
-  infoBox: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    marginTop: spacing[2],
-    marginBottom: spacing[4],
-    borderWidth: 1,
-    borderColor: colors.primary[200],
-  },
-  infoText: {
-    fontSize: 13,
-    color: colors.primary[800],
-    lineHeight: 18,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      marginTop: theme.space[2],
+    },
+    sectionHeader: {
+      marginBottom: theme.space[5],
+      paddingBottom: theme.space[4],
+      borderBottomWidth: 2,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    sectionSubtitle: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    subsection: {
+      marginBottom: theme.space[6],
+    },
+    subsectionTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: theme.space[3],
+      paddingLeft: theme.space[1],
+    },
+    infoBox: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      marginTop: theme.space[2],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    infoText: {
+      fontSize: 13,
+      color: theme.color.text.heading,
+      lineHeight: 18,
+    },
+  });
 
 export default WorkerProfileFields;

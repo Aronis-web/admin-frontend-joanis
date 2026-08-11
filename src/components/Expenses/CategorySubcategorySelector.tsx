@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { expensesService } from '@/services/api';
 import { ExpenseCategory } from '@/types/expenses';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface CategorySubcategorySelectorProps {
   categoryId: string;
@@ -26,6 +27,8 @@ export const CategorySubcategorySelector: React.FC<CategorySubcategorySelectorPr
   error,
   subcategoryError,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [subcategories, setSubcategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +68,7 @@ export const CategorySubcategorySelector: React.FC<CategorySubcategorySelectorPr
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={colors.accent[500]} />
+        <ActivityIndicator size="small" color={theme.color.brand.accent} />
         <Text style={styles.loadingText}>Cargando categorías...</Text>
       </View>
     );
@@ -137,61 +140,62 @@ export const CategorySubcategorySelector: React.FC<CategorySubcategorySelectorPr
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing[4],
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[4],
-    gap: spacing[2],
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  fieldContainer: {
-    marginBottom: spacing[1],
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[2],
-  },
-  required: {
-    color: colors.danger[600],
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: colors.neutral[300],
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface.primary,
-    overflow: 'hidden',
-  },
-  pickerError: {
-    borderColor: colors.danger[600],
-  },
-  pickerDisabled: {
-    backgroundColor: colors.neutral[100],
-    opacity: 0.6,
-  },
-  picker: {
-    height: 50,
-    color: colors.neutral[800],
-  },
-  errorText: {
-    fontSize: 12,
-    color: colors.danger[600],
-    marginTop: spacing[1],
-  },
-  helpText: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: spacing[1],
-    fontStyle: 'italic',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      gap: theme.space[4],
+    },
+    loadingContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.space[4],
+      gap: theme.space[2],
+    },
+    loadingText: {
+      fontSize: 14,
+      color: theme.color.text.subtle,
+    },
+    fieldContainer: {
+      marginBottom: theme.space[1],
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[2],
+    },
+    required: {
+      color: theme.color.text.danger,
+    },
+    pickerContainer: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.base,
+      overflow: 'hidden',
+    },
+    pickerError: {
+      borderColor: theme.color.text.danger,
+    },
+    pickerDisabled: {
+      backgroundColor: theme.color.surface.muted,
+      opacity: 0.6,
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    errorText: {
+      fontSize: 12,
+      color: theme.color.text.danger,
+      marginTop: theme.space[1],
+    },
+    helpText: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+  });
 
 export default CategorySubcategorySelector;

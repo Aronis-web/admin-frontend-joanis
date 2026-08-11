@@ -7,14 +7,15 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { expensesService, filesApi } from '@/services/api';
 import { PaymentCard } from './PaymentCard';
 import { ImageViewerModal } from './ImageViewerModal';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface PaymentsModalProps {
   visible: boolean;
@@ -29,6 +30,8 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
   expenseCode,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
@@ -185,7 +188,7 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
                 {expenseCode && <Text style={styles.headerSubtitle}>{expenseCode}</Text>}
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={28} color={colors.neutral[800]} />
+                <Ionicons name="close" size={28} color={theme.color.text.heading} />
               </TouchableOpacity>
             </View>
 
@@ -213,7 +216,7 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
             >
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={colors.accent[500]} />
+                  <ActivityIndicator size="large" color={theme.color.brand.accent} />
                   <Text style={styles.loadingText}>Cargando pagos...</Text>
                 </View>
               ) : payments.length > 0 ? (
@@ -234,7 +237,7 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
                 </>
               ) : (
                 <View style={styles.emptyContainer}>
-                  <Ionicons name="receipt-outline" size={64} color={colors.neutral[300]} />
+                  <Ionicons name="receipt-outline" size={64} color={theme.color.border.default} />
                   <Text style={styles.emptyText}>No hay pagos registrados</Text>
                   <Text style={styles.debugText}>Payments array length: {payments.length}</Text>
                 </View>
@@ -265,134 +268,135 @@ export const PaymentsModal: React.FC<PaymentsModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface.primary,
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    height: '90%',
-    paddingTop: spacing[5],
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing[5],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.default,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: colors.accent[500],
-    fontWeight: '600',
-  },
-  closeButton: {
-    padding: spacing[1],
-    marginLeft: spacing[3],
-  },
-  summary: {
-    flexDirection: 'row',
-    backgroundColor: colors.background.secondary,
-    marginHorizontal: spacing[5],
-    marginTop: spacing[3],
-    marginBottom: spacing[2],
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryDivider: {
-    width: 1,
-    backgroundColor: colors.neutral[300],
-    marginHorizontal: spacing[4],
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginBottom: spacing[1],
-  },
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  summaryValueAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.success[500],
-  },
-  scrollView: {
-    flex: 1,
-    minHeight: 200,
-  },
-  scrollContent: {
-    padding: spacing[4],
-    paddingBottom: spacing[5],
-    flexGrow: 1,
-  },
-  loadingContainer: {
-    paddingVertical: spacing[16],
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 14,
-    color: colors.neutral[500],
-  },
-  emptyContainer: {
-    paddingVertical: spacing[16],
-    alignItems: 'center',
-  },
-  emptyText: {
-    marginTop: spacing[4],
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  debugText: {
-    fontSize: 12,
-    color: colors.neutral[400],
-    marginBottom: spacing[2],
-    textAlign: 'center',
-  },
-  footer: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3],
-    paddingBottom: Platform.OS === 'ios' ? spacing[6] : spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.default,
-  },
-  closeFooterButton: {
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.xl,
-    padding: spacing[3],
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border.default,
-  },
-  closeFooterButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[600],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      height: '90%',
+      paddingTop: theme.space[5],
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingHorizontal: theme.space[5],
+      paddingBottom: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.default,
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+    closeButton: {
+      padding: theme.space[1],
+      marginLeft: theme.space[3],
+    },
+    summary: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.background.subtle,
+      marginHorizontal: theme.space[5],
+      marginTop: theme.space[3],
+      marginBottom: theme.space[2],
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    summaryItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    summaryDivider: {
+      width: 1,
+      backgroundColor: theme.color.border.default,
+      marginHorizontal: theme.space[4],
+    },
+    summaryLabel: {
+      fontSize: 12,
+      color: theme.color.text.subtle,
+      marginBottom: theme.space[1],
+    },
+    summaryValue: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    summaryValueAmount: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.icon.success,
+    },
+    scrollView: {
+      flex: 1,
+      minHeight: 200,
+    },
+    scrollContent: {
+      padding: theme.space[4],
+      paddingBottom: theme.space[5],
+      flexGrow: 1,
+    },
+    loadingContainer: {
+      paddingVertical: theme.space[16],
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.subtle,
+    },
+    emptyContainer: {
+      paddingVertical: theme.space[16],
+      alignItems: 'center',
+    },
+    emptyText: {
+      marginTop: theme.space[4],
+      fontSize: 16,
+      color: theme.color.text.subtle,
+    },
+    debugText: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+      marginBottom: theme.space[2],
+      textAlign: 'center',
+    },
+    footer: {
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[3],
+      paddingBottom: Platform.OS === 'ios' ? theme.space[6] : theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+    },
+    closeFooterButton: {
+      backgroundColor: theme.color.surface.muted,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[3],
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+    },
+    closeFooterButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+  });
 
 export default PaymentsModal;

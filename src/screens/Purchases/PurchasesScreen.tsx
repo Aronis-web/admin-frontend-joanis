@@ -2,6 +2,8 @@
  * PurchasesScreen - Lista de Compras
  * Migrado al Design System unificado
  */
+
+import Alert from '@/utils/alert';
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
@@ -9,7 +11,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   Platform,
@@ -44,11 +45,8 @@ import { CircularProgress } from '@/components/Repartos';
 import type { PurchaseValidationProgressResponse } from '@/types/purchases';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { PurchasesMultiReportModal } from '@/components/Purchases/PurchasesMultiReportModal';
 import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
   Title,
   Body,
   Label,
@@ -59,6 +57,8 @@ import {
   EmptyState,
   Pagination,
 } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 
 interface PurchasesScreenProps {
   navigation: any;
@@ -68,11 +68,16 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   // Screen tracking
   useScreenTracking('PurchasesScreen', 'PurchasesScreen');
 
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+
   const [selectedStatus, setSelectedStatus] = useState<PurchaseStatus | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
-  const [purchaseProgress, setPurchaseProgress] = useState<Map<string, PurchaseValidationProgressResponse>>(new Map());
+  const [purchaseProgress, setPurchaseProgress] = useState<
+    Map<string, PurchaseValidationProgressResponse>
+  >(new Map());
 
   // Date filter states
   const [startDate, setStartDate] = useState<string>('');
@@ -81,6 +86,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showDateFilters, setShowDateFilters] = useState(false);
+  const [showMultiReportModal, setShowMultiReportModal] = useState(false);
 
   const limit = 20;
 
@@ -246,40 +252,37 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     [navigation]
   );
 
-  const handleDownloadReport = useCallback(
-    async (purchase: Purchase, event: any) => {
-      event.stopPropagation();
+  const handleDownloadReport = useCallback(async (purchase: Purchase, event: any) => {
+    event.stopPropagation();
 
-      try {
-        setDownloadingReportId(purchase.id);
+    try {
+      setDownloadingReportId(purchase.id);
 
-        logger.info('🔄 Descargando reporte de compra...');
-        const startTime = new Date().getTime();
+      logger.info('🔄 Descargando reporte de compra...');
+      const startTime = new Date().getTime();
 
-        const pdfBlob = await purchasesService.downloadPurchaseReportPdf(purchase.id);
+      const pdfBlob = await purchasesService.downloadPurchaseReportPdf(purchase.id);
 
-        const endTime = new Date().getTime();
-        logger.info('✅ PDF descargado del servidor');
-        logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
-        logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
+      const endTime = new Date().getTime();
+      logger.info('✅ PDF descargado del servidor');
+      logger.info('📦 Tamaño del PDF:', pdfBlob.size, 'bytes');
+      logger.info('⏱️ Tiempo de descarga:', endTime - startTime, 'ms');
 
-        const timestamp = new Date().getTime();
-        const fileName = `reporte-compra-${purchase.code}-${timestamp}.pdf`;
+      const timestamp = new Date().getTime();
+      const fileName = `reporte-compra-${purchase.code}-${timestamp}.pdf`;
 
-        await saveAndSharePdf(pdfBlob, fileName, `Reporte de Compra - ${purchase.code}`);
+      await saveAndSharePdf(pdfBlob, fileName, `Reporte de Compra - ${purchase.code}`);
 
-        if (Platform.OS === 'web') {
-          Alert.alert('Éxito', 'El reporte se está descargando');
-        }
-      } catch (error: any) {
-        logger.error('Error downloading report:', error);
-        Alert.alert('Error', error.message || 'No se pudo descargar el reporte');
-      } finally {
-        setDownloadingReportId(null);
+      if (Platform.OS === 'web') {
+        Alert.alert('Éxito', 'El reporte se está descargando');
       }
-    },
-    []
-  );
+    } catch (error: any) {
+      logger.error('Error downloading report:', error);
+      Alert.alert('Error', error.message || 'No se pudo descargar el reporte');
+    } finally {
+      setDownloadingReportId(null);
+    }
+  }, []);
 
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
@@ -294,150 +297,200 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
     return `S/ ${(cents / 100).toFixed(2)}`;
   }, []);
 
-  const getStatusVariant = useCallback((status: PurchaseStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
-    switch (status) {
-      case PurchaseStatus.DRAFT:
-        return 'draft';
-      case PurchaseStatus.IN_CAPTURE:
-      case PurchaseStatus.IN_VALIDATION:
-        return 'pending';
-      case PurchaseStatus.VALIDATED:
-        return 'completed';
-      case PurchaseStatus.CLOSED:
-        return 'active';
-      case PurchaseStatus.CANCELLED:
-        return 'cancelled';
-      default:
-        return 'draft';
-    }
-  }, []);
+  const getStatusVariant = useCallback(
+    (status: PurchaseStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
+      switch (status) {
+        case PurchaseStatus.DRAFT:
+          return 'draft';
+        case PurchaseStatus.IN_CAPTURE:
+        case PurchaseStatus.IN_VALIDATION:
+          return 'pending';
+        case PurchaseStatus.VALIDATED:
+          return 'completed';
+        case PurchaseStatus.CLOSED:
+          return 'active';
+        case PurchaseStatus.CANCELLED:
+          return 'cancelled';
+        default:
+          return 'draft';
+      }
+    },
+    []
+  );
 
   // Status filter options
   const statusOptions: StatusOption[] = useMemo(() => {
+    const fallback = theme.color.text.muted;
     const getStatusColor = (status: PurchaseStatus | 'ALL'): string => {
-      if (status === 'ALL') return colors.accent[500];
-      return PurchaseStatusColors[status] || colors.neutral[500];
+      if (status === 'ALL') return theme.color.brand.accent;
+      return PurchaseStatusColors[status] || fallback;
     };
 
     return [
-      { value: 'ALL', label: 'Todos', color: colors.accent[500] },
-      { value: PurchaseStatus.DRAFT, label: PurchaseStatusLabels[PurchaseStatus.DRAFT], color: getStatusColor(PurchaseStatus.DRAFT) },
-      { value: PurchaseStatus.IN_CAPTURE, label: PurchaseStatusLabels[PurchaseStatus.IN_CAPTURE], color: getStatusColor(PurchaseStatus.IN_CAPTURE) },
-      { value: PurchaseStatus.IN_VALIDATION, label: PurchaseStatusLabels[PurchaseStatus.IN_VALIDATION], color: getStatusColor(PurchaseStatus.IN_VALIDATION) },
-      { value: PurchaseStatus.VALIDATED, label: PurchaseStatusLabels[PurchaseStatus.VALIDATED], color: getStatusColor(PurchaseStatus.VALIDATED) },
-      { value: PurchaseStatus.CLOSED, label: PurchaseStatusLabels[PurchaseStatus.CLOSED], color: getStatusColor(PurchaseStatus.CLOSED) },
-      { value: PurchaseStatus.CANCELLED, label: PurchaseStatusLabels[PurchaseStatus.CANCELLED], color: getStatusColor(PurchaseStatus.CANCELLED) },
+      { value: 'ALL', label: 'Todos', color: theme.color.brand.accent },
+      {
+        value: PurchaseStatus.DRAFT,
+        label: PurchaseStatusLabels[PurchaseStatus.DRAFT],
+        color: getStatusColor(PurchaseStatus.DRAFT),
+      },
+      {
+        value: PurchaseStatus.IN_CAPTURE,
+        label: PurchaseStatusLabels[PurchaseStatus.IN_CAPTURE],
+        color: getStatusColor(PurchaseStatus.IN_CAPTURE),
+      },
+      {
+        value: PurchaseStatus.IN_VALIDATION,
+        label: PurchaseStatusLabels[PurchaseStatus.IN_VALIDATION],
+        color: getStatusColor(PurchaseStatus.IN_VALIDATION),
+      },
+      {
+        value: PurchaseStatus.VALIDATED,
+        label: PurchaseStatusLabels[PurchaseStatus.VALIDATED],
+        color: getStatusColor(PurchaseStatus.VALIDATED),
+      },
+      {
+        value: PurchaseStatus.CLOSED,
+        label: PurchaseStatusLabels[PurchaseStatus.CLOSED],
+        color: getStatusColor(PurchaseStatus.CLOSED),
+      },
+      {
+        value: PurchaseStatus.CANCELLED,
+        label: PurchaseStatusLabels[PurchaseStatus.CANCELLED],
+        color: getStatusColor(PurchaseStatus.CANCELLED),
+      },
     ];
-  }, []);
+  }, [theme]);
 
-  const renderPurchaseCard = useCallback((purchase: Purchase) => {
-    const totalProducts = purchase.products?.length || 0;
-    const validatedProducts =
-      purchase.products?.filter((p) => p.status === 'VALIDATED').length || 0;
-    const isDownloading = downloadingReportId === purchase.id;
+  const renderPurchaseCard = useCallback(
+    (purchase: Purchase) => {
+      const totalProducts = purchase.products?.length || 0;
+      const validatedProducts =
+        purchase.products?.filter((p) => p.status === 'VALIDATED').length || 0;
+      const isDownloading = downloadingReportId === purchase.id;
 
-    const progress = purchaseProgress.get(purchase.id);
-    const progressPercentage = progress?.validationProgressPercentage || 0;
-    const progressTotal = progress?.totalProducts || totalProducts;
-    const progressValidated = progress?.productsValidated || validatedProducts;
+      const progress = purchaseProgress.get(purchase.id);
+      const progressPercentage = progress?.validationProgressPercentage || 0;
+      const progressTotal = progress?.totalProducts || totalProducts;
+      const progressValidated = progress?.productsValidated || validatedProducts;
 
-    return (
-      <Card
-        key={purchase.id}
-        variant="elevated"
-        padding="medium"
-        onPress={() => handlePurchasePress(purchase)}
-        style={styles.purchaseCard}
-      >
-        {/* Header */}
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderLeft}>
-            <Title size="medium" style={styles.cardCode}>
-              {purchase.code}
-            </Title>
-            <Badge
-              label={PurchaseStatusLabels[purchase.status]}
-              variant={getStatusVariant(purchase.status)}
-              size="small"
-            />
-          </View>
-          <Caption color="secondary">{formatDate(purchase.guideDate)}</Caption>
-        </View>
-
-        {/* Body */}
-        <View style={styles.cardBody}>
-          <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Proveedor:</Label>
-            <Body numberOfLines={1} style={styles.infoValue}>
-              {purchase.supplier?.commercialName || 'N/A'}
-            </Body>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Guía:</Label>
-            <Body style={styles.infoValue}>{purchase.guideNumber}</Body>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Productos:</Label>
-            <Body style={styles.infoValue}>
-              {validatedProducts}/{totalProducts}
-            </Body>
-          </View>
-
-          {/* Circular Progress */}
-          {progressTotal > 0 && (
-            <View style={styles.progressContainer}>
-              <CircularProgress
-                size={isTablet ? 70 : 60}
-                strokeWidth={isTablet ? 7 : 6}
-                progress={progressPercentage}
-                total={progressTotal}
-                validated={progressValidated}
-                fontSize={isTablet ? 14 : 12}
+      return (
+        <Card
+          key={purchase.id}
+          variant="elevated"
+          padding="medium"
+          onPress={() => handlePurchasePress(purchase)}
+          style={styles.purchaseCard}
+        >
+          {/* Header */}
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <Title size="medium" style={styles.cardCode}>
+                {purchase.code}
+              </Title>
+              <Badge
+                label={PurchaseStatusLabels[purchase.status]}
+                variant={getStatusVariant(purchase.status)}
+                size="small"
               />
-              <Caption color="secondary" style={styles.progressLabel}>
-                Validación
-              </Caption>
             </View>
-          )}
-        </View>
-
-        {/* Footer */}
-        <View style={styles.cardFooter}>
-          <Caption color="tertiary">Creado: {formatDate(purchase.createdAt)}</Caption>
-          <View style={styles.cardActions}>
-            {hasPermission('purchases.reports.download') && (
-              <TouchableOpacity
-                style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
-                onPress={(e) => handleDownloadReport(purchase, e)}
-                disabled={isDownloading}
-                activeOpacity={0.7}
-              >
-                {isDownloading ? (
-                  <ActivityIndicator size="small" color={colors.text.inverse} />
-                ) : (
-                  <>
-                    <Ionicons name="document-text-outline" size={14} color={colors.text.inverse} />
-                    <Caption color={colors.text.inverse} style={styles.downloadButtonText}>
-                      Reporte
-                    </Caption>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-            <Ionicons name="chevron-forward" size={20} color={colors.icon.tertiary} />
+            <Caption color="secondary">{formatDate(purchase.guideDate)}</Caption>
           </View>
-        </View>
-      </Card>
-    );
-  }, [isTablet, handlePurchasePress, handleDownloadReport, getStatusVariant, formatDate, downloadingReportId, purchaseProgress, hasPermission]);
+
+          {/* Body */}
+          <View style={styles.cardBody}>
+            <View style={styles.infoRow}>
+              <Label color="secondary" style={styles.infoLabel}>
+                Proveedor:
+              </Label>
+              <Body numberOfLines={1} style={styles.infoValue}>
+                {purchase.supplier?.commercialName || 'N/A'}
+              </Body>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Label color="secondary" style={styles.infoLabel}>
+                Guía:
+              </Label>
+              <Body style={styles.infoValue}>{purchase.guideNumber}</Body>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Label color="secondary" style={styles.infoLabel}>
+                Productos:
+              </Label>
+              <Body style={styles.infoValue}>
+                {validatedProducts}/{totalProducts}
+              </Body>
+            </View>
+
+            {/* Circular Progress */}
+            {progressTotal > 0 && (
+              <View style={styles.progressContainer}>
+                <CircularProgress
+                  size={isTablet ? 70 : 60}
+                  strokeWidth={isTablet ? 7 : 6}
+                  progress={progressPercentage}
+                  total={progressTotal}
+                  validated={progressValidated}
+                  fontSize={isTablet ? 14 : 12}
+                />
+                <Caption color="secondary" style={styles.progressLabel}>
+                  Validación
+                </Caption>
+              </View>
+            )}
+          </View>
+
+          {/* Footer */}
+          <View style={styles.cardFooter}>
+            <Caption color="tertiary">Creado: {formatDate(purchase.createdAt)}</Caption>
+            <View style={styles.cardActions}>
+              {hasPermission('purchases.reports.download') && (
+                <TouchableOpacity
+                  style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
+                  onPress={(e) => handleDownloadReport(purchase, e)}
+                  disabled={isDownloading}
+                  activeOpacity={0.7}
+                >
+                  {isDownloading ? (
+                    <ActivityIndicator size="small" color={theme.color.text.inverse} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="document-text-outline"
+                        size={14}
+                        color={theme.color.text.inverse}
+                      />
+                      <Caption color={theme.color.text.inverse} style={styles.downloadButtonText}>
+                        Reporte
+                      </Caption>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+              <Ionicons name="chevron-forward" size={20} color={theme.color.icon.subtle} />
+            </View>
+          </View>
+        </Card>
+      );
+    },
+    [
+      isTablet,
+      handlePurchasePress,
+      handleDownloadReport,
+      getStatusVariant,
+      formatDate,
+      downloadingReportId,
+      purchaseProgress,
+      hasPermission,
+    ]
+  );
 
   if (isLoading && !isRefetching) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -446,17 +499,21 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="cart" size={22} color={theme.color.brand.onHeader} />
                 </View>
-                <Title size="large" style={styles.headerTitle}>Compras</Title>
+                <Title size="large" style={styles.headerTitle}>
+                  Compras
+                </Title>
               </View>
               <Body style={styles.headerSubtitle}>Gestión de compras y validación</Body>
             </View>
           </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[900]} />
-          <Body color="secondary" style={styles.loadingText}>Cargando compras...</Body>
+          <ActivityIndicator size="large" color={theme.color.brand.primary} />
+          <Body color="secondary" style={styles.loadingText}>
+            Cargando compras...
+          </Body>
         </View>
       </SafeAreaView>
     );
@@ -467,7 +524,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header con gradiente */}
         <LinearGradient
-          colors={[colors.primary[900], colors.primary[800]]}
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
@@ -476,9 +533,11 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="cart" size={22} color={colors.neutral[0]} />
+                  <Ionicons name="cart" size={22} color={theme.color.brand.onHeader} />
                 </View>
-                <Title size="large" style={styles.headerTitle}>Compras</Title>
+                <Title size="large" style={styles.headerTitle}>
+                  Compras
+                </Title>
               </View>
               <Body style={styles.headerSubtitle}>Gestión de compras y validación</Body>
             </View>
@@ -495,17 +554,22 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
           {/* Search Bar */}
           <View style={styles.searchInputWrapper}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={20} color={colors.neutral[400]} style={styles.searchIcon} />
+              <Ionicons
+                name="search"
+                size={20}
+                color={theme.color.text.placeholder}
+                style={styles.searchIcon}
+              />
               <TextInput
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchTerm}
                 onChangeText={setSearchTerm}
                 placeholder="Buscar por código, proveedor, productos..."
-                placeholderTextColor={colors.neutral[400]}
+                placeholderTextColor={theme.color.text.placeholder}
               />
               {searchTerm.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchTerm('')} style={styles.clearButton}>
-                  <Ionicons name="close-circle" size={20} color={colors.neutral[400]} />
+                  <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
                 </TouchableOpacity>
               )}
             </View>
@@ -533,7 +597,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <Ionicons
               name={showDateFilters ? 'calendar' : 'calendar-outline'}
               size={20}
-              color={colors.primary[900]}
+              color={theme.color.brand.primary}
             />
             <Label color="primary" style={styles.dateFilterToggleText}>
               {showDateFilters ? 'Ocultar Filtros de Fecha' : 'Filtrar por Fecha'}
@@ -541,7 +605,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             <Ionicons
               name={showDateFilters ? 'chevron-up' : 'chevron-down'}
               size={20}
-              color={colors.primary[900]}
+              color={theme.color.brand.primary}
             />
           </TouchableOpacity>
           {(startDate || endDate) && (
@@ -550,7 +614,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
               onPress={handleClearDateFilters}
               activeOpacity={0.7}
             >
-              <Ionicons name="close-circle" size={20} color={colors.danger[500]} />
+              <Ionicons name="close-circle" size={20} color={theme.color.text.danger} />
             </TouchableOpacity>
           )}
         </View>
@@ -579,9 +643,7 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
                     }}
                     activeOpacity={0.7}
                   >
-                    <Caption
-                      color={dateField === field ? colors.text.inverse : 'secondary'}
-                    >
+                    <Caption color={dateField === field ? theme.color.text.inverse : 'secondary'}>
                       {label}
                     </Caption>
                   </TouchableOpacity>
@@ -614,13 +676,13 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             {/* Active Filters Info */}
             {(startDate || endDate) && (
               <View style={styles.activeFiltersInfo}>
-                <Ionicons name="information-circle" size={16} color={colors.info[500]} />
+                <Ionicons name="information-circle" size={16} color={theme.color.icon.accent} />
                 <Caption color="secondary" style={styles.activeFiltersText}>
                   {startDate && endDate
                     ? `Mostrando compras desde ${startDate} hasta ${endDate}`
                     : startDate
-                    ? `Mostrando compras desde ${startDate}`
-                    : `Mostrando compras hasta ${endDate}`}
+                      ? `Mostrando compras desde ${startDate}`
+                      : `Mostrando compras hasta ${endDate}`}
                 </Caption>
               </View>
             )}
@@ -634,7 +696,13 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
             styles.contentContainer,
             isTablet && styles.contentContainerTablet,
           ]}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} colors={[colors.primary[900]]} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={handleRefresh}
+              colors={[theme.color.brand.primary]}
+            />
+          }
         >
           {purchases.length === 0 ? (
             <EmptyState
@@ -664,10 +732,26 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
 
         {/* Add Button */}
         <ProtectedFAB
-          icon="+"
-          onPress={handleCreatePurchase}
-          requiredPermissions={['purchases.create']}
-          hideIfNoPermission={true}
+          actions={[
+            {
+              icon: 'cart-outline',
+              label: 'Crear Compra',
+              onPress: handleCreatePurchase,
+              requiredPermissions: ['purchases.create'],
+            },
+            {
+              icon: 'document-text-outline',
+              label: 'Reporte Multi-Compra',
+              onPress: () => setShowMultiReportModal(true),
+              requiredPermissions: ['purchases.reports.multi.download'],
+            },
+          ]}
+        />
+
+        {/* Multi-Purchase Report Modal */}
+        <PurchasesMultiReportModal
+          visible={showMultiReportModal}
+          onClose={() => setShowMultiReportModal(false)}
         />
 
         {/* Date Pickers */}
@@ -691,261 +775,261 @@ export const PurchasesScreen: React.FC<PurchasesScreenProps> = ({ navigation }) 
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-  },
-  // Header con gradiente
-  headerGradient: {
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing[4],
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing[1],
-  },
-  headerIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing[3],
-  },
-  headerTitle: {
-    color: colors.neutral[0],
-  },
-  headerSubtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginLeft: spacing[12],
-  },
-  statsHeaderContainer: {
-    alignItems: 'flex-end',
-  },
-  statHeaderItem: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-  },
-  statHeaderValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[0],
-  },
-  statHeaderLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-  },
-  searchInputWrapper: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  searchInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[3],
-  },
-  searchIcon: {
-    marginRight: spacing[2],
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: spacing[3],
-    fontSize: 15,
-    color: colors.neutral[800],
-  },
-  searchInputTablet: {
-    fontSize: 16,
-    paddingVertical: spacing[3.5],
-  },
-  clearButton: {
-    padding: spacing[1],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: spacing[4],
-  },
-  statusFilter: {
-    backgroundColor: colors.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  dateFilterToggleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  dateFilterToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  dateFilterToggleText: {
-    marginLeft: spacing[2],
-  },
-  clearDateButton: {
-    padding: spacing[1],
-  },
-  dateFiltersPanel: {
-    backgroundColor: colors.surface.secondary,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-    gap: spacing[4],
-  },
-  dateFieldSelector: {
-    gap: spacing[2],
-  },
-  dateFieldButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
-  dateFieldButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  dateFieldButtonActive: {
-    backgroundColor: colors.primary[900],
-    borderColor: colors.primary[900],
-  },
-  dateRangePickers: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  datePickerWrapper: {
-    flex: 1,
-  },
-  activeFiltersInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: colors.info[50],
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
-  },
-  activeFiltersText: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: spacing[4],
-    gap: spacing[4],
-  },
-  contentContainerTablet: {
-    padding: spacing[6],
-    maxWidth: 1200,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  purchaseCard: {
-    marginBottom: spacing[3],
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing[4],
-  },
-  cardHeaderLeft: {
-    flex: 1,
-    gap: spacing[2],
-  },
-  cardCode: {
-    marginBottom: spacing[1],
-  },
-  cardBody: {
-    gap: spacing[2],
-    marginBottom: spacing[4],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  infoLabel: {
-    width: 90,
-  },
-  infoValue: {
-    flex: 1,
-  },
-  progressContainer: {
-    alignItems: 'center',
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  progressLabel: {
-    marginTop: spacing[2],
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  downloadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[900],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1.5],
-    borderRadius: borderRadius.md,
-    gap: spacing[1],
-  },
-  downloadButtonDisabled: {
-    backgroundColor: colors.neutral[400],
-    opacity: 0.7,
-  },
-  downloadButtonText: {
-    marginLeft: spacing[1],
-  },
-  bottomSpacer: {
-    height: spacing[20],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    headerGradient: {
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[4],
+      paddingBottom: theme.space[4],
+    },
+    headerTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[4],
+    },
+    headerTitleContainer: {
+      flex: 1,
+    },
+    headerIconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[1],
+    },
+    headerIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    headerTitle: {
+      color: theme.color.brand.onHeader,
+    },
+    headerSubtitle: {
+      color: theme.color.brand.onHeaderMuted,
+      marginLeft: theme.space[12],
+    },
+    statsHeaderContainer: {
+      alignItems: 'flex-end',
+    },
+    statHeaderItem: {
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.headerBadge,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+    },
+    statHeaderValue: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.brand.onHeader,
+    },
+    statHeaderLabel: {
+      fontSize: 11,
+      color: theme.color.brand.onHeaderMuted,
+      fontWeight: '500',
+      textTransform: 'uppercase',
+    },
+    searchInputWrapper: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    searchInputContainer: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[3],
+    },
+    searchIcon: {
+      marginRight: theme.space[2],
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      fontSize: 15,
+      color: theme.color.text.body,
+    },
+    searchInputTablet: {
+      fontSize: 16,
+      paddingVertical: theme.space[3.5],
+    },
+    clearButton: {
+      padding: theme.space[1],
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[4],
+    },
+    statusFilter: {
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    dateFilterToggleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    dateFilterToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    dateFilterToggleText: {
+      marginLeft: theme.space[2],
+    },
+    clearDateButton: {
+      padding: theme.space[1],
+    },
+    dateFiltersPanel: {
+      backgroundColor: theme.color.surface.subtle,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      gap: theme.space[4],
+    },
+    dateFieldSelector: {
+      gap: theme.space[2],
+    },
+    dateFieldButtons: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    dateFieldButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    dateFieldButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    dateRangePickers: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    datePickerWrapper: {
+      flex: 1,
+    },
+    activeFiltersInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      backgroundColor: theme.color.state.info.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+    },
+    activeFiltersText: {
+      flex: 1,
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: theme.space[4],
+      gap: theme.space[4],
+    },
+    contentContainerTablet: {
+      padding: theme.space[6],
+      maxWidth: 1200,
+      alignSelf: 'center',
+      width: '100%',
+    },
+    purchaseCard: {
+      marginBottom: theme.space[3],
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[4],
+    },
+    cardHeaderLeft: {
+      flex: 1,
+      gap: theme.space[2],
+    },
+    cardCode: {
+      marginBottom: theme.space[1],
+    },
+    cardBody: {
+      gap: theme.space[2],
+      marginBottom: theme.space[4],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    infoLabel: {
+      width: 90,
+    },
+    infoValue: {
+      flex: 1,
+    },
+    progressContainer: {
+      alignItems: 'center',
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    progressLabel: {
+      marginTop: theme.space[2],
+    },
+    cardFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    cardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    downloadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.primary,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1.5],
+      borderRadius: theme.radii.md,
+      gap: theme.space[1],
+    },
+    downloadButtonDisabled: {
+      backgroundColor: theme.color.text.disabled,
+      opacity: 0.7,
+    },
+    downloadButtonText: {
+      marginLeft: theme.space[1],
+    },
+    bottomSpacer: {
+      height: theme.space[20],
+    },
+  });
 
 export default PurchasesScreen;

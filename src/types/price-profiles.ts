@@ -20,14 +20,18 @@ export interface PriceProfile {
  */
 export interface ProductSalePrice {
   id: string;
-  productId: string;
+  productId?: string;
   presentationId: string | null;
+  presentationCode?: string | null;
+  presentationName?: string | null;
   profileId: string;
+  profileCode?: string;
+  profileName?: string;
   priceCents: number;
   currency: string;
   isOverridden: boolean; // Si fue modificado manualmente
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   profile?: PriceProfile;
   presentation?: {
     id: string;
@@ -97,9 +101,24 @@ export interface UpdateSalePriceRequest {
 
 /**
  * Product sale prices response
+ *
+ * El backend (`GET /admin/products/:id/sale-prices`) devuelve los precios
+ * dentro de `salePrices`, junto con metadata del producto. Se mantiene `data`
+ * opcional por compatibilidad histórica.
  */
 export interface ProductSalePricesResponse {
-  data: ProductSalePrice[];
+  productId?: string;
+  productSku?: string;
+  costCents?: number | string;
+  presentations?: {
+    presentationId: string;
+    presentationCode: string;
+    presentationName: string;
+    factorToBase: string;
+  }[];
+  salePrices?: ProductSalePrice[];
+  /** @deprecated El backend usa `salePrices`; se conserva por compatibilidad. */
+  data?: ProductSalePrice[];
   total?: number;
 }
 

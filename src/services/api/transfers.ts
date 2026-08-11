@@ -4,6 +4,7 @@ import {
   Transfer,
   TransferDiscrepancy,
   StockMovement,
+  MovementType,
   TransferStatusHistory,
   CreateInternalTransferDto,
   CreateExternalTransferDto,
@@ -49,6 +50,17 @@ import {
  *    - X-User-Id (ID de usuario)
  *    - X-App-Id (ID de aplicación)
  */
+
+export interface ExportProductStockMovementsParams {
+  /** Uno o varios warehouseIds (se serializan como `warehouseId=a&warehouseId=b`). */
+  warehouseId?: string | string[];
+  warehouseAreaId?: string;
+  movementType?: MovementType;
+  /** ISO date (YYYY-MM-DD). */
+  dateFrom?: string;
+  /** ISO date (YYYY-MM-DD). */
+  dateTo?: string;
+}
 
 export const transfersApi = {
   // ============================================
@@ -201,7 +213,12 @@ export const transfersApi = {
   /**
    * 📤 Ship transfer (SALIDA)
    * POST /api/transfers/:id/ship
-   * Marca el traslado como enviado (en tránsito)
+   *
+   * ⚠️ Semántica actualizada (ago-2026): al despachar se mueve el stock
+   * ORIGEN → DESTINO de forma atómica, conservando el costo real del lote
+   * de origen. El stock queda disponible de inmediato en el almacén destino
+   * (vendible en POS). El traslado pasa a IN_TRANSIT solo como seguimiento
+   * logístico; la recepción posterior ya NO ingresa stock.
    */
   shipTransfer: async (id: string, data: ShipTransferDto): Promise<Transfer> => {
     console.log('🔧 Ship transfer payload:', JSON.stringify(data, null, 2));
@@ -209,15 +226,19 @@ export const transfersApi = {
   },
 
   // ============================================
-  // 📥 ENTRADAS - Recepciones (Inbound)
+  // 📥 ENTRADAS - Recepciones (Inbound - solo seguimiento)
   // ============================================
-  // Recepción de traslados externos
+  // Recepción de traslados externos.
   // Flujo: IN_TRANSIT → RECEIVING → RECEIVED → COMPLETED
+  //
+  // ⚠️ Semántica actualizada (ago-2026): la recepción NO mueve stock (ya se
+  // movió en el ship). Estos endpoints solo registran cantidad recibida,
+  // dañada y diferencias como discrepancias para conciliación posterior.
 
   /**
-   * 📥 Receive transfer (ENTRADA - initiate reception)
+   * 📥 Receive transfer (ENTRADA - abre recepción, solo seguimiento)
    * POST /api/transfers/:id/receive
-   * Inicia la recepción de un traslado externo
+   * Inicia la recepción de un traslado externo. No mueve stock.
    */
   receiveTransfer: async (id: string, receivedBy?: string, notes?: string): Promise<Transfer> => {
     const payload = receivedBy
@@ -239,7 +260,9 @@ export const transfersApi = {
   /**
    * 📥 Validate single item received (ENTRADA - dynamic)
    * POST /api/transfers/:id/validate-item
-   * Valida un item recibido y registra stock inmediatamente
+   * Registra la validación de un item recibido (cantidad recibida vs. enviada,
+   * dañado, notas). No mueve stock: el stock ya fue trasladado en el ship;
+   * las diferencias quedan como discrepancias para conciliación posterior.
    */
   validateItem: async (id: string, data: ValidateItemDto): Promise<TransferDiscrepancy[]> => {
     return apiClient.post<TransferDiscrepancy[]>(`/transfers/${id}/validate-item`, data);
@@ -257,7 +280,9 @@ export const transfersApi = {
   /**
    * 📥 Complete reception (ENTRADA)
    * POST /api/transfers/:id/complete-reception
-   * Completa la recepción del traslado (actualiza stock)
+   * Cierra la recepción del traslado (pasa a RECEIVED/COMPLETED). No mueve
+   * stock: el stock ya está en destino desde el ship. Solo consolida las
+   * diferencias como discrepancias.
    */
   completeReception: async (id: string, data: CompleteReceptionDto): Promise<Transfer> => {
     return apiClient.post<Transfer>(`/transfers/${id}/complete-reception`, data);
@@ -382,6 +407,37 @@ export const transfersApi = {
     return apiClient.get<StockMovement[]>(`/transfers/stock-movements/product/${productId}`, {
       params,
     });
+  },
+
+  /**
+   * 📦 Export stock movements history for a product (Excel)
+   * GET /api/transfers/stock-movements/product/:productId/export
+   * Filtros opcionales: warehouseId (single o array), warehouseAreaId, movementType, dateFrom, dateTo.
+   * Sin filtros = descarga todo el historial del producto.
+   */
+  exportProductStockMovements: async (
+    productId: string,
+    params?: ExportProductStockMovementsParams
+  ): Promise<Blob> => {
+    const { downloadWithAuth } = await import('@/utils/downloadWithAuth');
+
+    const query = new URLSearchParams();
+    if (params?.warehouseId) {
+      if (Array.isArray(params.warehouseId)) {
+        params.warehouseId.forEach((id) => query.append('warehouseId', id));
+      } else {
+        query.append('warehouseId', params.warehouseId);
+      }
+    }
+    if (params?.warehouseAreaId) query.append('warehouseAreaId', params.warehouseAreaId);
+    if (params?.movementType) query.append('movementType', params.movementType);
+    if (params?.dateFrom) query.append('dateFrom', params.dateFrom);
+    if (params?.dateTo) query.append('dateTo', params.dateTo);
+
+    const qs = query.toString();
+    const url = `${config.API_URL}/transfers/stock-movements/product/${productId}/export${qs ? `?${qs}` : ''}`;
+
+    return downloadWithAuth(url, { method: 'GET' });
   },
 
   // ============================================

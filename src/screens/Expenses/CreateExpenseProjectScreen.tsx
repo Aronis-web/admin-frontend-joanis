@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +17,9 @@ import { expensesService, sitesService } from '@/services/api';
 import { CreateExpenseProjectRequest, ProjectStatus } from '@/types/expenses';
 import { DatePicker } from '@/components/DatePicker';
 import { formatDateToString, getTodayString } from '@/utils/dateHelpers';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface CreateExpenseProjectScreenProps {
   navigation: any;
@@ -26,6 +28,8 @@ interface CreateExpenseProjectScreenProps {
 export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProps> = ({
   navigation,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { currentSite, currentCompany } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [sites, setSites] = useState<any[]>([]);
@@ -156,12 +160,12 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Nuevo Proyecto</Text>
           <TouchableOpacity onPress={handleSubmit} style={styles.saveButton} disabled={loading}>
             {loading ? (
-              <ActivityIndicator size="small" color="#6366F1" />
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
             ) : (
               <Text style={styles.saveButtonText}>Guardar</Text>
             )}
@@ -256,7 +260,7 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
                 <Text style={formData.startDate ? styles.dateText : styles.datePlaceholder}>
                   {formData.startDate ? formatDateDisplay(formData.startDate) : 'Seleccionar fecha'}
                 </Text>
-                <Ionicons name="calendar" size={20} color="#6366F1" />
+                <Ionicons name="calendar" size={20} color={theme.color.brand.accent} />
               </TouchableOpacity>
               {errors.startDate && <Text style={styles.errorText}>{errors.startDate}</Text>}
             </View>
@@ -273,7 +277,7 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
                     ? formatDateDisplay(formData.endDate)
                     : 'Seleccionar fecha (opcional)'}
                 </Text>
-                <Ionicons name="calendar" size={20} color="#6366F1" />
+                <Ionicons name="calendar" size={20} color={theme.color.brand.accent} />
               </TouchableOpacity>
               {errors.endDate && <Text style={styles.errorText}>{errors.endDate}</Text>}
             </View>
@@ -281,7 +285,7 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
 
           <View style={styles.infoSection}>
             <View style={styles.infoItem}>
-              <Ionicons name="information-circle" size={20} color="#6366F1" />
+              <Ionicons name="information-circle" size={20} color={theme.color.brand.accent} />
               <Text style={styles.infoText}>El proyecto se creará con estado "Planificación"</Text>
             </View>
           </View>
@@ -308,10 +312,10 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -322,9 +326,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 4,
@@ -332,7 +336,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -343,7 +347,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6366F1',
+    color: theme.color.brand.accent,
   },
   scrollView: {
     flex: 1,
@@ -352,7 +356,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   formSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -360,7 +364,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.color.text.heading,
     marginBottom: 16,
   },
   inputGroup: {
@@ -369,40 +373,40 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#1E293B',
-    backgroundColor: '#FFFFFF',
+    color: theme.color.text.heading,
+    backgroundColor: theme.color.surface.base,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: theme.color.state.danger.border,
   },
   dateInput: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
   },
   dateText: {
     fontSize: 16,
-    color: '#1E293B',
+    color: theme.color.text.heading,
   },
   datePlaceholder: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: theme.color.text.placeholder,
   },
   textArea: {
     height: 100,
@@ -410,11 +414,11 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 12,
-    color: '#EF4444',
+    color: theme.color.state.danger.text,
     marginTop: 4,
   },
   infoSection: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.color.brand.primarySoft,
     borderRadius: 12,
     padding: 16,
   },
@@ -426,14 +430,14 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: '#475569',
+    color: theme.color.text.body,
     lineHeight: 20,
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.color.surface.base,
     paddingVertical: 8,
   },
   pickerScroll: {
@@ -443,22 +447,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.color.surface.subtle,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.color.border.subtle,
     marginRight: 8,
   },
   pickerOptionActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: theme.color.brand.accent,
+    borderColor: theme.color.brand.accent,
   },
   pickerOptionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.color.text.body,
   },
   pickerOptionTextActive: {
-    color: '#FFFFFF',
+    color: theme.color.text.inverse,
   },
 });
 

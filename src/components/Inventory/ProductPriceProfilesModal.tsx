@@ -6,20 +6,15 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
 import { Product } from '@/services/api/products';
+import Alert from '@/utils/alert';
 
-// Design System
-import {
-  colors,
-  spacing,
-  borderRadius,
-  shadows,
-} from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import {
   Text,
   Title,
@@ -56,6 +51,8 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
   product,
   onSuccess,
 }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profiles, setProfiles] = useState<PriceProfile[]>([]);
@@ -88,11 +85,10 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
         priceProfilesApi.getProductSalePrices(product.id),
       ]);
 
-      console.log('🔍 Sale prices response:', salePricesResponse);
-
       setProfiles(profilesResponse);
 
-      // La API devuelve {productId, productSku, costCents, salePrices: [...]}
+      // La API devuelve { productId, costCents, presentations, salePrices: [...] }.
+      // Se mantiene el fallback a `data` por compatibilidad histórica.
       const salePricesArray = salePricesResponse.salePrices || salePricesResponse.data || [];
       setSalePrices(salePricesArray);
 
@@ -268,22 +264,19 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
               <Body size="medium" color="secondary" style={styles.modalSubtitle}>
                 {product.title}
               </Body>
-              <Text variant="labelLarge" color={colors.accent[600]}>
+              <Text variant="labelLarge" color={theme.color.brand.accent}>
                 Costo: {formatCurrency(product.costCents || 0, product.currency)}
               </Text>
             </View>
-            <IconButton
-              icon="close"
-              onPress={onClose}
-              variant="ghost"
-              size="medium"
-            />
+            <IconButton icon="close" onPress={onClose} variant="ghost" size="medium" />
           </View>
 
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary[900]} />
-              <Body color="secondary" style={styles.loadingText}>Cargando perfiles...</Body>
+              <ActivityIndicator size="large" color={theme.color.brand.primary} />
+              <Body color="secondary" style={styles.loadingText}>
+                Cargando perfiles...
+              </Body>
             </View>
           ) : (
             <>
@@ -307,7 +300,7 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                           </Caption>
                         </View>
                         <View style={styles.factorBadge}>
-                          <Label size="medium" color={colors.accent[700]}>
+                          <Label size="medium" color={theme.color.state.info.text}>
                             Factor: {priceData.factorToCost.toFixed(2)}x
                           </Label>
                         </View>
@@ -320,7 +313,11 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                             Precio de Venta
                           </Label>
                           <View style={styles.inputRow}>
-                            <Text variant="titleMedium" color="primary" style={styles.currencySymbol}>
+                            <Text
+                              variant="titleMedium"
+                              color="primary"
+                              style={styles.currencySymbol}
+                            >
                               {product.currency === 'PEN' ? 'S/' : '$'}
                             </Text>
                             <TextInput
@@ -366,20 +363,26 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
                       {/* Price Info */}
                       <View style={styles.priceInfo}>
                         <View style={styles.infoRow}>
-                          <Body size="small" color="secondary">Precio Calculado:</Body>
+                          <Body size="small" color="secondary">
+                            Precio Calculado:
+                          </Body>
                           <Text variant="labelLarge" color="primary">
                             {formatCurrency(priceData.calculatedPriceCents, product.currency)}
                           </Text>
                         </View>
                         <View style={styles.infoRow}>
-                          <Body size="small" color="secondary">Margen:</Body>
-                          <Text variant="labelLarge" color={colors.success[600]}>
+                          <Body size="small" color="secondary">
+                            Margen:
+                          </Body>
+                          <Text variant="labelLarge" color={theme.color.text.success}>
                             {calculateMargin(product.costCents || 0, priceData.priceCents)}
                           </Text>
                         </View>
                         {priceData.isOverridden && (
                           <View style={styles.overriddenBadge}>
-                            <Caption color={colors.warning[800]}>✏️ Modificado manualmente</Caption>
+                            <Caption color={theme.color.state.warning.text}>
+                              ✏️ Modificado manualmente
+                            </Caption>
                           </View>
                         )}
                       </View>
@@ -413,136 +416,137 @@ export const ProductPriceProfilesModal: React.FC<ProductPriceProfilesModalProps>
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.background.secondary,
-    paddingTop: spacing[5],
-    paddingBottom: spacing[5],
-    paddingHorizontal: spacing[4],
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.surface.primary,
-    borderRadius: borderRadius.xl,
-    ...shadows.xl,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: spacing[6],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  modalSubtitle: {
-    marginTop: spacing[1],
-    marginBottom: spacing[1],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing[10],
-  },
-  loadingText: {
-    marginTop: spacing[3],
-  },
-  modalContent: {
-    flex: 1,
-    padding: spacing[6],
-  },
-  priceCard: {
-    backgroundColor: colors.surface.secondary,
-    borderRadius: borderRadius.xl,
-    padding: spacing[5],
-    marginBottom: spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.light,
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[4],
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileCode: {
-    fontFamily: 'monospace',
-    marginTop: spacing[1],
-  },
-  factorBadge: {
-    backgroundColor: colors.accent[100],
-    paddingHorizontal: spacing[3.5],
-    paddingVertical: spacing[2],
-    borderRadius: borderRadius.lg,
-  },
-  priceInputContainer: {
-    marginBottom: spacing[3],
-  },
-  inputWrapper: {
-    marginBottom: spacing[3],
-  },
-  inputLabel: {
-    marginBottom: spacing[2],
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  currencySymbol: {
-    marginRight: spacing[2.5],
-  },
-  priceInput: {
-    flex: 1,
-    backgroundColor: colors.surface.primary,
-    borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.md,
-    padding: spacing[3.5],
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
-  },
-  priceInputOverridden: {
-    borderColor: colors.warning[500],
-    borderWidth: 2,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  priceInfo: {
-    marginTop: spacing[3],
-    paddingTop: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[1.5],
-  },
-  overriddenBadge: {
-    marginTop: spacing[2],
-    backgroundColor: colors.warning[50],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    borderRadius: borderRadius.md,
-    alignSelf: 'flex-start',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: spacing[6],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    gap: spacing[4],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+      paddingTop: theme.space[5],
+      paddingBottom: theme.space[5],
+      paddingHorizontal: theme.space[4],
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      ...theme.shadow.xl,
+      overflow: 'hidden',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      padding: theme.space[6],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerContent: {
+      flex: 1,
+    },
+    modalSubtitle: {
+      marginTop: theme.space[1],
+      marginBottom: theme.space[1],
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[10],
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+    },
+    modalContent: {
+      flex: 1,
+      padding: theme.space[6],
+    },
+    priceCard: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[5],
+      marginBottom: theme.space[5],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    profileHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+    },
+    profileInfo: {
+      flex: 1,
+    },
+    profileCode: {
+      fontFamily: 'monospace',
+      marginTop: theme.space[1],
+    },
+    factorBadge: {
+      backgroundColor: theme.color.brand.accentSoft,
+      paddingHorizontal: theme.space[3.5],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+    },
+    priceInputContainer: {
+      marginBottom: theme.space[3],
+    },
+    inputWrapper: {
+      marginBottom: theme.space[3],
+    },
+    inputLabel: {
+      marginBottom: theme.space[2],
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    currencySymbol: {
+      marginRight: theme.space[2.5],
+    },
+    priceInput: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      padding: theme.space[3.5],
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    priceInputOverridden: {
+      borderColor: theme.color.state.warning.border,
+      borderWidth: 2,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+    },
+    priceInfo: {
+      marginTop: theme.space[3],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[1.5],
+    },
+    overriddenBadge: {
+      marginTop: theme.space[2],
+      backgroundColor: theme.color.state.warning.background,
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      alignSelf: 'flex-start',
+    },
+    modalFooter: {
+      flexDirection: 'row',
+      padding: theme.space[6],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[4],
+    },
+  });

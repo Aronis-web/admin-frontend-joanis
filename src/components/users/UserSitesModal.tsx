@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
-import { colors, spacing, borderRadius } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
+import Alert from '@/utils/alert';
 
 interface UserSitesModalProps {
   visible: boolean;
@@ -22,6 +23,8 @@ interface UserSitesModalProps {
 }
 
 export const UserSitesModal: React.FC<UserSitesModalProps> = ({ visible, userId, onClose }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -73,7 +76,7 @@ export const UserSitesModal: React.FC<UserSitesModalProps> = ({ visible, userId,
           {/* Content */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.accent[500]} />
+              <ActivityIndicator size="large" color={theme.color.brand.accent} />
               <Text style={styles.loadingText}>Cargando sedes...</Text>
             </View>
           ) : (
@@ -110,98 +113,99 @@ export const UserSitesModal: React.FC<UserSitesModalProps> = ({ visible, userId,
   );
 };
 
-const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay.medium,
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral[0],
-    borderTopLeftRadius: borderRadius.full,
-    borderTopRightRadius: borderRadius.full,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.neutral[800],
-  },
-  closeButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    fontSize: 28,
-    color: colors.neutral[500],
-    fontWeight: '300',
-  },
-  scrollContent: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  loadingText: {
-    marginTop: spacing[3],
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  emptyContainer: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.neutral[500],
-  },
-  siteItem: {
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  siteInfo: {
-    flex: 1,
-  },
-  siteName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.neutral[800],
-    marginBottom: spacing[1],
-  },
-  siteCode: {
-    fontSize: 14,
-    color: colors.neutral[500],
-    marginBottom: 2,
-  },
-  siteAddress: {
-    fontSize: 13,
-    color: colors.neutral[400],
-  },
-  modalActions: {
-    padding: spacing[5],
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral[200],
-  },
-  button: {
-    paddingVertical: 14,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    backgroundColor: colors.accent[500],
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.color.surface.base,
+      borderTopLeftRadius: theme.radii.full,
+      borderTopRightRadius: theme.radii.full,
+      maxHeight: '80%',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeButtonText: {
+      fontSize: 28,
+      color: theme.color.text.muted,
+      fontWeight: '300',
+    },
+    scrollContent: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    loadingText: {
+      marginTop: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    emptyContainer: {
+      paddingVertical: 60,
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    siteItem: {
+      paddingHorizontal: theme.space[6],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    siteInfo: {
+      flex: 1,
+    },
+    siteName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    siteCode: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 2,
+    },
+    siteAddress: {
+      fontSize: 13,
+      color: theme.color.text.placeholder,
+    },
+    modalActions: {
+      padding: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    button: {
+      paddingVertical: 14,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.accent,
+    },
+  });

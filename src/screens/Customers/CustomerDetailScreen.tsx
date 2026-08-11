@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   TextInput,
   ActivityIndicator,
   Switch,
@@ -23,10 +22,16 @@ import {
   CustomerStatus,
 } from '@/types/customers';
 import { getDepartamentos, getProvincias, getDistritos } from '@/constants/ubigeo';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 export const CustomerDetailScreen = ({ navigation, route }: any) => {
   const customerId = route?.params?.customerId;
   const isCreateMode = !customerId;
+
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
 
   const [loading, setLoading] = useState(!isCreateMode);
   const [saving, setSaving] = useState(false);
@@ -321,7 +326,7 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
           disabled={consultingApi || !formData.documentNumber}
         >
           {consultingApi ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.color.text.onAction} />
           ) : (
             <Text style={styles.consultButtonText}>🔍 Consultar DNI</Text>
           )}
@@ -337,7 +342,7 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
           disabled={consultingApi || !formData.documentNumber}
         >
           {consultingApi ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.color.text.onAction} />
           ) : (
             <Text style={styles.consultButtonText}>🔍 Consultar RUC</Text>
           )}
@@ -401,7 +406,7 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando cliente...</Text>
         </View>
       </SafeAreaView>
@@ -925,7 +930,7 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={theme.color.text.onAction} />
               ) : (
                 <Text style={styles.saveButtonText}>
                   {isCreateMode ? '➕ Crear Cliente' : '💾 Guardar Cambios'}
@@ -969,10 +974,10 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
   },
   header: {
     flexDirection: 'row',
@@ -980,34 +985,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     padding: 8,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: theme.color.brand.accent,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   headerRight: {
     minWidth: 80,
     alignItems: 'flex-end',
   },
   editButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
   editButtonText: {
-    color: '#fff',
+    color: theme.color.text.onAction,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1015,41 +1020,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     marginTop: 12,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: theme.color.border.subtle,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 12,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: theme.color.text.heading,
     marginBottom: 8,
   },
   required: {
-    color: '#D32F2F',
+    color: theme.color.state.danger.border,
   },
   valueText: {
     fontSize: 15,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   input: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: theme.color.border.subtle,
   },
   textArea: {
     minHeight: 100,
@@ -1063,22 +1068,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
   },
   typeButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#007AFF',
+    backgroundColor: theme.color.state.info.background,
+    borderColor: theme.color.brand.accent,
   },
   typeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: theme.color.text.muted,
   },
   typeButtonTextActive: {
-    color: '#007AFF',
+    color: theme.color.brand.accent,
   },
   documentTypeSelector: {
     flexDirection: 'row',
@@ -1089,22 +1094,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
   },
   docTypeButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#007AFF',
+    backgroundColor: theme.color.state.info.background,
+    borderColor: theme.color.brand.accent,
   },
   docTypeButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
+    color: theme.color.text.muted,
   },
   docTypeButtonTextActive: {
-    color: '#007AFF',
+    color: theme.color.brand.accent,
   },
   documentInputContainer: {
     flexDirection: 'row',
@@ -1115,7 +1120,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   consultButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
@@ -1123,10 +1128,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   consultButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: theme.color.border.default,
   },
   consultButtonText: {
-    color: '#fff',
+    color: theme.color.text.onAction,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1134,26 +1139,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: theme.color.border.subtle,
   },
   selectButtonDisabled: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: theme.color.surface.subtle,
     opacity: 0.6,
   },
   selectButtonText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
   },
   selectButtonTextDisabled: {
-    color: '#999',
+    color: theme.color.text.subtle,
   },
   selectArrow: {
     fontSize: 24,
-    color: '#666',
+    color: theme.color.text.muted,
     fontWeight: '600',
   },
   switchContainer: {
@@ -1170,22 +1175,22 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: theme.color.border.subtle,
     alignItems: 'center',
   },
   statusButtonActive: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#4CAF50',
+    backgroundColor: theme.color.state.success.background,
+    borderColor: theme.color.state.success.border,
   },
   statusButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
+    color: theme.color.text.muted,
   },
   statusButtonTextActive: {
-    color: '#4CAF50',
+    color: theme.color.state.success.border,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -1195,30 +1200,30 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.color.background.subtle,
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: theme.color.border.subtle,
   },
   cancelButtonText: {
-    color: '#666',
+    color: theme.color.text.muted,
     fontSize: 16,
     fontWeight: '600',
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.color.brand.accent,
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: theme.color.border.default,
   },
   saveButtonText: {
-    color: '#fff',
+    color: theme.color.text.onAction,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -1230,7 +1235,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   bottomPadding: {
     height: 40,
@@ -1238,11 +1243,11 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.color.overlay.medium,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.color.surface.base,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
@@ -1253,19 +1258,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: theme.color.border.subtle,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.color.text.heading,
   },
   modalCloseButton: {
     padding: 8,
   },
   modalCloseText: {
     fontSize: 24,
-    color: '#666',
+    color: theme.color.text.muted,
   },
   modalList: {
     maxHeight: 400,
@@ -1276,22 +1281,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.color.border.subtle,
   },
   modalOptionSelected: {
-    backgroundColor: '#E3F2FD',
+    backgroundColor: theme.color.state.info.background,
   },
   modalOptionText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.color.text.heading,
   },
   modalOptionTextSelected: {
-    color: '#007AFF',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
   checkmark: {
     fontSize: 20,
-    color: '#007AFF',
+    color: theme.color.brand.accent,
     fontWeight: '600',
   },
 });

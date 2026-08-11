@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -20,7 +19,9 @@ import {
   EmptyState,
   Divider,
 } from '@/design-system';
-import { colors, spacing, borderRadius, shadows } from '@/design-system/tokens';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
+import type { Theme } from '@/design-system/themes';
+import Alert from '@/utils/alert';
 
 interface AssignDebtScreenProps {
   navigation: any;
@@ -32,6 +33,8 @@ interface AssignDebtScreenProps {
 }
 
 export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, route }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { purchaseId } = route.params;
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -177,8 +180,8 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
     return (
       <ScreenContainer>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[500]} />
-          <Text variant="bodyMedium" color="secondary" style={{ marginTop: spacing[4] }}>
+          <ActivityIndicator size="large" color={theme.color.brand.accent} />
+          <Text variant="bodyMedium" color="secondary" style={{ marginTop: theme.space[4] }}>
             Cargando datos...
           </Text>
         </View>
@@ -231,7 +234,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
           </View>
           <View style={styles.summaryRow}>
             <Text variant="bodyMedium" color="secondary">Deuda Total:</Text>
-            <Text variant="titleMedium" style={{ color: colors.primary[500] }}>
+            <Text variant="titleMedium" style={{ color: theme.color.brand.accent }}>
               {formatCurrency(getTotalDebt())}
             </Text>
           </View>
@@ -262,7 +265,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
                   </View>
                   <View style={styles.debtRow}>
                     <Text variant="caption" color="secondary">Deuda:</Text>
-                    <Text variant="bodyMedium" style={{ color: colors.success[600] }}>
+                    <Text variant="bodyMedium" style={{ color: theme.color.text.success }}>
                       {formatCurrency(item.debtCents)}
                     </Text>
                   </View>
@@ -300,7 +303,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
                 </View>
                 <View style={styles.productRow}>
                   <Text variant="caption" color="secondary">Deuda Total:</Text>
-                  <Text variant="bodyMedium" style={{ color: colors.primary[500] }}>
+                  <Text variant="bodyMedium" style={{ color: theme.color.brand.accent }}>
                     {formatCurrency(calculateDebt(product))}
                   </Text>
                 </View>
@@ -343,7 +346,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
                         <View style={styles.optionContent}>
                           <Text
                             variant="bodyMedium"
-                            style={selectedLegalEntities[product.id] === entity.id ? { color: colors.primary[500] } : undefined}
+                            style={selectedLegalEntities[product.id] === entity.id ? { color: theme.color.brand.accent } : undefined}
                           >
                             {entity.legalName}
                           </Text>
@@ -377,7 +380,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -387,134 +390,134 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing[5],
+    padding: theme.space[5],
   },
   contentContainerTablet: {
-    padding: spacing[8],
+    padding: theme.space[8],
     maxWidth: 1000,
     alignSelf: 'center',
     width: '100%',
   },
   summaryCard: {
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   sectionTitle: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   debtCard: {
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   debtItem: {
-    paddingVertical: spacing[3],
+    paddingVertical: theme.space[3],
   },
   debtItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   debtItemHeader: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   debtItemBody: {
-    gap: spacing[1.5],
+    gap: theme.space[1.5],
   },
   debtRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   productsSection: {
-    marginBottom: spacing[5],
+    marginBottom: theme.space[5],
   },
   productCard: {
-    marginBottom: spacing[4],
+    marginBottom: theme.space[4],
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing[3],
+    marginBottom: theme.space[3],
   },
   productHeaderLeft: {
     flex: 1,
   },
   productBody: {
-    gap: spacing[2],
-    marginBottom: spacing[4],
+    gap: theme.space[2],
+    marginBottom: theme.space[4],
   },
   productRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   selectorSection: {
-    marginTop: spacing[2],
+    marginTop: theme.space[2],
   },
   selectorLabel: {
-    marginBottom: spacing[2],
+    marginBottom: theme.space[2],
   },
   required: {
-    color: colors.danger[500],
+    color: theme.color.text.danger,
   },
   selector: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: theme.color.background.subtle,
     borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.lg,
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   selectorTablet: {
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[3.5],
-    borderRadius: borderRadius.xl,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[3.5],
+    borderRadius: theme.radii.xl,
   },
   selectorText: {
     flex: 1,
   },
   selectorIcon: {
     fontSize: 12,
-    color: colors.neutral[500],
-    marginLeft: spacing[2],
+    color: theme.color.text.subtle,
+    marginLeft: theme.space[2],
   },
   optionsList: {
-    backgroundColor: colors.surface.primary,
+    backgroundColor: theme.color.surface.base,
     borderWidth: 1,
-    borderColor: colors.border.default,
-    borderRadius: borderRadius.lg,
-    marginTop: spacing[2],
+    borderColor: theme.color.border.default,
+    borderRadius: theme.radii.lg,
+    marginTop: theme.space[2],
     maxHeight: 200,
-    ...shadows.sm,
+    ...theme.shadow.sm,
   },
   optionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    paddingHorizontal: theme.space[4],
+    paddingVertical: theme.space[3],
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
+    borderBottomColor: theme.color.border.subtle,
   },
   optionItemSelected: {
-    backgroundColor: colors.primary[50],
+    backgroundColor: theme.color.brand.primarySoft,
   },
   optionContent: {
     flex: 1,
   },
   bottomSpacer: {
-    height: spacing[10],
+    height: theme.space[10],
   },
   footer: {
-    backgroundColor: colors.surface.primary,
-    paddingHorizontal: spacing[5],
-    paddingVertical: spacing[4],
+    backgroundColor: theme.color.surface.base,
+    paddingHorizontal: theme.space[5],
+    paddingVertical: theme.space[4],
     borderTopWidth: 1,
-    borderTopColor: colors.border.default,
+    borderTopColor: theme.color.border.default,
   },
 });
 
