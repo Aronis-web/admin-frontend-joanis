@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,6 +7,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -112,6 +113,23 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
 
   const inTrash = isTrash(currentFolder, folders.data);
   const inSpam = isSpam(currentFolder, folders.data);
+
+  // En web, cuando el drawer móvil está abierto, empujamos un estado al
+  // historial del navegador para que el botón "atrás" cierre el drawer en
+  // lugar de salir de la app.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !showMobileFolders) return;
+    try {
+      window.history.pushState({ webmailDrawer: true }, '');
+    } catch {
+      // ignore
+    }
+    const onPop = () => setShowMobileFolders(false);
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+    };
+  }, [showMobileFolders]);
 
   const handleSelectFolder = useCallback((f: MailFolder) => {
     setCurrentFolder(f.path);
@@ -384,24 +402,33 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  const sidebar = (
+  const buildSidebar = (fullWidth: boolean) => (
     <WebmailFolderSidebar
       folders={folders.data}
       quota={quota.data}
       currentFolder={currentFolder}
       onSelectFolder={handleSelectFolder}
-      onCompose={() => navigation.navigate(MAIN_ROUTES.WEBMAIL_COMPOSE)}
+      onCompose={() => {
+        setShowMobileFolders(false);
+        navigation.navigate(MAIN_ROUTES.WEBMAIL_COMPOSE);
+      }}
       onNavigateArchive={
-        canReadArchive ? () => navigation.navigate(MAIN_ROUTES.WEBMAIL_ARCHIVE) : undefined
+        canReadArchive
+          ? () => {
+              setShowMobileFolders(false);
+              navigation.navigate(MAIN_ROUTES.WEBMAIL_ARCHIVE);
+            }
+          : undefined
       }
       emailAddress={status.data?.emailAddress}
+      fullWidth={fullWidth}
     />
   );
 
   return (
     <ScreenLayout navigation={navigation}>
       <View style={styles.wrapper}>
-        {isWide ? sidebar : null}
+        {isWide ? buildSidebar(false) : null}
 
         <View style={{ flex: 1 }}>
           <View style={styles.topBar}>
@@ -532,7 +559,7 @@ export const WebmailInboxScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons name="close" size={22} color={theme.color.icon.default} />
                 </TouchableOpacity>
               </View>
-              {sidebar}
+              {buildSidebar(true)}
             </View>
             <Pressable style={styles.modalBackdrop} onPress={() => setShowMobileFolders(false)} />
           </View>
@@ -749,17 +776,34 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
     },
     mobileSidebar: {
-      width: 280,
+      width: '85%',
+      maxWidth: 320,
+      minWidth: 260,
       backgroundColor: theme.color.background.canvas,
-      flex: 1,
+      // Sombra sutil para separar el drawer del backdrop en web/móvil
+      ...Platform.select({
+        web: {
+          boxShadow: '2px 0 12px rgba(0,0,0,0.15)',
+        },
+        default: {
+          shadowColor: '#000',
+          shadowOffset: { width: 2, height: 0 },
+          shadowOpacity: 0.15,
+          shadowRadius: 8,
+          elevation: 8,
+        },
+      }),
     },
     mobileSidebarHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: theme.space[3],
+      // Safe-area para el status bar en Android y web móvil (notch/barra superior)
+      paddingTop: theme.space[3] + (Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0),
       borderBottomWidth: 1,
       borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
     },
     mobileSidebarTitle: {
       fontSize: 16,

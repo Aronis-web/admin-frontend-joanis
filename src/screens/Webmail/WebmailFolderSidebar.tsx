@@ -15,6 +15,11 @@ interface Props {
   onCompose: () => void;
   onNavigateArchive?: () => void;
   emailAddress?: string | null;
+  /**
+   * Cuando `true`, la barra ocupa todo el ancho disponible del contenedor
+   * (útil dentro del drawer móvil). Por defecto usa el ancho fijo de escritorio.
+   */
+  fullWidth?: boolean;
 }
 
 /**
@@ -29,6 +34,7 @@ export const WebmailFolderSidebar: React.FC<Props> = ({
   onCompose,
   onNavigateArchive,
   emailAddress,
+  fullWidth = false,
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -36,7 +42,7 @@ export const WebmailFolderSidebar: React.FC<Props> = ({
   const sorted = folders ? sortFolders(folders) : [];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, fullWidth && styles.containerFullWidth]}>
       <View style={styles.top}>
         {emailAddress ? (
           <View style={styles.emailBox}>
@@ -132,6 +138,11 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.color.surface.subtle,
       borderRightWidth: 1,
       borderRightColor: theme.color.border.subtle,
+    },
+    containerFullWidth: {
+      width: '100%',
+      flex: 1,
+      borderRightWidth: 0,
     },
     top: {
       padding: theme.space[3],

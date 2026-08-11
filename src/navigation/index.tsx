@@ -2168,7 +2168,9 @@ export const Navigation = () => {
       try {
         // En web NO restauramos el estado persistido: la URL del browser
         // (vía linking) es la fuente de verdad y evita 'quedar colgado' en Login.
-        if (Platform.OS === 'web') { return; }
+        if (Platform.OS === 'web') {
+          return;
+        }
         const savedStateString = await AsyncStorage.getItem(NAVIGATION_PERSISTENCE_KEY);
         const state = savedStateString ? JSON.parse(savedStateString) : undefined;
 
@@ -2231,6 +2233,32 @@ export const Navigation = () => {
     isReady,
     hasDashboardPermission,
   ]);
+
+  // En web, sincronizamos el botón "atrás" del navegador con la pila de
+  // React Navigation para evitar que salga de la SPA.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !isReady) return;
+    // Estado inicial para tener siempre algo que consumir con el back.
+    try {
+      window.history.pushState({ rnNav: true }, '');
+    } catch {
+      /* no-op */
+    }
+    const onPopState = () => {
+      const nav = navigationRef.current;
+      if (nav?.canGoBack?.()) {
+        nav.goBack();
+        // Volvemos a empujar un estado para no perder capacidad de retroceder.
+        try {
+          window.history.pushState({ rnNav: true }, '');
+        } catch {
+          /* no-op */
+        }
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [isReady]);
 
   // Don't render until we've restored state
   if (!isReady) {
