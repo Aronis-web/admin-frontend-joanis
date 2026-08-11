@@ -584,21 +584,31 @@ interface QuickActionProps {
   danger?: boolean;
 }
 
-const QuickAction: React.FC<QuickActionProps> = ({ icon, label, onPress, theme, danger }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={{ padding: 6, alignItems: 'center' }}
-    accessibilityLabel={label}
-    hitSlop={6}
-  >
-    <Ionicons
-      name={icon}
-      size={18}
-      color={danger ? theme.color.icon.danger : theme.color.icon.muted}
-    />
-    {Platform.OS === 'web' ? null : null}
-  </TouchableOpacity>
-);
+const QuickAction: React.FC<QuickActionProps> = ({ icon, label, onPress, theme, danger }) => {
+  // Tooltip nativo en web con `title`.
+  const webProps = Platform.OS === 'web' ? ({ title: label } as any) : {};
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={quickActionStyle}
+      accessibilityLabel={label}
+      hitSlop={6}
+      {...webProps}
+    >
+      <Ionicons
+        name={icon}
+        size={18}
+        color={danger ? theme.color.icon.danger : theme.color.icon.muted}
+      />
+    </TouchableOpacity>
+  );
+};
+
+const quickActionStyle = {
+  padding: 6,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+};
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({

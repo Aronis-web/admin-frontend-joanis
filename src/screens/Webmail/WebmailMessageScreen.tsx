@@ -296,6 +296,7 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.actionBarScroll}
         contentContainerStyle={styles.actionBar}
       >
         <ActionBtn
@@ -366,7 +367,7 @@ export const WebmailMessageScreen: React.FC<Props> = ({ navigation, route }) => 
         />
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView style={styles.contentScroll} contentContainerStyle={styles.content}>
         <View style={styles.card}>
           <Text style={styles.subject}>{data.subject || '(sin asunto)'}</Text>
 
@@ -518,24 +519,33 @@ interface ActionBtnProps {
   danger?: boolean;
 }
 
-const ActionBtn: React.FC<ActionBtnProps> = ({ icon, label, onPress, theme, danger }) => (
-  <TouchableOpacity onPress={onPress} style={actionBtnStyle} accessibilityLabel={label}>
-    <Ionicons
-      name={icon}
-      size={20}
-      color={danger ? theme.color.icon.danger : theme.color.icon.default}
-    />
-    <Text
-      style={{
-        fontSize: 11,
-        marginTop: 4,
-        color: danger ? theme.color.text.danger : theme.color.text.body,
-      }}
+const ActionBtn: React.FC<ActionBtnProps> = ({ icon, label, onPress, theme, danger }) => {
+  // En web pasamos `title` al DOM para el tooltip nativo del navegador.
+  const webProps = Platform.OS === 'web' ? ({ title: label } as any) : {};
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={actionBtnStyle}
+      accessibilityLabel={label}
+      {...webProps}
     >
-      {label}
-    </Text>
-  </TouchableOpacity>
-);
+      <Ionicons
+        name={icon}
+        size={20}
+        color={danger ? theme.color.icon.danger : theme.color.icon.default}
+      />
+      <Text
+        style={{
+          fontSize: 11,
+          marginTop: 4,
+          color: danger ? theme.color.text.danger : theme.color.text.body,
+        }}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 const actionBtnStyle = {
   paddingHorizontal: 12,
@@ -562,15 +572,22 @@ const createStyles = (theme: Theme) =>
       fontWeight: '600',
       color: theme.color.text.heading,
     },
+    actionBarScroll: {
+      flexGrow: 0,
+      flexShrink: 0,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.subtle,
+    },
     actionBar: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: theme.space[2],
       paddingVertical: theme.space[2],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      backgroundColor: theme.color.surface.subtle,
       gap: 4,
+    },
+    contentScroll: {
+      flex: 1,
     },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     content: {
