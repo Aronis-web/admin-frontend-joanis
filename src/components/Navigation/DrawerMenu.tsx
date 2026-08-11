@@ -22,6 +22,7 @@ import { MAIN_ROUTES, AUTH_ROUTES } from '@/constants/routes';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
+import Alert from '@/utils/alert';
 
 // Design System
 import { activeOpacity, iconSizes } from '@/design-system/tokens';
@@ -610,8 +611,22 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
   };
 
   const handleLogout = () => {
-    onClose();
-    setTimeout(logout, 300);
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Seguro que deseas cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: () => {
+            onClose();
+            setTimeout(logout, 300);
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleSiteChange = () => {
@@ -922,6 +937,13 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
                     size={iconSizes.lg}
                     color={theme.color.brand.primary}
                   />
+                  <Text
+                    variant="buttonMedium"
+                    color={theme.color.brand.primary}
+                    style={styles.webmailText}
+                  >
+                    Correo
+                  </Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -1135,13 +1157,19 @@ const createStyles = (theme: Theme) =>
     },
 
     webmailButton: {
-      width: 48,
+      flex: 1,
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
+      paddingVertical: theme.space[3],
       backgroundColor: theme.color.brand.primarySoft,
       borderRadius: theme.radii.lg,
       borderWidth: 1,
       borderColor: theme.color.border.subtle,
+    },
+
+    webmailText: {
+      marginLeft: theme.space[2],
     },
 
     logoutButton: {
