@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -2166,6 +2166,9 @@ export const Navigation = () => {
   useEffect(() => {
     const restoreState = async () => {
       try {
+        // En web NO restauramos el estado persistido: la URL del browser
+        // (vía linking) es la fuente de verdad y evita 'quedar colgado' en Login.
+        if (Platform.OS === 'web') { return; }
         const savedStateString = await AsyncStorage.getItem(NAVIGATION_PERSISTENCE_KEY);
         const state = savedStateString ? JSON.parse(savedStateString) : undefined;
 
