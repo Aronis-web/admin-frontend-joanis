@@ -21,6 +21,7 @@ export type NodeActionId =
   | 'rename'
   | 'move'
   | 'copy'
+  | 'share'
   | 'trash'
   | 'restore'
   | 'delete-forever';
@@ -42,6 +43,7 @@ const ACTION_META: Record<
   rename: { label: 'Renombrar', icon: 'create-outline' },
   move: { label: 'Mover a...', icon: 'move-outline' },
   copy: { label: 'Copiar a...', icon: 'copy-outline' },
+  share: { label: 'Compartir', icon: 'person-add-outline' },
   trash: { label: 'Enviar a papelera', icon: 'trash-outline', destructive: true },
   restore: { label: 'Restaurar', icon: 'arrow-undo-outline' },
   'delete-forever': { label: 'Borrar definitivo', icon: 'skull-outline', destructive: true },

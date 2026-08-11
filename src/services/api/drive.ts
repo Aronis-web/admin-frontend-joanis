@@ -14,6 +14,7 @@ import type {
   DriveNodeWithBreadcrumb,
   DrivePermanentDeleteResponse,
   DriveShare,
+  DriveShareUser,
   DriveSharedWithMeItem,
   DriveSpace,
   DriveSpaceUsage,
@@ -338,6 +339,14 @@ export const driveApi = {
 
   listSharedWithMe: async (): Promise<DriveSharedWithMeItem[]> => {
     const res = await apiClient.get<ApiEnvelope<DriveSharedWithMeItem[]>>('/drive/shared-with-me');
+    return unwrap(res);
+  },
+
+  /** Busca usuarios para el selector de "Compartir con". */
+  searchUsers: async (q: string, limit = 20): Promise<DriveShareUser[]> => {
+    const res = await apiClient.get<ApiEnvelope<DriveShareUser[]>>('/drive/users/search', {
+      params: { q: q.trim() || undefined, limit },
+    });
     return unwrap(res);
   },
 };

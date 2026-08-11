@@ -121,18 +121,20 @@ export interface DriveVersion {
 
 export type DriveShareRole = 'viewer' | 'editor' | 'owner';
 
+export interface DriveShareUser {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  username?: string | null;
+}
+
 export interface DriveShare {
   id: string;
   nodeId: string;
   granteeUserId: string;
   role: DriveShareRole;
   createdAt?: string;
-  grantee?: {
-    id: string;
-    name?: string | null;
-    email?: string | null;
-    username?: string | null;
-  } | null;
+  grantee?: DriveShareUser | null;
 }
 
 export interface CreateDriveShareDto {
@@ -145,6 +147,8 @@ export interface DriveSharedWithMeItem {
   sharedRole: DriveShareRole;
   shareId?: string;
   ownerUserId?: string;
+  sharedAt?: string;
+  sharedBy?: DriveShareUser | null;
 }
 
 // ============================================================================

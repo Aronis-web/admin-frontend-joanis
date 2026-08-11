@@ -36,6 +36,8 @@ export const driveKeys = {
   trash: (spaceId: string) => [...driveKeys.all, 'trash', spaceId] as const,
 
   sharedWithMe: () => [...driveKeys.all, 'shared-with-me'] as const,
+
+  usersSearch: (q: string) => [...driveKeys.all, 'users-search', q] as const,
 };
 
 // ============================================================================
@@ -132,6 +134,16 @@ export const useDriveSharedWithMe = (enabled = true) =>
     queryFn: () => driveApi.listSharedWithMe(),
     enabled,
     staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+/** Búsqueda de usuarios para el selector de "Compartir con". */
+export const useDriveUserSearch = (q: string, enabled = true) =>
+  useQuery({
+    queryKey: driveKeys.usersSearch(q),
+    queryFn: () => driveApi.searchUsers(q),
+    enabled,
+    staleTime: 30 * 1000,
     refetchOnWindowFocus: false,
   });
 

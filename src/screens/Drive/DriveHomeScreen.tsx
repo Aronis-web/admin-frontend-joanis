@@ -73,6 +73,7 @@ import UploadConflictModal, {
   type UploadConflictChoice,
 } from '@/components/Drive/UploadConflictModal';
 import DriveNodeActionSheet, { type NodeActionId } from '@/components/Drive/DriveNodeActionSheet';
+import ShareNodeModal from '@/components/Drive/ShareNodeModal';
 import DriveFileOpenSheet, { type FileOpenAction } from '@/components/Drive/DriveFileOpenSheet';
 import CreateSpaceModal from '@/components/Drive/CreateSpaceModal';
 import { pickFilesForUpload } from '@/components/Drive/pickFileCrossPlatform';
@@ -126,6 +127,8 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
 
   const canUpload = hasPermission(PERMISSIONS.DRIVE.UPLOAD);
   const canManage = hasPermission(PERMISSIONS.DRIVE.MANAGE);
+  const canShare = hasPermission(PERMISSIONS.DRIVE.SHARE);
+  const canRead = hasPermission(PERMISSIONS.DRIVE.READ);
 
   // --------------------------------------------------------------------------
   // Navegación
@@ -141,6 +144,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   const [viewerNode, setViewerNode] = useState<DriveNode | null>(null);
   const [openSheetNode, setOpenSheetNode] = useState<DriveNode | null>(null);
   const [actionSheetNode, setActionSheetNode] = useState<DriveNode | null>(null);
+  const [shareNode, setShareNode] = useState<DriveNode | null>(null);
   const [renameNode, setRenameNode] = useState<DriveNode | null>(null);
   const [movePicker, setMovePicker] = useState<{ node: DriveNode; mode: MoveCopyMode } | null>(
     null
@@ -609,9 +613,10 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     }
     // Copy solo si es archivo (F2 limitación)
     if (canUpload && actionSheetNode?.kind === 'file') acts.push('copy');
+    if (canRead) acts.push('share');
     if (canManage) acts.push('trash');
     return acts;
-  }, [tab, canManage, canUpload, actionSheetNode?.kind]);
+  }, [tab, canManage, canUpload, canRead, actionSheetNode?.kind]);
 
   const handleActionSheet = async (id: NodeActionId, node: DriveNode) => {
     if (id === 'open') {
@@ -624,6 +629,10 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     }
     if (id === 'move') {
       setMovePicker({ node, mode: 'move' });
+      return;
+    }
+    if (id === 'share') {
+      setShareNode(node);
       return;
     }
     if (id === 'copy') {
@@ -1029,6 +1038,12 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
             void handleActionSheet(action, node);
           }}
           onClose={() => setActionSheetNode(null)}
+        />
+        <ShareNodeModal
+          visible={!!shareNode}
+          node={shareNode}
+          canShare={canShare}
+          onClose={() => setShareNode(null)}
         />
         <RenameNodeModal
           visible={!!renameNode}
