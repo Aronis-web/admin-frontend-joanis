@@ -35,4 +35,26 @@ for (const file of files) {
   console.log(`[cloudflare] Copiado ${file} -> web-build/${file}`);
 }
 
+// Fix del index.html: Expo emite <script src="..." defer> pero el bundle usa
+// `import.meta`, que exige `type="module"`. Si no se transforma, el navegador
+// lanza "Uncaught SyntaxError: Cannot use 'import.meta' outside a module" y la
+// SPA no arranca.
+const htmlPath = path.join(outDir, 'index.html');
+if (fs.existsSync(htmlPath)) {
+  let html = fs.readFileSync(htmlPath, 'utf8');
+  const before = html;
+  html = html.replace(
+    /<script src="([^"]+)" defer><\/script>/g,
+    '<script type="module" src="$1"></script>'
+  );
+  if (html !== before) {
+    fs.writeFileSync(htmlPath, html, 'utf8');
+    console.log('[cloudflare] index.html: scripts convertidos a type="module".');
+  } else {
+    console.warn('[cloudflare] index.html: no se encontraron scripts con defer para transformar.');
+  }
+} else {
+  console.warn('[cloudflare] index.html no existe en web-build/.');
+}
+
 console.log('[cloudflare] Assets de Cloudflare Pages listos.');
