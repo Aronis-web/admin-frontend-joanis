@@ -47,11 +47,31 @@ if (fs.existsSync(htmlPath)) {
     /<script src="([^"]+)" defer><\/script>/g,
     '<script type="module" src="$1"></script>'
   );
+
+  // Metro runtime polyfills requeridos para chunks lazy (React.lazy + dynamic import)
+  // en web. Sin __METRO_GLOBAL_PREFIX__ definido, cargar cualquier chunk lanza
+  // "ReferenceError: __METRO_GLOBAL_PREFIX__ is not defined".
+  const METRO_POLYFILL_MARKER = '__METRO_GLOBAL_PREFIX__';
+  if (!html.includes(METRO_POLYFILL_MARKER)) {
+    const polyfill = `
+    <script>
+      // Metro/Web runtime polyfills (React.lazy dynamic import compatibility)
+      window.__METRO_GLOBAL_PREFIX__ = '';
+      window.__importMetaUrl = window.location.href;
+      if (typeof window.global === 'undefined') { window.global = window; }
+      if (typeof window.process === 'undefined') {
+        window.process = { env: { NODE_ENV: 'production' }, platform: 'browser' };
+      }
+    </script>
+  </head>`;
+    html = html.replace('</head>', polyfill);
+  }
+
   if (html !== before) {
     fs.writeFileSync(htmlPath, html, 'utf8');
-    console.log('[cloudflare] index.html: scripts convertidos a type="module".');
+    console.log('[cloudflare] index.html: scripts type="module" + polyfills Metro inyectados.');
   } else {
-    console.warn('[cloudflare] index.html: no se encontraron scripts con defer para transformar.');
+    console.warn('[cloudflare] index.html: sin cambios (ya estaba parcheado).');
   }
 } else {
   console.warn('[cloudflare] index.html no existe en web-build/.');
