@@ -36,6 +36,7 @@ import { logger } from '@/utils/logger';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { useOnReload } from '@/hooks/useOnReload';
+import { useAuthStore } from '@/store/auth';
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -123,12 +124,37 @@ interface PendingUpload {
   mimeType?: string;
 }
 
+/**
+ * Snapshot de la navegación interna de Drive (tab / espacio / carpetas) que
+ * vive a nivel de módulo para SOBREVIVIR a remontes de la pantalla.
+ *
+ * En web (sobre todo en móvil) la pantalla puede remontarse por causas ajenas
+ * al Drive (throttling/refoco de pestaña, verificación de auth que muestra el
+ * loader global, etc.). Como el estado de navegación era `useState` local, al
+ * remontar volvía siempre a "Mi unidad" y se perdía la pestaña "Compartido".
+ * Guardando el snapshot por usuario evitamos ese salto.
+ */
+interface DriveNavSnapshot {
+  userId: string | null;
+  tab: DriveBottomTab;
+  activeSpaceId: string | null;
+  folderStack: BreadcrumbItem[];
+}
+
+const driveNavMemory: DriveNavSnapshot = {
+  userId: null,
+  tab: 'my-unit',
+  activeSpaceId: null,
+  folderStack: [],
+};
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const DriveHomeScreen: React.FC<Props> = (_props) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const { width: windowWidth } = useWindowDimensions();
   const { hasPermission } = usePermissions();
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const qc = useQueryClient();
 
   const canUpload = hasPermission(PERMISSIONS.DRIVE.UPLOAD);
@@ -140,9 +166,24 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // Navegación
   // --------------------------------------------------------------------------
 
-  const [tab, setTab] = useState<DriveBottomTab>('my-unit');
-  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
-  const [folderStack, setFolderStack] = useState<BreadcrumbItem[]>([]);
+  // Estado de navegación: se inicializa desde el snapshot de módulo para que
+  // un remonte de la pantalla NO reinicie al usuario a "Mi unidad".
+  const sameUser = driveNavMemory.userId === userId;
+  const [tab, setTab] = useState<DriveBottomTab>(() => (sameUser ? driveNavMemory.tab : 'my-unit'));
+  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(() =>
+    sameUser ? driveNavMemory.activeSpaceId : null
+  );
+  const [folderStack, setFolderStack] = useState<BreadcrumbItem[]>(() =>
+    sameUser ? driveNavMemory.folderStack : []
+  );
+
+  // Persistir cada cambio en el snapshot de módulo (sobrevive a remontes).
+  useEffect(() => {
+    driveNavMemory.userId = userId;
+    driveNavMemory.tab = tab;
+    driveNavMemory.activeSpaceId = activeSpaceId;
+    driveNavMemory.folderStack = folderStack;
+  }, [userId, tab, activeSpaceId, folderStack]);
 
   // Modales
   const [newFolderVisible, setNewFolderVisible] = useState(false);
