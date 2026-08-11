@@ -197,6 +197,28 @@ export type {
   MoveResult,
 } from '@/types/webmail';
 
+export { driveApi } from './drive';
+export type {
+  DriveSpace,
+  DriveSpaceType,
+  DriveSpaceUsage,
+  DriveNode,
+  DriveNodeKind,
+  DriveNodeWithBreadcrumb,
+  DriveBreadcrumbItem,
+  DriveVersion,
+  DriveShare,
+  DriveShareRole,
+  DriveSharedWithMeItem,
+  CreateDriveSpaceDto,
+  UpdateDriveSpaceDto,
+  CreateDriveFolderDto,
+  CreateDriveShareDto,
+  RenameDriveNodeDto,
+  MoveDriveNodeDto,
+  DriveChildrenParams,
+} from '@/types/drive';
+
 export { siteContactsApi } from './site-contacts';
 export type {
   SiteContact,

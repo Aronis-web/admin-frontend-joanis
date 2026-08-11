@@ -198,6 +198,9 @@ export const MAIN_ROUTES = {
   WEBMAIL_MESSAGE: 'WebmailMessage',
   WEBMAIL_COMPOSE: 'WebmailCompose',
   WEBMAIL_ARCHIVE: 'WebmailArchive',
+
+  // Drive / Gestor de archivos
+  DRIVE_HOME: 'DriveHome',
 } as const;
 
 /**
@@ -418,6 +421,9 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   WEBMAIL_MESSAGE: 'webmail.read',
   WEBMAIL_COMPOSE: 'webmail.send',
   WEBMAIL_ARCHIVE: 'webmail.archive.read',
+
+  // Drive
+  DRIVE_HOME: 'drive.read',
 };
 
 /**

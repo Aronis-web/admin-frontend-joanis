@@ -681,6 +681,14 @@ export const PERMISSIONS = {
     MANAGE: 'webmail.manage',
     ARCHIVE_READ: 'webmail.archive.read',
   },
+
+  // ========== DRIVE / GESTOR DE ARCHIVOS ==========
+  DRIVE: {
+    READ: 'drive.read',
+    UPLOAD: 'drive.upload',
+    MANAGE: 'drive.manage',
+    SHARE: 'drive.share',
+  },
 } as const;
 
 /**
