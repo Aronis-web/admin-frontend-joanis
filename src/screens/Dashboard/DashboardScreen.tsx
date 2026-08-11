@@ -470,13 +470,37 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         total_comisiones: 0,
         diferencia_total: 0,
       };
+      // El backend puede devolver 2 shapes por item:
+      //  a) Plano (DetalleDiario): ventas_total, ventas_efectivo, notas_credito_total, ...
+      //  b) Anidado (CuadrePorSede): { ventas: {total, efectivo, tarjeta, cantidad_operaciones},
+      //     notas_credito: {total, efectivo, tarjeta, cantidad}, izipay: {...}, prosegur: {...} }
+      // Este mapper suma correctamente ambas variantes al TotalesPeriodo plano.
+      const num = (v: any) => Number(v) || 0;
       const totales_periodo =
         rawAny.totales_periodo ??
         fuenteTotales.reduce(
           (acc: any, item: any) => {
-            for (const key of Object.keys(zeroTotals)) {
-              acc[key] = (acc[key] ?? 0) + (Number(item?.[key]) || 0);
-            }
+            const v = item?.ventas ?? {};
+            const nc = item?.notas_credito ?? {};
+            const iz = item?.izipay ?? {};
+            const pr = item?.prosegur ?? {};
+            acc.ventas_total += num(item?.ventas_total) + num(v.total);
+            acc.ventas_efectivo += num(item?.ventas_efectivo) + num(v.efectivo);
+            acc.ventas_tarjeta += num(item?.ventas_tarjeta) + num(v.tarjeta);
+            acc.ventas_cantidad += num(item?.ventas_cantidad) + num(v.cantidad_operaciones);
+            acc.notas_credito_total += num(item?.notas_credito_total) + num(nc.total);
+            acc.notas_credito_efectivo += num(item?.notas_credito_efectivo) + num(nc.efectivo);
+            acc.notas_credito_tarjeta += num(item?.notas_credito_tarjeta) + num(nc.tarjeta);
+            acc.notas_credito_cantidad += num(item?.notas_credito_cantidad) + num(nc.cantidad);
+            acc.izipay_bruto += num(item?.izipay_bruto) + num(iz.bruto);
+            acc.izipay_comisiones += num(item?.izipay_comisiones) + num(iz.comisiones);
+            acc.izipay_neto += num(item?.izipay_neto) + num(iz.neto);
+            acc.izipay_cantidad += num(item?.izipay_cantidad) + num(iz.cantidad_operaciones);
+            acc.prosegur_depositos += num(item?.prosegur_depositos) + num(pr.depositos);
+            acc.prosegur_cantidad += num(item?.prosegur_cantidad) + num(pr.cantidad_operaciones);
+            acc.total_a_recibir += num(item?.total_a_recibir);
+            acc.total_comisiones += num(item?.total_comisiones);
+            acc.diferencia_total += num(item?.diferencia_total);
             return acc;
           },
           { ...zeroTotals }
@@ -2137,6 +2161,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius['2xl'],
     width: '100%',
     maxWidth: 400,
+    // Sin esto en web el ScrollView interior no scrollea (RN-Web necesita
+    // una altura acotada para que overflow: auto funcione).
+    maxHeight: '85%',
     shadowColor: colors.neutral[950],
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
