@@ -387,36 +387,8 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
-  // Correo
-  {
-    id: 'webmail',
-    title: 'Correo',
-    icon: 'mail-outline',
-    requiredPermissions: ['webmail.read', 'webmail.archive.read'],
-    items: [
-      {
-        id: 'webmail-inbox',
-        icon: 'file-tray-outline',
-        label: 'Bandeja',
-        route: MAIN_ROUTES.WEBMAIL_INBOX,
-        requiredPermissions: ['webmail.read'],
-      },
-      {
-        id: 'webmail-compose',
-        icon: 'create-outline',
-        label: 'Redactar',
-        route: MAIN_ROUTES.WEBMAIL_COMPOSE,
-        requiredPermissions: ['webmail.send'],
-      },
-      {
-        id: 'webmail-archive',
-        icon: 'file-tray-full-outline',
-        label: 'Archivo histórico',
-        route: MAIN_ROUTES.WEBMAIL_ARCHIVE,
-        requiredPermissions: ['webmail.archive.read'],
-      },
-    ],
-  },
+  // Nota: el Correo se movió del menú a un acceso rápido en el footer,
+  // junto al botón de cerrar sesión (ver render abajo).
   // Configuración
   {
     id: 'config',
@@ -648,6 +620,15 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
       navigation.navigate(AUTH_ROUTES.SITE_SELECTION as never);
     }, 300);
   };
+
+  const handleWebmail = () => {
+    onClose();
+    setTimeout(() => {
+      navigation.navigate(MAIN_ROUTES.WEBMAIL_INBOX as never);
+    }, 300);
+  };
+
+  const canOpenWebmail = hasPermission('webmail.read');
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) => {
@@ -928,24 +909,40 @@ export const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose, side =
           {/* Footer */}
           <View style={styles.footer}>
             <Divider spacing="none" />
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-              activeOpacity={activeOpacity.medium}
-            >
-              <Ionicons
-                name="log-out-outline"
-                size={iconSizes.lg}
-                color={theme.color.state.danger.text}
-              />
-              <Text
-                variant="buttonMedium"
-                color={theme.color.state.danger.text}
-                style={styles.logoutText}
+            <View style={styles.footerActions}>
+              {canOpenWebmail && (
+                <TouchableOpacity
+                  style={styles.webmailButton}
+                  onPress={handleWebmail}
+                  activeOpacity={activeOpacity.medium}
+                  accessibilityLabel="Abrir correo"
+                >
+                  <Ionicons
+                    name="mail-outline"
+                    size={iconSizes.lg}
+                    color={theme.color.brand.primary}
+                  />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                activeOpacity={activeOpacity.medium}
               >
-                Cerrar Sesión
-              </Text>
-            </TouchableOpacity>
+                <Ionicons
+                  name="log-out-outline"
+                  size={iconSizes.lg}
+                  color={theme.color.state.danger.text}
+                />
+                <Text
+                  variant="buttonMedium"
+                  color={theme.color.state.danger.text}
+                  style={styles.logoutText}
+                >
+                  Cerrar Sesión
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </Animated.View>
 
@@ -1130,12 +1127,29 @@ const createStyles = (theme: Theme) =>
       paddingBottom: theme.space[2],
     },
 
+    footerActions: {
+      flexDirection: 'row',
+      alignItems: 'stretch',
+      gap: theme.space[2],
+      marginTop: theme.space[3],
+    },
+
+    webmailButton: {
+      width: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+
     logoutButton: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: theme.space[3],
-      marginTop: theme.space[3],
       backgroundColor: theme.color.state.danger.background,
       borderRadius: theme.radii.lg,
     },
