@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { navigationRef } from '@/navigation/navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/auth';
@@ -2140,7 +2141,9 @@ export const Navigation = () => {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [initialState, setInitialState] = useState();
-  const navigationRef = useRef<any>(null);
+  // Se usa la ref global compartida (ver src/navigation/navigationRef.ts) para
+  // que utilidades fuera del árbol (como reloadCurrentScreen) puedan
+  // despachar acciones.
 
   // Validate that site has valid data (not just an empty object)
   const hasValidSite = !!(currentSite && currentSite.id && currentSite.name);

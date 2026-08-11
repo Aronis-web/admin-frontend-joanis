@@ -974,8 +974,10 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   };
 
   // Botón universal de recarga: reutiliza handleRefresh manteniendo filtros
-  // (fechas, sede seleccionada, etc.) sin cambiar de ruta.
-  useOnReload(handleRefresh);
+  // (fechas, sede seleccionada, etc.) sin cambiar de ruta. Incluye sedes.
+  useOnReload(async () => {
+    await Promise.allSettled([loadSedes(), handleRefresh()]);
+  });
 
   const downloadAccountsReceivableReport = async () => {
     try {
