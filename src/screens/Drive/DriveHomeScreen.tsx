@@ -126,13 +126,18 @@ interface PendingUpload {
 
 /**
  * Snapshot de la navegación interna de Drive (tab / espacio / carpetas) que
- * vive a nivel de módulo para SOBREVIVIR a remontes de la pantalla.
+ * SOBREVIVE a remontes de la pantalla e incluso a recargas completas del PWA.
  *
- * En web (sobre todo en móvil) la pantalla puede remontarse por causas ajenas
- * al Drive (throttling/refoco de pestaña, verificación de auth que muestra el
- * loader global, etc.). Como el estado de navegación era `useState` local, al
- * remontar volvía siempre a "Mi unidad" y se perdía la pestaña "Compartido".
- * Guardando el snapshot por usuario evitamos ese salto.
+ * En web la pantalla puede remontarse por causas ajenas al Drive (throttling/
+ * refoco de pestaña, verificación de auth que muestra el loader global, etc.).
+ * Y en el PWA de iOS, al volver del segundo plano, WebKit DESCARTA el proceso
+ * y RECARGA la página entera: la navegación se restaura por la URL (linking),
+ * pero cualquier estado en memoria (incluido este snapshot de módulo) se pierde
+ * y el tab volvía a "Mi unidad", perdiendo la pestaña "Compartido".
+ *
+ * Por eso el snapshot se mantiene en dos niveles:
+ *  - memoria de módulo: rápido, cubre remontes dentro del mismo contexto JS.
+ *  - localStorage (solo web): durable, sobrevive a la recarga del PWA de iOS.
  */
 interface DriveNavSnapshot {
   userId: string | null;
@@ -146,6 +151,56 @@ const driveNavMemory: DriveNavSnapshot = {
   tab: 'my-unit',
   activeSpaceId: null,
   folderStack: [],
+};
+
+const DRIVE_NAV_STORAGE_KEY = 'DRIVE_NAV_STATE_V1';
+
+const getWebStorage = (): Storage | null => {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  try {
+    return window.localStorage ?? null;
+  } catch {
+    // Acceso a localStorage puede lanzar (modo privado, sandbox); lo ignoramos.
+    return null;
+  }
+};
+
+const readDriveNavSnapshot = (): DriveNavSnapshot | null => {
+  // La memoria de módulo tiene prioridad: cubre remontes dentro del mismo
+  // contexto JS y en nativo (donde no hay recargas) es suficiente.
+  if (driveNavMemory.userId !== null) return driveNavMemory;
+
+  const storage = getWebStorage();
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(DRIVE_NAV_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<DriveNavSnapshot>;
+    if (!parsed || typeof parsed.tab !== 'string') return null;
+    return {
+      userId: parsed.userId ?? null,
+      tab: parsed.tab as DriveBottomTab,
+      activeSpaceId: parsed.activeSpaceId ?? null,
+      folderStack: Array.isArray(parsed.folderStack) ? parsed.folderStack : [],
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeDriveNavSnapshot = (snap: DriveNavSnapshot): void => {
+  driveNavMemory.userId = snap.userId;
+  driveNavMemory.tab = snap.tab;
+  driveNavMemory.activeSpaceId = snap.activeSpaceId;
+  driveNavMemory.folderStack = snap.folderStack;
+
+  const storage = getWebStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(DRIVE_NAV_STORAGE_KEY, JSON.stringify(snap));
+  } catch {
+    // Cuota/modo privado: ignoramos, la memoria de módulo sigue vigente.
+  }
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -166,23 +221,32 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // Navegación
   // --------------------------------------------------------------------------
 
-  // Estado de navegación: se inicializa desde el snapshot de módulo para que
-  // un remonte de la pantalla NO reinicie al usuario a "Mi unidad".
-  const sameUser = driveNavMemory.userId === userId;
-  const [tab, setTab] = useState<DriveBottomTab>(() => (sameUser ? driveNavMemory.tab : 'my-unit'));
-  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(() =>
-    sameUser ? driveNavMemory.activeSpaceId : null
+  // Estado de navegación: se inicializa desde el snapshot persistido (memoria de
+  // módulo o localStorage en web) para que un remonte de la pantalla —o una
+  // recarga completa del PWA de iOS— NO reinicie al usuario a "Mi unidad".
+  //
+  // Solo se descarta el snapshot cuando pertenece de forma inequívoca a OTRO
+  // usuario (ambos ids presentes y distintos). Si `userId` aún es null porque la
+  // auth se está re-verificando tras la recarga, conservamos el snapshot en vez
+  // de reiniciar el tab.
+  const restoredNav = React.useRef(readDriveNavSnapshot()).current;
+  const restorable =
+    !!restoredNav &&
+    (restoredNav.userId === null || userId === null || restoredNav.userId === userId);
+  const initialNav = restorable ? restoredNav : null;
+
+  const [tab, setTab] = useState<DriveBottomTab>(() => initialNav?.tab ?? 'my-unit');
+  const [activeSpaceId, setActiveSpaceId] = useState<string | null>(
+    () => initialNav?.activeSpaceId ?? null
   );
-  const [folderStack, setFolderStack] = useState<BreadcrumbItem[]>(() =>
-    sameUser ? driveNavMemory.folderStack : []
+  const [folderStack, setFolderStack] = useState<BreadcrumbItem[]>(
+    () => initialNav?.folderStack ?? []
   );
 
-  // Persistir cada cambio en el snapshot de módulo (sobrevive a remontes).
+  // Persistir cada cambio (memoria de módulo + localStorage en web) para
+  // sobrevivir a remontes y a la recarga del PWA de iOS.
   useEffect(() => {
-    driveNavMemory.userId = userId;
-    driveNavMemory.tab = tab;
-    driveNavMemory.activeSpaceId = activeSpaceId;
-    driveNavMemory.folderStack = folderStack;
+    writeDriveNavSnapshot({ userId, tab, activeSpaceId, folderStack });
   }, [userId, tab, activeSpaceId, folderStack]);
 
   // Modales
