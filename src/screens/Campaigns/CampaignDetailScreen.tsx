@@ -268,6 +268,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
   // Descarga del PDF de fotos de productos activos
   const [downloadingPhotosPdf, setDownloadingPhotosPdf] = useState(false);
+  const [showPhotosPdfCostModal, setShowPhotosPdfCostModal] = useState(false);
 
   // Pagination states
   const [displayedItemsCount, setDisplayedItemsCount] = useState(20);
@@ -292,26 +293,32 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 
   // Genera un PDF con las fotos, nombre, SKU, stock disponible/repartido, costo
   // y precio socia de los productos activos de la campaña.
-  const handleDownloadPhotosPdf = useCallback(async () => {
-    const items = productsDetailData?.items ?? [];
-    if (items.length === 0) {
-      Alert.alert('Sin datos', 'Aún no se cargaron los productos de la campaña.');
-      return;
-    }
-    setDownloadingPhotosPdf(true);
-    try {
-      const count = await generateCampaignPhotosPdf({
-        campaignName: campaign?.name ?? 'Campaña',
-        items,
-      });
-      logger.debug(`📄 PDF de fotos generado con ${count} productos activos`);
-    } catch (error) {
-      logger.error('Error generando PDF de fotos de campaña:', error);
-      Alert.alert('Error', 'No se pudo generar el PDF de fotos.');
-    } finally {
-      setDownloadingPhotosPdf(false);
-    }
-  }, [productsDetailData, campaign?.name]);
+  const handleDownloadPhotosPdf = useCallback(
+    async (includeCost: boolean) => {
+      const items = productsDetailData?.items ?? [];
+      if (items.length === 0) {
+        Alert.alert('Sin datos', 'Aún no se cargaron los productos de la campaña.');
+        return;
+      }
+      setDownloadingPhotosPdf(true);
+      try {
+        const count = await generateCampaignPhotosPdf({
+          campaignName: campaign?.name ?? 'Campaña',
+          items,
+          includeCost,
+        });
+        logger.debug(
+          `📄 PDF de fotos generado con ${count} productos activos (costo: ${includeCost})`
+        );
+      } catch (error) {
+        logger.error('Error generando PDF de fotos de campaña:', error);
+        Alert.alert('Error', 'No se pudo generar el PDF de fotos.');
+      } finally {
+        setDownloadingPhotosPdf(false);
+      }
+    },
+    [productsDetailData, campaign?.name]
+  );
 
   const loadLinkedPhotoCampaign = useCallback(async () => {
     if (!campaignId) {
@@ -3904,6 +3911,58 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           </View>
         </Modal>
 
+        {/* Modal: seleccionar si el PDF de fotos incluye costos */}
+        <Modal
+          visible={showPhotosPdfCostModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowPhotosPdfCostModal(false)}
+        >
+          <View style={styles.customAddModalContainer}>
+            <TouchableOpacity
+              style={styles.customAddModalBackdrop}
+              activeOpacity={1}
+              onPress={() => setShowPhotosPdfCostModal(false)}
+            />
+            <View style={styles.customAddModalContent}>
+              <View style={styles.customAddModalHeader}>
+                <Text style={styles.customAddModalTitle}>Descargar Fotos PDF</Text>
+                <TouchableOpacity onPress={() => setShowPhotosPdfCostModal(false)}>
+                  <Text style={styles.customAddModalCloseButton}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.photosPdfCostDescription}>
+                ¿Deseas incluir el costo unitario y el costo total en el PDF? Los demás datos se
+                exportan siempre.
+              </Text>
+
+              <View style={styles.customAddModalActions}>
+                <TouchableOpacity
+                  style={styles.customAddModalCancelButton}
+                  onPress={() => {
+                    setShowPhotosPdfCostModal(false);
+                    void handleDownloadPhotosPdf(false);
+                  }}
+                  disabled={downloadingPhotosPdf}
+                >
+                  <Text style={styles.customAddModalCancelButtonText}>Sin costo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.customAddModalConfirmButton}
+                  onPress={() => {
+                    setShowPhotosPdfCostModal(false);
+                    void handleDownloadPhotosPdf(true);
+                  }}
+                  disabled={downloadingPhotosPdf}
+                >
+                  <Text style={styles.customAddModalConfirmButtonText}>Con costo</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {/* Floating Action Button (pestaña de productos) */}
         {activeTab === 'products' && campaign?.products && campaign.products.length > 0 && (
           <ProtectedFAB
@@ -3923,7 +3982,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 label: 'Fotos PDF',
                 onPress: () => {
                   if (downloadingPhotosPdf) return;
-                  void handleDownloadPhotosPdf();
+                  setShowPhotosPdfCostModal(true);
                 },
                 requiredPermissions: [PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD],
               },
@@ -5509,6 +5568,12 @@ const createStyles = (theme: Theme) =>
       fontWeight: 'bold',
       color: theme.color.text.heading,
       flex: 1,
+    },
+    photosPdfCostDescription: {
+      fontSize: 15,
+      color: theme.color.text.body,
+      lineHeight: 22,
+      marginBottom: 20,
     },
     customAddModalCloseButton: {
       fontSize: 28,

@@ -78,23 +78,30 @@ const findSociaPriceCents = (
 const isActive = (item: CampaignProductDetailItem): boolean =>
   String(item.productStatus || '').toUpperCase() === 'ACTIVE';
 
-const buildCardHtml = (item: CampaignProductDetailItem): string => {
+const buildCardHtml = (item: CampaignProductDetailItem, includeCost: boolean): string => {
   const url = pickPhoto(item.photos);
   const available = item.tenantSiteStock
     ? formatQuantity(item.tenantSiteStock.availableQuantityBase)
     : '—';
   const distributed = formatQuantity(item.distributedQuantityBase);
-  const unitCost = formatCurrency(item.costCents);
-  // Costo total = costo unitario × cantidad en campaña.
-  const quantity = parseFloat(item.campaignQuantityBase || '0');
-  const totalCost =
-    !Number.isNaN(quantity) && item.costCents != null
-      ? formatCurrency(item.costCents * quantity)
-      : '—';
   const socia = formatCurrency(findSociaPriceCents(item.salePrices));
   const supplier = item.supplier
     ? [item.supplier.name, item.supplier.purchaseCode].filter(Boolean).join(' · ')
     : '—';
+
+  let costRows = '';
+  if (includeCost) {
+    const unitCost = formatCurrency(item.costCents);
+    // Costo total = costo unitario × cantidad en campaña.
+    const quantity = parseFloat(item.campaignQuantityBase || '0');
+    const totalCost =
+      !Number.isNaN(quantity) && item.costCents != null
+        ? formatCurrency(item.costCents * quantity)
+        : '—';
+    costRows = `
+          <div class="row"><span class="lbl">Costo unitario</span><span class="val">${unitCost}</span></div>
+          <div class="row"><span class="lbl">Costo total</span><span class="val">${totalCost}</span></div>`;
+  }
 
   const imageHtml = url
     ? `<img class="photo" src="${escapeHtml(url)}" alt="${escapeHtml(item.title)}" />`
@@ -106,11 +113,10 @@ const buildCardHtml = (item: CampaignProductDetailItem): string => {
       <div class="info">
         <div class="title">${escapeHtml(item.title || '—')}</div>
         <div class="sku">SKU: ${escapeHtml(item.sku || '—')}</div>
+        <div class="sku">Código de barras: ${escapeHtml(item.barcode || '—')}</div>
         <div class="rows">
           <div class="row"><span class="lbl">Stock disponible</span><span class="val">${available}</span></div>
-          <div class="row"><span class="lbl">Stock repartido</span><span class="val">${distributed}</span></div>
-          <div class="row"><span class="lbl">Costo unitario</span><span class="val">${unitCost}</span></div>
-          <div class="row"><span class="lbl">Costo total</span><span class="val">${totalCost}</span></div>
+          <div class="row"><span class="lbl">Stock repartido</span><span class="val">${distributed}</span></div>${costRows}
           <div class="row socia"><span class="lbl">Precio socia (unit.)</span><span class="val">${socia}</span></div>
           <div class="row"><span class="lbl">Proveedor</span><span class="val">${escapeHtml(supplier)}</span></div>
         </div>
@@ -118,7 +124,11 @@ const buildCardHtml = (item: CampaignProductDetailItem): string => {
     </div>`;
 };
 
-const buildHtml = (campaignName: string, items: CampaignProductDetailItem[]): string => {
+const buildHtml = (
+  campaignName: string,
+  items: CampaignProductDetailItem[],
+  includeCost: boolean
+): string => {
   const generatedAt = new Date().toLocaleString('es-PE', {
     day: '2-digit',
     month: '2-digit',
@@ -127,7 +137,7 @@ const buildHtml = (campaignName: string, items: CampaignProductDetailItem[]): st
     minute: '2-digit',
   });
 
-  const cards = items.map(buildCardHtml).join('');
+  const cards = items.map((item) => buildCardHtml(item, includeCost)).join('');
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -141,7 +151,7 @@ const buildHtml = (campaignName: string, items: CampaignProductDetailItem[]): st
   .meta { color: #555; font-size: 12px; margin-bottom: 2px; }
   .grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
   .card { width: calc(33.33% - 8px); border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; page-break-inside: avoid; display: flex; flex-direction: column; }
-  .photo { width: 100%; height: 160px; object-fit: cover; background: #f3f4f6; display: block; }
+  .photo { width: 100%; height: 200px; object-fit: contain; background: #f3f4f6; display: block; }
   .no-photo { display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px; }
   .info { padding: 8px 10px; }
   .title { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 2px; }
@@ -228,6 +238,8 @@ const printHtmlOnWeb = (html: string): void => {
 export const generateCampaignPhotosPdf = async (params: {
   campaignName: string;
   items: CampaignProductDetailItem[];
+  /** Incluir costo unitario y costo total en el PDF. Por defecto `false`. */
+  includeCost?: boolean;
 }): Promise<number> => {
   const activeItems = (params.items ?? []).filter(isActive);
 
@@ -236,7 +248,7 @@ export const generateCampaignPhotosPdf = async (params: {
     return 0;
   }
 
-  const html = buildHtml(params.campaignName, activeItems);
+  const html = buildHtml(params.campaignName, activeItems, params.includeCost ?? false);
   const fileName = `fotos-campana-${(params.campaignName || 'campana')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
