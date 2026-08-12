@@ -10,6 +10,31 @@ import { logger } from '@/utils/logger';
 const RELOAD_FLAG = '__chunk_reload_attempted__';
 
 /**
+ * ¿El error corresponde a un fallo REAL de carga de un chunk dinámico
+ * (típico tras un deploy: el HTML cacheado apunta a `index-<hash>.js` que ya no
+ * existe)? Solo en ese caso tiene sentido forzar `location.reload()`.
+ *
+ * IMPORTANTE: un error de RENDER cualquiera (bug en una pantalla) NO debe
+ * disparar un reload — hacerlo recarga toda la app y "rebota" al usuario a la
+ * ruta inicial (síntoma: al entrar a una pestaña la app se recarga y vuelve a
+ * "Mi unidad"), ocultando además el error real. Para esos casos mostramos el
+ * fallback en lugar de recargar.
+ */
+function isChunkLoadError(error: unknown): boolean {
+  const err = error as { name?: string; message?: string } | null;
+  const name = err?.name ?? '';
+  const message = err?.message ?? '';
+  if (name === 'ChunkLoadError') return true;
+  return (
+    /Loading chunk [\w-]+ failed/i.test(message) ||
+    /Loading CSS chunk/i.test(message) ||
+    /Importing a module script failed/i.test(message) ||
+    /error loading dynamically imported module/i.test(message) ||
+    /Failed to fetch dynamically imported module/i.test(message)
+  );
+}
+
+/**
  * Envuelve el `import(...)` de un chunk con reintentos exponenciales.
  * Si tras N intentos sigue fallando y estamos en web, fuerza un
  * `location.reload()` (una sola vez) para recuperar el HTML/asset-manifest
@@ -79,10 +104,14 @@ class LazyErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error): void {
-    logger.error('[lazyLoad] Boundary caught chunk error', error);
+    logger.error('[lazyLoad] Boundary caught error', error);
 
-    // Último recurso: reload en web si aún no se intentó.
+    // Último recurso: reload en web SOLO si es un fallo real de carga de chunk
+    // (HTML cacheado tras un deploy). Un error de render normal NO debe recargar
+    // la app: mostramos el fallback (ver render) para no rebotar al usuario a la
+    // ruta inicial ni ocultar el error.
     if (
+      isChunkLoadError(error) &&
       Platform.OS === 'web' &&
       typeof window !== 'undefined' &&
       typeof sessionStorage !== 'undefined'
