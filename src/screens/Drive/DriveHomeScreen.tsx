@@ -37,6 +37,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { PERMISSIONS } from '@/constants/permissions';
 import { useOnReload } from '@/hooks/useOnReload';
 import { useAuthStore } from '@/store/auth';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -153,6 +154,11 @@ const driveNavMemory: DriveNavSnapshot = {
   folderStack: [],
 };
 
+const DRIVE_TABS: DriveBottomTab[] = ['my-unit', 'spaces', 'shared-with-me', 'trash'];
+
+const isDriveTab = (v: unknown): v is DriveBottomTab =>
+  typeof v === 'string' && (DRIVE_TABS as string[]).includes(v);
+
 const DRIVE_NAV_STORAGE_KEY = 'DRIVE_NAV_STATE_V1';
 
 const getWebStorage = (): Storage | null => {
@@ -221,27 +227,56 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // Navegación
   // --------------------------------------------------------------------------
 
-  // Estado de navegación: se inicializa desde el snapshot persistido (memoria de
-  // módulo o localStorage en web) para que un remonte de la pantalla —o una
-  // recarga completa del PWA de iOS— NO reinicie al usuario a "Mi unidad".
+  // Fuente de verdad del tab en web: el query param de la URL. React Navigation
+  // sincroniza `route.params` con la URL (vía linking), así que reflejar el tab
+  // ahí hace que sobreviva NATIVAMENTE a la recarga completa del PWA de iOS
+  // (WebKit descarta el proceso al volver del segundo plano y recarga la página;
+  // la URL se conserva). Es más robusto que depender de memoria/localStorage,
+  // que el service worker del PWA podría no haber refrescado aún.
+  const navigation = useNavigation();
+  const route = useRoute();
+  const routeTab = (route.params as { driveTab?: unknown } | undefined)?.driveTab;
+
+  // Estado de navegación: se inicializa priorizando el tab de la URL y, si no
+  // hay, el snapshot persistido (memoria de módulo o localStorage en web) para
+  // que un remonte de la pantalla NO reinicie al usuario a "Mi unidad".
   //
-  // Solo se descarta el snapshot cuando pertenece de forma inequívoca a OTRO
+  // El snapshot solo se descarta cuando pertenece de forma inequívoca a OTRO
   // usuario (ambos ids presentes y distintos). Si `userId` aún es null porque la
-  // auth se está re-verificando tras la recarga, conservamos el snapshot en vez
-  // de reiniciar el tab.
+  // auth se está re-verificando tras la recarga, conservamos el snapshot.
   const restoredNav = React.useRef(readDriveNavSnapshot()).current;
   const restorable =
     !!restoredNav &&
     (restoredNav.userId === null || userId === null || restoredNav.userId === userId);
   const initialNav = restorable ? restoredNav : null;
 
-  const [tab, setTab] = useState<DriveBottomTab>(() => initialNav?.tab ?? 'my-unit');
+  const [tab, setTab] = useState<DriveBottomTab>(() =>
+    isDriveTab(routeTab) ? routeTab : (initialNav?.tab ?? 'my-unit')
+  );
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(
     () => initialNav?.activeSpaceId ?? null
   );
   const [folderStack, setFolderStack] = useState<BreadcrumbItem[]>(
     () => initialNav?.folderStack ?? []
   );
+
+  // Reflejar el tab activo en la URL (query param) para que la recarga del PWA
+  // lo restaure. Solo se actualiza si difiere, para no ensuciar el historial.
+  useEffect(() => {
+    if (isDriveTab(routeTab) && routeTab === tab) return;
+    (navigation as unknown as { setParams: (p: Record<string, unknown>) => void }).setParams({
+      driveTab: tab,
+    });
+  }, [tab, routeTab, navigation]);
+
+  // Si la URL cambia el tab por fuera (back/forward del navegador, deep-link),
+  // sincronizamos el estado local.
+  useEffect(() => {
+    if (isDriveTab(routeTab) && routeTab !== tab) {
+      setTab(routeTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeTab]);
 
   // Persistir cada cambio (memoria de módulo + localStorage en web) para
   // sobrevivir a remontes y a la recarga del PWA de iOS.
