@@ -28,7 +28,8 @@ import {
   useDriveUserSearch,
   useRevokeDriveShare,
 } from '@/hooks/api/useDrive';
-import type { DriveNode, DriveShare, DriveShareRole, DriveShareUser } from '@/types/drive';
+import type { DriveAccessLevel, DriveNode, DriveShare, DriveShareUser } from '@/types/drive';
+import { ACCESS_LEVEL_LABEL } from '@/types/drive';
 
 interface Props {
   visible: boolean;
@@ -37,11 +38,13 @@ interface Props {
   onClose: () => void;
 }
 
-type InviteRole = Exclude<DriveShareRole, 'owner'>;
+type InviteRole = DriveAccessLevel;
 
 const ROLE_OPTIONS: { value: InviteRole; label: string }[] = [
-  { value: 'viewer', label: 'Lector' },
+  { value: 'preview', label: 'Solo lectura' },
+  { value: 'download', label: 'Ver y descargar' },
   { value: 'editor', label: 'Editor' },
+  { value: 'remover', label: 'Editor y eliminar' },
 ];
 
 export const ShareNodeModal: React.FC<Props> = ({ visible, node, canShare, onClose }) => {
@@ -50,7 +53,7 @@ export const ShareNodeModal: React.FC<Props> = ({ visible, node, canShare, onClo
 
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [role, setRole] = useState<InviteRole>('viewer');
+  const [role, setRole] = useState<InviteRole>('preview');
 
   const nodeId = node?.id;
   const sharesQ = useDriveShares(nodeId, visible && !!nodeId);
@@ -62,7 +65,7 @@ export const ShareNodeModal: React.FC<Props> = ({ visible, node, canShare, onClo
     if (!visible) {
       setQuery('');
       setDebouncedQuery('');
-      setRole('viewer');
+      setRole('preview');
     }
   }, [visible]);
 
@@ -253,7 +256,7 @@ export const ShareNodeModal: React.FC<Props> = ({ visible, node, canShare, onClo
                           {u?.name || u?.username || u?.email || 'Usuario'}
                         </Text>
                         <Text variant="caption" color="secondary" numberOfLines={1}>
-                          {item.role === 'editor' ? 'Editor' : 'Lector'}
+                          {ACCESS_LEVEL_LABEL[item.role] ?? item.role}
                           {u?.email ? ` · ${u.email}` : ''}
                         </Text>
                       </View>
@@ -328,6 +331,7 @@ const createStyles = (theme: Theme) =>
     },
     roleGroup: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: theme.space[2],
     },
     roleChip: {

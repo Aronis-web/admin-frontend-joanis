@@ -60,8 +60,8 @@ import {
   useUploadDriveVersion,
 } from '@/hooks/api/useDrive';
 import { driveApi } from '@/services/api/drive';
-import type { DriveNode, DriveSpace } from '@/types/drive';
-import { toBytesNumber } from '@/types/drive';
+import type { DriveAccessLevel, DriveEffectiveLevel, DriveNode, DriveSpace } from '@/types/drive';
+import { accessAtLeast, maxAccessLevel, toBytesNumber } from '@/types/drive';
 
 import DriveBottomBar, { type DriveBottomTab } from '@/components/Drive/DriveBottomBar';
 import { ProtectedFAB, type FABAction } from '@/components/ui/ProtectedFAB';
@@ -315,10 +315,60 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     browsingEnabled && !isSpaceRoot
   );
   const trashQ = useDriveTrash(activeSpaceId ?? undefined, tab === 'trash' && !!activeSpaceId);
-  const sharedQ = useDriveShared(tab === 'shared-with-me');
+  // Se habilita siempre: además de pintar "Compartido conmigo", provee el nivel
+  // (myRole / sharedRole) para gatear acciones al navegar espacios/nodos ajenos.
+  const sharedQ = useDriveShared();
   const sharedWithMeSpaces = useMemo<DriveSpace[]>(
     () => sharedQ.data?.spaces ?? [],
     [sharedQ.data]
+  );
+
+  // --------------------------------------------------------------------------
+  // Nivel de acceso efectivo (compartición por nodo / membresía de espacio)
+  // --------------------------------------------------------------------------
+
+  /** spaceId -> nivel de miembro (myRole) en espacios compartidos donde soy miembro. */
+  const sharedSpaceRoleMap = useMemo(() => {
+    const m = new Map<string, DriveAccessLevel>();
+    for (const sp of sharedQ.data?.spaces ?? []) m.set(sp.id, sp.myRole);
+    return m;
+  }, [sharedQ.data]);
+
+  /** nodeId -> nivel recibido en nodos compartidos directamente conmigo. */
+  const sharedNodeRoleMap = useMemo(() => {
+    const m = new Map<string, DriveAccessLevel>();
+    for (const it of sharedQ.data?.nodes ?? []) m.set(it.node.id, it.sharedRole);
+    return m;
+  }, [sharedQ.data]);
+
+  /** Nivel efectivo del espacio: owner si es propio/personal, si no myRole. */
+  const levelForSpaceId = useCallback(
+    (spaceId: string | null | undefined): DriveEffectiveLevel | null => {
+      if (!spaceId) return null;
+      const sp =
+        spacesQ.data?.find((s) => s.id === spaceId) ??
+        (sharedQ.data?.spaces ?? []).find((s) => s.id === spaceId);
+      if (sp?.ownerUserId && sp.ownerUserId === userId) return 'owner';
+      if (sp?.type === 'personal') return 'owner';
+      return sharedSpaceRoleMap.get(spaceId) ?? null;
+    },
+    [spacesQ.data, sharedQ.data, sharedSpaceRoleMap, userId]
+  );
+
+  /**
+   * Nivel efectivo de un nodo: combina el compartir directo (si lo hay) con el
+   * nivel heredado del espacio, quedándose con el más permisivo. Si no hay
+   * información asumimos `preview` (mínimo) para no exponer acciones no
+   * permitidas.
+   */
+  const levelForNode = useCallback(
+    (node: DriveNode | null | undefined): DriveEffectiveLevel => {
+      if (!node) return 'owner';
+      const direct = sharedNodeRoleMap.get(node.id) ?? null;
+      const spaceLevel = levelForSpaceId(node.spaceId);
+      return maxAccessLevel(direct, spaceLevel) ?? 'preview';
+    },
+    [sharedNodeRoleMap, levelForSpaceId]
   );
   const usageQ = useDriveSpaceUsage(activeSpaceId ?? undefined, browsingEnabled);
 
@@ -334,6 +384,17 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     () => [{ id: null, name: activeSpace?.name ?? 'Mi unidad' }, ...folderStack],
     [activeSpace?.name, folderStack]
   );
+
+  /** Nivel efectivo del espacio que se está navegando ahora mismo. */
+  const activeLevel: DriveEffectiveLevel = useMemo(() => {
+    if (!activeSpace) return 'owner';
+    if (activeSpace.ownerUserId === userId) return 'owner';
+    if (activeSpace.type === 'personal') return 'owner';
+    // Espacio compartido donde soy miembro: usar myRole; si aún no cargó, mínimo.
+    return sharedSpaceRoleMap.get(activeSpace.id) ?? 'preview';
+  }, [activeSpace, userId, sharedSpaceRoleMap]);
+
+  const activeCanEdit = accessAtLeast(activeLevel, 'editor');
 
   // --------------------------------------------------------------------------
   // Mutations
@@ -438,11 +499,16 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // --------------------------------------------------------------------------
 
   const spaceActions: SpaceActionId[] = useMemo(() => {
+    const sp = spaceActionSheet;
     const acts: SpaceActionId[] = [];
+    if (!sp) return acts;
+    const isOwner = sp.ownerUserId === userId;
+    // Ver miembros: dueño o miembro (drive.read).
     if (canRead) acts.push('members');
-    if (canManage) acts.push('rename', 'delete');
+    // Renombrar/eliminar espacio son exclusivos del dueño.
+    if (canManage && isOwner) acts.push('rename', 'delete');
     return acts;
-  }, [canRead, canManage]);
+  }, [spaceActionSheet, canRead, canManage, userId]);
 
   const handleSpaceAction = (id: SpaceActionId, space: DriveSpace) => {
     if (id === 'members') {
@@ -720,7 +786,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
 
   // Drag & drop + paste (solo web)
   const { isDragging } = useWebFileDrop({
-    enabled: browsingEnabled && canUpload && Platform.OS === 'web',
+    enabled: browsingEnabled && canUpload && activeCanEdit && Platform.OS === 'web',
     onFiles: (files) => {
       void handleIncomingFiles(
         files.map((f) => ({ file: f, name: f.name, mimeType: f.type || undefined }))
@@ -788,21 +854,33 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // --------------------------------------------------------------------------
 
   const nodeActions: NodeActionId[] = useMemo(() => {
+    // Nivel efectivo del nodo sobre el que se abrió el menú (combina compartir
+    // por nodo + membresía de espacio). Determina qué acciones se muestran.
+    const level = levelForNode(actionSheetNode);
+    const lvlDownload = accessAtLeast(level, 'download');
+    const lvlEdit = accessAtLeast(level, 'editor');
+    const lvlRemove = accessAtLeast(level, 'remover');
+    const isOwner = level === 'owner';
+
     if (tab === 'trash') {
-      if (!canManage) return [];
-      return ['restore', 'delete-forever'];
+      const acts: NodeActionId[] = [];
+      // Restaurar exige nivel remover (o dueño); borrado definitivo solo dueño.
+      if (canManage && lvlRemove) acts.push('restore');
+      if (canManage && isOwner) acts.push('delete-forever');
+      return acts;
     }
+
     const acts: NodeActionId[] = ['open'];
-    if (canManage) {
-      acts.push('rename', 'move');
-    }
-    // Copy solo si es archivo (F2 limitación)
-    if (canUpload && actionSheetNode?.kind === 'file') acts.push('copy');
-    // Compartir disponible tanto en "Mi unidad" como en espacios compartidos.
-    if (canRead || canShare) acts.push('share');
-    if (canManage) acts.push('trash');
+    // Renombrar/mover exigen nivel editor.
+    if (canManage && lvlEdit) acts.push('rename', 'move');
+    // Copiar (solo archivos) requiere poder descargar el origen.
+    if (canUpload && lvlDownload && actionSheetNode?.kind === 'file') acts.push('copy');
+    // Re-compartir: solo dueño o nivel editor y con permiso drive.share.
+    if (canShare && (isOwner || lvlEdit)) acts.push('share');
+    // Enviar a papelera exige nivel remover.
+    if (canManage && lvlRemove) acts.push('trash');
     return acts;
-  }, [tab, canManage, canUpload, canRead, canShare, actionSheetNode]);
+  }, [tab, canManage, canUpload, canShare, actionSheetNode, levelForNode]);
 
   const handleActionSheet = async (id: NodeActionId, node: DriveNode) => {
     if (id === 'open') {
@@ -951,7 +1029,9 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
         },
       ];
     }
-    if (!activeSpaceId || !canUpload) return [];
+    // Subir / crear carpeta requiere permiso drive.upload Y nivel editor+ sobre
+    // el espacio actual (los espacios propios/personales son 'owner').
+    if (!activeSpaceId || !canUpload || !activeCanEdit) return [];
     const acts: FABAction[] = [
       {
         icon: 'cloud-upload-outline',
@@ -972,7 +1052,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
       onPress: () => setNewFolderVisible(true),
     });
     return acts;
-  }, [tab, spacesGridMode, activeSpaceId, canManage, canUpload, handleUpload]);
+  }, [tab, spacesGridMode, activeSpaceId, canManage, canUpload, activeCanEdit, handleUpload]);
 
   // --------------------------------------------------------------------------
   // Header meta
@@ -988,6 +1068,19 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // --------------------------------------------------------------------------
   // Layout de grid
   // --------------------------------------------------------------------------
+
+  // Niveles efectivos para gatear los modales/sheets abiertos.
+  const viewerLevel = levelForNode(viewerNode);
+  const viewerCanDownload = accessAtLeast(viewerLevel, 'download');
+  const viewerCanEdit = canUpload && accessAtLeast(viewerLevel, 'editor');
+
+  const openSheetCanDownload = accessAtLeast(levelForNode(openSheetNode), 'download');
+
+  const shareNodeLevel = levelForNode(shareNode);
+  const canShareThisNode =
+    canShare && (shareNodeLevel === 'owner' || accessAtLeast(shareNodeLevel, 'editor'));
+
+  const canManageMembers = !!membersSpace && membersSpace.ownerUserId === userId && canShare;
 
   const GRID_PADDING = 16;
   const GRID_GAP = 12;
@@ -1015,7 +1108,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
           <DriveSpaceCard
             space={item}
             onOpen={handleOpenSpaceCard}
-            onMore={spaceActions.length > 0 ? (s) => setSpaceActionSheet(s) : undefined}
+            onMore={canRead ? (s) => setSpaceActionSheet(s) : undefined}
             width={cardWidth}
           />
         </View>
@@ -1311,6 +1404,8 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
         <DriveFileViewerModal
           visible={!!viewerNode}
           node={viewerNode}
+          canDownload={viewerCanDownload}
+          canEdit={viewerCanEdit}
           onClose={() => setViewerNode(null)}
         />
         <DriveNodeActionSheet
@@ -1326,7 +1421,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
         <ShareNodeModal
           visible={!!shareNode}
           node={shareNode}
-          canShare={canShare}
+          canShare={canShareThisNode}
           onClose={() => setShareNode(null)}
         />
         <RenameNodeModal
@@ -1355,6 +1450,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
         <DriveFileOpenSheet
           visible={!!openSheetNode}
           node={openSheetNode}
+          canDownload={openSheetCanDownload}
           onClose={() => setOpenSheetNode(null)}
           onSelect={(action, node) => {
             setOpenSheetNode(null);
@@ -1370,7 +1466,7 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
         <SpaceMembersModal
           visible={!!membersSpace}
           space={membersSpace}
-          canManage={canShare}
+          canManage={canManageMembers}
           onClose={() => setMembersSpace(null)}
         />
         <DriveSpaceActionSheet

@@ -26,6 +26,11 @@ export type FileOpenAction = 'preview-in-erp' | 'download' | 'open-external';
 interface Props {
   visible: boolean;
   node: DriveNode | null;
+  /**
+   * Si el nivel de acceso permite descargar/abrir fuera del visor. Con nivel
+   * `preview` es false: solo se ofrece la previsualización dentro del ERP.
+   */
+  canDownload?: boolean;
   onSelect: (action: FileOpenAction, node: DriveNode) => void;
   onClose: () => void;
 }
@@ -66,7 +71,13 @@ const isPreviewable = (mime: string | null, name: string): boolean => {
   return false;
 };
 
-export const DriveFileOpenSheet: React.FC<Props> = ({ visible, node, onSelect, onClose }) => {
+export const DriveFileOpenSheet: React.FC<Props> = ({
+  visible,
+  node,
+  canDownload = true,
+  onSelect,
+  onClose,
+}) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
@@ -87,25 +98,28 @@ export const DriveFileOpenSheet: React.FC<Props> = ({ visible, node, onSelect, o
     options.push({
       id: 'preview-in-erp',
       label: 'Abrir en el ERP',
-      hint: 'Ver o editar dentro de la app',
+      hint: 'Ver dentro de la app',
       icon: 'eye-outline',
       color: theme.color.brand.primary,
     });
   }
-  options.push({
-    id: 'download',
-    label: 'Descargar',
-    hint: Platform.OS === 'web' ? 'Guardar en tu computadora' : 'Guardar en el dispositivo',
-    icon: 'download-outline',
-    color: '#10B981',
-  });
-  options.push({
-    id: 'open-external',
-    label: Platform.OS === 'web' ? 'Abrir en pestaña nueva' : 'Abrir con otra app',
-    hint: Platform.OS === 'web' ? 'El navegador decide qué visor usar' : 'Usa una app instalada',
-    icon: 'open-outline',
-    color: '#3B82F6',
-  });
+  // Descargar / abrir fuera del ERP solo si el nivel de acceso lo permite.
+  if (canDownload) {
+    options.push({
+      id: 'download',
+      label: 'Descargar',
+      hint: Platform.OS === 'web' ? 'Guardar en tu computadora' : 'Guardar en el dispositivo',
+      icon: 'download-outline',
+      color: '#10B981',
+    });
+    options.push({
+      id: 'open-external',
+      label: Platform.OS === 'web' ? 'Abrir en pestaña nueva' : 'Abrir con otra app',
+      hint: Platform.OS === 'web' ? 'El navegador decide qué visor usar' : 'Usa una app instalada',
+      icon: 'open-outline',
+      color: '#3B82F6',
+    });
+  }
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -133,6 +147,18 @@ export const DriveFileOpenSheet: React.FC<Props> = ({ visible, node, onSelect, o
           </View>
 
           <View style={styles.list}>
+            {options.length === 0 && (
+              <View style={styles.emptyNote}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={iconSizes.md}
+                  color={theme.color.icon.muted}
+                />
+                <Text variant="bodySmall" color="secondary" style={styles.emptyNoteText}>
+                  Este archivo no se puede previsualizar y tu acceso es solo de lectura.
+                </Text>
+              </View>
+            )}
             {options.map((opt) => (
               <TouchableOpacity
                 key={opt.id}
@@ -204,6 +230,16 @@ const createStyles = (theme: Theme) =>
     headerText: { flex: 1, minWidth: 0 },
     list: {
       paddingVertical: theme.space[2],
+    },
+    emptyNote: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+    },
+    emptyNoteText: {
+      flex: 1,
     },
     row: {
       flexDirection: 'row',

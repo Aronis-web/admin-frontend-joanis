@@ -35,6 +35,10 @@ import { useUploadDriveVersion } from '@/hooks/api/useDrive';
 interface Props {
   visible: boolean;
   node: DriveNode | null;
+  /** Si el nivel de acceso permite descargar (nivel `download` o superior). */
+  canDownload?: boolean;
+  /** Si el nivel de acceso permite editar/guardar (nivel `editor` o superior). */
+  canEdit?: boolean;
   onClose: () => void;
 }
 
@@ -68,7 +72,13 @@ const classify = (mime: string | null | undefined, name: string): ViewerKind => 
   return 'fallback';
 };
 
-export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }) => {
+export const DriveFileViewerModal: React.FC<Props> = ({
+  visible,
+  node,
+  canDownload = true,
+  canEdit = true,
+  onClose,
+}) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -213,7 +223,7 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
               {node?.name ?? ''}
             </Text>
           </View>
-          {kind === 'excel' && (
+          {kind === 'excel' && canEdit && (
             <TouchableOpacity
               onPress={handleSaveExcel}
               style={styles.headerBtn}
@@ -228,18 +238,20 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
               />
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            onPress={handleDownload}
-            style={styles.headerBtn}
-            activeOpacity={activeOpacity.medium}
-            accessibilityLabel="Descargar"
-          >
-            <Ionicons
-              name="download-outline"
-              size={iconSizes.lg}
-              color={theme.color.icon.default}
-            />
-          </TouchableOpacity>
+          {canDownload && (
+            <TouchableOpacity
+              onPress={handleDownload}
+              style={styles.headerBtn}
+              activeOpacity={activeOpacity.medium}
+              accessibilityLabel="Descargar"
+            >
+              <Ionicons
+                name="download-outline"
+                size={iconSizes.lg}
+                color={theme.color.icon.default}
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.body}>
@@ -252,7 +264,7 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
               <Text variant="bodyMedium" color="danger">
                 {error}
               </Text>
-              <Button title="Descargar" onPress={handleDownload} />
+              {canDownload && <Button title="Descargar" onPress={handleDownload} />}
             </View>
           ) : kind === 'image' && blobUrl ? (
             <View style={styles.center}>
@@ -272,7 +284,7 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
             <DriveExcelEditor
               blob={rawBlob}
               filename={node?.name ?? ''}
-              editable
+              editable={canEdit}
               onDirtyChange={setExcelDirty}
               registerSaver={(fn) => {
                 excelSaverRef.current = fn;
@@ -288,13 +300,17 @@ export const DriveFileViewerModal: React.FC<Props> = ({ visible, node, onClose }
             <View style={styles.center}>
               <Ionicons name="document-outline" size={64} color={theme.color.icon.subtle} />
               <Text variant="bodyMedium" color="secondary" align="center">
-                Este tipo de archivo no se puede previsualizar aquí todavía.
+                {canDownload
+                  ? 'Este tipo de archivo no se puede previsualizar aquí todavía.'
+                  : 'Este tipo de archivo no se puede previsualizar aquí y tu acceso es solo de lectura.'}
               </Text>
-              <Button
-                title="Descargar / abrir con otra app"
-                onPress={handleDownload}
-                leftIcon="download-outline"
-              />
+              {canDownload && (
+                <Button
+                  title="Descargar / abrir con otra app"
+                  onPress={handleDownload}
+                  leftIcon="download-outline"
+                />
+              )}
             </View>
           )}
         </View>

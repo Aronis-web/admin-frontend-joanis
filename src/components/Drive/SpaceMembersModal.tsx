@@ -39,23 +39,24 @@ import type {
   DriveSpaceMemberRole,
   DriveShareUser,
 } from '@/types/drive';
+import { ACCESS_LEVEL_LABEL } from '@/types/drive';
 
 interface Props {
   visible: boolean;
   space: DriveSpace | null;
-  /** Si puede gestionar miembros (dueño o manager). Controla invitar/quitar. */
+  /** Si puede gestionar miembros. Solo el dueño del espacio. Controla invitar/quitar. */
   canManage: boolean;
   onClose: () => void;
 }
 
 const ROLE_OPTIONS: { value: DriveSpaceMemberRole; label: string }[] = [
-  { value: 'viewer', label: 'Lector' },
+  { value: 'preview', label: 'Solo lectura' },
+  { value: 'download', label: 'Ver y descargar' },
   { value: 'editor', label: 'Editor' },
-  { value: 'manager', label: 'Administrador' },
+  { value: 'remover', label: 'Editor y eliminar' },
 ];
 
-const roleLabel = (role: DriveSpaceMemberRole): string =>
-  ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role;
+const roleLabel = (role: DriveSpaceMemberRole): string => ACCESS_LEVEL_LABEL[role] ?? role;
 
 export const SpaceMembersModal: React.FC<Props> = ({ visible, space, canManage, onClose }) => {
   const theme = useTheme();
@@ -63,7 +64,7 @@ export const SpaceMembersModal: React.FC<Props> = ({ visible, space, canManage, 
 
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [role, setRole] = useState<DriveSpaceMemberRole>('viewer');
+  const [role, setRole] = useState<DriveSpaceMemberRole>('preview');
 
   const spaceId = space?.id;
   const membersQ = useDriveSpaceMembers(spaceId, visible && !!spaceId);
@@ -75,7 +76,7 @@ export const SpaceMembersModal: React.FC<Props> = ({ visible, space, canManage, 
     if (!visible) {
       setQuery('');
       setDebouncedQuery('');
-      setRole('viewer');
+      setRole('preview');
     }
   }, [visible]);
 
@@ -337,6 +338,7 @@ const createStyles = (theme: Theme) =>
     },
     roleGroup: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: theme.space[2],
     },
     roleChip: {
