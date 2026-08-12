@@ -178,98 +178,92 @@ const buildHtml = (
 </html>`;
 };
 
-const PRINT_ROOT_ID = 'campaign-photos-print-root';
-const PRINT_STYLE_ID = 'campaign-photos-print-styles';
-
 /**
- * Imprime el HTML en web/Electron inyectándolo dentro del documento actual y
- * usando `@media print` para ocultar todo lo demás. Es el enfoque más fiable:
+ * Script que se inyecta DENTRO del iframe para dispararse a sí mismo el print.
  *
- *  - No depende de un iframe. En Chromium/Electron `window.print()` disparado
- *    desde un iframe termina imprimiendo el documento superior en muchos casos,
- *    lo que provocaba que se imprimiera la pantalla de la app en vez del PDF.
- *  - Espera a que las imágenes terminen de cargar antes de abrir el diálogo de
- *    impresión, para que el PDF salga completo.
+ * Es clave que `window.print()` se llame desde el contexto del propio iframe (y
+ * no desde el padre vía `iframe.contentWindow.print()`), porque en Electron/web
+ * llamarlo desde el padre a veces imprime la página principal (la pantalla de la
+ * app) en vez del contenido del iframe. Además espera a que las imágenes remotas
+ * terminen de cargar para que el PDF salga completo.
  */
-const printHtmlOnWeb = (html: string): void => {
-  // Extraemos <style> y contenido del <body> generados por buildHtml.
-  const styleMatch = /<style[^>]*>([\s\S]*?)<\/style>/i.exec(html);
-  const bodyMatch = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html);
-  const styleCss = styleMatch?.[1] ?? '';
-  const bodyContent = bodyMatch?.[1] ?? html;
-
-  // Contenedor con el contenido del PDF, oculto en pantalla, visible al imprimir.
-  const container = document.createElement('div');
-  container.id = PRINT_ROOT_ID;
-  container.innerHTML = bodyContent;
-  document.body.appendChild(container);
-
-  const styleTag = document.createElement('style');
-  styleTag.id = PRINT_STYLE_ID;
-  styleTag.textContent = `
-    #${PRINT_ROOT_ID} { display: none; }
-    @media print {
-      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-      body > *:not(#${PRINT_ROOT_ID}) { display: none !important; }
-      #${PRINT_ROOT_ID} { display: block !important; }
-      ${styleCss}
+const SELF_PRINT_SCRIPT =
+  `
+<script>
+(function () {
+  function doPrint() {
+    try { window.focus(); window.print(); } catch (e) {}
+  }
+  function ready() {
+    const imgs = Array.prototype.slice.call(document.images || []);
+    const pending = imgs.filter(function (img) { return !img.complete; });
+    if (pending.length === 0) { setTimeout(doPrint, 300); return; }
+    let remaining = pending.length;
+    let fired = false;
+    function onDone() {
+      if (fired) return;
+      remaining -= 1;
+      if (remaining <= 0) { fired = true; setTimeout(doPrint, 200); }
     }
-  `;
-  document.head.appendChild(styleTag);
+    pending.forEach(function (img) {
+      img.addEventListener('load', onDone);
+      img.addEventListener('error', onDone);
+    });
+    // Fallback por si alguna imagen nunca resuelve.
+    setTimeout(function () { if (!fired) { fired = true; doPrint(); } }, 5000);
+  }
+  if (document.readyState === 'complete') { ready(); }
+  else { window.addEventListener('load', ready); }
+})();
+</` + `script>`;
+
+/** Imprime el HTML en web/Electron mediante un iframe oculto que se auto-imprime. */
+const printHtmlOnWeb = (html: string): void => {
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(iframe);
 
   let cleaned = false;
   const cleanup = () => {
     if (cleaned) return;
     cleaned = true;
-    try {
-      container.remove();
-    } catch {
-      /* noop */
-    }
-    try {
-      styleTag.remove();
-    } catch {
-      /* noop */
-    }
-    window.removeEventListener('afterprint', cleanup);
+    setTimeout(() => {
+      try {
+        document.body.removeChild(iframe);
+      } catch {
+        /* noop */
+      }
+    }, 1000);
   };
 
-  window.addEventListener('afterprint', cleanup);
-  // Fallback por si `afterprint` no dispara (algunos navegadores móviles).
-  setTimeout(cleanup, 60000);
+  // El HTML se auto-imprime desde su propio contexto (ver SELF_PRINT_SCRIPT).
+  const finalHtml = html.includes('</body>')
+    ? html.replace('</body>', `${SELF_PRINT_SCRIPT}</body>`)
+    : html + SELF_PRINT_SCRIPT;
 
-  // Esperamos a que las imágenes carguen (con timeout) antes de imprimir.
-  const imgs = Array.from(container.querySelectorAll('img'));
-  const pending = imgs.filter((img) => !img.complete);
-  const waitImages: Promise<unknown> =
-    pending.length === 0
-      ? Promise.resolve()
-      : Promise.all(
-          pending.map(
-            (img) =>
-              new Promise<void>((resolve) => {
-                const done = () => resolve();
-                img.addEventListener('load', done, { once: true });
-                img.addEventListener('error', done, { once: true });
-              })
-          )
-        );
-  const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
-
-  Promise.race([waitImages, timeout])
-    .then(() => {
-      try {
-        window.focus();
-        window.print();
-      } catch (err) {
-        logger.error('Error al invocar window.print:', err);
-        cleanup();
-      }
-    })
-    .catch((err) => {
-      logger.error('Error preparando el print:', err);
-      cleanup();
-    });
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (doc) {
+    doc.open();
+    doc.write(finalHtml);
+    doc.close();
+    // Limpiamos cuando el usuario cierra el diálogo de impresión.
+    try {
+      iframe.contentWindow?.addEventListener('afterprint', cleanup);
+    } catch (err) {
+      logger.warn('No se pudo escuchar afterprint:', err);
+    }
+    // Fallback de limpieza por si `afterprint` no dispara.
+    setTimeout(cleanup, 60000);
+  } else {
+    Alert.alert('Error', 'No se pudo preparar el documento para imprimir.');
+    cleanup();
+  }
 };
 
 /**
