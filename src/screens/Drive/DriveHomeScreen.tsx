@@ -262,21 +262,19 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
 
   // Reflejar el tab activo en la URL (query param) para que la recarga del PWA
   // lo restaure. Solo se actualiza si difiere, para no ensuciar el historial.
+  //
+  // IMPORTANTE: la sincronización es UNIDIRECCIONAL (estado -> URL). No hacemos
+  // el camino inverso (URL -> setTab) de forma continua porque el eco/re-parseo
+  // del query param en web podía disparar un `setTab(routeTab)` con un valor
+  // previo ("my-unit") y REVERTIR la pestaña recién elegida (síntoma reportado
+  // al entrar a "Compartido"). La URL solo se lee para el valor INICIAL (ver el
+  // useState de `tab`), que es justo lo que se necesita tras una recarga.
   useEffect(() => {
     if (isDriveTab(routeTab) && routeTab === tab) return;
     (navigation as unknown as { setParams: (p: Record<string, unknown>) => void }).setParams({
       driveTab: tab,
     });
   }, [tab, routeTab, navigation]);
-
-  // Si la URL cambia el tab por fuera (back/forward del navegador, deep-link),
-  // sincronizamos el estado local.
-  useEffect(() => {
-    if (isDriveTab(routeTab) && routeTab !== tab) {
-      setTab(routeTab);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeTab]);
 
   // Persistir cada cambio (memoria de módulo + localStorage en web) para
   // sobrevivir a remontes y a la recarga del PWA de iOS.
@@ -507,14 +505,24 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   // --------------------------------------------------------------------------
 
   const handleSelectTab = (t: DriveBottomTab) => {
+    // Calculamos el próximo activeSpaceId de forma síncrona para poder persistir
+    // el snapshot ANTES de cualquier render/efecto.
+    let nextSpaceId = activeSpaceId;
+    if (t === 'my-unit' && personalSpace) nextSpaceId = personalSpace.id;
+    if (t === 'spaces') nextSpaceId = null; // grid de espacios
+    if (t === 'trash' && !activeSpaceId && personalSpace) nextSpaceId = personalSpace.id;
+
+    // IMPORTANTE: persistir SINCRÓNICAMENTE (memoria + localStorage) en el mismo
+    // gesto del tap. Si al entrar a "Compartido" algo provoca un reload en web
+    // (p. ej. el LazyErrorBoundary de lazyLoad hace location.reload ante un error
+    // de render/chunk), el `useEffect` de persistencia NO alcanza a correr y el
+    // tab se perdía volviendo a "Mi unidad". Guardando aquí, tras el reload se
+    // restaura la pestaña elegida desde el snapshot.
+    writeDriveNavSnapshot({ userId, tab: t, activeSpaceId: nextSpaceId, folderStack: [] });
+
     setTab(t);
     setFolderStack([]);
-    if (t === 'my-unit' && personalSpace) setActiveSpaceId(personalSpace.id);
-    if (t === 'spaces') {
-      // Reseteamos para mostrar el grid de espacios
-      setActiveSpaceId(null);
-    }
-    if (t === 'trash' && !activeSpaceId && personalSpace) setActiveSpaceId(personalSpace.id);
+    if (nextSpaceId !== activeSpaceId) setActiveSpaceId(nextSpaceId);
   };
 
   const handleOpenSpaceCard = (s: DriveSpace) => {
