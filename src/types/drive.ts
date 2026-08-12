@@ -116,10 +116,72 @@ export interface DriveVersion {
 }
 
 // ============================================================================
+// Niveles de acceso (compartición y membresía)
+// ============================================================================
+
+/**
+ * Los 4 niveles acumulables que se asignan al compartir un nodo o al agregar
+ * un miembro a un espacio. Son idénticos para ambos flujos:
+ *  - preview:  solo previsualizar (sin descargar). En backend equivale a
+ *    `download`; el frontend oculta el botón de descarga.
+ *  - download: previsualizar + descargar.
+ *  - editor:   descarga + subir versiones, crear carpetas, renombrar, mover y
+ *    re-compartir. NO elimina.
+ *  - remover:  editor + enviar a papelera y restaurar.
+ */
+export type DriveAccessLevel = 'preview' | 'download' | 'editor' | 'remover';
+
+/**
+ * Nivel efectivo con el que se navega/gatea un elemento. Añade `owner` (dueño
+ * del espacio), que siempre tiene acceso total.
+ */
+export type DriveEffectiveLevel = DriveAccessLevel | 'owner';
+
+/** Ranking de permisividad para comparar niveles (mayor = más permisivo). */
+const ACCESS_RANK: Record<DriveEffectiveLevel, number> = {
+  preview: 0,
+  download: 1,
+  editor: 2,
+  remover: 3,
+  owner: 4,
+};
+
+/** ¿`level` es al menos tan permisivo como `min`? */
+export const accessAtLeast = (
+  level: DriveEffectiveLevel | null | undefined,
+  min: DriveEffectiveLevel
+): boolean => {
+  if (!level) return false;
+  return ACCESS_RANK[level] >= ACCESS_RANK[min];
+};
+
+/** Combina varios niveles y devuelve el más permisivo (o null si ninguno). */
+export const maxAccessLevel = (
+  ...levels: Array<DriveEffectiveLevel | null | undefined>
+): DriveEffectiveLevel | null => {
+  let best: DriveEffectiveLevel | null = null;
+  for (const l of levels) {
+    if (!l) continue;
+    if (best === null || ACCESS_RANK[l] > ACCESS_RANK[best]) best = l;
+  }
+  return best;
+};
+
+/** Etiqueta legible (ES) para mostrar un nivel en la UI. */
+export const ACCESS_LEVEL_LABEL: Record<DriveEffectiveLevel, string> = {
+  preview: 'Solo lectura',
+  download: 'Ver y descargar',
+  editor: 'Editor',
+  remover: 'Editor y eliminar',
+  owner: 'Propietario',
+};
+
+// ============================================================================
 // Compartición
 // ============================================================================
 
-export type DriveShareRole = 'viewer' | 'editor' | 'owner';
+/** Rol de una compartición de nodo. Alias del conjunto unificado de niveles. */
+export type DriveShareRole = DriveAccessLevel;
 
 export interface DriveShareUser {
   id: string;
@@ -139,7 +201,7 @@ export interface DriveShare {
 
 export interface CreateDriveShareDto {
   granteeUserId: string;
-  role: Exclude<DriveShareRole, 'owner'>;
+  role: DriveAccessLevel;
 }
 
 export interface DriveSharedWithMeItem {
@@ -175,14 +237,12 @@ export interface DriveSharedResponse {
 // ============================================================================
 
 /**
- * Rol base de un miembro dentro de un espacio compartido. Se hereda por todos
- * los nodos del espacio y se combina con el compartir por nodo (gana el rol
- * más permisivo).
- *  - viewer:  lectura de todo el espacio.
- *  - editor:  lectura + escritura (subir, crear carpetas, mover).
- *  - manager: editor + gestión de miembros del espacio.
+ * Rol base de un miembro dentro de un espacio compartido. Usa el mismo conjunto
+ * unificado de 4 niveles que el compartir por nodo. Se hereda por todos los
+ * nodos del espacio y se combina con el compartir por nodo (gana el más
+ * permisivo). La gestión de miembros es exclusiva del dueño del espacio.
  */
-export type DriveSpaceMemberRole = 'viewer' | 'editor' | 'manager';
+export type DriveSpaceMemberRole = DriveAccessLevel;
 
 export interface DriveSpaceMember {
   id: string;
