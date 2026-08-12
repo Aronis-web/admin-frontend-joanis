@@ -35,56 +35,17 @@ function isChunkLoadError(error: unknown): boolean {
 }
 
 /**
- * Envuelve el `import(...)` en una promesa con timeout. Si el chunk no llega en
- * `timeoutMs` la promesa rechaza con un ChunkLoadError sintético para que el
- * flujo de retries/reload lo trate como fallo de carga.
- *
- * Motivación: en iOS Safari/PWA el `import()` de un chunk a veces se queda
- * colgado sin resolver ni rechazar (service worker con caché rota tras un
- * deploy, red inestable, WebKit en background). Sin timeout, Suspense muestra
- * el spinner indefinidamente y el módulo (por ejemplo Drive) "no abre".
- */
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      const err = new Error(`Loading chunk failed: timeout after ${timeoutMs}ms`);
-      err.name = 'ChunkLoadError';
-      reject(err);
-    }, timeoutMs);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      }
-    );
-  });
-}
-
-/**
  * Envuelve el `import(...)` de un chunk con reintentos exponenciales.
  * Si tras N intentos sigue fallando y estamos en web, fuerza un
  * `location.reload()` (una sola vez) para recuperar el HTML/asset-manifest
  * más reciente. Este error suele darse cuando se despliega una nueva
  * versión y el navegador tiene el HTML viejo cacheado apuntando a
  * chunks (`index-<hash>.js`) que ya no existen en el servidor.
- *
- * Cada intento tiene un timeout individual para no quedarse colgado si el
- * `import()` no se resuelve nunca (bug conocido en iOS PWA con caché en mal
- * estado): el timeout dispara el retry y, tras agotar reintentos, el reload.
  */
-function retryImport<T>(
-  importFunc: () => Promise<T>,
-  retries = 3,
-  delayMs = 500,
-  timeoutMs = 15000
-): Promise<T> {
+function retryImport<T>(importFunc: () => Promise<T>, retries = 3, delayMs = 500): Promise<T> {
   return new Promise((resolve, reject) => {
     const attempt = (remaining: number, wait: number) => {
-      withTimeout(importFunc(), timeoutMs)
+      importFunc()
         .then(resolve)
         .catch((error) => {
           if (remaining <= 0) {
@@ -144,6 +105,25 @@ class LazyErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error): void {
     logger.error('[lazyLoad] Boundary caught error', error);
+
+    // Persistir el último error atrapado en localStorage para poder
+    // diagnosticar en dispositivos donde no tenemos consola (p. ej. PWA iOS).
+    // Se lee con `localStorage.getItem('__last_lazy_boundary_error__')`.
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(
+          '__last_lazy_boundary_error__',
+          JSON.stringify({
+            when: new Date().toISOString(),
+            name: error?.name ?? null,
+            message: error?.message ?? String(error),
+            stack: error?.stack ?? null,
+          })
+        );
+      } catch {
+        // ignore (quota / modo privado)
+      }
+    }
 
     // Último recurso: reload en web SOLO si es un fallo real de carga de chunk
     // (HTML cacheado tras un deploy). Un error de render normal NO debe recargar
