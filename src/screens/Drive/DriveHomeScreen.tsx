@@ -237,9 +237,16 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
   const route = useRoute();
   const routeTab = (route.params as { driveTab?: unknown } | undefined)?.driveTab;
 
-  // Estado de navegación: se inicializa priorizando el tab de la URL y, si no
-  // hay, el snapshot persistido (memoria de módulo o localStorage en web) para
-  // que un remonte de la pantalla NO reinicie al usuario a "Mi unidad".
+  // Estado de navegación: se inicializa priorizando el SNAPSHOT persistido
+  // (memoria de módulo o localStorage en web) y, si no hay, el tab de la URL.
+  //
+  // ¿Por qué el snapshot gana sobre la URL? Porque el snapshot se escribe de
+  // forma SÍNCRONA en el mismo gesto del tap (ver `handleSelectTab`), mientras
+  // que la URL se actualiza en un `useEffect` ASÍNCRONO (`setParams`). Si un
+  // remonte de la pantalla o una recarga del PWA ocurre ANTES de que la URL se
+  // haya actualizado (carrera real en iOS al entrar a "Compartido"), la URL aún
+  // conserva el valor previo ("my-unit") y, si tuviera prioridad, revertiría la
+  // pestaña recién elegida. El snapshot síncrono no sufre esa carrera.
   //
   // El snapshot solo se descarta cuando pertenece de forma inequívoca a OTRO
   // usuario (ambos ids presentes y distintos). Si `userId` aún es null porque la
@@ -250,8 +257,8 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
     (restoredNav.userId === null || userId === null || restoredNav.userId === userId);
   const initialNav = restorable ? restoredNav : null;
 
-  const [tab, setTab] = useState<DriveBottomTab>(() =>
-    isDriveTab(routeTab) ? routeTab : (initialNav?.tab ?? 'my-unit')
+  const [tab, setTab] = useState<DriveBottomTab>(
+    () => initialNav?.tab ?? (isDriveTab(routeTab) ? routeTab : 'my-unit')
   );
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(
     () => initialNav?.activeSpaceId ?? null
@@ -1257,17 +1264,6 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
           </View>
         ) : null
       }
-      ListEmptyComponent={
-        sharedWithMeSpaces.length === 0 ? (
-          <View style={styles.center}>
-            <EmptyState
-              icon="share-social-outline"
-              title="Aún no te han compartido nada"
-              description="Los archivos, carpetas y espacios que te compartan aparecerán aquí."
-            />
-          </View>
-        ) : null
-      }
       refreshControl={
         <RefreshControl
           refreshing={isRefreshing}
@@ -1378,7 +1374,23 @@ export const DriveHomeScreen: React.FC<Props> = (_props) => {
             <ActivityIndicator size="large" color={theme.color.brand.primary} />
           </View>
         ) : tab === 'shared-with-me' ? (
-          renderSharedWithMe()
+          // El estado vacío se resuelve AQUÍ (fuera del FlatList), igual que en
+          // "Papelera". Antes vivía en `ListEmptyComponent` de un FlatList con
+          // `numColumns` + `columnWrapperStyle`; esa combinación con data vacía
+          // era la única diferencia estructural con los tabs que sí funcionan y
+          // podía romper el render en WebKit (iOS), disparando el reload del
+          // LazyErrorBoundary y devolviendo al usuario a "Mi unidad".
+          sharedWithMeSpaces.length === 0 && sortedList.length === 0 ? (
+            <View style={styles.center}>
+              <EmptyState
+                icon="share-social-outline"
+                title="Aún no te han compartido nada"
+                description="Los archivos, carpetas y espacios que te compartan aparecerán aquí."
+              />
+            </View>
+          ) : (
+            renderSharedWithMe()
+          )
         ) : spacesGridMode ? (
           renderSpacesGrid()
         ) : sortedList.length === 0 ? (
