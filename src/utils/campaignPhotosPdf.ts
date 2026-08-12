@@ -178,7 +178,46 @@ const buildHtml = (
 </html>`;
 };
 
-/** Imprime el HTML en web/Electron mediante un iframe oculto. */
+/**
+ * Script que se inyecta DENTRO del iframe para dispararse a sí mismo el print.
+ *
+ * Es clave que `window.print()` se llame desde el contexto del propio iframe (y
+ * no desde el padre vía `iframe.contentWindow.print()`), porque en Electron/web
+ * llamarlo desde el padre a veces imprime la página principal (la pantalla de la
+ * app) en vez del contenido del iframe. Además espera a que las imágenes remotas
+ * terminen de cargar para que el PDF salga completo.
+ */
+const SELF_PRINT_SCRIPT =
+  `
+<script>
+(function () {
+  function doPrint() {
+    try { window.focus(); window.print(); } catch (e) {}
+  }
+  function ready() {
+    const imgs = Array.prototype.slice.call(document.images || []);
+    const pending = imgs.filter(function (img) { return !img.complete; });
+    if (pending.length === 0) { setTimeout(doPrint, 300); return; }
+    let remaining = pending.length;
+    let fired = false;
+    function onDone() {
+      if (fired) return;
+      remaining -= 1;
+      if (remaining <= 0) { fired = true; setTimeout(doPrint, 200); }
+    }
+    pending.forEach(function (img) {
+      img.addEventListener('load', onDone);
+      img.addEventListener('error', onDone);
+    });
+    // Fallback por si alguna imagen nunca resuelve.
+    setTimeout(function () { if (!fired) { fired = true; doPrint(); } }, 5000);
+  }
+  if (document.readyState === 'complete') { ready(); }
+  else { window.addEventListener('load', ready); }
+})();
+</` + `script>`;
+
+/** Imprime el HTML en web/Electron mediante un iframe oculto que se auto-imprime. */
 const printHtmlOnWeb = (html: string): void => {
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
@@ -190,7 +229,10 @@ const printHtmlOnWeb = (html: string): void => {
   iframe.setAttribute('aria-hidden', 'true');
   document.body.appendChild(iframe);
 
+  let cleaned = false;
   const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
     setTimeout(() => {
       try {
         document.body.removeChild(iframe);
@@ -200,31 +242,24 @@ const printHtmlOnWeb = (html: string): void => {
     }, 1000);
   };
 
-  iframe.onload = () => {
-    try {
-      const win = iframe.contentWindow;
-      if (!win) return;
-      // Esperamos a que las imágenes remotas terminen de cargar antes de imprimir.
-      setTimeout(() => {
-        try {
-          win.focus();
-          win.print();
-        } catch (err) {
-          logger.error('Error al invocar print en iframe:', err);
-        }
-        cleanup();
-      }, 600);
-    } catch (err) {
-      logger.error('Error accediendo al iframe:', err);
-      cleanup();
-    }
-  };
+  // El HTML se auto-imprime desde su propio contexto (ver SELF_PRINT_SCRIPT).
+  const finalHtml = html.includes('</body>')
+    ? html.replace('</body>', `${SELF_PRINT_SCRIPT}</body>`)
+    : html + SELF_PRINT_SCRIPT;
 
   const doc = iframe.contentDocument || iframe.contentWindow?.document;
   if (doc) {
     doc.open();
-    doc.write(html);
+    doc.write(finalHtml);
     doc.close();
+    // Limpiamos cuando el usuario cierra el diálogo de impresión.
+    try {
+      iframe.contentWindow?.addEventListener('afterprint', cleanup);
+    } catch (err) {
+      logger.warn('No se pudo escuchar afterprint:', err);
+    }
+    // Fallback de limpieza por si `afterprint` no dispara.
+    setTimeout(cleanup, 60000);
   } else {
     Alert.alert('Error', 'No se pudo preparar el documento para imprimir.');
     cleanup();
