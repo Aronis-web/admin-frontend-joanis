@@ -359,6 +359,11 @@ export interface DistributionGenerateItem {
   factorToBase?: number;
   presentationId?: string;
   quantityPresentation?: number;
+  /**
+   * Variante (color) opcional. Cuando la variante tiene tracksStock=true el
+   * traslado generado desde el reparto mueve el saldo de esa variante.
+   */
+  variantId?: string;
   notes?: string;
   /** Per-participant breakdown of stock sources (warehouse/area + qty) */
   sources?: DistributionSource[];
@@ -394,6 +399,8 @@ export interface DistributionPreviewItem {
   presentationId?: string;
   quantityPresentation?: number;
   factorToBase?: number;
+  // Variante (color) opcional
+  variantId?: string;
 }
 
 /**
@@ -473,6 +480,8 @@ export interface DistributionResultDetail {
   presentationId?: string;
   quantityPresentation?: number;
   factorToBase?: number;
+  // Variante (color) opcional
+  variantId?: string;
 }
 
 /**
