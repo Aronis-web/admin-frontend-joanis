@@ -94,6 +94,16 @@ export interface SaleItem {
   taxCents: number;
   totalCents: number;
 
+  // Variante (color) opcional. Solo descuenta stock por variante si esta lleva
+  // saldo propio (tracksStock=true); si no, cae a nivel producto.
+  variantId?: string | null;
+
+  // Presentacion (empaque) opcional. Solo trazabilidad; la quantity canonica
+  // sigue viajando en unidad base.
+  presentationId?: string | null;
+  factorToBase?: number;
+  quantityPresentation?: number;
+
   // Product snapshot
   productSnapshot: {
     id: string;
@@ -301,11 +311,22 @@ export interface Sale {
  */
 export interface CreateSaleItemRequest {
   productId: string;
-  quantity: number;
+  quantity: number; // SIEMPRE en unidad base
   unitPriceCents: number;
   discountCents?: number;
   codigoAfectacionIgv?: string; // Catálogo 07 - Tipo de Afectación del IGV
   notes?: string;
+
+  // Variante (color) opcional. Cuando la variante tiene tracksStock=true el
+  // backend descuenta el stock de esa variante; si es descriptiva, colapsa a
+  // nivel producto sin romper nada.
+  variantId?: string;
+
+  // Presentacion (empaque) opcional. Solo trazabilidad; la quantity canonica
+  // sigue viajando en unidad base.
+  presentationId?: string;
+  factorToBase?: number;
+  quantityPresentation?: number;
 }
 
 /**
