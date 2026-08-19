@@ -98,7 +98,11 @@ interface ValidatedPresentation {
 }
 
 const isProductIdentityResolved = (purchaseProduct: PurchaseProduct): boolean => {
-  return !!purchaseProduct.resolutionAction && !!purchaseProduct.resolvedAt && !!purchaseProduct.productId;
+  return (
+    !!purchaseProduct.resolutionAction &&
+    !!purchaseProduct.resolvedAt &&
+    !!purchaseProduct.productId
+  );
 };
 
 const isFirstPhysicalEntry = (purchaseProduct: PurchaseProduct): boolean => {
@@ -127,6 +131,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [selectedArea, setSelectedArea] = useState<WarehouseArea | null>(null);
   const [barcode, setBarcode] = useState('');
   const [validationNotes, setValidationNotes] = useState('');
+  const [variantName, setVariantName] = useState('');
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
@@ -149,7 +154,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [validatedPresentations, setValidatedPresentations] = useState<ValidatedPresentation[]>([]);
   const [showAddPresentation, setShowAddPresentation] = useState(false);
   const [newPresentationId, setNewPresentationId] = useState('');
-  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<string | null>(null);
+  const [selectedPresentationForQuantity, setSelectedPresentationForQuantity] = useState<
+    string | null
+  >(null);
 
   // Lists
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -210,9 +217,15 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
       if (isResolvedProduct) {
         setLooseUnits('0');
-      } else if (productData.validatedLooseUnits !== undefined && productData.validatedLooseUnits !== null) {
+      } else if (
+        productData.validatedLooseUnits !== undefined &&
+        productData.validatedLooseUnits !== null
+      ) {
         setLooseUnits(productData.validatedLooseUnits.toString());
-      } else if (productData.preliminaryLooseUnits !== undefined && productData.preliminaryLooseUnits !== null) {
+      } else if (
+        productData.preliminaryLooseUnits !== undefined &&
+        productData.preliminaryLooseUnits !== null
+      ) {
         setLooseUnits(productData.preliminaryLooseUnits.toString());
       } else {
         setLooseUnits('0');
@@ -249,25 +262,35 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         setValidatedPresentations(preliminaryPresentations);
 
         if (isResolvedProduct) {
-          setValidatedPresentations(preliminaryPresentations.map((p) => ({ ...p, quantityOfPresentations: 0 })));
+          setValidatedPresentations(
+            preliminaryPresentations.map((p) => ({ ...p, quantityOfPresentations: 0 }))
+          );
           setSelectedPresentationForQuantity(null);
-        } else if (productData.validatedPresentationQuantity !== undefined && productData.validatedPresentationQuantity > 0) {
+        } else if (
+          productData.validatedPresentationQuantity !== undefined &&
+          productData.validatedPresentationQuantity > 0
+        ) {
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
             setSelectedPresentationForQuantity(firstPresentationId);
             const updatedPresentations = preliminaryPresentations.map((p, i) => ({
               ...p,
-              quantityOfPresentations: i === 0 ? (productData.validatedPresentationQuantity ?? 0) : 0,
+              quantityOfPresentations:
+                i === 0 ? (productData.validatedPresentationQuantity ?? 0) : 0,
             }));
             setValidatedPresentations(updatedPresentations);
           }
-        } else if (productData.preliminaryPresentationQuantity !== undefined && productData.preliminaryPresentationQuantity > 0) {
+        } else if (
+          productData.preliminaryPresentationQuantity !== undefined &&
+          productData.preliminaryPresentationQuantity > 0
+        ) {
           if (preliminaryPresentations.length > 0) {
             const firstPresentationId = preliminaryPresentations[0].presentationId;
             setSelectedPresentationForQuantity(firstPresentationId);
             const updatedPresentations = preliminaryPresentations.map((p, i) => ({
               ...p,
-              quantityOfPresentations: i === 0 ? (productData.preliminaryPresentationQuantity ?? 0) : 0,
+              quantityOfPresentations:
+                i === 0 ? (productData.preliminaryPresentationQuantity ?? 0) : 0,
             }));
             setValidatedPresentations(updatedPresentations);
           }
@@ -329,7 +352,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       if (photoUri) {
         const photoFilename = `validacion-${Date.now()}.jpg`;
         const photoResponse = await filesApi.uploadByCategory(
-          photoUri, photoFilename, 'PURCHASES_VALIDACIONES_FOTOS', purchaseId, 'image/jpeg'
+          photoUri,
+          photoFilename,
+          'PURCHASES_VALIDACIONES_FOTOS',
+          purchaseId,
+          'image/jpeg'
         );
         result.photoUrl = photoResponse.url;
       }
@@ -337,7 +364,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       if (signatureUri) {
         const signatureFilename = `firma-${Date.now()}.png`;
         const signatureResponse = await filesApi.uploadByCategory(
-          signatureUri, signatureFilename, 'PURCHASES_VALIDACIONES_FIRMAS', purchaseId, 'image/png'
+          signatureUri,
+          signatureFilename,
+          'PURCHASES_VALIDACIONES_FIRMAS',
+          purchaseId,
+          'image/png'
         );
         result.signatureUrl = signatureResponse.url;
       }
@@ -345,7 +376,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       if (product && isFirstPhysicalEntry(product) && productPhotoUri) {
         const productPhotoFilename = `producto-${Date.now()}.jpg`;
         const productPhotoResponse = await filesApi.uploadByCategory(
-          productPhotoUri, productPhotoFilename, 'PURCHASES_VALIDACIONES_FOTOS', purchaseId, 'image/jpeg'
+          productPhotoUri,
+          productPhotoFilename,
+          'PURCHASES_VALIDACIONES_FOTOS',
+          purchaseId,
+          'image/jpeg'
         );
         result.productPhotoUrl = productPhotoResponse.url;
       }
@@ -372,38 +407,78 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setRecurrentCandidates(response.candidates || []);
       setRecurrenceMessage(
         response.hasRecurrentProducts && response.candidates.length > 0
-          ? response.message || 'Se encontraron productos similares. Confirme si desea fusionar o crear uno nuevo.'
-          : response.message || 'No se encontraron productos recurrentes. Confirme si desea crear un producto nuevo.'
+          ? response.message ||
+              'Se encontraron productos similares. Confirme si desea fusionar o crear uno nuevo.'
+          : response.message ||
+              'No se encontraron productos recurrentes. Confirme si desea crear un producto nuevo.'
       );
     } catch (error: any) {
       setRecurrentCandidates([]);
-      setRecurrenceMessage('No se pudo verificar recurrencia. Revise la decisión y confirme si desea crear un producto nuevo.');
+      setRecurrenceMessage(
+        'No se pudo verificar recurrencia. Revise la decisión y confirme si desea crear un producto nuevo.'
+      );
     } finally {
       setShowRecurrenceModal(true);
     }
   };
 
   const validateEntryForm = (isFirstEntry: boolean): boolean => {
-    if (isFirstEntry && !sku.trim()) { Alert.alert('Error', 'El SKU es obligatorio'); return false; }
-    if (isFirstEntry && !name.trim()) { Alert.alert('Error', 'El nombre es obligatorio'); return false; }
-    if (isFirstEntry && !barcode.trim()) { Alert.alert('Error', 'El código de barras es obligatorio'); return false; }
+    if (isFirstEntry && !sku.trim()) {
+      Alert.alert('Error', 'El SKU es obligatorio');
+      return false;
+    }
+    if (isFirstEntry && !name.trim()) {
+      Alert.alert('Error', 'El nombre es obligatorio');
+      return false;
+    }
+    if (isFirstEntry && !barcode.trim()) {
+      Alert.alert('Error', 'El código de barras es obligatorio');
+      return false;
+    }
 
     const costValue = parseFloat(costCents);
-    if (isNaN(costValue) || costValue <= 0) { Alert.alert('Error', 'Debe ingresar un costo válido'); return false; }
+    if (isNaN(costValue) || costValue <= 0) {
+      Alert.alert('Error', 'Debe ingresar un costo válido');
+      return false;
+    }
 
     const looseUnitsValue = parseInt(looseUnits);
-    if (isNaN(looseUnitsValue) || looseUnitsValue < 0) { Alert.alert('Error', 'Debe ingresar unidades sueltas válidas'); return false; }
+    if (isNaN(looseUnitsValue) || looseUnitsValue < 0) {
+      Alert.alert('Error', 'Debe ingresar unidades sueltas válidas');
+      return false;
+    }
 
-    if (calculateTotalStock() < 1) { Alert.alert('Error', 'Debe validar al menos 1 unidad'); return false; }
+    if (calculateTotalStock() < 1) {
+      Alert.alert('Error', 'Debe validar al menos 1 unidad');
+      return false;
+    }
 
     const weightKg = getWeightInKg();
-    if (isFirstEntry && (weightKg === undefined || weightKg <= 0)) { Alert.alert('Error', 'El peso es obligatorio y debe ser mayor a 0'); return false; }
+    if (isFirstEntry && (weightKg === undefined || weightKg <= 0)) {
+      Alert.alert('Error', 'El peso es obligatorio y debe ser mayor a 0');
+      return false;
+    }
 
-    if (!selectedWarehouse) { Alert.alert('Error', 'Debe seleccionar un almacén'); return false; }
-    if (!selectedArea) { Alert.alert('Error', 'Debe seleccionar un área'); return false; }
-    if (!photoUri) { Alert.alert('Error', 'La foto de validación es obligatoria'); return false; }
-    if (isFirstEntry && !productPhotoUri) { Alert.alert('Error', 'La foto del producto es obligatoria'); return false; }
-    if (!signatureUri) { Alert.alert('Error', 'La firma de validación es obligatoria'); return false; }
+    if (!selectedWarehouse) {
+      Alert.alert('Error', 'Debe seleccionar un almacén');
+      return false;
+    }
+    if (!selectedArea) {
+      Alert.alert('Error', 'Debe seleccionar un área');
+      return false;
+    }
+    if (!photoUri) {
+      Alert.alert('Error', 'La foto de validación es obligatoria');
+      return false;
+    }
+    if (isFirstEntry && !productPhotoUri) {
+      Alert.alert('Error', 'La foto del producto es obligatoria');
+      return false;
+    }
+    if (!signatureUri) {
+      Alert.alert('Error', 'La firma de validación es obligatoria');
+      return false;
+    }
 
     if (validatedPresentations.length > 0) {
       for (const pres of validatedPresentations) {
@@ -444,17 +519,21 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       validatedPresentationQuantity,
       warehouseId: selectedWarehouse.id,
       areaId: selectedArea.id,
-      presentations: validatedPresentations.length > 0 ? validatedPresentations.map((p) => ({
-        presentationId: p.presentationId,
-        factorToBase: Number(p.factorToBase),
-        notes: p.notes.trim() || undefined,
-      })) : undefined,
+      presentations:
+        validatedPresentations.length > 0
+          ? validatedPresentations.map((p) => ({
+              presentationId: p.presentationId,
+              factorToBase: Number(p.factorToBase),
+              notes: p.notes.trim() || undefined,
+            }))
+          : undefined,
       productPhotos: uploadedFiles.productPhotoUrl ? [uploadedFiles.productPhotoUrl] : undefined,
       barcode: barcode.trim() || undefined,
       weightKg: getWeightInKg(),
       photoUrl: uploadedFiles.photoUrl,
       signatureUrl: uploadedFiles.signatureUrl,
       validationNotes: validationNotes.trim() || undefined,
+      variantName: variantName.trim() || undefined,
     };
   };
 
@@ -484,7 +563,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     );
   };
 
-  const performSubmitEntry = async (forcedResolution?: { action: 'MERGE' | 'CREATE_NEW'; existingProductId?: string }) => {
+  const performSubmitEntry = async (forcedResolution?: {
+    action: 'MERGE' | 'CREATE_NEW';
+    existingProductId?: string;
+  }) => {
     if (!product) return;
 
     setActionLoading(true);
@@ -494,9 +576,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
       const isFirstEntry = isFirstPhysicalEntry(product);
       const resolvedAction = forcedResolution?.action || recurrenceAction || 'CREATE_NEW';
-      const resolvedExistingProductId = resolvedAction === 'MERGE'
-        ? forcedResolution?.existingProductId || selectedExistingProductId || undefined
-        : undefined;
+      const resolvedExistingProductId =
+        resolvedAction === 'MERGE'
+          ? forcedResolution?.existingProductId || selectedExistingProductId || undefined
+          : undefined;
 
       if (isFirstEntry && resolvedAction === 'MERGE' && !resolvedExistingProductId) {
         Alert.alert('Error', 'Debe seleccionar un producto existente para fusionar');
@@ -505,28 +588,35 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
       const response = isFirstEntry
         ? await purchasesService.resolveAndAddEntry(purchaseId, productId, {
-          ...entryPayload,
-          recurrenceAction: resolvedAction,
-          ...(resolvedExistingProductId ? { existingProductId: resolvedExistingProductId } : {}),
-          recurrenceMetadata: recurrentCandidates.length > 0 ? {
-            candidatesReviewed: recurrentCandidates.length,
-            userDecision: resolvedAction === 'MERGE' ? 'Usuario confirmó producto existente' : 'Usuario creó producto nuevo',
-            matchConfidence: 95,
-          } : undefined,
-        })
+            ...entryPayload,
+            recurrenceAction: resolvedAction,
+            ...(resolvedExistingProductId ? { existingProductId: resolvedExistingProductId } : {}),
+            recurrenceMetadata:
+              recurrentCandidates.length > 0
+                ? {
+                    candidatesReviewed: recurrentCandidates.length,
+                    userDecision:
+                      resolvedAction === 'MERGE'
+                        ? 'Usuario confirmó producto existente'
+                        : 'Usuario creó producto nuevo',
+                    matchConfidence: 95,
+                  }
+                : undefined,
+          })
         : await purchasesService.addPurchaseProductEntry(purchaseId, productId, {
-          validatedStock: entryPayload.validatedStock,
-          warehouseId: entryPayload.warehouseId,
-          areaId: entryPayload.areaId,
-          costCents: entryPayload.costCents,
-          validatedPresentationQuantity: entryPayload.validatedPresentationQuantity,
-          validatedLooseUnits: entryPayload.validatedLooseUnits,
-          presentations: entryPayload.presentations,
-          productPhotos: entryPayload.productPhotos,
-          photoUrl: entryPayload.photoUrl,
-          signatureUrl: entryPayload.signatureUrl,
-          validationNotes: entryPayload.validationNotes,
-        });
+            validatedStock: entryPayload.validatedStock,
+            warehouseId: entryPayload.warehouseId,
+            areaId: entryPayload.areaId,
+            costCents: entryPayload.costCents,
+            validatedPresentationQuantity: entryPayload.validatedPresentationQuantity,
+            validatedLooseUnits: entryPayload.validatedLooseUnits,
+            presentations: entryPayload.presentations,
+            productPhotos: entryPayload.productPhotos,
+            photoUrl: entryPayload.photoUrl,
+            signatureUrl: entryPayload.signatureUrl,
+            validationNotes: entryPayload.validationNotes,
+            variantName: entryPayload.variantName,
+          });
 
       setRecurrenceAction(null);
       setSelectedExistingProductId(null);
@@ -535,15 +625,21 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setSignatureUri(undefined);
       setProductPhotoUri(undefined);
       setValidationNotes('');
+      setVariantName('');
       setLooseUnits('0');
-      setValidatedPresentations((current) => current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 })));
+      setValidatedPresentations((current) =>
+        current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 }))
+      );
 
       Alert.alert('Éxito', response.message || 'Ingreso registrado correctamente', [
         {
           text: 'OK',
           onPress: () => {
             if (returnToEntriesModal) {
-              navigation.navigate('PurchaseDetail', { purchaseId, reopenEntriesProductId: productId });
+              navigation.navigate('PurchaseDetail', {
+                purchaseId,
+                reopenEntriesProductId: productId,
+              });
             } else {
               navigation.goBack();
             }
@@ -564,7 +660,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     setValidationNotes('');
     setLooseUnits('0');
     setSelectedPresentationForQuantity(null);
-    setValidatedPresentations((current) => current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 })));
+    setValidatedPresentations((current) =>
+      current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 }))
+    );
     setRecurrenceAction(null);
     setSelectedExistingProductId(null);
     setRecurrentCandidates([]);
@@ -647,17 +745,26 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     ]);
   };
 
-  const canEdit = () => product?.status === PurchaseProductStatus.PRELIMINARY || product?.status === PurchaseProductStatus.IN_VALIDATION;
+  const canEdit = () =>
+    product?.status === PurchaseProductStatus.PRELIMINARY ||
+    product?.status === PurchaseProductStatus.IN_VALIDATION;
   const canEditIdentity = () => canEdit() && !!product && isFirstPhysicalEntry(product);
   const canAddEntry = () => product?.status === PurchaseProductStatus.IN_VALIDATION;
 
-  const getStatusVariant = (status: PurchaseProductStatus): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
+  const getStatusVariant = (
+    status: PurchaseProductStatus
+  ): 'active' | 'pending' | 'draft' | 'completed' | 'cancelled' => {
     switch (status) {
-      case PurchaseProductStatus.PRELIMINARY: return 'draft';
-      case PurchaseProductStatus.IN_VALIDATION: return 'pending';
-      case PurchaseProductStatus.VALIDATED: return 'completed';
-      case PurchaseProductStatus.REJECTED: return 'cancelled';
-      default: return 'draft';
+      case PurchaseProductStatus.PRELIMINARY:
+        return 'draft';
+      case PurchaseProductStatus.IN_VALIDATION:
+        return 'pending';
+      case PurchaseProductStatus.VALIDATED:
+        return 'completed';
+      case PurchaseProductStatus.REJECTED:
+        return 'cancelled';
+      default:
+        return 'draft';
     }
   };
 
@@ -666,7 +773,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.primary} />
-          <Body color="secondary" style={styles.loadingText}>Cargando producto...</Body>
+          <Body color="secondary" style={styles.loadingText}>
+            Cargando producto...
+          </Body>
         </View>
       </SafeAreaView>
     );
@@ -683,7 +792,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Title size="large">Validar Producto</Title>
-          <Body color="secondary" numberOfLines={1}>{product.name}</Body>
+          <Body color="secondary" numberOfLines={1}>
+            {product.name}
+          </Body>
         </View>
       </View>
 
@@ -703,20 +814,34 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             />
           </View>
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Stock Preliminar:</Label>
+            <Label color="secondary" style={styles.infoLabel}>
+              Stock Preliminar:
+            </Label>
             <Body style={styles.infoValue}>{product.preliminaryStock} unidades</Body>
           </View>
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Costo Original:</Label>
+            <Label color="secondary" style={styles.infoLabel}>
+              Costo Original:
+            </Label>
             <Body style={styles.infoValue}>S/ {(product.costCents / 100).toFixed(2)}</Body>
           </View>
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Stock Validado:</Label>
+            <Label color="secondary" style={styles.infoLabel}>
+              Stock Validado:
+            </Label>
             <Body style={styles.infoValue}>{product.validatedStock || 0} unidades</Body>
           </View>
           <View style={styles.infoRow}>
-            <Label color="secondary" style={styles.infoLabel}>Resolución:</Label>
-            <Body style={styles.infoValue}>{product.resolutionAction ? (product.resolutionAction === 'MERGE' ? 'Fusionado con producto existente' : 'Producto nuevo') : 'Pendiente de resolver'}</Body>
+            <Label color="secondary" style={styles.infoLabel}>
+              Resolución:
+            </Label>
+            <Body style={styles.infoValue}>
+              {product.resolutionAction
+                ? product.resolutionAction === 'MERGE'
+                  ? 'Fusionado con producto existente'
+                  : 'Producto nuevo'
+                : 'Pendiente de resolver'}
+            </Body>
           </View>
         </Card>
 
@@ -754,7 +879,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
             {/* Weight */}
             <View style={styles.section}>
-              <Label color="secondary">Peso <Label color={theme.color.icon.danger}>*</Label></Label>
+              <Label color="secondary">
+                Peso <Label color={theme.color.icon.danger}>*</Label>
+              </Label>
               <View style={styles.weightRow}>
                 <TextInput
                   style={styles.weightInput}
@@ -767,7 +894,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 />
                 <View style={styles.weightUnitContainer}>
                   <TouchableOpacity
-                    style={[styles.weightUnitButton, weightUnit === 'kg' && styles.weightUnitButtonActive]}
+                    style={[
+                      styles.weightUnitButton,
+                      weightUnit === 'kg' && styles.weightUnitButtonActive,
+                    ]}
                     disabled={!canEditIdentity()}
                     onPress={() => {
                       if (!canEditIdentity()) return;
@@ -782,10 +912,15 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       setWeightUnit('kg');
                     }}
                   >
-                    <Caption color={weightUnit === 'kg' ? theme.color.text.inverse : 'secondary'}>kg</Caption>
+                    <Caption color={weightUnit === 'kg' ? theme.color.text.inverse : 'secondary'}>
+                      kg
+                    </Caption>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.weightUnitButton, weightUnit === 'g' && styles.weightUnitButtonActive]}
+                    style={[
+                      styles.weightUnitButton,
+                      weightUnit === 'g' && styles.weightUnitButtonActive,
+                    ]}
                     disabled={!canEditIdentity()}
                     onPress={() => {
                       if (!canEditIdentity()) return;
@@ -800,7 +935,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       setWeightUnit('g');
                     }}
                   >
-                    <Caption color={weightUnit === 'g' ? theme.color.text.inverse : 'secondary'}>g</Caption>
+                    <Caption color={weightUnit === 'g' ? theme.color.text.inverse : 'secondary'}>
+                      g
+                    </Caption>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -815,7 +952,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
             {/* Warehouse Selector */}
             <View style={styles.section}>
-              <Label color="secondary">Almacén <Label color={theme.color.icon.danger}>*</Label></Label>
+              <Label color="secondary">
+                Almacén <Label color={theme.color.icon.danger}>*</Label>
+              </Label>
               <TouchableOpacity
                 style={styles.selector}
                 onPress={() => setShowWarehouseSelector(!showWarehouseSelector)}
@@ -823,7 +962,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 <Body color={selectedWarehouse ? 'primary' : 'placeholder'}>
                   {selectedWarehouse ? selectedWarehouse.name : 'Seleccionar almacén'}
                 </Body>
-                <Ionicons name={showWarehouseSelector ? 'chevron-up' : 'chevron-down'} size={20} color={theme.color.icon.subtle} />
+                <Ionicons
+                  name={showWarehouseSelector ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={theme.color.icon.subtle}
+                />
               </TouchableOpacity>
 
               {showWarehouseSelector && (
@@ -832,7 +975,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                     {warehouses.map((warehouse) => (
                       <TouchableOpacity
                         key={warehouse.id}
-                        style={[styles.selectorItem, selectedWarehouse?.id === warehouse.id && styles.selectorItemSelected]}
+                        style={[
+                          styles.selectorItem,
+                          selectedWarehouse?.id === warehouse.id && styles.selectorItemSelected,
+                        ]}
                         onPress={async () => {
                           setSelectedWarehouse(warehouse);
                           setSelectedArea(null);
@@ -848,7 +994,13 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                           }
                         }}
                       >
-                        <Body color={selectedWarehouse?.id === warehouse.id ? theme.color.brand.accent : 'primary'}>
+                        <Body
+                          color={
+                            selectedWarehouse?.id === warehouse.id
+                              ? theme.color.brand.accent
+                              : 'primary'
+                          }
+                        >
                           {warehouse.name}
                         </Body>
                       </TouchableOpacity>
@@ -868,9 +1020,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   disabled={loadingAreas}
                 >
                   <Body color={selectedArea ? 'primary' : 'placeholder'}>
-                    {loadingAreas ? 'Cargando áreas...' : selectedArea ? selectedArea.code : areas.length > 0 ? 'Seleccionar área (opcional)' : 'Sin áreas disponibles'}
+                    {loadingAreas
+                      ? 'Cargando áreas...'
+                      : selectedArea
+                        ? selectedArea.code
+                        : areas.length > 0
+                          ? 'Seleccionar área (opcional)'
+                          : 'Sin áreas disponibles'}
                   </Body>
-                  <Ionicons name={showAreaSelector ? 'chevron-up' : 'chevron-down'} size={20} color={theme.color.icon.subtle} />
+                  <Ionicons
+                    name={showAreaSelector ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color={theme.color.icon.subtle}
+                  />
                 </TouchableOpacity>
 
                 {showAreaSelector && !loadingAreas && (
@@ -878,17 +1040,32 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                     <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
                       <TouchableOpacity
                         style={styles.selectorItem}
-                        onPress={() => { setSelectedArea(null); setShowAreaSelector(false); }}
+                        onPress={() => {
+                          setSelectedArea(null);
+                          setShowAreaSelector(false);
+                        }}
                       >
                         <Body color="secondary">Sin área específica</Body>
                       </TouchableOpacity>
                       {areas.map((area) => (
                         <TouchableOpacity
                           key={area.id}
-                          style={[styles.selectorItem, selectedArea?.id === area.id && styles.selectorItemSelected]}
-                          onPress={() => { setSelectedArea(area); setShowAreaSelector(false); }}
+                          style={[
+                            styles.selectorItem,
+                            selectedArea?.id === area.id && styles.selectorItemSelected,
+                          ]}
+                          onPress={() => {
+                            setSelectedArea(area);
+                            setShowAreaSelector(false);
+                          }}
                         >
-                          <Body color={selectedArea?.id === area.id ? theme.color.brand.accent : 'primary'}>{area.code}</Body>
+                          <Body
+                            color={
+                              selectedArea?.id === area.id ? theme.color.brand.accent : 'primary'
+                            }
+                          >
+                            {area.code}
+                          </Body>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -901,15 +1078,38 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Label color="secondary">Presentaciones Validadas (Opcional)</Label>
-                {canEditIdentity() && <Button title="+ Agregar" onPress={() => setShowAddPresentation(true)} variant="primary" size="small" />}
+                {canEditIdentity() && (
+                  <Button
+                    title="+ Agregar"
+                    onPress={() => setShowAddPresentation(true)}
+                    variant="primary"
+                    size="small"
+                  />
+                )}
               </View>
-              <Caption color="tertiary">{isProductIdentityResolved(product) ? 'Las presentaciones ya fueron definidas en el primer ingreso. Solo ingrese cantidades para este ingreso.' : 'Confirme o edite los factores de conversión.'}</Caption>
+              <Caption color="tertiary">
+                {isProductIdentityResolved(product)
+                  ? 'Las presentaciones ya fueron definidas en el primer ingreso. Solo ingrese cantidades para este ingreso.'
+                  : 'Confirme o edite los factores de conversión.'}
+              </Caption>
 
               {validatedPresentations.map((pres, index) => (
-                <Card key={index} variant="outlined" padding="medium" style={styles.presentationCard}>
+                <Card
+                  key={index}
+                  variant="outlined"
+                  padding="medium"
+                  style={styles.presentationCard}
+                >
                   <View style={styles.presentationHeader}>
                     <Title size="small">{pres.presentationName}</Title>
-                    {canEditIdentity() && <IconButton icon="trash-outline" onPress={() => handleRemovePresentation(index)} variant="ghost" size="small" />}
+                    {canEditIdentity() && (
+                      <IconButton
+                        icon="trash-outline"
+                        onPress={() => handleRemovePresentation(index)}
+                        variant="ghost"
+                        size="small"
+                      />
+                    )}
                   </View>
 
                   <View style={styles.presentationField}>
@@ -933,7 +1133,11 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                     <View style={styles.quantityHeaderRow}>
                       <Label color="secondary">Cantidad:</Label>
                       <TouchableOpacity
-                        style={[styles.selectForQuantityButton, selectedPresentationForQuantity === pres.presentationId && styles.selectForQuantityButtonActive]}
+                        style={[
+                          styles.selectForQuantityButton,
+                          selectedPresentationForQuantity === pres.presentationId &&
+                            styles.selectForQuantityButtonActive,
+                        ]}
                         disabled={!canEdit()}
                         onPress={() => {
                           if (!canEdit()) return;
@@ -952,13 +1156,25 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                           }
                         }}
                       >
-                        <Caption color={selectedPresentationForQuantity === pres.presentationId ? theme.color.text.inverse : theme.color.brand.accent}>
-                          {selectedPresentationForQuantity === pres.presentationId ? '✓ Seleccionada' : 'Seleccionar'}
+                        <Caption
+                          color={
+                            selectedPresentationForQuantity === pres.presentationId
+                              ? theme.color.text.inverse
+                              : theme.color.brand.accent
+                          }
+                        >
+                          {selectedPresentationForQuantity === pres.presentationId
+                            ? '✓ Seleccionada'
+                            : 'Seleccionar'}
                         </Caption>
                       </TouchableOpacity>
                     </View>
                     <TextInput
-                      style={[styles.presentationInput, selectedPresentationForQuantity !== pres.presentationId && styles.inputDisabled]}
+                      style={[
+                        styles.presentationInput,
+                        selectedPresentationForQuantity !== pres.presentationId &&
+                          styles.inputDisabled,
+                      ]}
                       value={pres.quantityOfPresentations.toString()}
                       onChangeText={(text) => {
                         if (selectedPresentationForQuantity === pres.presentationId) {
@@ -967,22 +1183,30 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                           setValidatedPresentations(newPresentations);
                         }
                       }}
-                      placeholder={selectedPresentationForQuantity === pres.presentationId ? 'Ej: 5' : 'Seleccione primero'}
+                      placeholder={
+                        selectedPresentationForQuantity === pres.presentationId
+                          ? 'Ej: 5'
+                          : 'Seleccione primero'
+                      }
                       keyboardType="number-pad"
                       editable={selectedPresentationForQuantity === pres.presentationId}
                     />
-                    {selectedPresentationForQuantity === pres.presentationId && pres.quantityOfPresentations > 0 && (
-                      <Caption color={theme.color.text.success}>
-                        = {pres.quantityOfPresentations} × {pres.factorToBase} = {pres.quantityOfPresentations * pres.factorToBase} unidades
-                      </Caption>
-                    )}
+                    {selectedPresentationForQuantity === pres.presentationId &&
+                      pres.quantityOfPresentations > 0 && (
+                        <Caption color={theme.color.text.success}>
+                          = {pres.quantityOfPresentations} × {pres.factorToBase} ={' '}
+                          {pres.quantityOfPresentations * pres.factorToBase} unidades
+                        </Caption>
+                      )}
                   </View>
                 </Card>
               ))}
 
               {validatedPresentations.length === 0 && (
                 <Card variant="filled" padding="medium">
-                  <Body color="secondary" align="center">No hay presentaciones agregadas</Body>
+                  <Body color="secondary" align="center">
+                    No hay presentaciones agregadas
+                  </Body>
                 </Card>
               )}
             </View>
@@ -990,9 +1214,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             {/* Barcode */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Label color="secondary">Código de Barras <Label color={theme.color.icon.danger}>*</Label></Label>
+                <Label color="secondary">
+                  Código de Barras <Label color={theme.color.icon.danger}>*</Label>
+                </Label>
                 {canEditIdentity() && (
-                  <TouchableOpacity style={styles.copyButton} onPress={() => { if (sku.trim()) { setBarcode(sku.trim()); Alert.alert('Copiado', 'SKU copiado'); } }}>
+                  <TouchableOpacity
+                    style={styles.copyButton}
+                    onPress={() => {
+                      if (sku.trim()) {
+                        setBarcode(sku.trim());
+                        Alert.alert('Copiado', 'SKU copiado');
+                      }
+                    }}
+                  >
                     <Caption color={theme.color.brand.accent}>📋 Copiar SKU</Caption>
                   </TouchableOpacity>
                 )}
@@ -1022,21 +1256,35 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             <View style={styles.section}>
               <Label color="secondary">Stock Total Validado (Calculado)</Label>
               <View style={styles.calculatedField}>
-                <Title size="medium" color={theme.color.text.muted}>{calculateTotalStock()} unidades</Title>
+                <Title size="medium" color={theme.color.text.muted}>
+                  {calculateTotalStock()} unidades
+                </Title>
               </View>
-              <Caption color="tertiary">Unidades sueltas + (Cantidad de presentaciones × Factor)</Caption>
+              <Caption color="tertiary">
+                Unidades sueltas + (Cantidad de presentaciones × Factor)
+              </Caption>
             </View>
 
             {/* Photo Capture */}
             <View style={styles.section}>
-              <Label color="secondary">Foto de Validación <Label color={theme.color.icon.danger}>*</Label></Label>
+              <Label color="secondary">
+                Foto de Validación <Label color={theme.color.icon.danger}>*</Label>
+              </Label>
               {photoUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: photoUri }} style={styles.capturedPhoto} />
-                  <Button title="📷 Cambiar Foto" onPress={() => setShowPhotoCapture(true)} variant="secondary" size="small" />
+                  <Button
+                    title="📷 Cambiar Foto"
+                    onPress={() => setShowPhotoCapture(true)}
+                    variant="secondary"
+                    size="small"
+                  />
                 </View>
               ) : (
-                <TouchableOpacity style={styles.captureButton} onPress={() => setShowPhotoCapture(true)}>
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={() => setShowPhotoCapture(true)}
+                >
                   <Ionicons name="camera" size={32} color={theme.color.brand.accent} />
                   <Body color={theme.color.brand.accent}>Tomar Foto</Body>
                 </TouchableOpacity>
@@ -1046,14 +1294,24 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             {/* Product Photo */}
             {isFirstPhysicalEntry(product) && (
               <View style={styles.section}>
-                <Label color="secondary">Foto del Producto (Catálogo) <Label color={theme.color.icon.danger}>*</Label></Label>
+                <Label color="secondary">
+                  Foto del Producto (Catálogo) <Label color={theme.color.icon.danger}>*</Label>
+                </Label>
                 {productPhotoUri ? (
                   <View style={styles.capturedContainer}>
                     <Image source={{ uri: productPhotoUri }} style={styles.capturedPhoto} />
-                    <Button title="🖼️ Cambiar Foto" onPress={() => setShowProductPhotoCapture(true)} variant="secondary" size="small" />
+                    <Button
+                      title="🖼️ Cambiar Foto"
+                      onPress={() => setShowProductPhotoCapture(true)}
+                      variant="secondary"
+                      size="small"
+                    />
                   </View>
                 ) : (
-                  <TouchableOpacity style={styles.captureButton} onPress={() => setShowProductPhotoCapture(true)}>
+                  <TouchableOpacity
+                    style={styles.captureButton}
+                    onPress={() => setShowProductPhotoCapture(true)}
+                  >
                     <Ionicons name="image" size={32} color={theme.color.brand.accent} />
                     <Body color={theme.color.brand.accent}>Tomar Foto del Producto</Body>
                   </TouchableOpacity>
@@ -1063,19 +1321,37 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
             {/* Signature */}
             <View style={styles.section}>
-              <Label color="secondary">Firma de Validación <Label color={theme.color.icon.danger}>*</Label></Label>
+              <Label color="secondary">
+                Firma de Validación <Label color={theme.color.icon.danger}>*</Label>
+              </Label>
               {signatureUri ? (
                 <View style={styles.capturedContainer}>
                   <Image source={{ uri: signatureUri }} style={styles.capturedSignature} />
-                  <Button title="✍️ Cambiar Firma" onPress={() => setShowSignatureCapture(true)} variant="secondary" size="small" />
+                  <Button
+                    title="✍️ Cambiar Firma"
+                    onPress={() => setShowSignatureCapture(true)}
+                    variant="secondary"
+                    size="small"
+                  />
                 </View>
               ) : (
-                <TouchableOpacity style={styles.captureButton} onPress={() => setShowSignatureCapture(true)}>
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={() => setShowSignatureCapture(true)}
+                >
                   <Ionicons name="pencil" size={32} color={theme.color.brand.accent} />
                   <Body color={theme.color.brand.accent}>Capturar Firma</Body>
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Variante (color) opcional */}
+            <Input
+              label="Variante / Color (opcional)"
+              value={variantName}
+              onChangeText={setVariantName}
+              placeholder="Ej: rojo, azul, amarillo..."
+            />
 
             {/* Validation Notes */}
             <Input
@@ -1093,45 +1369,78 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         {product.validations && product.validations.length > 0 && (
           <Card variant="elevated" padding="medium" style={styles.infoCard}>
             <Title size="small">Historial de Ingresos</Title>
-            <Caption color="tertiary" style={styles.historySubtitle}>Cada ingreso genera una validación, lote y movimiento de stock.</Caption>
+            <Caption color="tertiary" style={styles.historySubtitle}>
+              Cada ingreso genera una validación, lote y movimiento de stock.
+            </Caption>
             {product.validations.map((validation, index) => {
               const isReversed = !!validation.isReversed;
               return (
-                <View key={validation.id} style={[styles.validationEntry, isReversed && styles.validationEntryReversed]}>
+                <View
+                  key={validation.id}
+                  style={[styles.validationEntry, isReversed && styles.validationEntryReversed]}
+                >
                   <View style={styles.validationEntryHeader}>
-                    <Body color={isReversed ? theme.color.text.danger : 'primary'}>Ingreso #{index + 1}</Body>
-                    <Badge label={isReversed ? 'Anulado' : 'Activo'} variant={isReversed ? 'cancelled' : 'completed'} size="small" />
+                    <Body color={isReversed ? theme.color.text.danger : 'primary'}>
+                      Ingreso #{index + 1}
+                    </Body>
+                    <Badge
+                      label={isReversed ? 'Anulado' : 'Activo'}
+                      variant={isReversed ? 'cancelled' : 'completed'}
+                      size="small"
+                    />
                   </View>
                   <View style={styles.infoRow}>
-                    <Label color="secondary" style={styles.infoLabel}>Stock:</Label>
+                    <Label color="secondary" style={styles.infoLabel}>
+                      Stock:
+                    </Label>
                     <Body style={styles.infoValue}>{validation.validatedStock} unidades</Body>
                   </View>
                   <View style={styles.infoRow}>
-                    <Label color="secondary" style={styles.infoLabel}>Fecha:</Label>
-                    <Body style={styles.infoValue}>{new Date(validation.validatedAt).toLocaleString('es-PE')}</Body>
+                    <Label color="secondary" style={styles.infoLabel}>
+                      Fecha:
+                    </Label>
+                    <Body style={styles.infoValue}>
+                      {new Date(validation.validatedAt).toLocaleString('es-PE')}
+                    </Body>
                   </View>
                   {(validation.warehouse || validation.warehouseId) && (
                     <View style={styles.infoRow}>
-                      <Label color="secondary" style={styles.infoLabel}>Almacén:</Label>
-                      <Body style={styles.infoValue}>{validation.warehouse?.name || validation.warehouseId}</Body>
+                      <Label color="secondary" style={styles.infoLabel}>
+                        Almacén:
+                      </Label>
+                      <Body style={styles.infoValue}>
+                        {validation.warehouse?.name || validation.warehouseId}
+                      </Body>
                     </View>
                   )}
                   {(validation.area || validation.areaId) && (
                     <View style={styles.infoRow}>
-                      <Label color="secondary" style={styles.infoLabel}>Área:</Label>
-                      <Body style={styles.infoValue}>{validation.area?.name || validation.area?.code || validation.areaId}</Body>
+                      <Label color="secondary" style={styles.infoLabel}>
+                        Área:
+                      </Label>
+                      <Body style={styles.infoValue}>
+                        {validation.area?.name || validation.area?.code || validation.areaId}
+                      </Body>
                     </View>
                   )}
                   {(validation.notes || validation.validationNotes) && (
                     <View style={styles.infoRow}>
-                      <Label color="secondary" style={styles.infoLabel}>Notas:</Label>
-                      <Body style={styles.infoValue}>{validation.validationNotes || validation.notes}</Body>
+                      <Label color="secondary" style={styles.infoLabel}>
+                        Notas:
+                      </Label>
+                      <Body style={styles.infoValue}>
+                        {validation.validationNotes || validation.notes}
+                      </Body>
                     </View>
                   )}
                   {isReversed && validation.reversalReason && (
                     <View style={styles.infoRow}>
-                      <Label color={theme.color.text.danger} style={styles.infoLabel}>Motivo:</Label>
-                      <Body color={theme.color.text.danger} style={styles.infoValue}>{validation.reversalReason}</Body>
+                      <Label color={theme.color.text.danger} style={styles.infoLabel}>
+                        Motivo:
+                      </Label>
+                      <Body color={theme.color.text.danger} style={styles.infoValue}>
+                        {validation.reversalReason}
+                      </Body>
                     </View>
                   )}
                 </View>
@@ -1144,8 +1453,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         {product.status === PurchaseProductStatus.VALIDATED && (
           <Card variant="filled" padding="large" style={styles.successCard}>
             <Ionicons name="checkmark-circle" size={48} color={theme.color.icon.success} />
-            <Title size="medium" color={theme.color.state.success.text} align="center">Producto Validado</Title>
-            <Body color="secondary" align="center">Este producto ha sido validado y activado en el catálogo.</Body>
+            <Title size="medium" color={theme.color.state.success.text} align="center">
+              Producto Validado
+            </Title>
+            <Body color="secondary" align="center">
+              Este producto ha sido validado y activado en el catálogo.
+            </Body>
             {product.validatedAt && (
               <Caption color="tertiary" align="center">
                 Validado el {new Date(product.validatedAt).toLocaleDateString('es-PE')}
@@ -1158,7 +1471,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         {product.status === PurchaseProductStatus.REJECTED && product.rejectionReason && (
           <Card variant="filled" padding="large" style={styles.rejectionCard}>
             <Ionicons name="close-circle" size={48} color={theme.color.icon.danger} />
-            <Title size="medium" color={theme.color.state.danger.text} align="center">Producto Rechazado</Title>
+            <Title size="medium" color={theme.color.state.danger.text} align="center">
+              Producto Rechazado
+            </Title>
             <Label color={theme.color.text.danger}>Razón:</Label>
             <Body color={theme.color.state.danger.text}>{product.rejectionReason}</Body>
           </Card>
@@ -1170,13 +1485,32 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       {/* Action Buttons */}
       {canAddEntry() && (
         <View style={styles.footer}>
-          <Button title="Cancelar" onPress={handleCancelEntry} variant="secondary" disabled={actionLoading} style={styles.footerButton} />
-          <Button title={isProductIdentityResolved(product) ? 'Agregar Ingreso' : 'Registrar Primer Ingreso'} onPress={handleSubmitEntry} variant="primary" loading={actionLoading} style={styles.footerButton} />
+          <Button
+            title="Cancelar"
+            onPress={handleCancelEntry}
+            variant="secondary"
+            disabled={actionLoading}
+            style={styles.footerButton}
+          />
+          <Button
+            title={
+              isProductIdentityResolved(product) ? 'Agregar Ingreso' : 'Registrar Primer Ingreso'
+            }
+            onPress={handleSubmitEntry}
+            variant="primary"
+            loading={actionLoading}
+            style={styles.footerButton}
+          />
         </View>
       )}
 
       {/* Add Presentation Dialog */}
-      <Modal visible={showAddPresentation} animationType="fade" transparent onRequestClose={() => setShowAddPresentation(false)}>
+      <Modal
+        visible={showAddPresentation}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowAddPresentation(false)}
+      >
         <View style={styles.dialogOverlay}>
           <View style={styles.dialog}>
             <Title size="medium">Agregar Presentación</Title>
@@ -1185,34 +1519,88 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               {presentations.map((presentation) => (
                 <TouchableOpacity
                   key={presentation.id}
-                  style={[styles.presentationOption, newPresentationId === presentation.id && styles.presentationOptionSelected]}
+                  style={[
+                    styles.presentationOption,
+                    newPresentationId === presentation.id && styles.presentationOptionSelected,
+                  ]}
                   onPress={() => setNewPresentationId(presentation.id)}
                 >
-                  <Body color={newPresentationId === presentation.id ? theme.color.brand.accent : 'primary'}>{presentation.name}</Body>
+                  <Body
+                    color={
+                      newPresentationId === presentation.id ? theme.color.brand.accent : 'primary'
+                    }
+                  >
+                    {presentation.name}
+                  </Body>
                 </TouchableOpacity>
               ))}
             </ScrollView>
             <View style={styles.dialogButtons}>
-              <Button title="Cancelar" onPress={() => { setShowAddPresentation(false); setNewPresentationId(''); }} variant="secondary" style={styles.dialogButton} />
-              <Button title="Agregar" onPress={handleAddPresentation} variant="primary" style={styles.dialogButton} />
+              <Button
+                title="Cancelar"
+                onPress={() => {
+                  setShowAddPresentation(false);
+                  setNewPresentationId('');
+                }}
+                variant="secondary"
+                style={styles.dialogButton}
+              />
+              <Button
+                title="Agregar"
+                onPress={handleAddPresentation}
+                variant="primary"
+                style={styles.dialogButton}
+              />
             </View>
           </View>
         </View>
       </Modal>
 
       {/* Photo Capture Modal */}
-      <Modal visible={showPhotoCapture} animationType="slide" onRequestClose={() => setShowPhotoCapture(false)}>
-        <PhotoCapture onPhotoCapture={(uri) => { setPhotoUri(uri); setShowPhotoCapture(false); }} onCancel={() => setShowPhotoCapture(false)} currentPhoto={photoUri} />
+      <Modal
+        visible={showPhotoCapture}
+        animationType="slide"
+        onRequestClose={() => setShowPhotoCapture(false)}
+      >
+        <PhotoCapture
+          onPhotoCapture={(uri) => {
+            setPhotoUri(uri);
+            setShowPhotoCapture(false);
+          }}
+          onCancel={() => setShowPhotoCapture(false)}
+          currentPhoto={photoUri}
+        />
       </Modal>
 
       {/* Product Photo Capture Modal */}
-      <Modal visible={showProductPhotoCapture} animationType="slide" onRequestClose={() => setShowProductPhotoCapture(false)}>
-        <PhotoCapture onPhotoCapture={(uri) => { setProductPhotoUri(uri); setShowProductPhotoCapture(false); }} onCancel={() => setShowProductPhotoCapture(false)} currentPhoto={productPhotoUri} />
+      <Modal
+        visible={showProductPhotoCapture}
+        animationType="slide"
+        onRequestClose={() => setShowProductPhotoCapture(false)}
+      >
+        <PhotoCapture
+          onPhotoCapture={(uri) => {
+            setProductPhotoUri(uri);
+            setShowProductPhotoCapture(false);
+          }}
+          onCancel={() => setShowProductPhotoCapture(false)}
+          currentPhoto={productPhotoUri}
+        />
       </Modal>
 
       {/* Signature Capture Modal */}
-      <Modal visible={showSignatureCapture} animationType="slide" onRequestClose={() => setShowSignatureCapture(false)}>
-        <SignatureCapture onSignatureCapture={(signature) => { setSignatureUri(signature); setShowSignatureCapture(false); }} onCancel={() => setShowSignatureCapture(false)} />
+      <Modal
+        visible={showSignatureCapture}
+        animationType="slide"
+        onRequestClose={() => setShowSignatureCapture(false)}
+      >
+        <SignatureCapture
+          onSignatureCapture={(signature) => {
+            setSignatureUri(signature);
+            setShowSignatureCapture(false);
+          }}
+          onCancel={() => setShowSignatureCapture(false)}
+        />
       </Modal>
 
       {/* Recurrent Product Modal */}
@@ -1237,321 +1625,322 @@ const PurchaseProductStatusLabels: Record<PurchaseProductStatus, string> = {
   [PurchaseProductStatus.CLOSED]: 'Cerrado',
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: theme.space[4],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[4],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    gap: theme.space[3],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: theme.space[4],
-  },
-  contentContainerTablet: {
-    padding: theme.space[6],
-    maxWidth: 800,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  infoCard: {
-    marginBottom: theme.space[4],
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.space[3],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: theme.space[2],
-  },
-  infoLabel: {
-    width: 140,
-  },
-  infoValue: {
-    flex: 1,
-  },
-  section: {
-    marginBottom: theme.space[5],
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.space[2],
-  },
-  weightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.space[3],
-    marginTop: theme.space[2],
-  },
-  weightInput: {
-    flex: 1,
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 1.5,
-    borderColor: theme.color.border.subtle,
-    borderRadius: theme.radii.md,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    fontSize: 16,
-    color: theme.color.text.body,
-  },
-  weightUnitContainer: {
-    flexDirection: 'row',
-    gap: theme.space[1],
-  },
-  weightUnitButton: {
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[2.5],
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.color.surface.subtle,
-  },
-  weightUnitButtonActive: {
-    backgroundColor: theme.color.brand.primary,
-  },
-  selector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 1.5,
-    borderColor: theme.color.border.subtle,
-    borderRadius: theme.radii.md,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    marginTop: theme.space[2],
-  },
-  selectorList: {
-    marginTop: theme.space[2],
-  },
-  selectorItem: {
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  selectorItemSelected: {
-    backgroundColor: theme.color.brand.accentSoft,
-  },
-  presentationCard: {
-    marginTop: theme.space[3],
-  },
-  presentationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.space[3],
-  },
-  presentationField: {
-    marginBottom: theme.space[3],
-  },
-  presentationInput: {
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 1.5,
-    borderColor: theme.color.border.subtle,
-    borderRadius: theme.radii.md,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[2.5],
-    fontSize: 15,
-    color: theme.color.text.body,
-    marginTop: theme.space[2],
-  },
-  quantityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  selectForQuantityButton: {
-    backgroundColor: theme.color.brand.accentSoft,
-    paddingHorizontal: theme.space[3],
-    paddingVertical: theme.space[1],
-    borderRadius: theme.radii.sm,
-  },
-  selectForQuantityButtonActive: {
-    backgroundColor: theme.color.brand.primary,
-  },
-  inputDisabled: {
-    backgroundColor: theme.color.surface.subtle,
-    opacity: 0.6,
-  },
-  copyButton: {
-    paddingHorizontal: theme.space[3],
-    paddingVertical: theme.space[1],
-  },
-  input: {
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 1.5,
-    borderColor: theme.color.border.subtle,
-    borderRadius: theme.radii.md,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    fontSize: 16,
-    color: theme.color.text.body,
-    marginTop: theme.space[2],
-  },
-  calculatedField: {
-    backgroundColor: theme.color.surface.subtle,
-    borderRadius: theme.radii.md,
-    padding: theme.space[4],
-    marginTop: theme.space[2],
-    alignItems: 'center',
-  },
-  captureButton: {
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 2,
-    borderColor: theme.color.brand.accent,
-    borderStyle: 'dashed',
-    borderRadius: theme.radii.lg,
-    padding: theme.space[6],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: theme.space[2],
-    gap: theme.space[2],
-  },
-  capturedContainer: {
-    marginTop: theme.space[2],
-    gap: theme.space[3],
-  },
-  capturedPhoto: {
-    width: '100%',
-    height: 200,
-    borderRadius: theme.radii.lg,
-    backgroundColor: theme.color.surface.subtle,
-  },
-  capturedSignature: {
-    width: '100%',
-    height: 120,
-    borderRadius: theme.radii.lg,
-    backgroundColor: theme.color.surface.base,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  successCard: {
-    backgroundColor: theme.color.state.success.background,
-    alignItems: 'center',
-    gap: theme.space[3],
-  },
-  rejectionCard: {
-    backgroundColor: theme.color.state.danger.background,
-    alignItems: 'center',
-    gap: theme.space[3],
-  },
-  historySubtitle: {
-    marginTop: theme.space[1],
-    marginBottom: theme.space[3],
-  },
-  validationEntry: {
-    paddingVertical: theme.space[3],
-    borderTopWidth: 1,
-    borderTopColor: theme.color.border.subtle,
-    gap: theme.space[1],
-  },
-  validationEntryReversed: {
-    backgroundColor: theme.color.state.danger.background,
-    paddingHorizontal: theme.space[3],
-    borderRadius: theme.radii.md,
-    marginTop: theme.space[2],
-  },
-  validationEntryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.space[2],
-  },
-  bottomSpacer: {
-    height: theme.space[20],
-  },
-  footer: {
-    flexDirection: 'row',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[4],
-    borderTopWidth: 1,
-    borderTopColor: theme.color.border.subtle,
-    gap: theme.space[3],
-  },
-  footerButton: {
-    flex: 1,
-  },
-  dialogOverlay: {
-    flex: 1,
-    backgroundColor: theme.color.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.space[5],
-  },
-  dialog: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: theme.radii['2xl'],
-    padding: theme.space[6],
-    width: '100%',
-    maxWidth: 400,
-    gap: theme.space[4],
-    ...theme.shadow.xl,
-  },
-  dialogInput: {
-    backgroundColor: theme.color.surface.subtle,
-    borderRadius: theme.radii.md,
-    padding: theme.space[4],
-    fontSize: 15,
-    color: theme.color.text.body,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  dialogButtons: {
-    flexDirection: 'row',
-    gap: theme.space[3],
-  },
-  dialogButton: {
-    flex: 1,
-  },
-  presentationList: {
-    maxHeight: 300,
-  },
-  presentationOption: {
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.color.surface.subtle,
-    marginBottom: theme.space[2],
-  },
-  presentationOptionSelected: {
-    backgroundColor: theme.color.brand.accentSoft,
-    borderWidth: 1.5,
-    borderColor: theme.color.brand.accent,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[4],
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerContent: {
+      flex: 1,
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: theme.space[4],
+    },
+    contentContainerTablet: {
+      padding: theme.space[6],
+      maxWidth: 800,
+      alignSelf: 'center',
+      width: '100%',
+    },
+    infoCard: {
+      marginBottom: theme.space[4],
+    },
+    infoHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      marginBottom: theme.space[2],
+    },
+    infoLabel: {
+      width: 140,
+    },
+    infoValue: {
+      flex: 1,
+    },
+    section: {
+      marginBottom: theme.space[5],
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    weightRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    weightInput: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.body,
+    },
+    weightUnitContainer: {
+      flexDirection: 'row',
+      gap: theme.space[1],
+    },
+    weightUnitButton: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    weightUnitButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    selector: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    selectorList: {
+      marginTop: theme.space[2],
+    },
+    selectorItem: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    selectorItemSelected: {
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    presentationCard: {
+      marginTop: theme.space[3],
+    },
+    presentationHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
+    presentationField: {
+      marginBottom: theme.space[3],
+    },
+    presentationInput: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2.5],
+      fontSize: 15,
+      color: theme.color.text.body,
+      marginTop: theme.space[2],
+    },
+    quantityHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    selectForQuantityButton: {
+      backgroundColor: theme.color.brand.accentSoft,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.sm,
+    },
+    selectForQuantityButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    inputDisabled: {
+      backgroundColor: theme.color.surface.subtle,
+      opacity: 0.6,
+    },
+    copyButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1],
+    },
+    input: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.body,
+      marginTop: theme.space[2],
+    },
+    calculatedField: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[4],
+      marginTop: theme.space[2],
+      alignItems: 'center',
+    },
+    captureButton: {
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      borderStyle: 'dashed',
+      borderRadius: theme.radii.lg,
+      padding: theme.space[6],
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: theme.space[2],
+      gap: theme.space[2],
+    },
+    capturedContainer: {
+      marginTop: theme.space[2],
+      gap: theme.space[3],
+    },
+    capturedPhoto: {
+      width: '100%',
+      height: 200,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    capturedSignature: {
+      width: '100%',
+      height: 120,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    successCard: {
+      backgroundColor: theme.color.state.success.background,
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    rejectionCard: {
+      backgroundColor: theme.color.state.danger.background,
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    historySubtitle: {
+      marginTop: theme.space[1],
+      marginBottom: theme.space[3],
+    },
+    validationEntry: {
+      paddingVertical: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[1],
+    },
+    validationEntryReversed: {
+      backgroundColor: theme.color.state.danger.background,
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      marginTop: theme.space[2],
+    },
+    validationEntryHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.space[2],
+    },
+    bottomSpacer: {
+      height: theme.space[20],
+    },
+    footer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    footerButton: {
+      flex: 1,
+    },
+    dialogOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[5],
+    },
+    dialog: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      padding: theme.space[6],
+      width: '100%',
+      maxWidth: 400,
+      gap: theme.space[4],
+      ...theme.shadow.xl,
+    },
+    dialogInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.md,
+      padding: theme.space[4],
+      fontSize: 15,
+      color: theme.color.text.body,
+      minHeight: 100,
+      textAlignVertical: 'top',
+    },
+    dialogButtons: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+    },
+    dialogButton: {
+      flex: 1,
+    },
+    presentationList: {
+      maxHeight: 300,
+    },
+    presentationOption: {
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.subtle,
+      marginBottom: theme.space[2],
+    },
+    presentationOptionSelected: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1.5,
+      borderColor: theme.color.brand.accent,
+    },
+  });
 
 export default ValidatePurchaseProductScreen;

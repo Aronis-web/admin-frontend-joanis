@@ -394,6 +394,11 @@ export interface ValidateProductRequest {
     userDecision?: string;
     matchConfidence?: number;
   };
+  // ========== Variante (color) opcional ==========
+  // Enviar variantName O variantId, no ambos. Si vienen los dos el backend
+  // prioriza variantId. variantName hace upsert por nombre normalizado.
+  variantName?: string;
+  variantId?: string;
 }
 
 /**
@@ -492,6 +497,8 @@ export type AddPurchaseProductEntryRequest = Pick<
   | 'photoUrl'
   | 'signatureUrl'
   | 'validationNotes'
+  | 'variantName'
+  | 'variantId'
 >;
 
 export interface MultiValidationResponse {
@@ -513,6 +520,15 @@ export interface MultiValidationResponse {
     totalValidatedStock?: number;
     isResolved?: boolean;
     resolutionAction?: PurchaseProductResolutionAction;
+    presentation?: {
+      presentationId: string | null;
+      factorToBase?: number;
+      quantityPresentation?: number;
+    } | null;
+    variant?: {
+      variantId: string | null;
+      variantName?: string;
+    } | null;
   };
 }
 
