@@ -37,6 +37,7 @@ import {
   CampaignStatusColors,
   CampaignProduct,
   CampaignProductDetailItem,
+  ParticipantType,
   ProductSourceType,
   ProductStatus,
   DistributionType,
@@ -352,6 +353,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       return list[0] ?? null;
     };
 
+    // Nombre a mostrar por participante: para empresas externas priorizamos el
+    // alias (más corto/comercial) sobre la razón social. Se resuelve vía el
+    // campaignParticipantId contra los participantes de la campaña.
+    const aliasByParticipantId = new Map<string, string>();
+    (campaign?.participants ?? []).forEach((p) => {
+      if (p.participantType === ParticipantType.EXTERNAL_COMPANY && p.company) {
+        const label = p.company.alias?.trim() || p.company.name?.trim();
+        if (label) aliasByParticipantId.set(p.id, label);
+      }
+    });
+
     setDownloadingDistributionPdf(true);
     setDistributionPdfProgress({ current: 0, total: activeItems.length });
 
@@ -371,8 +383,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 .map((d) => {
                   const distributed = parseFloat(d.totalQuantityBase || '0') || 0;
                   const stock = d.siteId ? stockBySite.get(d.siteId) : undefined;
+                  const isCompany = d.participantType === ParticipantType.EXTERNAL_COMPANY;
+                  const storeName =
+                    (isCompany ? aliasByParticipantId.get(d.campaignParticipantId) : undefined) ||
+                    d.participantName;
                   return {
-                    storeName: d.participantName,
+                    storeName,
                     storeType: d.participantType,
                     distributedQuantity: distributed,
                     currentStock: stock
@@ -380,8 +396,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                       : null,
                   };
                 })
-                .filter((s) => s.distributedQuantity > 0)
-                .sort((a, b) => b.distributedQuantity - a.distributedQuantity);
+                .filter((s) => s.distributedQuantity > 0);
 
               return {
                 title: full.title,
@@ -421,7 +436,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       setDownloadingDistributionPdf(false);
       setDistributionPdfProgress({ current: 0, total: 0 });
     }
-  }, [productsDetailData, campaign?.name, campaignId]);
+  }, [productsDetailData, campaign?.name, campaign?.participants, campaignId]);
 
   const loadLinkedPhotoCampaign = useCallback(async () => {
     if (!campaignId) {

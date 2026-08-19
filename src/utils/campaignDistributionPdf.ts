@@ -49,11 +49,24 @@ export interface CampaignDistributionItem {
 
 const isInternal = (type?: string): boolean => (type || '').toUpperCase() === 'INTERNAL_SITE';
 
+/**
+ * Ordena las tiendas: primero las sedes internas, luego las empresas externas
+ * en orden alfabético por su nombre (alias). Dentro de las internas se mantiene
+ * el orden alfabético también para lecturas consistentes.
+ */
+const sortStores = (stores: CampaignDistributionStore[]): CampaignDistributionStore[] =>
+  [...stores].sort((a, b) => {
+    const aInternal = isInternal(a.storeType);
+    const bInternal = isInternal(b.storeType);
+    if (aInternal !== bInternal) return aInternal ? -1 : 1;
+    return (a.storeName || '').localeCompare(b.storeName || '', 'es', { sensitivity: 'base' });
+  });
+
 const buildStoreRows = (stores: CampaignDistributionStore[]): string => {
   if (stores.length === 0) {
     return `<tr><td class="empty" colspan="3">Sin reparto registrado</td></tr>`;
   }
-  return stores
+  return sortStores(stores)
     .map((store) => {
       const icon = isInternal(store.storeType) ? '🏠' : '🏢';
       return `
