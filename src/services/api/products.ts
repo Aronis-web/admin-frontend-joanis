@@ -1,5 +1,32 @@
 import { apiClient } from './client';
 import { config } from '@/utils/config';
+import type { ProductCodeType } from './product-codes';
+import type { ProductVariant } from './product-variants';
+
+export type {
+  ProductCode,
+  ProductCodeType,
+  CreateProductCodeDto,
+  UpdateProductCodeDto,
+} from './product-codes';
+export { productCodesApi } from './product-codes';
+export type {
+  ProductVariant,
+  CreateProductVariantDto,
+  UpdateProductVariantDto,
+} from './product-variants';
+export { productVariantsApi } from './product-variants';
+
+/**
+ * Codigo alterno "aplanado" que puede venir en el catalogo/producto.
+ * Se usa para que el cliente busque/escanee por cualquier codigo (offline u online).
+ */
+export interface ProductAltCode {
+  type: ProductCodeType;
+  value: string;
+  presentationId: string | null;
+  variantId: string | null;
+}
 
 // Presentation entity
 export interface Presentation {
@@ -118,6 +145,12 @@ export interface Product {
     reserved: number;
     total: number;
   }>;
+  // Codigos alternos del producto (barcode / sku / name alias). Un codigo
+  // puede opcionalmente pertenecer a una variante o presentacion.
+  altCodes?: ProductAltCode[];
+  // Variantes (color/atributo) del producto. Cada variante puede tener sku/
+  // barcode propios y stock propio si tracksStock=true.
+  variants?: ProductVariant[];
 }
 
 // Product entity for detail endpoint (simplified)
@@ -167,14 +200,6 @@ export interface ProductFilters {
 }
 
 // Legacy interfaces for backward compatibility
-export interface ProductVariant {
-  id: string;
-  name: string;
-  price: number;
-  stock: number;
-  attributes: Record<string, string>;
-}
-
 export interface ProductCategory {
   id: string;
   name: string;

@@ -38,6 +38,12 @@ export const PERMISSIONS = {
     DELETE: 'products.delete',
     PRICES_DOWNLOAD: 'products.prices.download',
     PRICES_UPDATE: 'products.prices.update',
+    // Codigos alternos (barcode/sku/name alias) por producto
+    CODES_READ: 'products.codes.read',
+    CODES_WRITE: 'products.codes.write',
+    // Variantes (color/atributo) por producto
+    VARIANTS_READ: 'products.variants.read',
+    VARIANTS_WRITE: 'products.variants.write',
   },
 
   // ========== CATEGORÍAS ==========
