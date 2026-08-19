@@ -218,7 +218,7 @@ const SELF_PRINT_SCRIPT =
 </` + `script>`;
 
 /** Imprime el HTML en web/Electron mediante un iframe oculto que se auto-imprime. */
-const printHtmlOnWeb = (html: string): void => {
+export const printHtmlOnWeb = (html: string): void => {
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
@@ -267,6 +267,48 @@ const printHtmlOnWeb = (html: string): void => {
 };
 
 /**
+ * Imprime (web/Electron) o genera+comparte (nativo) un HTML como PDF.
+ *
+ * Centraliza el flujo de salida para reutilizarlo entre distintos reportes
+ * de campaña (fotos, reparto por tienda, etc.). En web usa el iframe oculto
+ * auto-imprimible; en nativo genera el archivo con `expo-print` y lo comparte
+ * con `expo-sharing`, cayendo a un aviso con la ruta si compartir no está
+ * disponible.
+ */
+export const printOrShareHtmlPdf = async (
+  html: string,
+  fileName: string,
+  dialogTitle: string
+): Promise<void> => {
+  if (Platform.OS === 'web') {
+    printHtmlOnWeb(html);
+    return;
+  }
+
+  const { uri } = await Print.printToFileAsync({ html });
+  if (await Sharing.isAvailableAsync()) {
+    const targetUri = `${FileSystem.cacheDirectory ?? ''}${fileName}`;
+    try {
+      await FileSystem.moveAsync({ from: uri, to: targetUri });
+      await Sharing.shareAsync(targetUri, {
+        mimeType: 'application/pdf',
+        dialogTitle,
+        UTI: 'com.adobe.pdf',
+      });
+    } catch (err) {
+      logger.warn('Fallback share por rename fallido:', err);
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle,
+        UTI: 'com.adobe.pdf',
+      });
+    }
+  } else {
+    Alert.alert('PDF generado', `Archivo en: ${uri}`);
+  }
+};
+
+/**
  * Genera y comparte/imprime el PDF de fotos de los productos activos de la
  * campaña. Devuelve la cantidad de productos incluidos (0 si no había activos).
  */
@@ -289,32 +331,7 @@ export const generateCampaignPhotosPdf = async (params: {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')}.pdf`;
 
-  if (Platform.OS === 'web') {
-    printHtmlOnWeb(html);
-    return activeItems.length;
-  }
-
-  const { uri } = await Print.printToFileAsync({ html });
-  if (await Sharing.isAvailableAsync()) {
-    const targetUri = `${FileSystem.cacheDirectory ?? ''}${fileName}`;
-    try {
-      await FileSystem.moveAsync({ from: uri, to: targetUri });
-      await Sharing.shareAsync(targetUri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Fotos de campaña',
-        UTI: 'com.adobe.pdf',
-      });
-    } catch (err) {
-      logger.warn('Fallback share por rename fallido:', err);
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Fotos de campaña',
-        UTI: 'com.adobe.pdf',
-      });
-    }
-  } else {
-    Alert.alert('PDF generado', `Archivo en: ${uri}`);
-  }
+  await printOrShareHtmlPdf(html, fileName, 'Fotos de campaña');
 
   return activeItems.length;
 };

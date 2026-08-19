@@ -20,6 +20,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { saveAndSharePdf } from '@/utils/fileDownload';
 import { generateCampaignPhotosPdf } from '@/utils/campaignPhotosPdf';
+import {
+  generateCampaignDistributionPdf,
+  type CampaignDistributionItem,
+} from '@/utils/campaignDistributionPdf';
 import { campaignsService, repartosService } from '@/services/api';
 import { companiesApi } from '@/services/api/companies';
 import { sitesApi } from '@/services/api/sites';
@@ -270,6 +274,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [downloadingPhotosPdf, setDownloadingPhotosPdf] = useState(false);
   const [showPhotosPdfCostModal, setShowPhotosPdfCostModal] = useState(false);
 
+  // Descarga del PDF de reparto por tienda (foto, sku, stock repartido/actual)
+  const [downloadingDistributionPdf, setDownloadingDistributionPdf] = useState(false);
+  // Progreso de la descarga del PDF de reparto (un fetch `full` por producto).
+  const [distributionPdfProgress, setDistributionPdfProgress] = useState({
+    current: 0,
+    total: 0,
+  });
+
   // Pagination states
   const [displayedItemsCount, setDisplayedItemsCount] = useState(20);
   const ITEMS_PER_PAGE = 20;
@@ -319,6 +331,97 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     },
     [productsDetailData, campaign?.name]
   );
+
+  // Genera un PDF con el reparto por tienda de cada producto activo: foto,
+  // nombre, SKU y, por cada tienda a la que se repartió, el stock repartido y
+  // el stock actual disponible. Requiere un request `full` por producto, por
+  // lo que se hace en lotes con un indicador de progreso.
+  const handleDownloadDistributionPdf = useCallback(async () => {
+    const activeItems = (productsDetailData?.items ?? []).filter(
+      (item) => String(item.productStatus || '').toUpperCase() === 'ACTIVE'
+    );
+    if (activeItems.length === 0) {
+      Alert.alert('Sin datos', 'No hay productos activos para exportar.');
+      return;
+    }
+
+    const pickPhotoUrl = (photos: CampaignProductDetailItem['photos']): string | null => {
+      const list = (photos ?? [])
+        .map((p) => (typeof p === 'string' ? p : p?.url))
+        .filter((u): u is string => !!u);
+      return list[0] ?? null;
+    };
+
+    setDownloadingDistributionPdf(true);
+    setDistributionPdfProgress({ current: 0, total: activeItems.length });
+
+    try {
+      const built: CampaignDistributionItem[] = [];
+      const CONCURRENCY = 5;
+      let processed = 0;
+
+      for (let i = 0; i < activeItems.length; i += CONCURRENCY) {
+        const batch = activeItems.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          batch.map(async (item): Promise<CampaignDistributionItem> => {
+            try {
+              const full = await campaignsService.getProductFull(campaignId, item.productId);
+              const stockBySite = new Map((full.stockBySite ?? []).map((s) => [s.siteId, s]));
+              const stores = (full.distributionByParticipant ?? [])
+                .map((d) => {
+                  const distributed = parseFloat(d.totalQuantityBase || '0') || 0;
+                  const stock = d.siteId ? stockBySite.get(d.siteId) : undefined;
+                  return {
+                    storeName: d.participantName,
+                    storeType: d.participantType,
+                    distributedQuantity: distributed,
+                    currentStock: stock
+                      ? parseFloat(stock.availableQuantityBase || '0') || 0
+                      : null,
+                  };
+                })
+                .filter((s) => s.distributedQuantity > 0)
+                .sort((a, b) => b.distributedQuantity - a.distributedQuantity);
+
+              return {
+                title: full.title,
+                sku: full.sku,
+                barcode: full.barcode,
+                photoUrl: pickPhotoUrl(full.photos ?? []),
+                stores,
+              };
+            } catch (err) {
+              logger.warn(`No se pudo cargar el reparto del producto ${item.sku}:`, err);
+              // Fallback con los datos del endpoint compacto (sin desglose por tienda).
+              return {
+                title: item.title,
+                sku: item.sku,
+                barcode: item.barcode,
+                photoUrl: pickPhotoUrl(item.photos),
+                stores: [],
+              };
+            } finally {
+              processed += 1;
+              setDistributionPdfProgress({ current: processed, total: activeItems.length });
+            }
+          })
+        );
+        built.push(...results);
+      }
+
+      const count = await generateCampaignDistributionPdf({
+        campaignName: campaign?.name ?? 'Campaña',
+        items: built,
+      });
+      logger.debug(`📄 PDF de reparto por tienda generado con ${count} productos`);
+    } catch (error) {
+      logger.error('Error generando PDF de reparto de campaña:', error);
+      Alert.alert('Error', 'No se pudo generar el PDF de reparto por tienda.');
+    } finally {
+      setDownloadingDistributionPdf(false);
+      setDistributionPdfProgress({ current: 0, total: 0 });
+    }
+  }, [productsDetailData, campaign?.name, campaignId]);
 
   const loadLinkedPhotoCampaign = useCallback(async () => {
     if (!campaignId) {
@@ -3986,9 +4089,65 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                 },
                 requiredPermissions: [PERMISSIONS.PRODUCTS.PRICES_DOWNLOAD],
               },
+              {
+                icon: downloadingDistributionPdf ? 'hourglass-outline' : 'git-branch-outline',
+                label: 'Reparto PDF',
+                onPress: () => {
+                  if (downloadingDistributionPdf) return;
+                  void handleDownloadDistributionPdf();
+                },
+                requiredPermissions: [PERMISSIONS.CAMPAIGNS.READ],
+              },
             ]}
           />
         )}
+
+        {/* Overlay de carga para descargas de PDF (fotos / reparto). Bloquea la
+            interacción para evitar toques repetidos del botón mientras se
+            generan reportes largos (>100 productos). */}
+        <Modal
+          visible={downloadingPhotosPdf || downloadingDistributionPdf}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {}}
+        >
+          <View style={styles.pdfLoadingOverlay}>
+            <View style={styles.pdfLoadingCard}>
+              <ActivityIndicator size="large" color={theme.color.brand.primary} />
+              <Text style={styles.pdfLoadingTitle}>
+                {downloadingDistributionPdf
+                  ? 'Generando PDF de reparto…'
+                  : 'Generando PDF de fotos…'}
+              </Text>
+              {downloadingDistributionPdf && distributionPdfProgress.total > 0 ? (
+                <>
+                  <Text style={styles.pdfLoadingText}>
+                    {distributionPdfProgress.current} de {distributionPdfProgress.total} productos
+                  </Text>
+                  <View style={styles.pdfProgressTrack}>
+                    <View
+                      style={[
+                        styles.pdfProgressFill,
+                        {
+                          width: `${Math.min(
+                            100,
+                            (distributionPdfProgress.current /
+                              Math.max(1, distributionPdfProgress.total)) *
+                              100
+                          )}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.pdfLoadingText}>
+                  Esto puede tardar un momento, no cierres la pantalla.
+                </Text>
+              )}
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -5574,6 +5733,48 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.body,
       lineHeight: 22,
       marginBottom: 20,
+    },
+    pdfLoadingOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    pdfLoadingCard: {
+      width: '100%',
+      maxWidth: 320,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      paddingVertical: 28,
+      paddingHorizontal: 24,
+      alignItems: 'center',
+    },
+    pdfLoadingTitle: {
+      marginTop: 16,
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      textAlign: 'center',
+    },
+    pdfLoadingText: {
+      marginTop: 8,
+      fontSize: 13,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    pdfProgressTrack: {
+      marginTop: 14,
+      width: '100%',
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.color.background.muted,
+      overflow: 'hidden',
+    },
+    pdfProgressFill: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.color.brand.primary,
     },
     customAddModalCloseButton: {
       fontSize: 28,
