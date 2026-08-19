@@ -395,10 +395,36 @@ export interface ValidateProductRequest {
     matchConfidence?: number;
   };
   // ========== Variante (color) opcional ==========
-  // Enviar variantName O variantId, no ambos. Si vienen los dos el backend
-  // prioriza variantId. variantName hace upsert por nombre normalizado.
+  // MODO A (single): enviar variantName O variantId. Si vienen los dos el backend
+  // prioriza variantId. variantName hace upsert por nombre normalizado. Aplica
+  // el stock/presentation del request al variantId resuelto.
   variantName?: string;
   variantId?: string;
+  // MODO B (multiples variantes): enviar variants[] con stock por variante.
+  // Cuando se envia variants[] el stock/presentation/warehouse/area a nivel
+  // request se ignora en favor de lo declarado en cada item. Es incompatible
+  // con variantName/variantId a nivel raiz.
+  variants?: PurchaseValidatedVariantInput[];
+}
+
+/**
+ * Input de UNA variante dentro de una validacion multi-variante (Modo B).
+ * quantityBase SIEMPRE en unidad base. Si tracksStock=false en la variante
+ * el backend no descuenta stock pero conserva el registro.
+ */
+export interface PurchaseValidatedVariantInput {
+  variantId?: string; // Alternativo a variantName
+  variantName?: string; // Upsert por nombre normalizado
+  sku?: string; // SKU exclusivo de la variante (opcional)
+  barcode?: string; // Codigo alterno exclusivo de la variante
+  quantityBase: number; // Stock validado en unidad base (obligatorio)
+  warehouseId?: string; // Si se omite usa el warehouseId del request
+  areaId?: string;
+  // Presentacion opcional aplicada a esta variante
+  presentationId?: string;
+  factorToBase?: number;
+  quantityPresentation?: number;
+  notes?: string;
 }
 
 /**
@@ -499,6 +525,7 @@ export type AddPurchaseProductEntryRequest = Pick<
   | 'validationNotes'
   | 'variantName'
   | 'variantId'
+  | 'variants'
 >;
 
 export interface MultiValidationResponse {
@@ -529,6 +556,23 @@ export interface MultiValidationResponse {
       variantId: string | null;
       variantName?: string;
     } | null;
+    // Detalle cuando se valido en Modo B (multi-variante)
+    variants?: Array<{
+      variantId: string;
+      variantName: string;
+      sku?: string;
+      barcode?: string;
+      tracksStock: boolean;
+      quantityBase: number;
+      stockMovementId?: string | null;
+      warehouseId?: string;
+      areaId?: string;
+      presentation?: {
+        presentationId: string;
+        factorToBase: number;
+        quantityPresentation: number;
+      } | null;
+    }>;
   };
 }
 

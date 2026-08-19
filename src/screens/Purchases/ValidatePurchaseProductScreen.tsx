@@ -16,6 +16,7 @@ import {
   Image,
   Modal,
   Platform,
+  Switch,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,7 +25,11 @@ import { purchasesService } from '@/services/api';
 import { inventoryApi } from '@/services/api/inventory';
 import { presentationsApi } from '@/services/api/presentations';
 import { filesApi } from '@/services/api/files';
-import { PurchaseProduct, PurchaseProductStatus } from '@/types/purchases';
+import {
+  PurchaseProduct,
+  PurchaseProductStatus,
+  PurchaseValidatedVariantInput,
+} from '@/types/purchases';
 import type { Warehouse, WarehouseArea } from '@/services/api/inventory';
 import type { Presentation } from '@/services/api/presentations';
 import { useAuthStore } from '@/store/auth';
@@ -132,6 +137,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [barcode, setBarcode] = useState('');
   const [validationNotes, setValidationNotes] = useState('');
   const [variantName, setVariantName] = useState('');
+  // Modo multi-variante (Mode B): permite validar varias variantes en un solo submit
+  const [multiVariantMode, setMultiVariantMode] = useState(false);
+  const [variantRows, setVariantRows] = useState<PurchaseValidatedVariantInput[]>([]);
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
@@ -533,7 +541,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       photoUrl: uploadedFiles.photoUrl,
       signatureUrl: uploadedFiles.signatureUrl,
       validationNotes: validationNotes.trim() || undefined,
-      variantName: variantName.trim() || undefined,
+      // MODO A (single) vs MODO B (multi-variante): son mutuamente excluyentes
+      variantName: !multiVariantMode && variantName.trim() ? variantName.trim() : undefined,
+      variants: multiVariantMode && variantRows.length > 0 ? variantRows : undefined,
     };
   };
 
@@ -616,6 +626,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             signatureUrl: entryPayload.signatureUrl,
             validationNotes: entryPayload.validationNotes,
             variantName: entryPayload.variantName,
+            variants: entryPayload.variants,
           });
 
       setRecurrenceAction(null);
@@ -626,6 +637,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setProductPhotoUri(undefined);
       setValidationNotes('');
       setVariantName('');
+      setVariantRows([]);
+      setMultiVariantMode(false);
       setLooseUnits('0');
       setValidatedPresentations((current) =>
         current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 }))
@@ -1345,13 +1358,130 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               )}
             </View>
 
-            {/* Variante (color) opcional */}
-            <Input
-              label="Variante / Color (opcional)"
-              value={variantName}
-              onChangeText={setVariantName}
-              placeholder="Ej: rojo, azul, amarillo..."
-            />
+            {/* Variantes (color) - Modo A (single) o Modo B (multi) */}
+            <View style={styles.variantsSection}>
+              <View style={styles.variantsHeader}>
+                <Label>Variantes / Colores</Label>
+                <View style={styles.multiToggle}>
+                  <Caption color="tertiary">Multiples variantes</Caption>
+                  <Switch
+                    value={multiVariantMode}
+                    onValueChange={(value) => {
+                      setMultiVariantMode(value);
+                      if (value) {
+                        setVariantName('');
+                        if (variantRows.length === 0) {
+                          setVariantRows([{ variantName: '', quantityBase: 0 }]);
+                        }
+                      } else {
+                        setVariantRows([]);
+                      }
+                    }}
+                  />
+                </View>
+              </View>
+
+              {!multiVariantMode ? (
+                <Input
+                  label="Variante / Color (opcional)"
+                  value={variantName}
+                  onChangeText={setVariantName}
+                  placeholder="Ej: rojo, azul, amarillo..."
+                />
+              ) : (
+                <View style={styles.variantRowsContainer}>
+                  <Caption color="tertiary">
+                    El stock a nivel general se ignora. Cada variante define su propio stock, SKU,
+                    codigo alterno y ubicacion. Si se omite el almacen se usa el general.
+                  </Caption>
+                  {variantRows.map((row, index) => (
+                    <Card
+                      key={`variant-row-${index}`}
+                      variant="outlined"
+                      padding="medium"
+                      style={styles.variantRow}
+                    >
+                      <View style={styles.variantRowHeader}>
+                        <Body>Variante #{index + 1}</Body>
+                        <IconButton
+                          icon="trash-outline"
+                          variant="ghost"
+                          size="small"
+                          onPress={() =>
+                            setVariantRows((rows) => rows.filter((_, i) => i !== index))
+                          }
+                        />
+                      </View>
+                      <Input
+                        label="Nombre (color)"
+                        value={row.variantName || ''}
+                        onChangeText={(text) =>
+                          setVariantRows((rows) =>
+                            rows.map((r, i) => (i === index ? { ...r, variantName: text } : r))
+                          )
+                        }
+                        placeholder="rojo, azul, verde..."
+                      />
+                      <Input
+                        label="Stock (unidad base)"
+                        value={row.quantityBase ? String(row.quantityBase) : ''}
+                        onChangeText={(text) =>
+                          setVariantRows((rows) =>
+                            rows.map((r, i) =>
+                              i === index ? { ...r, quantityBase: Number(text) || 0 } : r
+                            )
+                          )
+                        }
+                        placeholder="0"
+                        keyboardType="numeric"
+                      />
+                      <Input
+                        label="SKU (opcional)"
+                        value={row.sku || ''}
+                        onChangeText={(text) =>
+                          setVariantRows((rows) =>
+                            rows.map((r, i) => (i === index ? { ...r, sku: text || undefined } : r))
+                          )
+                        }
+                        placeholder="SKU exclusivo de esta variante"
+                      />
+                      <Input
+                        label="Codigo alterno / barcode (opcional)"
+                        value={row.barcode || ''}
+                        onChangeText={(text) =>
+                          setVariantRows((rows) =>
+                            rows.map((r, i) =>
+                              i === index ? { ...r, barcode: text || undefined } : r
+                            )
+                          )
+                        }
+                        placeholder="Codigo de barras"
+                      />
+                      <Input
+                        label="Notas (opcional)"
+                        value={row.notes || ''}
+                        onChangeText={(text) =>
+                          setVariantRows((rows) =>
+                            rows.map((r, i) =>
+                              i === index ? { ...r, notes: text || undefined } : r
+                            )
+                          )
+                        }
+                        placeholder="Observaciones"
+                        multiline
+                      />
+                    </Card>
+                  ))}
+                  <Button
+                    variant="secondary"
+                    title="+ Agregar variante"
+                    onPress={() =>
+                      setVariantRows((rows) => [...rows, { variantName: '', quantityBase: 0 }])
+                    }
+                  />
+                </View>
+              )}
+            </View>
 
             {/* Validation Notes */}
             <Input
@@ -1630,6 +1760,31 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
+    },
+    variantsSection: {
+      gap: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    variantsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    multiToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    variantRowsContainer: {
+      gap: theme.space[3],
+    },
+    variantRow: {
+      gap: theme.space[2],
+    },
+    variantRowHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
     },
     loadingContainer: {
       flex: 1,
