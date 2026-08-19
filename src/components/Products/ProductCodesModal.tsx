@@ -225,14 +225,12 @@ export const ProductCodesModal: React.FC<Props> = ({ visible, onClose, product }
               />
 
               <View style={styles.actions}>
-                {isEditing && (
-                  <Button variant="ghost" onPress={resetForm}>
-                    Cancelar
-                  </Button>
-                )}
-                <Button onPress={handleSubmit} loading={createMut.isPending || updateMut.isPending}>
-                  {isEditing ? 'Guardar cambios' : 'Agregar codigo'}
-                </Button>
+                {isEditing && <Button variant="ghost" onPress={resetForm} title="Cancelar" />}
+                <Button
+                  onPress={handleSubmit}
+                  loading={createMut.isPending || updateMut.isPending}
+                  title={isEditing ? 'Guardar cambios' : 'Agregar codigo'}
+                />
               </View>
             </View>
 

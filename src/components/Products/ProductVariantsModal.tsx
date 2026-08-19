@@ -200,14 +200,12 @@ export const ProductVariantsModal: React.FC<Props> = ({ visible, onClose, produc
               />
 
               <View style={styles.actions}>
-                {isEditing && (
-                  <Button variant="ghost" onPress={resetForm}>
-                    Cancelar
-                  </Button>
-                )}
-                <Button onPress={handleSubmit} loading={createMut.isPending || updateMut.isPending}>
-                  {isEditing ? 'Guardar cambios' : 'Agregar variante'}
-                </Button>
+                {isEditing && <Button variant="ghost" onPress={resetForm} title="Cancelar" />}
+                <Button
+                  onPress={handleSubmit}
+                  loading={createMut.isPending || updateMut.isPending}
+                  title={isEditing ? 'Guardar cambios' : 'Agregar variante'}
+                />
               </View>
             </View>
 
@@ -229,12 +227,16 @@ export const ProductVariantsModal: React.FC<Props> = ({ visible, onClose, produc
                       <View
                         style={{ flexDirection: 'row', gap: 6, marginTop: 2, flexWrap: 'wrap' }}
                       >
-                        {variant.sku ? <Badge variant="neutral">SKU: {variant.sku}</Badge> : null}
-                        {variant.barcode ? (
-                          <Badge variant="neutral">BC: {variant.barcode}</Badge>
+                        {variant.sku ? (
+                          <Badge variant="default" label={`SKU: ${variant.sku}`} />
                         ) : null}
-                        {variant.tracksStock ? <Badge variant="success">Stock propio</Badge> : null}
-                        {variant.isSellable ? <Badge variant="info">Vendible</Badge> : null}
+                        {variant.barcode ? (
+                          <Badge variant="default" label={`BC: ${variant.barcode}`} />
+                        ) : null}
+                        {variant.tracksStock ? (
+                          <Badge variant="success" label="Stock propio" />
+                        ) : null}
+                        {variant.isSellable ? <Badge variant="info" label="Vendible" /> : null}
                       </View>
                       {variant.note ? <Caption color="secondary">{variant.note}</Caption> : null}
                     </View>
