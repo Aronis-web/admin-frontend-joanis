@@ -30,8 +30,80 @@ function isChunkLoadError(error: unknown): boolean {
     /Loading CSS chunk/i.test(message) ||
     /Importing a module script failed/i.test(message) ||
     /error loading dynamically imported module/i.test(message) ||
-    /Failed to fetch dynamically imported module/i.test(message)
+    /Failed to fetch dynamically imported module/i.test(message) ||
+    // El servidor devolvió HTML (404 SPA fallback) en vez del JS del chunk:
+    // "Refused to execute script ... MIME type ('text/html')".
+    /Refused to execute script/i.test(message) ||
+    /MIME type/i.test(message) ||
+    // Nuestro propio timeout cuando el import se queda colgado (ver
+    // `importWithTimeout`). En móvil/PWA el error de MIME a veces NO rechaza la
+    // promesa, así que el timeout es la única señal de fallo.
+    /chunk load timed out/i.test(message)
   );
+}
+
+/**
+ * Envuelve un `import()` con un timeout. Un chunk servido como HTML (MIME
+ * text/html) puede provocar que la promesa del import NUNCA se resuelva ni
+ * rechace, dejando el `Suspense` colgado con el spinner para siempre (síntoma
+ * en celular: "se queda cargando" y no hay forma de recargar). El timeout
+ * convierte ese cuelgue en un rechazo manejable.
+ */
+function importWithTimeout<T>(importFunc: () => Promise<T>, timeoutMs = 20000): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`chunk load timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    importFunc().then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+/**
+ * Recuperación "dura" para web/PWA: desregistra los service workers y limpia
+ * las Cache Storage antes de recargar. Un `location.reload()` normal NO basta
+ * en móvil, porque el service worker puede seguir sirviendo el HTML viejo
+ * cacheado (que apunta a chunks que ya no existen tras un deploy). Esto es lo
+ * que hace que en el celular "se quede cargando" sin poder recuperarse.
+ */
+async function hardRecoverAndReload(): Promise<void> {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  try {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((r) => r.unregister()));
+    }
+  } catch (err) {
+    logger.warn('[lazyLoad] No se pudo desregistrar el service worker', err);
+  }
+  try {
+    if (typeof caches !== 'undefined') {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch (err) {
+    logger.warn('[lazyLoad] No se pudieron limpiar las caches', err);
+  }
+  try {
+    window.location.reload();
+  } catch {
+    // ignore
+  }
 }
 
 /**
@@ -45,14 +117,16 @@ function isChunkLoadError(error: unknown): boolean {
 function retryImport<T>(importFunc: () => Promise<T>, retries = 3, delayMs = 500): Promise<T> {
   return new Promise((resolve, reject) => {
     const attempt = (remaining: number, wait: number) => {
-      importFunc()
+      importWithTimeout(importFunc)
         .then(resolve)
         .catch((error) => {
           if (remaining <= 0) {
             logger.error('[lazyLoad] Chunk load failed after retries', error);
 
-            // Si estamos en web y no reintentamos ya, forzar reload
-            // para pedir el HTML nuevo con los hashes correctos.
+            // Si estamos en web y no reintentamos ya, forzar una recuperación
+            // dura (limpiar service worker + caches) y recargar para pedir el
+            // HTML nuevo con los hashes correctos. En móvil un reload normal no
+            // basta porque el SW sigue sirviendo el HTML viejo cacheado.
             if (
               Platform.OS === 'web' &&
               typeof window !== 'undefined' &&
@@ -65,8 +139,8 @@ function retryImport<T>(importFunc: () => Promise<T>, retries = 3, delayMs = 500
                 } catch {
                   // ignore
                 }
-                logger.warn('[lazyLoad] Forzando reload para recuperar chunks actualizados');
-                window.location.reload();
+                logger.warn('[lazyLoad] Forzando recuperación dura para recuperar chunks');
+                void hardRecoverAndReload();
                 // No resolvemos: la página se está recargando.
                 return;
               }
@@ -142,14 +216,36 @@ class LazyErrorBoundary extends React.Component<
         } catch {
           // ignore
         }
-        window.location.reload();
+        void hardRecoverAndReload();
       }
     }
   }
 
+  // Reintento manual desde el fallback. En web hace la recuperación dura
+  // (limpia SW + caches y recarga) — imprescindible en celular, donde el
+  // usuario no puede recargar/limpiar caché a mano. Limpiamos primero el flag
+  // para que el reintento sea un intento fresco. En nativo simplemente
+  // reintenta el render.
+  handleRetry = (): void => {
+    if (Platform.OS === 'web') {
+      if (typeof sessionStorage !== 'undefined') {
+        try {
+          sessionStorage.removeItem(RELOAD_FLAG);
+        } catch {
+          // ignore
+        }
+      }
+      void hardRecoverAndReload();
+      return;
+    }
+    this.setState({ error: null });
+  };
+
   render() {
     if (this.state.error) {
-      return <LazyLoadFallback message={this.props.fallbackMessage} />;
+      return (
+        <LazyLoadFallback message={this.props.fallbackMessage} isError onRetry={this.handleRetry} />
+      );
     }
     return this.props.children;
   }
