@@ -205,6 +205,16 @@ export interface TransferItem {
   damagedWarehouseId?: string | null;
   damagedAreaId?: string | null;
 
+  // Variante (color) opcional. Cuando la variante tiene tracksStock=true el
+  // traslado mueve el saldo de esa variante entre ubicaciones.
+  variantId?: string | null;
+
+  // Presentacion (empaque) opcional. Solo trazabilidad; la cantidad canonica
+  // sigue viajando en unidad base.
+  presentationId?: string | null;
+  factorToBase?: number;
+  quantityPresentation?: number;
+
   // Notes
   notes?: string | null;
   damageNotes?: string | null;
@@ -386,6 +396,23 @@ export interface TransferStatusHistory {
 // REQUEST/RESPONSE DTOs
 // ============================================
 
+/**
+ * Item de traslado. La quantity SIEMPRE va en unidad base.
+ * - variantId: opcional. Enviar solo para variantes con tracksStock=true;
+ *   en traslados el backend NO colapsa variantes descriptivas.
+ * - presentationId/factorToBase/quantityPresentation: metadata de trazabilidad
+ *   (empaque). No altera la aritmetica.
+ */
+export interface TransferItemDto {
+  productId: string;
+  quantity: number; // SIEMPRE en unidad base
+  variantId?: string;
+  presentationId?: string;
+  factorToBase?: number;
+  quantityPresentation?: number;
+  notes?: string;
+}
+
 // Create Internal Transfer
 export interface CreateInternalTransferDto {
   originWarehouseId: string;
@@ -393,11 +420,7 @@ export interface CreateInternalTransferDto {
   destinationWarehouseId: string;
   destinationAreaId?: string | null;
   requestedBy: string; // User ID who requested the transfer (required)
-  items: {
-    productId: string;
-    quantity: number;
-    notes?: string;
-  }[];
+  items: TransferItemDto[];
   notes?: string;
 }
 
@@ -409,11 +432,7 @@ export interface CreateExternalTransferDto {
   destinationAreaId?: string | null;
   requestedBy: string; // User ID who requested the transfer (required)
   expectedArrivalDate?: string;
-  items: {
-    productId: string;
-    quantity: number;
-    notes?: string;
-  }[];
+  items: TransferItemDto[];
   notes?: string;
 }
 
