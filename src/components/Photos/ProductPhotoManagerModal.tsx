@@ -79,9 +79,16 @@ const HERO_SIZE_RULE = `⚠️ REGLA DE TAMAÑO (OBLIGATORIA E INNEGOCIABLE): el
 
 const LIFESTYLE_SIZE_RULE = `⚠️ REGLA DE TAMAÑO (OBLIGATORIA): el producto debe estar en primer plano y ocupar entre el 40% y el 60% del área total de la imagen, claramente cercano y protagonista. Puede haber ambientación alrededor, pero el producto NUNCA debe verse pequeño ni lejano. Si ocupa menos del 40% de la imagen, el resultado es INCORRECTO y debe rehacerse más cerca.`;
 
+// Regla de ambientación por defecto: fondos cálidos y rústicos, evitando el
+// mármol blanco y superficies frías como opción por defecto. Se antepone a cada
+// prompt de plantilla para que el modelo lo aplique como criterio prioritario.
+const WARM_RUSTIC_AMBIENCE_RULE = `🎨 AMBIENTACIÓN POR DEFECTO (PRIORITARIA): usa fondos y escenarios CÁLIDOS y RÚSTICOS. Prioriza superficies y contextos como madera natural (roble, nogal, pino envejecido), mesas de tablones, tablas de cortar, cerámica artesanal, terracota, adobe, ladrillo visto, piedra rústica, arpillera/lino natural, ratán, mimbre, cesta tejida, cuero envejecido, hojas verdes o secas, telas de algodón crudo, elementos de granja/mercado, cocina campestre o taller artesanal (según encaje con el producto). La paleta debe ser cálida: tierras, ocres, terracotas, mostazas suaves, marrones, cremas cálidos, dorados suaves. Iluminación cálida tipo luz de ventana matinal o tarde dorada (golden hour), con tonos anaranjados/dorados sutiles. ❌ EVITA por defecto: mármol blanco/gris, superficies frías o clínicas, fondos blancos planos, acabados brillantes tipo laboratorio, tonos azules/grises fríos, estética minimalista fría o de spa moderno. Solo usa mármol/superficies frías si el producto lo exige claramente (p. ej. laboratorio, cosmética clínica) o si las observaciones del usuario lo piden explícitamente.`;
+
 const DEFAULT_DESIGN_PROMPT = `Genera una fotografía de producto premium de nivel comercial y publicitario a partir de la imagen de referencia.
 
 ${HERO_SIZE_RULE}
+
+${WARM_RUSTIC_AMBIENCE_RULE}
 
 ${PRESERVE_PRODUCT_BLOCK}
 
@@ -100,9 +107,10 @@ Iluminación:
 
 Escenario y fondo:
 
-* Genera un fondo ambientado según la identidad y el uso del producto (no un color plano): una escena o superficie premium coherente con la categoría (p. ej. tocador/mármol/tela para cosmética, materiales y props sutiles del rubro).
-* El fondo debe ser elegante, minimalista y ligeramente desenfocado, aportando contexto sin competir con el producto.
-* Paleta y ambientación armónicas con la marca; el producto siempre debe destacar claramente sobre el fondo.
+* Genera un fondo ambientado cálido y rústico según la categoría del producto (no un color plano): madera natural, cerámica artesanal, terracota, arpillera, ratán, piedra rústica, cocina campestre, taller artesanal o mesa de mercado, según encaje con el producto.
+* El fondo debe ser cálido, artesanal y ligeramente desenfocado, aportando calidez y contexto sin competir con el producto.
+* Paleta de tierras, ocres, terracotas, mostazas suaves, cremas cálidos y dorados. NUNCA uses mármol blanco/gris ni superficies frías/clínicas por defecto.
+* El producto siempre debe destacar claramente sobre el fondo rústico y cálido.
 
 Salida final:
 
@@ -113,24 +121,27 @@ const LIFESTYLE_DESIGN_PROMPT = `Genera una fotografía lifestyle de producto pa
 
 ${LIFESTYLE_SIZE_RULE}
 
+${WARM_RUSTIC_AMBIENCE_RULE}
+
 ${PRESERVE_PRODUCT_BLOCK}
 
 Composición:
 
 * El producto aislado es el protagonista claro, en primer plano y bien enfocado; debe ocupar entre el 40% y el 60% del área de la imagen y notarse cercano (nunca pequeño ni perdido en la escena).
-* Ambientación real de uso cotidiano acorde al producto (tocador, vanity, baño, superficie con accesorios de belleza).
-* Props sutiles y coherentes (flores, telas, espejo, cosméticos desenfocados) que acompañen sin robar protagonismo ni tapar el producto.
+* Ambientación real de uso cotidiano cálida y rústica acorde al producto (mesa de madera, cocina campestre, taller artesanal, terraza con plantas, mesón de tablones, cesto de mimbre, superficie de barro cocido).
+* Props sutiles y coherentes con la estética cálida/artesanal (madera, cerámica hecha a mano, textiles de lino/algodón crudo, hojas verdes, flores secas, ratán, cesta tejida) que acompañen sin robar protagonismo ni tapar el producto.
 * Encuadre atractivo con espacio negativo para texto/overlay.
 
 Iluminación:
 
-* Luz natural cálida tipo luz de ventana o golden hour.
-* Sombras suaves y naturales, atmósfera acogedora y aspiracional.
+* Luz natural cálida tipo luz de ventana matinal o golden hour, con tonos anaranjados/dorados sutiles.
+* Sombras suaves y naturales, atmósfera acogedora, hogareña y aspiracional.
 
 Escenario y fondo:
 
-* Escena aspiracional y femenina acorde al público de belleza, con fondo desenfocado que resalte el producto.
-* Paleta armónica y moderna (tonos pastel o rosados si combinan con la marca).
+* Escena aspiracional acogedora tipo "cottagecore" / farmhouse / mediterráneo cálido / taller artesanal, con fondo desenfocado que resalte el producto.
+* Paleta cálida armónica: tierras, ocres, terracotas, mostazas suaves, marrones, cremas cálidos, verdes olivos y dorados.
+* NUNCA uses mármol blanco/gris ni estética minimalista fría por defecto.
 
 Salida final:
 
@@ -141,6 +152,8 @@ const PROMO_DESIGN_PROMPT = `Genera una fotografía publicitaria de alto impacto
 
 ${HERO_SIZE_RULE}
 
+${WARM_RUSTIC_AMBIENCE_RULE}
+
 ${PRESERVE_PRODUCT_BLOCK}
 
 Composición:
@@ -150,15 +163,16 @@ Composición:
 
 Iluminación:
 
-* Iluminación de estudio dramática y vibrante.
-* Realces y brillos que resalten texturas, volumen y el brillo del empaque.
-* Alto contraste controlado, manteniendo los colores reales del producto.
+* Iluminación cálida tipo golden hour o luz de ventana dorada, con reflejos ambarinos y sombras suaves y naturales.
+* Realces cálidos que resalten texturas, volumen y el detalle del empaque; sin brillos fríos ni acabados clínicos.
+* Contraste controlado con tonalidades cálidas dominantes, manteniendo los colores reales del producto.
 
 Escenario y fondo:
 
-* Genera un fondo ambientado según la identidad y el uso del producto (no un color plano): una escena publicitaria temática de la categoría con props, texturas y elementos gráficos modernos coherentes con la marca.
-* Puede ser vibrante y llamativo, pero manteniendo un espacio limpio alrededor del producto para precios, ofertas o llamados a la acción.
-* Estética energética, comercial y moderna tipo campaña de ofertas de belleza; el producto siempre dominante sobre el fondo.
+* Fondo publicitario cálido y rústico coherente con la categoría (madera natural, cerámica artesanal, terracota, cesta de mimbre, mesón de tablones, ladrillo visto o telas de lino/arpillera), con props y texturas artesanales.
+* Puede ser vibrante y llamativo dentro de la paleta cálida (ocres, terracotas, mostazas, dorados), manteniendo un espacio limpio alrededor del producto para precios, ofertas o CTAs.
+* Estética comercial cálida y aspiracional tipo "mercado artesanal / farm-to-table / campaña con calidez de hogar"; el producto siempre dominante sobre el fondo.
+* NUNCA uses mármol blanco/gris ni fondos fríos/clínicos por defecto.
 
 Salida final:
 
