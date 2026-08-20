@@ -679,19 +679,28 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 }))
       );
 
+      const navigateBackToPurchase = () => {
+        // En web/electron `goBack()` puede fallar si el usuario recargo la
+        // pantalla directamente por URL (stack vacio). Usamos navigate a
+        // PurchaseDetail para garantizar el retorno.
+        if (returnToEntriesModal) {
+          navigation.navigate('PurchaseDetail', {
+            purchaseId,
+            reopenEntriesProductId: productId,
+          });
+          return;
+        }
+        if (Platform.OS === 'web' || !navigation.canGoBack?.()) {
+          navigation.navigate('PurchaseDetail', { purchaseId });
+        } else {
+          navigation.goBack();
+        }
+      };
+
       Alert.alert('Éxito', response.message || 'Ingreso registrado correctamente', [
         {
           text: 'OK',
-          onPress: () => {
-            if (returnToEntriesModal) {
-              navigation.navigate('PurchaseDetail', {
-                purchaseId,
-                reopenEntriesProductId: productId,
-              });
-            } else {
-              navigation.goBack();
-            }
-          },
+          onPress: navigateBackToPurchase,
         },
       ]);
     } catch (error: any) {
