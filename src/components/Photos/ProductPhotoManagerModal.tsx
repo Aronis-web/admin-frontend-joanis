@@ -79,16 +79,9 @@ const HERO_SIZE_RULE = `⚠️ REGLA DE TAMAÑO (OBLIGATORIA E INNEGOCIABLE): el
 
 const LIFESTYLE_SIZE_RULE = `⚠️ REGLA DE TAMAÑO (OBLIGATORIA): el producto debe estar en primer plano y ocupar entre el 40% y el 60% del área total de la imagen, claramente cercano y protagonista. Puede haber ambientación alrededor, pero el producto NUNCA debe verse pequeño ni lejano. Si ocupa menos del 40% de la imagen, el resultado es INCORRECTO y debe rehacerse más cerca.`;
 
-// Regla de ambientación por defecto: fondos cálidos y rústicos, evitando el
-// mármol blanco y superficies frías como opción por defecto. Se antepone a cada
-// prompt de plantilla para que el modelo lo aplique como criterio prioritario.
-const WARM_RUSTIC_AMBIENCE_RULE = `🎨 AMBIENTACIÓN POR DEFECTO (PRIORITARIA): usa fondos y escenarios CÁLIDOS y RÚSTICOS. Prioriza superficies y contextos como madera natural (roble, nogal, pino envejecido), mesas de tablones, tablas de cortar, cerámica artesanal, terracota, adobe, ladrillo visto, piedra rústica, arpillera/lino natural, ratán, mimbre, cesta tejida, cuero envejecido, hojas verdes o secas, telas de algodón crudo, elementos de granja/mercado, cocina campestre o taller artesanal (según encaje con el producto). La paleta debe ser cálida: tierras, ocres, terracotas, mostazas suaves, marrones, cremas cálidos, dorados suaves. Iluminación cálida tipo luz de ventana matinal o tarde dorada (golden hour), con tonos anaranjados/dorados sutiles. ❌ EVITA por defecto: mármol blanco/gris, superficies frías o clínicas, fondos blancos planos, acabados brillantes tipo laboratorio, tonos azules/grises fríos, estética minimalista fría o de spa moderno. Solo usa mármol/superficies frías si el producto lo exige claramente (p. ej. laboratorio, cosmética clínica) o si las observaciones del usuario lo piden explícitamente.`;
-
 const DEFAULT_DESIGN_PROMPT = `Genera una fotografía de producto premium de nivel comercial y publicitario a partir de la imagen de referencia.
 
 ${HERO_SIZE_RULE}
-
-${WARM_RUSTIC_AMBIENCE_RULE}
 
 ${PRESERVE_PRODUCT_BLOCK}
 
@@ -121,8 +114,6 @@ const LIFESTYLE_DESIGN_PROMPT = `Genera una fotografía lifestyle de producto pa
 
 ${LIFESTYLE_SIZE_RULE}
 
-${WARM_RUSTIC_AMBIENCE_RULE}
-
 ${PRESERVE_PRODUCT_BLOCK}
 
 Composición:
@@ -151,8 +142,6 @@ Salida final:
 const PROMO_DESIGN_PROMPT = `Genera una fotografía publicitaria de alto impacto para promociones en redes sociales a partir de la imagen de referencia.
 
 ${HERO_SIZE_RULE}
-
-${WARM_RUSTIC_AMBIENCE_RULE}
 
 ${PRESERVE_PRODUCT_BLOCK}
 
@@ -190,6 +179,73 @@ const DESIGN_PROMPT_TEMPLATES: Array<{ key: string; label: string; prompt: strin
 type DesignPackaging = 'without' | 'with' | 'both';
 // Presentación: cantidad de unidades (individual vs set/pack de varias).
 type DesignPresentation = 'individual' | 'set';
+// Ambiente / escenario de la foto.
+type DesignEnvironment =
+  | 'warm'
+  | 'outdoor'
+  | 'home'
+  | 'kitchen'
+  | 'bathroom'
+  | 'bedroom'
+  | 'school'
+  | 'custom';
+
+const ENVIRONMENT_OPTIONS: Array<{
+  key: DesignEnvironment;
+  label: string;
+  description: string;
+  /** Bloque a inyectar en el prompt cuando se elige esta opción. */
+  prompt: string;
+}> = [
+  {
+    key: 'warm',
+    label: 'Cálido (default)',
+    description: 'Fondo cálido y rústico: madera, cerámica, terracota.',
+    prompt: `🎨 AMBIENTACIÓN: usa fondos y escenarios CÁLIDOS y RÚSTICOS. Prioriza superficies y contextos como madera natural (roble, nogal, pino envejecido), mesas de tablones, tablas de cortar, cerámica artesanal, terracota, adobe, ladrillo visto, piedra rústica, arpillera/lino natural, ratán, mimbre, cesta tejida, cuero envejecido, hojas verdes o secas, telas de algodón crudo, elementos de granja/mercado o taller artesanal. Paleta: tierras, ocres, terracotas, mostazas suaves, marrones, cremas cálidos, dorados. Iluminación cálida tipo luz de ventana matinal o golden hour, con tonos anaranjados/dorados sutiles. ❌ EVITA mármol blanco/gris, superficies frías/clínicas, fondos blancos planos, acabados brillantes tipo laboratorio, tonos azules/grises fríos, estética minimalista fría o de spa moderno.`,
+  },
+  {
+    key: 'outdoor',
+    label: 'Aire libre',
+    description: 'Escena al aire libre con luz natural (jardín, terraza, campo).',
+    prompt: `🎨 AMBIENTACIÓN: escena AL AIRE LIBRE con luz natural real. Escoge un exterior coherente con el producto: jardín con plantas y follaje, terraza de madera, patio con vegetación, campo/pradera, mesa de picnic sobre pasto, playa/orilla natural, huerto, mercado al aire libre o parque. Incluye elementos naturales sutiles (hojas verdes, ramas, flores, luz filtrada entre plantas, madera al exterior, piedra natural). Iluminación de sol suave, luz de tarde dorada o luz difusa de día nublado; sombras naturales y frescas. Paleta orgánica con verdes naturales, tierras, azules cielo suaves y tonos cálidos. Fondo desenfocado sin competir con el producto. ❌ EVITA fondos de estudio, mármol fr��o o estética cerrada e indoor.`,
+  },
+  {
+    key: 'home',
+    label: 'Hogar',
+    description: 'Living/sala hogareña, sofá, mantas, plantas.',
+    prompt: `🎨 AMBIENTACIÓN: escena HOGAREÑA acogedora tipo living/sala real. Superficies y props: mesa ratona de madera, sofá con mantas y cojines de textura, alfombra suave, plantas de interior, cuadros, lámpara cálida, libros, cerámica y objetos personales. Ambiente vivido, cálido y aspiracional (no showroom vacío). Iluminación tibia de lámpara o luz de ventana con tonos ámbar; sombras suaves y hogareñas. Paleta cálida con maderas, cremas, ocres, verdes suaves y textiles naturales. Fondo desenfocado que aporte calidez sin robar protagonismo. ❌ EVITA mármol frío, estudio blanco, estética clínica o minimalista fría.`,
+  },
+  {
+    key: 'kitchen',
+    label: 'Cocina',
+    description: 'Cocina cálida: mesada de madera, utensilios, ingredientes.',
+    prompt: `🎨 AMBIENTACIÓN: escena de COCINA real y cálida. Superficies y props coherentes con la cocina: mesada de madera o mesón de tablones, tabla de cortar, utensilios de madera o cobre, ollas de hierro/esmalte, cerámica artesanal, textiles de lino/algodón, ingredientes frescos (hojas, especias, frutas, panes) según encaje. Puede ser cocina campestre / farmhouse / mediterránea cálida o cocina moderna con acentos de madera; NUNCA cocina clínica de acero frío. Iluminación cálida tipo luz de ventana matinal o tarde dorada, con reflejos ambarinos. Paleta de tierras, ocres, verdes olivos, cremas cálidos, cobres y dorados. Fondo desenfocado y armónico. ❌ EVITA mármol blanco frío puro, superficies de acero clínico como protagonistas, estudio blanco.`,
+  },
+  {
+    key: 'bathroom',
+    label: 'Baño',
+    description: 'Baño acogedor tipo spa cálido, madera, plantas, cerámica.',
+    prompt: `🎨 AMBIENTACIÓN: escena de BAÑO real y acogedor tipo spa cálido / boutique. Superficies y props: repisa de madera, canasto de ratán, toallas de algodón crudo enrolladas, cerámica artesanal, botellas y frascos apilados con estética natural, plantas verdes, jabones/esponjas naturales, piedra pómez, luz de vela. Fondo puede ser piedra natural, azulejo terracota, madera clara o pared con textura cálida. Iluminación tibia y difusa tipo luz de ventana con vapor sutil, sombras suaves. Paleta cálida con cremas, tierras, verdes eucalipto suaves y madera. Fondo desenfocado. ❌ EVITA baño 100% blanco/gris frío, estética clínica de hospital o laboratorio.`,
+  },
+  {
+    key: 'bedroom',
+    label: 'Cuarto',
+    description: 'Dormitorio cálido: cama, textiles suaves, mesita de luz.',
+    prompt: `🎨 AMBIENTACIÓN: escena de DORMITORIO / CUARTO cálido y aspiracional. Superficies y props: cama con sábanas y edredón de textura, cojines, manta tejida, mesita de luz de madera, lámpara cálida, cortinas de lino, plantas suaves, libros, cuadros, tocador con espejo. Ambiente acogedor, luz de mañana o de lámpara tibia, sombras suaves. Paleta cálida con cremas, beige, ocres, terracotas suaves, verdes muted y maderas. Fondo desenfocado que aporte confort. ❌ EVITA estética clínica fría, mármol blanco puro o estudio blanco.`,
+  },
+  {
+    key: 'school',
+    label: 'Escolar',
+    description: 'Escritorio, útiles escolares, cuadernos, aula cálida.',
+    prompt: `🎨 AMBIENTACIÓN: escena ESCOLAR / de escritorio de estudio. Superficies y props: escritorio de madera, cuadernos, lápices y crayones, regla, tijeras, mochila, libros abiertos, globo terráqueo, pizarra con tiza, mapa, corcho con notas. Puede ser aula, pupitre o estudio en casa. Iluminación cálida tipo luz de ventana matinal, sombras suaves. Paleta cálida con maderas, ocres, mostazas suaves, verdes pizarra, terracotas y cremas; puede incluir toques de colores primarios propios de útiles escolares sin que dominen. Fondo desenfocado y ordenado. ❌ EVITA estética 100% blanca fría o de laboratorio.`,
+  },
+  {
+    key: 'custom',
+    label: 'Personalizado',
+    description: 'Describe libremente el ambiente que quieres.',
+    prompt: '',
+  },
+];
 
 const PACKAGING_OPTIONS: Array<{
   key: DesignPackaging;
@@ -238,11 +294,32 @@ const PRESENTATION_OPTIONS: Array<{
 const buildDesignConfigBlock = (
   packaging: DesignPackaging,
   presentation: DesignPresentation,
+  environment: DesignEnvironment,
+  environmentCustom: string,
   observations: string
 ): string => {
   const lines: string[] = [
     '🎯 CONFIGURACIÓN ESPECÍFICA (OBLIGATORIA — SOBRESCRIBE CUALQUIER REGLA GENERAL EN CONFLICTO):',
   ];
+
+  // Ambientación / escenario
+  if (environment === 'custom') {
+    const custom = environmentCustom.trim();
+    if (custom) {
+      lines.push(
+        `🎨 AMBIENTACIÓN PERSONALIZADA (obligatoria): ${custom}. Respeta este escenario y estética por encima de cualquier default.`
+      );
+    } else {
+      // Sin texto personalizado: fallback al warm.
+      const fallback = ENVIRONMENT_OPTIONS.find((o) => o.key === 'warm')!.prompt;
+      lines.push(fallback);
+    }
+  } else {
+    const found = ENVIRONMENT_OPTIONS.find((o) => o.key === environment);
+    if (found && found.prompt) {
+      lines.push(found.prompt);
+    }
+  }
 
   if (presentation === 'set') {
     lines.push(
@@ -284,17 +361,27 @@ const buildDesignPrompt = ({
   templateKey,
   packaging,
   presentation,
+  environment,
+  environmentCustom,
   observations,
 }: {
   templateKey: string;
   packaging: DesignPackaging;
   presentation: DesignPresentation;
+  environment: DesignEnvironment;
+  environmentCustom: string;
   observations: string;
 }): string => {
   const base = (
     DESIGN_PROMPT_TEMPLATES.find((t) => t.key === templateKey) || DESIGN_PROMPT_TEMPLATES[0]
   ).prompt;
-  const config = buildDesignConfigBlock(packaging, presentation, observations);
+  const config = buildDesignConfigBlock(
+    packaging,
+    presentation,
+    environment,
+    environmentCustom,
+    observations
+  );
   return `${config}\n\n${base}`;
 };
 
@@ -398,12 +485,16 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
   const [designTemplateKey, setDesignTemplateKey] = useState(DESIGN_PROMPT_TEMPLATES[0].key);
   const [designPackaging, setDesignPackaging] = useState<DesignPackaging>('without');
   const [designPresentation, setDesignPresentation] = useState<DesignPresentation>('individual');
+  const [designEnvironment, setDesignEnvironment] = useState<DesignEnvironment>('warm');
+  const [designEnvironmentCustom, setDesignEnvironmentCustom] = useState('');
   const [designObservations, setDesignObservations] = useState('');
   const [designPrompt, setDesignPrompt] = useState(() =>
     buildDesignPrompt({
       templateKey: DESIGN_PROMPT_TEMPLATES[0].key,
       packaging: 'without',
       presentation: 'individual',
+      environment: 'warm',
+      environmentCustom: '',
       observations: '',
     })
   );
@@ -730,12 +821,16 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
     setDesignTemplateKey(DESIGN_PROMPT_TEMPLATES[0].key);
     setDesignPackaging('without');
     setDesignPresentation('individual');
+    setDesignEnvironment('warm');
+    setDesignEnvironmentCustom('');
     setDesignObservations('');
     setDesignPrompt(
       buildDesignPrompt({
         templateKey: DESIGN_PROMPT_TEMPLATES[0].key,
         packaging: 'without',
         presentation: 'individual',
+        environment: 'warm',
+        environmentCustom: '',
         observations: '',
       })
     );
@@ -752,6 +847,8 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
         templateKey: designTemplateKey,
         packaging: designPackaging,
         presentation: designPresentation,
+        environment: designEnvironment,
+        environmentCustom: designEnvironmentCustom,
         observations: designObservations,
       })
     );
@@ -759,6 +856,8 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
     designTemplateKey,
     designPackaging,
     designPresentation,
+    designEnvironment,
+    designEnvironmentCustom,
     designObservations,
     designPromptDirty,
   ]);
@@ -1374,6 +1473,42 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
                   {PACKAGING_OPTIONS.find((o) => o.key === designPackaging)?.description}
                 </Text>
 
+                <Text style={styles.inputLabel}>Ambiente</Text>
+                <View style={styles.templateRow}>
+                  {ENVIRONMENT_OPTIONS.map((opt) => {
+                    const selected = designEnvironment === opt.key;
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.templateChip, selected && styles.templateChipSelected]}
+                        onPress={() => setDesignEnvironment(opt.key)}
+                      >
+                        <Text
+                          style={[
+                            styles.templateChipText,
+                            selected && styles.templateChipTextSelected,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={styles.helperText}>
+                  {ENVIRONMENT_OPTIONS.find((o) => o.key === designEnvironment)?.description}
+                </Text>
+                {designEnvironment === 'custom' && (
+                  <TextInput
+                    style={[styles.input, styles.multilineSmall]}
+                    multiline
+                    value={designEnvironmentCustom}
+                    onChangeText={setDesignEnvironmentCustom}
+                    placeholder="Ej: taller de carpintería con virutas de madera y luz de tarde..."
+                    placeholderTextColor={theme.color.text.placeholder}
+                  />
+                )}
+
                 <Text style={styles.inputLabel}>Observaciones adicionales</Text>
                 <TextInput
                   style={[styles.input, styles.multilineSmall]}
@@ -1395,6 +1530,8 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
                             templateKey: designTemplateKey,
                             packaging: designPackaging,
                             presentation: designPresentation,
+                            environment: designEnvironment,
+                            environmentCustom: designEnvironmentCustom,
                             observations: designObservations,
                           })
                         );
