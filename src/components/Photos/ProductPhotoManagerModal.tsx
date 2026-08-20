@@ -179,9 +179,44 @@ const DESIGN_PROMPT_TEMPLATES: Array<{ key: string; label: string; prompt: strin
 type DesignPackaging = 'without' | 'with' | 'both';
 // Presentación: cantidad de unidades (individual vs set/pack de varias).
 type DesignPresentation = 'individual' | 'set';
+// Tono / temperatura de la iluminación y paleta.
+type DesignTone = 'warm' | 'amber' | 'cold' | 'auto';
+
+const TONE_OPTIONS: Array<{
+  key: DesignTone;
+  label: string;
+  description: string;
+  prompt: string;
+}> = [
+  {
+    key: 'warm',
+    label: 'Cálido (default)',
+    description: 'Luz cálida tipo mañana / tarde con tonos tierra y dorados suaves.',
+    prompt: `🌡️ TONO: CÁLIDO. Iluminación cálida tipo luz de ventana matinal o de tarde con tonos anaranjados/dorados suaves; sombras suaves y naturales. Paleta cálida armónica: tierras, ocres, terracotas, mostazas suaves, marrones, cremas cálidos, dorados sutiles. Prioriza materiales naturales y superficies con textura (madera, cerámica, textiles, ratán) cuando el ambiente lo permita. ❌ EVITA por defecto mármol blanco/gris, superficies clínicas frías, fondos 100% blancos, acabados brillantes tipo laboratorio, tonos azules/grises fríos y estética minimalista fría.`,
+  },
+  {
+    key: 'amber',
+    label: 'Ámbar',
+    description: 'Dorado intenso tipo golden hour marcado.',
+    prompt: `🌡️ TONO: ÁMBAR / GOLDEN HOUR MARCADO. Iluminación dorada intensa tipo atardecer/golden hour con reflejos ambarinos y contraluz suave; sombras alargadas y cálidas. Paleta dominada por dorados, ámbares, ocres profundos, terracotas cálidas y marrones ricos, con acentos rojizos. Atmósfera envolvente, cinematográfica y aspiracional. ❌ EVITA mármol blanco/gris, superficies frías, luces frías o azuladas.`,
+  },
+  {
+    key: 'cold',
+    label: 'Frío',
+    description: 'Estética limpia, minimalista, tonos fríos o neutros.',
+    prompt: `🌡️ TONO: FRÍO / LIMPIO. Iluminación clara y difusa tipo estudio o luz de día neutra; sombras suaves y controladas. Paleta fría/neutra: blancos, grises claros, azules muy suaves, mentas, celestes, plateados. Superficies permitidas: mármol blanco/gris, cristal, cerámica blanca, metal cepillado, acero mate, superficies limpias tipo laboratorio o boutique moderno. Estética minimalista, clínica premium o editorial limpia.`,
+  },
+  {
+    key: 'auto',
+    label: 'Automático',
+    description: 'Gemini elige el tono que mejor encaje con el producto.',
+    prompt: `🌡️ TONO: AUTOMÁTICO. Elige la temperatura de iluminación y paleta que mejor represente al producto según su categoría e identidad de marca (cálido/ámbar para productos artesanales, gourmet, hogar, textiles; frío/limpio para tecnología, cosmética clínica, laboratorio o líneas premium modernas). Justifica visualmente la elección con luz y color coherentes con el uso del producto.`,
+  },
+];
+
 // Ambiente / escenario de la foto.
 type DesignEnvironment =
-  | 'warm'
+  | 'auto'
   | 'outdoor'
   | 'home'
   | 'kitchen'
@@ -198,10 +233,10 @@ const ENVIRONMENT_OPTIONS: Array<{
   prompt: string;
 }> = [
   {
-    key: 'warm',
-    label: 'Cálido (default)',
-    description: 'Fondo cálido y rústico: madera, cerámica, terracota.',
-    prompt: `🎨 AMBIENTACIÓN: usa fondos y escenarios CÁLIDOS y RÚSTICOS. Prioriza superficies y contextos como madera natural (roble, nogal, pino envejecido), mesas de tablones, tablas de cortar, cerámica artesanal, terracota, adobe, ladrillo visto, piedra rústica, arpillera/lino natural, ratán, mimbre, cesta tejida, cuero envejecido, hojas verdes o secas, telas de algodón crudo, elementos de granja/mercado o taller artesanal. Paleta: tierras, ocres, terracotas, mostazas suaves, marrones, cremas cálidos, dorados. Iluminación cálida tipo luz de ventana matinal o golden hour, con tonos anaranjados/dorados sutiles. ❌ EVITA mármol blanco/gris, superficies frías/clínicas, fondos blancos planos, acabados brillantes tipo laboratorio, tonos azules/grises fríos, estética minimalista fría o de spa moderno.`,
+    key: 'auto',
+    label: 'Automático',
+    description: 'Sin escena específica; el tono elegido guía la ambientación.',
+    prompt: '',
   },
   {
     key: 'outdoor',
@@ -294,6 +329,7 @@ const PRESENTATION_OPTIONS: Array<{
 const buildDesignConfigBlock = (
   packaging: DesignPackaging,
   presentation: DesignPresentation,
+  tone: DesignTone,
   environment: DesignEnvironment,
   environmentCustom: string,
   observations: string
@@ -302,18 +338,21 @@ const buildDesignConfigBlock = (
     '🎯 CONFIGURACIÓN ESPECÍFICA (OBLIGATORIA — SOBRESCRIBE CUALQUIER REGLA GENERAL EN CONFLICTO):',
   ];
 
+  // Tono / temperatura de iluminación y paleta
+  const toneOption = TONE_OPTIONS.find((o) => o.key === tone);
+  if (toneOption?.prompt) {
+    lines.push(toneOption.prompt);
+  }
+
   // Ambientación / escenario
   if (environment === 'custom') {
     const custom = environmentCustom.trim();
     if (custom) {
       lines.push(
-        `🎨 AMBIENTACIÓN PERSONALIZADA (obligatoria): ${custom}. Respeta este escenario y estética por encima de cualquier default.`
+        `🎨 AMBIENTACIÓN PERSONALIZADA (obligatoria): ${custom}. Respeta este escenario y estética por encima de cualquier default, pero manteniendo el TONO elegido arriba.`
       );
-    } else {
-      // Sin texto personalizado: fallback al warm.
-      const fallback = ENVIRONMENT_OPTIONS.find((o) => o.key === 'warm')!.prompt;
-      lines.push(fallback);
     }
+    // Sin texto personalizado: el tono ya define la atmósfera.
   } else {
     const found = ENVIRONMENT_OPTIONS.find((o) => o.key === environment);
     if (found && found.prompt) {
@@ -361,6 +400,7 @@ const buildDesignPrompt = ({
   templateKey,
   packaging,
   presentation,
+  tone,
   environment,
   environmentCustom,
   observations,
@@ -368,6 +408,7 @@ const buildDesignPrompt = ({
   templateKey: string;
   packaging: DesignPackaging;
   presentation: DesignPresentation;
+  tone: DesignTone;
   environment: DesignEnvironment;
   environmentCustom: string;
   observations: string;
@@ -378,6 +419,7 @@ const buildDesignPrompt = ({
   const config = buildDesignConfigBlock(
     packaging,
     presentation,
+    tone,
     environment,
     environmentCustom,
     observations
@@ -485,7 +527,8 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
   const [designTemplateKey, setDesignTemplateKey] = useState(DESIGN_PROMPT_TEMPLATES[0].key);
   const [designPackaging, setDesignPackaging] = useState<DesignPackaging>('without');
   const [designPresentation, setDesignPresentation] = useState<DesignPresentation>('individual');
-  const [designEnvironment, setDesignEnvironment] = useState<DesignEnvironment>('warm');
+  const [designTone, setDesignTone] = useState<DesignTone>('warm');
+  const [designEnvironment, setDesignEnvironment] = useState<DesignEnvironment>('auto');
   const [designEnvironmentCustom, setDesignEnvironmentCustom] = useState('');
   const [designObservations, setDesignObservations] = useState('');
   const [designPrompt, setDesignPrompt] = useState(() =>
@@ -493,7 +536,8 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
       templateKey: DESIGN_PROMPT_TEMPLATES[0].key,
       packaging: 'without',
       presentation: 'individual',
-      environment: 'warm',
+      tone: 'warm',
+      environment: 'auto',
       environmentCustom: '',
       observations: '',
     })
@@ -821,7 +865,8 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
     setDesignTemplateKey(DESIGN_PROMPT_TEMPLATES[0].key);
     setDesignPackaging('without');
     setDesignPresentation('individual');
-    setDesignEnvironment('warm');
+    setDesignTone('warm');
+    setDesignEnvironment('auto');
     setDesignEnvironmentCustom('');
     setDesignObservations('');
     setDesignPrompt(
@@ -829,7 +874,8 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
         templateKey: DESIGN_PROMPT_TEMPLATES[0].key,
         packaging: 'without',
         presentation: 'individual',
-        environment: 'warm',
+        tone: 'warm',
+        environment: 'auto',
         environmentCustom: '',
         observations: '',
       })
@@ -847,6 +893,7 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
         templateKey: designTemplateKey,
         packaging: designPackaging,
         presentation: designPresentation,
+        tone: designTone,
         environment: designEnvironment,
         environmentCustom: designEnvironmentCustom,
         observations: designObservations,
@@ -856,6 +903,7 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
     designTemplateKey,
     designPackaging,
     designPresentation,
+    designTone,
     designEnvironment,
     designEnvironmentCustom,
     designObservations,
@@ -1473,6 +1521,32 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
                   {PACKAGING_OPTIONS.find((o) => o.key === designPackaging)?.description}
                 </Text>
 
+                <Text style={styles.inputLabel}>Tono</Text>
+                <View style={styles.templateRow}>
+                  {TONE_OPTIONS.map((opt) => {
+                    const selected = designTone === opt.key;
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.templateChip, selected && styles.templateChipSelected]}
+                        onPress={() => setDesignTone(opt.key)}
+                      >
+                        <Text
+                          style={[
+                            styles.templateChipText,
+                            selected && styles.templateChipTextSelected,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={styles.helperText}>
+                  {TONE_OPTIONS.find((o) => o.key === designTone)?.description}
+                </Text>
+
                 <Text style={styles.inputLabel}>Ambiente</Text>
                 <View style={styles.templateRow}>
                   {ENVIRONMENT_OPTIONS.map((opt) => {
@@ -1530,6 +1604,7 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
                             templateKey: designTemplateKey,
                             packaging: designPackaging,
                             presentation: designPresentation,
+                            tone: designTone,
                             environment: designEnvironment,
                             environmentCustom: designEnvironmentCustom,
                             observations: designObservations,
