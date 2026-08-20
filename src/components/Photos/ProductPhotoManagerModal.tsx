@@ -94,16 +94,14 @@ Composición:
 
 Iluminación:
 
-* Luz de estudio suave y uniforme.
-* Sombras sutiles y realistas que aporten volumen.
-* Realces delicados que resalten el material (plástico, metal, brillo del empaque) y separen el producto del fondo.
+* Iluminación coherente con el TONO indicado en la configuración específica (arriba); sombras suaves y realistas que aporten volumen.
+* Realces que resalten el material (plástico, metal, brillo del empaque) y separen el producto del fondo, sin contradecir el tono elegido.
 
 Escenario y fondo:
 
-* Genera un fondo ambientado cálido y rústico según la categoría del producto (no un color plano): madera natural, cerámica artesanal, terracota, arpillera, ratán, piedra rústica, cocina campestre, taller artesanal o mesa de mercado, según encaje con el producto.
-* El fondo debe ser cálido, artesanal y ligeramente desenfocado, aportando calidez y contexto sin competir con el producto.
-* Paleta de tierras, ocres, terracotas, mostazas suaves, cremas cálidos y dorados. NUNCA uses mármol blanco/gris ni superficies frías/clínicas por defecto.
-* El producto siempre debe destacar claramente sobre el fondo rústico y cálido.
+* Fondo ambientado según la CONFIGURACIÓN ESPECÍFICA de tono y ambiente indicada arriba (no un color plano, salvo que el tono/observaciones lo pidan).
+* El fondo debe ser elegante, ligeramente desenfocado y coherente con el tono, aportando contexto sin competir con el producto.
+* El producto siempre debe destacar claramente sobre el fondo.
 
 Salida final:
 
@@ -119,20 +117,19 @@ ${PRESERVE_PRODUCT_BLOCK}
 Composición:
 
 * El producto aislado es el protagonista claro, en primer plano y bien enfocado; debe ocupar entre el 40% y el 60% del área de la imagen y notarse cercano (nunca pequeño ni perdido en la escena).
-* Ambientación real de uso cotidiano cálida y rústica acorde al producto (mesa de madera, cocina campestre, taller artesanal, terraza con plantas, mesón de tablones, cesto de mimbre, superficie de barro cocido).
-* Props sutiles y coherentes con la estética cálida/artesanal (madera, cerámica hecha a mano, textiles de lino/algodón crudo, hojas verdes, flores secas, ratán, cesta tejida) que acompañen sin robar protagonismo ni tapar el producto.
+* Ambientación real de uso cotidiano acorde al producto y al ambiente indicado en la configuración específica (arriba).
+* Props sutiles y coherentes con el TONO y AMBIENTE elegidos que acompañen sin robar protagonismo ni tapar el producto.
 * Encuadre atractivo con espacio negativo para texto/overlay.
 
 Iluminación:
 
-* Luz natural cálida tipo luz de ventana matinal o golden hour, con tonos anaranjados/dorados sutiles.
-* Sombras suaves y naturales, atmósfera acogedora, hogareña y aspiracional.
+* Iluminación coherente con el TONO indicado en la configuración específica (arriba); sombras suaves y naturales.
+* Atmósfera acogedora y aspiracional dentro del tono elegido (sin forzar calidez si el tono es frío o automático).
 
 Escenario y fondo:
 
-* Escena aspiracional acogedora tipo "cottagecore" / farmhouse / mediterráneo cálido / taller artesanal, con fondo desenfocado que resalte el producto.
-* Paleta cálida armónica: tierras, ocres, terracotas, mostazas suaves, marrones, cremas cálidos, verdes olivos y dorados.
-* NUNCA uses mármol blanco/gris ni estética minimalista fría por defecto.
+* Escena aspiracional coherente con el ambiente y tono indicados arriba, con fondo desenfocado que resalte el producto.
+* Paleta armónica derivada del TONO elegido (no forzar tonos cálidos si el tono no es cálido/ámbar).
 
 Salida final:
 
@@ -152,16 +149,14 @@ Composición:
 
 Iluminación:
 
-* Iluminación cálida tipo golden hour o luz de ventana dorada, con reflejos ambarinos y sombras suaves y naturales.
-* Realces cálidos que resalten texturas, volumen y el detalle del empaque; sin brillos fríos ni acabados clínicos.
-* Contraste controlado con tonalidades cálidas dominantes, manteniendo los colores reales del producto.
+* Iluminación de alto impacto coherente con el TONO indicado en la configuración específica (arriba), con sombras suaves y realces que resalten texturas, volumen y detalle del empaque.
+* Contraste controlado manteniendo los colores reales del producto, sin contradecir el tono elegido.
 
 Escenario y fondo:
 
-* Fondo publicitario cálido y rústico coherente con la categoría (madera natural, cerámica artesanal, terracota, cesta de mimbre, mesón de tablones, ladrillo visto o telas de lino/arpillera), con props y texturas artesanales.
-* Puede ser vibrante y llamativo dentro de la paleta cálida (ocres, terracotas, mostazas, dorados), manteniendo un espacio limpio alrededor del producto para precios, ofertas o CTAs.
-* Estética comercial cálida y aspiracional tipo "mercado artesanal / farm-to-table / campaña con calidez de hogar"; el producto siempre dominante sobre el fondo.
-* NUNCA uses mármol blanco/gris ni fondos fríos/clínicos por defecto.
+* Fondo publicitario coherente con el ambiente y tono indicados arriba, con props y texturas afines.
+* Puede ser vibrante y llamativo dentro de la paleta que exija el TONO elegido, manteniendo un espacio limpio alrededor del producto para precios, ofertas o CTAs.
+* Estética comercial y aspiracional; el producto siempre dominante sobre el fondo.
 
 Salida final:
 
@@ -424,7 +419,18 @@ const buildDesignPrompt = ({
     environmentCustom,
     observations
   );
-  return `${config}\n\n${base}`;
+
+  // Recordatorio final para reforzar que la configuración específica manda
+  // sobre cualquier default de la plantilla (Gemini suele dar más peso a lo
+  // último que lee).
+  const toneLabel = TONE_OPTIONS.find((o) => o.key === tone)?.label || tone;
+  const envLabel =
+    environment === 'custom'
+      ? environmentCustom.trim() || 'personalizado'
+      : ENVIRONMENT_OPTIONS.find((o) => o.key === environment)?.label || environment;
+  const reminder = `⚠️ RECORDATORIO FINAL (MÁXIMA PRIORIDAD): respeta estrictamente la CONFIGURACIÓN ESPECÍFICA del inicio. TONO = "${toneLabel}". AMBIENTE = "${envLabel}". Si alguna sección de esta plantilla contradice ese tono o ambiente, IGNÓRALA y aplica el tono/ambiente configurado. No fuerces calidez, rusticidad ni dorados si el tono no lo pide; no fuerces mármol blanco ni frialdad si el tono no lo pide.`;
+
+  return `${config}\n\n${base}\n\n${reminder}`;
 };
 
 type PricePhotoFormState = {
