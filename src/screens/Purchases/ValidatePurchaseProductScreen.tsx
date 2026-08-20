@@ -179,6 +179,29 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     });
     return Array.from(map.values());
   }, [product?.validations]);
+
+  // Si el producto YA tiene variantes con tracksStock=true, el nuevo ingreso
+  // debe forzosamente controlar stock por variante (no se puede degradar a
+  // "sin stock" en medio del historial). Similar al inverso: si TODAS las
+  // existentes son sin stock, mantenemos el toggle libre pero por defecto OFF.
+  const existingStockPolicy = useMemo<'force-on' | 'force-off' | 'free'>(() => {
+    if (existingVariants.length === 0) return 'free';
+    const anyWithStock = existingVariants.some((v) => v.tracksStock !== false);
+    const allWithoutStock = existingVariants.every((v) => v.tracksStock === false);
+    if (anyWithStock) return 'force-on';
+    if (allWithoutStock) return 'force-off';
+    return 'free';
+  }, [existingVariants]);
+
+  // Aplica la regla al activar "Usar variantes" o cuando cambia la politica.
+  useEffect(() => {
+    if (!multiVariantMode) return;
+    if (existingStockPolicy === 'force-on' && !tracksVariantStock) {
+      setTracksVariantStock(true);
+    } else if (existingStockPolicy === 'force-off' && tracksVariantStock) {
+      setTracksVariantStock(false);
+    }
+  }, [multiVariantMode, existingStockPolicy, tracksVariantStock]);
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
@@ -1441,20 +1464,21 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                     <View style={{ flex: 1 }}>
                       <Body>Controlar stock por variante</Body>
                       <Caption color="tertiary">
-                        {tracksVariantStock
-                          ? 'Cada variante suma stock por separado (POS podra vender).'
-                          : 'Variantes descriptivas SIN stock. Se registran nombre/SKU/foto pero no afectan inventario.'}
+                        {existingStockPolicy === 'force-on'
+                          ? '🔒 Bloqueado: ya existen variantes con stock (ej. rojo, verde). Todas las nuevas deben llevar stock para mantener consistencia.'
+                          : existingStockPolicy === 'force-off'
+                            ? '🔒 Bloqueado: las variantes existentes son descriptivas SIN stock. Las nuevas siguen la misma politica.'
+                            : tracksVariantStock
+                              ? 'Cada variante suma stock por separado (POS podra vender).'
+                              : 'Variantes descriptivas SIN stock. Se registran nombre/SKU/foto pero no afectan inventario.'}
                       </Caption>
                     </View>
                     <Switch
                       value={tracksVariantStock}
+                      disabled={existingStockPolicy !== 'free'}
                       onValueChange={(value) => {
                         setTracksVariantStock(value);
-                        // Regla: si una tiene stock, todas usan stock. Al alternar
-                        // reseteamos validatedStock por defecto (1) por consistencia.
-                        setVariantRows((rows) =>
-                          rows.map((r) => ({ ...r, validatedStock: value ? 1 : 1 }))
-                        );
+                        setVariantRows((rows) => rows.map((r) => ({ ...r, validatedStock: 1 })));
                       }}
                     />
                   </View>
