@@ -456,6 +456,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     void loadLinkedPhotoCampaign();
   }, [loadLinkedPhotoCampaign]);
 
+  // Progreso global de la generación masiva de fotos con precio (aplica solo
+  // cuando pertenece a esta campaña, para que el usuario vea el indicador
+  // aunque cambie de tab dentro de la pantalla).
+  const bulkPricePlain = usePhotoGenerationStore((s) => s.bulkPrice);
+  const bulkPriceForThisCampaign =
+    bulkPricePlain.campaignId === campaignId && bulkPricePlain.running ? bulkPricePlain : null;
+  const generateBulkPrices = usePhotoGenerationStore((s) => s.generateBulkPrices);
+
   // ¿Hay una generación de fotos (diseño / precio) en curso para el producto
   // cuyo modal está (o estuvo) abierto? Nos suscribimos al store global para
   // no desmontar el modal mientras la subida en segundo plano no termine.
@@ -485,6 +493,78 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       setPhotoManagerProduct(null);
     }
   }, [photoGeneratingForProduct, photoManagerVisible, photoManagerProduct, refetchProductsDetail]);
+
+  const handleBulkGeneratePricePhotos = useCallback(() => {
+    if (!campaign?.products || campaign.products.length === 0) {
+      Alert.alert('Sin productos', 'Esta campaña no tiene productos.');
+      return;
+    }
+    if (bulkPricePlain.running) {
+      Alert.alert(
+        'En progreso',
+        'Ya hay una generación masiva de fotos con precio en curso. Espera a que termine.'
+      );
+      return;
+    }
+
+    const productsPayload = campaign.products
+      .map((cp) => {
+        const detail = productsDetailMap[cp.id];
+        const productDetails = cp.product || products[cp.productId];
+        const name = detail?.title || productDetails?.title || '';
+        const sku = detail?.sku || productDetails?.sku || '';
+        return {
+          productId: cp.productId,
+          name,
+          sku,
+        };
+      })
+      .filter((p) => p.productId && p.name && p.sku);
+
+    if (productsPayload.length === 0) {
+      Alert.alert('Sin datos', 'No se pudieron determinar nombre/SKU de los productos.');
+      return;
+    }
+
+    Alert.alert(
+      'Generar fotos con precio',
+      `Se recorrerán ${productsPayload.length} productos y se generará la foto con precio para los que ya tengan diseño y aún no tengan precio. El proceso corre en segundo plano.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Generar',
+          onPress: () => {
+            void generateBulkPrices({
+              campaignId,
+              photoCampaignId: linkedPhotoCampaignId,
+              template: 'premium',
+              products: productsPayload,
+            });
+          },
+        },
+      ]
+    );
+  }, [
+    campaign?.products,
+    bulkPricePlain.running,
+    productsDetailMap,
+    products,
+    generateBulkPrices,
+    campaignId,
+    linkedPhotoCampaignId,
+  ]);
+
+  // Al terminar la generación masiva de fotos con precio, refrescamos los
+  // datos de productos para reflejar las nuevas imágenes.
+  const prevBulkPriceRunningRef = useRef(false);
+  useEffect(() => {
+    const wasRunning = prevBulkPriceRunningRef.current;
+    const isRunning = Boolean(bulkPriceForThisCampaign?.running);
+    prevBulkPriceRunningRef.current = isRunning;
+    if (wasRunning && !isRunning) {
+      void refetchProductsDetail?.();
+    }
+  }, [bulkPriceForThisCampaign?.running, refetchProductsDetail]);
 
   const loadCampaign = useCallback(async () => {
     try {
@@ -3236,6 +3316,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   </Text>
                 </TouchableOpacity>
               )}
+              {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.READ) && (
+                <TouchableOpacity
+                  style={[
+                    styles.bulkButton,
+                    isTablet && styles.bulkButtonTablet,
+                    bulkPriceForThisCampaign?.running && styles.bulkButtonDisabled,
+                  ]}
+                  disabled={bulkPriceForThisCampaign?.running}
+                  onPress={handleBulkGeneratePricePhotos}
+                >
+                  <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
+                    🏷️ Generar fotos con precio
+                  </Text>
+                </TouchableOpacity>
+              )}
               {(campaign.status === CampaignStatus.DRAFT ||
                 campaign.status === CampaignStatus.ACTIVE) && (
                 <>
@@ -3259,6 +3354,24 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               )}
             </View>
           </View>
+
+          {/* Indicador de generación masiva de fotos con precio */}
+          {bulkPriceForThisCampaign && (
+            <View style={styles.bulkPriceBanner}>
+              <ActivityIndicator size="small" color={theme.color.brand.primary} />
+              <View style={styles.bulkPriceBannerTextWrap}>
+                <Text style={styles.bulkPriceBannerTitle}>
+                  Generando fotos con precio en segundo plano ({bulkPriceForThisCampaign.done}/
+                  {bulkPriceForThisCampaign.total || '…'})
+                </Text>
+                {bulkPriceForThisCampaign.currentProductName && (
+                  <Text style={styles.bulkPriceBannerSubtitle} numberOfLines={1}>
+                    Procesando: {bulkPriceForThisCampaign.currentProductName}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
 
           {/* Search bar + supplier picker */}
           <View style={styles.searchRow}>
@@ -4398,6 +4511,34 @@ const createStyles = (theme: Theme) =>
     },
     bulkButtonTextTablet: {
       fontSize: 14,
+    },
+    bulkButtonDisabled: {
+      opacity: 0.6,
+    },
+    bulkPriceBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginTop: 12,
+    },
+    bulkPriceBannerTextWrap: {
+      flex: 1,
+    },
+    bulkPriceBannerTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    bulkPriceBannerSubtitle: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: 2,
     },
     addButton: {
       backgroundColor: theme.color.brand.primary,

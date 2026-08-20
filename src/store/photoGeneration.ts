@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 
-import { photoCampaignsApi } from '@/services/api';
+import { photoCampaignsApi, priceProfilesApi } from '@/services/api';
 import { uploadFileFromBase64, uploadFileFromUrl } from '@/utils/imageFile';
 import { logger } from '@/utils/logger';
 import Alert from '@/utils/alert';
-import type { AdDesignTemplate } from '@/types/photo-campaigns';
+import type { AdDesignTemplate, PhotoGroup } from '@/types/photo-campaigns';
+import type { ProductSalePrice } from '@/types/price-profiles';
 
 export type PhotoGenerationKind = 'design' | 'price';
 
@@ -53,6 +54,31 @@ interface GeneratePriceParams {
   template: AdDesignTemplate;
   /** Reference (grupo) al que se adjunta el price generado. */
   parentAssetId?: string;
+  /** Si es true, no muestra alertas en caso de error (para flujos masivos). */
+  silent?: boolean;
+}
+
+interface BulkPriceProduct {
+  productId: string;
+  name: string;
+  sku: string;
+}
+
+interface GenerateBulkPricesParams {
+  campaignId: string;
+  photoCampaignId?: string;
+  template?: AdDesignTemplate;
+  products: BulkPriceProduct[];
+}
+
+interface BulkPriceProgress {
+  running: boolean;
+  total: number;
+  done: number;
+  failed: number;
+  skipped: number;
+  campaignId?: string;
+  currentProductName?: string;
 }
 
 /** Llave compuesta producto+grupo para llevar flags de generación por grupo. */
@@ -64,13 +90,16 @@ interface PhotoGenerationState {
   generating: Record<string, { design?: boolean; price?: boolean }>;
   /** Se incrementa cuando termina una tarea de un producto (para recargar). */
   completedVersion: Record<string, number>;
+  /** Progreso de generación masiva de fotos con precio. */
+  bulkPrice: BulkPriceProgress;
   isGenerating: (
     productId: string,
     kind: PhotoGenerationKind,
     parentAssetId?: string | null
   ) => boolean;
   generateDesign: (params: GenerateDesignParams) => Promise<void>;
-  generatePrice: (params: GeneratePriceParams) => Promise<void>;
+  generatePrice: (params: GeneratePriceParams) => Promise<boolean>;
+  generateBulkPrices: (params: GenerateBulkPricesParams) => Promise<void>;
 }
 
 export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) => {
@@ -101,6 +130,7 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
   return {
     generating: {},
     completedVersion: {},
+    bulkPrice: { running: false, total: 0, done: 0, failed: 0, skipped: 0 },
 
     isGenerating: (productId, kind, parentAssetId) =>
       Boolean(get().generating[groupKey(productId, parentAssetId)]?.[kind]),
@@ -191,9 +221,10 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
       price,
       template,
       parentAssetId,
+      silent,
     }) => {
       if (get().isGenerating(productId, 'price', parentAssetId)) {
-        return;
+        return false;
       }
       setFlag(productId, parentAssetId, 'price', true);
       try {
@@ -233,8 +264,10 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
           (response as any)?.data?.url;
 
         if (!generatedUrl) {
-          Alert.alert('Error', 'No se pudo generar el diseño con precio.');
-          return;
+          if (!silent) {
+            Alert.alert('Error', 'No se pudo generar el diseño con precio.');
+          }
+          return false;
         }
 
         const priceFile = await withTimeout(
@@ -271,12 +304,164 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
             await new Promise((resolve) => setTimeout(resolve, 700));
           }
         }
+        return true;
       } catch (error: any) {
         logger.error('[PHOTO_CAMPAIGNS][AD_DESIGN] Background generation error', error);
-        Alert.alert('Error', error?.message || 'No se pudo guardar la foto con precio.');
+        if (!silent) {
+          Alert.alert('Error', error?.message || 'No se pudo guardar la foto con precio.');
+        }
+        return false;
       } finally {
         setFlag(productId, parentAssetId, 'price', false);
         bumpCompleted(productId);
+      }
+    },
+
+    generateBulkPrices: async ({ campaignId, photoCampaignId, template = 'premium', products }) => {
+      if (get().bulkPrice.running) {
+        return;
+      }
+
+      set({
+        bulkPrice: {
+          running: true,
+          total: 0,
+          done: 0,
+          failed: 0,
+          skipped: 0,
+          campaignId,
+        },
+      });
+
+      try {
+        // 1) Resolver perfil de precio "socia" (default para etiquetar).
+        let sociaProfileId: string | null = null;
+        try {
+          const profiles = await priceProfilesApi.getActivePriceProfiles();
+          const socia =
+            profiles.find((p) => p.name?.toLowerCase().includes('socia')) || profiles[0] || null;
+          sociaProfileId = socia?.id || null;
+        } catch (error) {
+          logger.warn('[BULK_PRICE] No se pudieron cargar perfiles de precio', error);
+        }
+
+        // 2) Enumerar tareas: para cada producto, obtener sus grupos y filtrar
+        // los que ya tienen design pero aún NO tienen price.
+        interface Task {
+          productId: string;
+          productName: string;
+          productSku: string;
+          group: PhotoGroup;
+          price: string;
+        }
+
+        const tasks: Task[] = [];
+
+        for (const p of products) {
+          try {
+            const [groups, salePricesResp] = await Promise.all([
+              photoCampaignsApi.getProductPhotoGroups(p.productId),
+              priceProfilesApi.getProductSalePrices(p.productId).catch(() => null),
+            ]);
+
+            const salePricesArray: ProductSalePrice[] = salePricesResp
+              ? (salePricesResp as any).salePrices || (salePricesResp as any).data || []
+              : [];
+
+            const defaultSalePrice = sociaProfileId
+              ? salePricesArray.find(
+                  (sp) => sp.profileId === sociaProfileId && sp.presentationId === null
+                )
+              : salePricesArray[0];
+
+            const priceValue = defaultSalePrice
+              ? (defaultSalePrice.priceCents / 100).toFixed(2)
+              : '';
+
+            if (!priceValue) {
+              // Sin precio configurado, no podemos generar.
+              set((state) => ({
+                bulkPrice: { ...state.bulkPrice, skipped: state.bulkPrice.skipped + 1 },
+              }));
+              continue;
+            }
+
+            for (const g of groups) {
+              if (g.design?.fileUrl && !g.price && g.reference?.id) {
+                tasks.push({
+                  productId: p.productId,
+                  productName: p.name,
+                  productSku: p.sku,
+                  group: g,
+                  price: priceValue,
+                });
+              }
+            }
+          } catch (error) {
+            logger.warn('[BULK_PRICE] Error enumerando grupos del producto', p.productId, error);
+            set((state) => ({
+              bulkPrice: { ...state.bulkPrice, skipped: state.bulkPrice.skipped + 1 },
+            }));
+          }
+        }
+
+        set((state) => ({
+          bulkPrice: { ...state.bulkPrice, total: tasks.length },
+        }));
+
+        // 3) Ejecutar secuencialmente para no saturar la generación con IA.
+        for (const task of tasks) {
+          set((state) => ({
+            bulkPrice: {
+              ...state.bulkPrice,
+              currentProductName: task.productName,
+            },
+          }));
+
+          const ok = await get().generatePrice({
+            productId: task.productId,
+            photoCampaignId,
+            designUrl: task.group.design!.fileUrl,
+            designMimeType: task.group.design!.mimeType,
+            name: task.productName,
+            sku: task.productSku,
+            price: task.price,
+            template,
+            parentAssetId: task.group.reference!.id,
+            silent: true,
+          });
+
+          set((state) => ({
+            bulkPrice: {
+              ...state.bulkPrice,
+              done: state.bulkPrice.done + (ok ? 1 : 0),
+              failed: state.bulkPrice.failed + (ok ? 0 : 1),
+            },
+          }));
+        }
+      } catch (error: any) {
+        logger.error('[BULK_PRICE] Error inesperado', error);
+        Alert.alert(
+          'Error',
+          error?.message || 'Ocurrió un error inesperado durante la generación masiva.'
+        );
+      } finally {
+        const finalState = get().bulkPrice;
+        set({
+          bulkPrice: { ...finalState, running: false, currentProductName: undefined },
+        });
+        const { total, done, failed, skipped } = finalState;
+        if (total === 0 && skipped === 0) {
+          Alert.alert(
+            'Sin fotos por generar',
+            'No hay productos con diseño listo que necesiten generar la foto con precio.'
+          );
+        } else {
+          Alert.alert(
+            'Generación finalizada',
+            `Generadas: ${done}\nFallidas: ${failed}${skipped ? `\nOmitidas: ${skipped}` : ''}`
+          );
+        }
       }
     },
   };
