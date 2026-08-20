@@ -1003,12 +1003,20 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
                   ]}
                 >
                   <Caption
-                    color={totalSum.differenceCents > 0 ? theme.color.text.success : theme.color.text.danger}
+                    color={
+                      totalSum.differenceCents > 0
+                        ? theme.color.text.success
+                        : theme.color.text.danger
+                    }
                   >
                     Diferencia:
                   </Caption>
                   <Body
-                    color={totalSum.differenceCents > 0 ? theme.color.text.success : theme.color.text.danger}
+                    color={
+                      totalSum.differenceCents > 0
+                        ? theme.color.text.success
+                        : theme.color.text.danger
+                    }
                   >
                     {totalSum.differenceCents > 0 ? '+' : ''}
                     {formatCurrency(totalSum.differenceCents)}
@@ -1660,6 +1668,25 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
                         size="small"
                       />
                     </View>
+                    {(validation.variant?.name || validation.variantName) && (
+                      <View style={modalStyles.variantChipRow}>
+                        <Badge
+                          label={`🎨 ${validation.variant?.name || validation.variantName}`}
+                          variant="info"
+                          size="small"
+                        />
+                        {validation.variant?.sku && (
+                          <Badge
+                            label={`SKU: ${validation.variant.sku}`}
+                            variant="default"
+                            size="small"
+                          />
+                        )}
+                        {validation.variant?.tracksStock === false && (
+                          <Badge label="Sin stock" variant="warning" size="small" />
+                        )}
+                      </View>
+                    )}
                     <InfoRow
                       label="Fecha"
                       value={new Date(validation.validatedAt).toLocaleString('es-PE')}
@@ -1753,6 +1780,12 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
                         value={getValidationBarcode(selectedValidationDetail)}
                       />
                       <InfoRow label="Peso" value={getValidationWeight(selectedValidationDetail)} />
+                      {typeof selectedValidationDetail.unitCostCents === 'number' && (
+                        <InfoRow
+                          label="Costo unitario"
+                          value={`S/ ${(selectedValidationDetail.unitCostCents / 100).toFixed(2)}`}
+                        />
+                      )}
                       {(selectedValidationDetail.notes ||
                         selectedValidationDetail.validationNotes) && (
                         <InfoRow
@@ -1772,6 +1805,74 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
                           />
                         )}
                     </Card>
+
+                    {(selectedValidationDetail.variant?.name ||
+                      selectedValidationDetail.variantName) && (
+                      <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                        <Label color="primary" style={modalStyles.sectionTitle}>
+                          🎨 Variante
+                        </Label>
+                        <InfoRow
+                          label="Nombre"
+                          value={
+                            selectedValidationDetail.variant?.name ||
+                            selectedValidationDetail.variantName ||
+                            'No disponible'
+                          }
+                        />
+                        {selectedValidationDetail.variant?.sku && (
+                          <InfoRow label="SKU" value={selectedValidationDetail.variant.sku} />
+                        )}
+                        {selectedValidationDetail.variant?.barcode && (
+                          <InfoRow
+                            label="Código barras"
+                            value={selectedValidationDetail.variant.barcode}
+                          />
+                        )}
+                        {typeof selectedValidationDetail.variant?.tracksStock === 'boolean' && (
+                          <InfoRow
+                            label="Descuenta stock"
+                            value={selectedValidationDetail.variant.tracksStock ? 'Sí' : 'No'}
+                          />
+                        )}
+                        {typeof selectedValidationDetail.variant?.isSellable === 'boolean' && (
+                          <InfoRow
+                            label="Vendible"
+                            value={selectedValidationDetail.variant.isSellable ? 'Sí' : 'No'}
+                          />
+                        )}
+                        {selectedValidationDetail.variant?.note && (
+                          <InfoRow label="Nota" value={selectedValidationDetail.variant.note} />
+                        )}
+                      </Card>
+                    )}
+
+                    {(selectedValidationDetail.presentationId ||
+                      typeof selectedValidationDetail.factorToBase === 'number') && (
+                      <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                        <Label color="primary" style={modalStyles.sectionTitle}>
+                          📦 Presentación aplicada
+                        </Label>
+                        {selectedValidationDetail.presentationId && (
+                          <InfoRow
+                            label="Presentación ID"
+                            value={selectedValidationDetail.presentationId}
+                          />
+                        )}
+                        {typeof selectedValidationDetail.factorToBase === 'number' && (
+                          <InfoRow
+                            label="Factor a base"
+                            value={String(selectedValidationDetail.factorToBase)}
+                          />
+                        )}
+                        {typeof selectedValidationDetail.quantityPresentation === 'number' && (
+                          <InfoRow
+                            label="Cantidad presentación"
+                            value={String(selectedValidationDetail.quantityPresentation)}
+                          />
+                        )}
+                      </Card>
+                    )}
 
                     <Card variant="outlined" padding="medium" style={modalStyles.section}>
                       <Label color="primary" style={modalStyles.sectionTitle}>
@@ -1990,333 +2091,342 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
 // ============================================
 // STYLES
 // ============================================
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: theme.space[4],
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[4],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    gap: theme.space[3],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.space[3],
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: theme.space[4],
-  },
-  contentContainerTablet: {
-    padding: theme.space[6],
-    maxWidth: 1200,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  infoCard: {
-    marginBottom: theme.space[4],
-  },
-  sectionTitle: {
-    marginBottom: theme.space[4],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: theme.space[3],
-  },
-  infoLabel: {
-    width: 120,
-  },
-  infoValue: {
-    flex: 1,
-  },
-  infoValueWithButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.space[2],
-  },
-  editSupplierButton: {
-    paddingHorizontal: theme.space[3],
-    paddingVertical: theme.space[1],
-    borderRadius: theme.radii.sm,
-    backgroundColor: theme.color.background.subtle,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  notesContainer: {
-    marginTop: theme.space[2],
-    paddingTop: theme.space[3],
-    borderTopWidth: 1,
-    borderTopColor: theme.color.border.subtle,
-    gap: theme.space[1],
-  },
-  statsCard: {
-    marginBottom: theme.space[4],
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.space[3],
-  },
-  statItem: {
-    alignItems: 'center',
-    minWidth: 70,
-  },
-  totalSumCard: {
-    marginBottom: theme.space[4],
-  },
-  totalSumGrid: {
-    gap: theme.space[3],
-  },
-  totalSumRow: {
-    flexDirection: 'row',
-    gap: theme.space[4],
-  },
-  totalSumItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: theme.space[1],
-  },
-  totalSumDifference: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: theme.space[3],
-    borderRadius: theme.radii.md,
-    marginTop: theme.space[2],
-  },
-  differencePositive: {
-    backgroundColor: theme.color.state.success.background,
-  },
-  differenceNegative: {
-    backgroundColor: theme.color.state.danger.background,
-  },
-  productsSection: {
-    marginBottom: theme.space[4],
-  },
-  searchBar: {
-    marginBottom: theme.space[3],
-  },
-  headerActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.space[3],
-    marginBottom: theme.space[4],
-  },
-  ocrButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.brand.accent,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[2],
-    borderRadius: theme.radii.md,
-    gap: theme.space[2],
-  },
-  productCard: {
-    marginBottom: theme.space[3],
-  },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.space[3],
-  },
-  productHeaderLeft: {
-    flex: 1,
-    gap: theme.space[1],
-  },
-  productHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.space[2],
-  },
-  deleteButton: {
-    padding: theme.space[2],
-  },
-  productBody: {
-    gap: theme.space[2],
-  },
-  productRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  rejectionContainer: {
-    marginTop: theme.space[3],
-    padding: theme.space[3],
-    backgroundColor: theme.color.state.danger.background,
-    borderRadius: theme.radii.md,
-    gap: theme.space[1],
-  },
-  actionHint: {
-    marginTop: theme.space[3],
-    textAlign: 'center',
-  },
-  productActionButton: {
-    marginTop: theme.space[3],
-  },
-  bottomSpacer: {
-    height: theme.space[20],
-  },
-  footer: {
-    flexDirection: 'row',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[4],
-    borderTopWidth: 1,
-    borderTopColor: theme.color.border.subtle,
-    gap: theme.space[3],
-  },
-  footerButton: {
-    flex: 1,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: theme.space[4],
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerContent: {
+      flex: 1,
+    },
+    headerTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+    },
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: theme.space[4],
+    },
+    contentContainerTablet: {
+      padding: theme.space[6],
+      maxWidth: 1200,
+      alignSelf: 'center',
+      width: '100%',
+    },
+    infoCard: {
+      marginBottom: theme.space[4],
+    },
+    sectionTitle: {
+      marginBottom: theme.space[4],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      marginBottom: theme.space[3],
+    },
+    infoLabel: {
+      width: 120,
+    },
+    infoValue: {
+      flex: 1,
+    },
+    infoValueWithButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    editSupplierButton: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.sm,
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    notesContainer: {
+      marginTop: theme.space[2],
+      paddingTop: theme.space[3],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[1],
+    },
+    statsCard: {
+      marginBottom: theme.space[4],
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+    },
+    statItem: {
+      alignItems: 'center',
+      minWidth: 70,
+    },
+    totalSumCard: {
+      marginBottom: theme.space[4],
+    },
+    totalSumGrid: {
+      gap: theme.space[3],
+    },
+    totalSumRow: {
+      flexDirection: 'row',
+      gap: theme.space[4],
+    },
+    totalSumItem: {
+      flex: 1,
+      alignItems: 'center',
+      gap: theme.space[1],
+    },
+    totalSumDifference: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      marginTop: theme.space[2],
+    },
+    differencePositive: {
+      backgroundColor: theme.color.state.success.background,
+    },
+    differenceNegative: {
+      backgroundColor: theme.color.state.danger.background,
+    },
+    productsSection: {
+      marginBottom: theme.space[4],
+    },
+    searchBar: {
+      marginBottom: theme.space[3],
+    },
+    headerActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: theme.space[3],
+      marginBottom: theme.space[4],
+    },
+    ocrButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.md,
+      gap: theme.space[2],
+    },
+    productCard: {
+      marginBottom: theme.space[3],
+    },
+    productHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: theme.space[3],
+    },
+    productHeaderLeft: {
+      flex: 1,
+      gap: theme.space[1],
+    },
+    productHeaderRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    deleteButton: {
+      padding: theme.space[2],
+    },
+    productBody: {
+      gap: theme.space[2],
+    },
+    productRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    rejectionContainer: {
+      marginTop: theme.space[3],
+      padding: theme.space[3],
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: theme.radii.md,
+      gap: theme.space[1],
+    },
+    actionHint: {
+      marginTop: theme.space[3],
+      textAlign: 'center',
+    },
+    productActionButton: {
+      marginTop: theme.space[3],
+    },
+    bottomSpacer: {
+      height: theme.space[20],
+    },
+    footer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[4],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    footerButton: {
+      flex: 1,
+    },
+  });
 
 // Modal Styles
-const createModalStyles = (theme: Theme) => StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: theme.color.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.space[4],
-  },
-  container: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: theme.radii['2xl'],
-    width: '100%',
-    maxWidth: 700,
-    maxHeight: '90%',
-    ...theme.shadow.xl,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: theme.space[5],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTitleContainer: {
-    flex: 1,
-    paddingRight: theme.space[3],
-  },
-  content: {
-    padding: theme.space[5],
-    maxHeight: 500,
-  },
-  section: {
-    marginBottom: theme.space[4],
-  },
-  sectionTitle: {
-    marginBottom: theme.space[3],
-  },
-  validatedCard: {
-    backgroundColor: theme.color.state.success.background,
-    borderColor: theme.color.state.success.border,
-  },
-  warningCard: {
-    backgroundColor: theme.color.state.warning.background,
-    borderColor: theme.color.state.warning.border,
-    gap: theme.space[2],
-  },
-  entryActionButton: {
-    marginTop: theme.space[3],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: theme.space[2],
-  },
-  infoLabel: {
-    width: 140,
-  },
-  infoValue: {
-    flex: 1,
-  },
-  photoSection: {
-    marginTop: theme.space[4],
-    gap: theme.space[2],
-  },
-  photosScroll: {
-    marginTop: theme.space[2],
-  },
-  photo: {
-    width: 120,
-    height: 120,
-    borderRadius: theme.radii.md,
-    marginRight: theme.space[3],
-  },
-  validationItem: {
-    paddingVertical: theme.space[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    gap: theme.space[2],
-  },
-  validationItemReversed: {
-    backgroundColor: theme.color.state.danger.background,
-    paddingHorizontal: theme.space[3],
-    borderRadius: theme.radii.md,
-    marginBottom: theme.space[2],
-  },
-  validationHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  validationPhoto: {
-    width: '100%',
-    height: 200,
-    borderRadius: theme.radii.md,
-    marginTop: theme.space[2],
-  },
-  signaturePhoto: {
-    width: '100%',
-    height: 100,
-    borderRadius: theme.radii.md,
-    marginTop: theme.space[2],
-    backgroundColor: theme.color.surface.subtle,
-  },
-  infoText: {
-    marginTop: theme.space[3],
-  },
-  footer: {
-    flexDirection: 'row',
-    padding: theme.space[5],
-    borderTopWidth: 1,
-    borderTopColor: theme.color.border.subtle,
-    gap: theme.space[3],
-  },
-  modalButton: {
-    flex: 1,
-  },
-});
+const createModalStyles = (theme: Theme) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.space[4],
+    },
+    container: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii['2xl'],
+      width: '100%',
+      maxWidth: 700,
+      maxHeight: '90%',
+      ...theme.shadow.xl,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      padding: theme.space[5],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    headerTitleContainer: {
+      flex: 1,
+      paddingRight: theme.space[3],
+    },
+    content: {
+      padding: theme.space[5],
+      maxHeight: 500,
+    },
+    section: {
+      marginBottom: theme.space[4],
+    },
+    sectionTitle: {
+      marginBottom: theme.space[3],
+    },
+    validatedCard: {
+      backgroundColor: theme.color.state.success.background,
+      borderColor: theme.color.state.success.border,
+    },
+    warningCard: {
+      backgroundColor: theme.color.state.warning.background,
+      borderColor: theme.color.state.warning.border,
+      gap: theme.space[2],
+    },
+    entryActionButton: {
+      marginTop: theme.space[3],
+    },
+    infoRow: {
+      flexDirection: 'row',
+      marginBottom: theme.space[2],
+    },
+    infoLabel: {
+      width: 140,
+    },
+    infoValue: {
+      flex: 1,
+    },
+    photoSection: {
+      marginTop: theme.space[4],
+      gap: theme.space[2],
+    },
+    photosScroll: {
+      marginTop: theme.space[2],
+    },
+    photo: {
+      width: 120,
+      height: 120,
+      borderRadius: theme.radii.md,
+      marginRight: theme.space[3],
+    },
+    validationItem: {
+      paddingVertical: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      gap: theme.space[2],
+    },
+    validationItemReversed: {
+      backgroundColor: theme.color.state.danger.background,
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      marginBottom: theme.space[2],
+    },
+    validationHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    variantChipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+      marginTop: theme.space[2],
+      marginBottom: theme.space[1],
+    },
+    validationPhoto: {
+      width: '100%',
+      height: 200,
+      borderRadius: theme.radii.md,
+      marginTop: theme.space[2],
+    },
+    signaturePhoto: {
+      width: '100%',
+      height: 100,
+      borderRadius: theme.radii.md,
+      marginTop: theme.space[2],
+      backgroundColor: theme.color.surface.subtle,
+    },
+    infoText: {
+      marginTop: theme.space[3],
+    },
+    footer: {
+      flexDirection: 'row',
+      padding: theme.space[5],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    modalButton: {
+      flex: 1,
+    },
+  });
 
 export default PurchaseDetailScreen;

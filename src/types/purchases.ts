@@ -270,6 +270,27 @@ export interface PurchaseProductValidation {
   reversedAt?: string;
   reversedBy?: string;
   reversalReason?: string;
+  // ========== Presentación aplicada a esta validación ==========
+  factorToBase?: number;
+  quantityPresentation?: number;
+  // ========== Referencias a movimientos/stock generados ==========
+  unitCostCents?: number;
+  stockBatchId?: string;
+  stockEntryId?: string;
+  stockMovementId?: string;
+  // ========== Variante (color) aplicada a esta validación ==========
+  variantId?: string;
+  variantName?: string;
+  variant?: {
+    id: string;
+    productId?: string;
+    name: string;
+    sku?: string;
+    barcode?: string;
+    isSellable?: boolean;
+    tracksStock?: boolean;
+    note?: string | null;
+  };
   warehouse?: {
     id: string;
     code?: string;
