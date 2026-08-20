@@ -193,7 +193,28 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     return 'free';
   }, [existingVariants]);
 
-  // Aplica la regla al activar "Usar variantes" o cuando cambia la politica.
+  // Si el producto ya tiene variantes, TODO ingreso posterior debe usar el
+  // modo variantes (no se puede volver a validar "sin variantes"). Idem para
+  // los identificadores: si las existentes tienen sku/barcode, las nuevas
+  // tambien deben tenerlos para mantener consistencia.
+  const mustUseVariants = existingVariants.length > 0;
+  const existingRequiresSku = useMemo(
+    () => existingVariants.some((v) => !!v.sku),
+    [existingVariants]
+  );
+  const existingRequiresBarcode = useMemo(
+    () => existingVariants.some((v) => !!v.barcode),
+    [existingVariants]
+  );
+
+  // Fuerza "Usar variantes" cuando el producto ya tiene historial de variantes.
+  useEffect(() => {
+    if (mustUseVariants && !multiVariantMode) {
+      setMultiVariantMode(true);
+    }
+  }, [mustUseVariants, multiVariantMode]);
+
+  // Aplica la regla de stock al activar "Usar variantes" o cuando cambia la politica.
   useEffect(() => {
     if (!multiVariantMode) return;
     if (existingStockPolicy === 'force-on' && !tracksVariantStock) {
@@ -668,6 +689,14 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const sanitizeVariantRows = async (
     rows: VariantRow[]
   ): Promise<PurchaseValidatedVariantInput[]> => {
+    // Politica intra-ingreso: si alguna variante (nueva) trae sku/barcode, TODAS
+    // las nuevas deben traerlo. Ademas, si el producto ya tiene variantes con
+    // sku/barcode registrados, las nuevas tambien deben tenerlos.
+    const anyNewHasSku = rows.some((r) => !r.variantId && !!r.variantSku?.trim());
+    const anyNewHasBarcode = rows.some((r) => !r.variantId && !!r.variantBarcode?.trim());
+    const skuRequired = existingRequiresSku || anyNewHasSku;
+    const barcodeRequired = existingRequiresBarcode || anyNewHasBarcode;
+
     const out: PurchaseValidatedVariantInput[] = [];
     for (let index = 0; index < rows.length; index++) {
       const row = rows[index];
@@ -675,6 +704,18 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       const hasId = !!row.variantId;
       if (!hasId && !name) {
         throw new Error(`La variante #${index + 1} debe tener nombre o ID`);
+      }
+      // Consistencia: solo aplica a variantes NUEVAS (las existentes tienen su
+      // identidad fijada en BD).
+      if (!hasId && skuRequired && !row.variantSku?.trim()) {
+        throw new Error(
+          `La variante #${index + 1} debe tener SKU (todas las variantes del producto lo llevan).`
+        );
+      }
+      if (!hasId && barcodeRequired && !row.variantBarcode?.trim()) {
+        throw new Error(
+          `La variante #${index + 1} debe tener codigo de barras (todas las variantes lo llevan).`
+        );
       }
 
       let validatedStock = 1;
@@ -1483,7 +1524,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   <Caption color="tertiary">Usar variantes</Caption>
                   <Switch
                     value={multiVariantMode}
+                    disabled={mustUseVariants}
                     onValueChange={(value) => {
+                      if (mustUseVariants) return;
                       setMultiVariantMode(value);
                       if (value && variantRows.length === 0) {
                         setVariantRows([{ variantName: '', validatedStock: 1 }]);
@@ -1495,6 +1538,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                   />
                 </View>
               </View>
+              {mustUseVariants && (
+                <Caption color="tertiary">
+                  🔒 Este producto ya tiene variantes registradas: todos los ingresos deben usar
+                  variantes para mantener la trazabilidad.
+                </Caption>
+              )}
 
               {multiVariantMode && (
                 <View style={styles.variantRowsContainer}>
@@ -1635,7 +1684,16 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                         {!isExisting && (
                           <>
                             <Input
-                              label="SKU (opcional)"
+                              label={
+                                existingRequiresSku ||
+                                variantRows.some((rr) => !rr.variantId && !!rr.variantSku?.trim())
+                                  ? 'SKU (obligatorio)'
+                                  : 'SKU (opcional)'
+                              }
+                              required={
+                                existingRequiresSku ||
+                                variantRows.some((rr) => !rr.variantId && !!rr.variantSku?.trim())
+                              }
                               value={row.variantSku || ''}
                               onChangeText={(text) =>
                                 setVariantRows((rows) =>
@@ -1647,7 +1705,20 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                               placeholder="SKU exclusivo de esta variante"
                             />
                             <Input
-                              label="Codigo alterno / barcode (opcional)"
+                              label={
+                                existingRequiresBarcode ||
+                                variantRows.some(
+                                  (rr) => !rr.variantId && !!rr.variantBarcode?.trim()
+                                )
+                                  ? 'Codigo alterno / barcode (obligatorio)'
+                                  : 'Codigo alterno / barcode (opcional)'
+                              }
+                              required={
+                                existingRequiresBarcode ||
+                                variantRows.some(
+                                  (rr) => !rr.variantId && !!rr.variantBarcode?.trim()
+                                )
+                              }
                               value={row.variantBarcode || ''}
                               onChangeText={(text) =>
                                 setVariantRows((rows) =>
