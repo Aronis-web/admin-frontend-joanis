@@ -171,6 +171,119 @@ const DESIGN_PROMPT_TEMPLATES: Array<{ key: string; label: string; prompt: strin
   { key: 'promo', label: 'Promo', prompt: PROMO_DESIGN_PROMPT },
 ];
 
+// ---------- Configuración dinámica del prompt ----------
+// Empaque: cómo debe aparecer el producto respecto de su caja/envoltorio.
+type DesignPackaging = 'without' | 'with' | 'both';
+// Presentación: cantidad de unidades (individual vs set/pack de varias).
+type DesignPresentation = 'individual' | 'set';
+
+const PACKAGING_OPTIONS: Array<{
+  key: DesignPackaging;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: 'without',
+    label: 'Fuera del empaque',
+    description: 'Producto sin caja/bolsa/blíster.',
+  },
+  {
+    key: 'with',
+    label: 'Dentro del empaque',
+    description: 'Producto en su caja/empaque original.',
+  },
+  {
+    key: 'both',
+    label: 'Producto + caja',
+    description: 'Producto fuera y la caja a su lado.',
+  },
+];
+
+const PRESENTATION_OPTIONS: Array<{
+  key: DesignPresentation;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: 'individual',
+    label: 'Individual',
+    description: 'Una sola unidad.',
+  },
+  {
+    key: 'set',
+    label: 'Set / Pack',
+    description: 'Todas las unidades del set (ej. 3 ollas, pack de 12).',
+  },
+];
+
+/**
+ * Construye el bloque de "configuración específica" que se antepone al prompt
+ * base. Está redactado de manera enfática para sobreescribir cualquier regla
+ * general en conflicto (p. ej. la de "una sola unidad" del preserve block).
+ */
+const buildDesignConfigBlock = (
+  packaging: DesignPackaging,
+  presentation: DesignPresentation,
+  observations: string
+): string => {
+  const lines: string[] = [
+    '🎯 CONFIGURACIÓN ESPECÍFICA (OBLIGATORIA — SOBRESCRIBE CUALQUIER REGLA GENERAL EN CONFLICTO):',
+  ];
+
+  if (presentation === 'set') {
+    lines.push(
+      '• Presentación: SET / PACK. El producto viene en un conjunto de varias unidades (por ejemplo 3 ollas, un pack de 12 cepillos, un kit de brochas). Debes mostrar TODAS las unidades del set COMPLETO, agrupadas de forma armónica, ordenada y visible en la escena. NO muestres solo una unidad. Respeta la cantidad exacta, tamaños y variantes visibles en la imagen de referencia.'
+    );
+  } else {
+    lines.push(
+      '• Presentación: UNIDAD INDIVIDUAL. Muestra UNA sola unidad del producto como protagonista absoluto, aunque en la referencia aparezcan varias.'
+    );
+  }
+
+  if (packaging === 'without') {
+    lines.push(
+      '• Empaque: FUERA DEL EMPAQUE. Retira por completo la caja, bolsa, blíster o cualquier envoltorio. Muestra únicamente el producto desnudo tal como se usa. La caja/empaque NO debe aparecer en la imagen.'
+    );
+  } else if (packaging === 'with') {
+    lines.push(
+      '• Empaque: DENTRO DEL EMPAQUE. Muestra el producto dentro de su caja/empaque/blíster original tal como se vende, con el empaque intacto y todos los textos, marca y diseño del empaque perfectamente legibles y nítidos. No lo saques del empaque.'
+    );
+  } else {
+    lines.push(
+      '• Empaque: PRODUCTO + CAJA. Muestra el producto FUERA del empaque como protagonista principal en primer plano, y junto a él (a su lado o ligeramente detrás con composición premium) la caja/empaque original bien visible como referencia. Ambos deben verse claramente y mantener proporciones y textos reales.'
+    );
+  }
+
+  const obs = observations.trim();
+  if (obs) {
+    lines.push(`• Observaciones adicionales del usuario (deben cumplirse): ${obs}`);
+  }
+
+  return lines.join('\n');
+};
+
+/**
+ * Devuelve el prompt final compuesto: bloque de configuración específica +
+ * prompt base de la plantilla elegida.
+ */
+const buildDesignPrompt = ({
+  templateKey,
+  packaging,
+  presentation,
+  observations,
+}: {
+  templateKey: string;
+  packaging: DesignPackaging;
+  presentation: DesignPresentation;
+  observations: string;
+}): string => {
+  const base = (
+    DESIGN_PROMPT_TEMPLATES.find((t) => t.key === templateKey) || DESIGN_PROMPT_TEMPLATES[0]
+  ).prompt;
+  const config = buildDesignConfigBlock(packaging, presentation, observations);
+  return `${config}\n\n${base}`;
+};
+
 type PricePhotoFormState = {
   name: string;
   sku: string;
@@ -268,8 +381,21 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
 
   // Design (Gemini) prompt modal state
   const [designModalVisible, setDesignModalVisible] = useState(false);
-  const [designPrompt, setDesignPrompt] = useState(DEFAULT_DESIGN_PROMPT);
   const [designTemplateKey, setDesignTemplateKey] = useState(DESIGN_PROMPT_TEMPLATES[0].key);
+  const [designPackaging, setDesignPackaging] = useState<DesignPackaging>('without');
+  const [designPresentation, setDesignPresentation] = useState<DesignPresentation>('individual');
+  const [designObservations, setDesignObservations] = useState('');
+  const [designPrompt, setDesignPrompt] = useState(() =>
+    buildDesignPrompt({
+      templateKey: DESIGN_PROMPT_TEMPLATES[0].key,
+      packaging: 'without',
+      presentation: 'individual',
+      observations: '',
+    })
+  );
+  // Marcamos cuando el usuario edita manualmente el prompt para NO sobreescribirlo
+  // en cada cambio de selector. Un botón "Regenerar" restaura el modo dinámico.
+  const [designPromptDirty, setDesignPromptDirty] = useState(false);
 
   // Price photo (ad-design) modal state
   const [pricePhotoModalVisible, setPricePhotoModalVisible] = useState(false);
@@ -588,9 +714,40 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
     }
     setActiveGroupId(group.reference.id);
     setDesignTemplateKey(DESIGN_PROMPT_TEMPLATES[0].key);
-    setDesignPrompt(DESIGN_PROMPT_TEMPLATES[0].prompt);
+    setDesignPackaging('without');
+    setDesignPresentation('individual');
+    setDesignObservations('');
+    setDesignPrompt(
+      buildDesignPrompt({
+        templateKey: DESIGN_PROMPT_TEMPLATES[0].key,
+        packaging: 'without',
+        presentation: 'individual',
+        observations: '',
+      })
+    );
+    setDesignPromptDirty(false);
     setDesignModalVisible(true);
   }, []);
+
+  // Recompone el prompt cada vez que cambia la configuración, salvo que el
+  // usuario haya editado manualmente el textarea (para no pisarle su edición).
+  useEffect(() => {
+    if (designPromptDirty) return;
+    setDesignPrompt(
+      buildDesignPrompt({
+        templateKey: designTemplateKey,
+        packaging: designPackaging,
+        presentation: designPresentation,
+        observations: designObservations,
+      })
+    );
+  }, [
+    designTemplateKey,
+    designPackaging,
+    designPresentation,
+    designObservations,
+    designPromptDirty,
+  ]);
 
   const handleGenerateDesignInBackground = useCallback(
     (prompt: string) => {
@@ -1136,10 +1293,7 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
                       <TouchableOpacity
                         key={template.key}
                         style={[styles.templateChip, selected && styles.templateChipSelected]}
-                        onPress={() => {
-                          setDesignTemplateKey(template.key);
-                          setDesignPrompt(template.prompt);
-                        }}
+                        onPress={() => setDesignTemplateKey(template.key)}
                       >
                         <Text
                           style={[
@@ -1154,12 +1308,96 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
                   })}
                 </View>
 
-                <Text style={styles.inputLabel}>Prompt de diseño</Text>
+                <Text style={styles.inputLabel}>Presentación</Text>
+                <View style={styles.templateRow}>
+                  {PRESENTATION_OPTIONS.map((opt) => {
+                    const selected = designPresentation === opt.key;
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.templateChip, selected && styles.templateChipSelected]}
+                        onPress={() => setDesignPresentation(opt.key)}
+                      >
+                        <Text
+                          style={[
+                            styles.templateChipText,
+                            selected && styles.templateChipTextSelected,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={styles.helperText}>
+                  {PRESENTATION_OPTIONS.find((o) => o.key === designPresentation)?.description}
+                </Text>
+
+                <Text style={styles.inputLabel}>Empaque</Text>
+                <View style={styles.templateRow}>
+                  {PACKAGING_OPTIONS.map((opt) => {
+                    const selected = designPackaging === opt.key;
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.templateChip, selected && styles.templateChipSelected]}
+                        onPress={() => setDesignPackaging(opt.key)}
+                      >
+                        <Text
+                          style={[
+                            styles.templateChipText,
+                            selected && styles.templateChipTextSelected,
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={styles.helperText}>
+                  {PACKAGING_OPTIONS.find((o) => o.key === designPackaging)?.description}
+                </Text>
+
+                <Text style={styles.inputLabel}>Observaciones adicionales</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineSmall]}
+                  multiline
+                  value={designObservations}
+                  onChangeText={setDesignObservations}
+                  placeholder="Ej: fondo blanco, mostrar la tapa abierta, resaltar el logo..."
+                  placeholderTextColor={theme.color.text.placeholder}
+                />
+
+                <View style={styles.promptHeaderRow}>
+                  <Text style={styles.inputLabel}>Prompt de diseño</Text>
+                  {designPromptDirty && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setDesignPromptDirty(false);
+                        setDesignPrompt(
+                          buildDesignPrompt({
+                            templateKey: designTemplateKey,
+                            packaging: designPackaging,
+                            presentation: designPresentation,
+                            observations: designObservations,
+                          })
+                        );
+                      }}
+                    >
+                      <Text style={styles.promptResetLink}>↻ Regenerar desde configuración</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
                 <TextInput
                   style={[styles.input, styles.multiline]}
                   multiline
                   value={designPrompt}
-                  onChangeText={setDesignPrompt}
+                  onChangeText={(value) => {
+                    setDesignPrompt(value);
+                    setDesignPromptDirty(true);
+                  }}
                   placeholder="Describe cómo quieres generar la foto de diseño..."
                   placeholderTextColor={theme.color.text.placeholder}
                 />
@@ -1473,6 +1711,26 @@ const createStyles = (theme: Theme) =>
     multiline: {
       minHeight: 120,
       textAlignVertical: 'top',
+    },
+    multilineSmall: {
+      minHeight: 60,
+      textAlignVertical: 'top',
+    },
+    helperText: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginBottom: theme.space[2],
+      marginTop: -theme.space[1],
+    },
+    promptHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    promptResetLink: {
+      fontSize: 12,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
     },
     groupCard: {
       borderWidth: 1,
