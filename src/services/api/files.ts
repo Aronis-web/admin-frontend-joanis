@@ -1,6 +1,48 @@
+import { Platform } from 'react-native';
 import { apiClient } from './client';
 import { config } from '@/utils/config';
 import * as FileSystem from 'expo-file-system/legacy';
+
+/**
+ * Convierte un URI (data:, blob:, http:) en Blob real. Solo web/electron.
+ * En React Native nativo no debe llamarse: se envia el objeto {uri, type, name}.
+ */
+const uriToBlob = async (uri: string): Promise<Blob> => {
+  const response = await fetch(uri);
+  if (!response.ok && !uri.startsWith('data:') && !uri.startsWith('blob:')) {
+    throw new Error(`No se pudo leer el archivo (${response.status})`);
+  }
+  return await response.blob();
+};
+
+/**
+ * Agrega un archivo a un FormData de forma cross-platform.
+ * - Web / Electron: convierte el URI a Blob y lo agrega como File.
+ * - Nativo: agrega el objeto {uri, type, name} que RN entiende.
+ */
+const appendFileToFormData = async (
+  formData: FormData,
+  field: string,
+  fileUri: string,
+  filename: string,
+  mimeType: string
+): Promise<void> => {
+  if (Platform.OS === 'web') {
+    const blob = await uriToBlob(fileUri);
+    // File preserva el filename; algunos backends lo requieren.
+    const file =
+      typeof File !== 'undefined'
+        ? new File([blob], filename, { type: mimeType || blob.type || 'application/octet-stream' })
+        : blob;
+    formData.append(field, file as any, filename);
+  } else {
+    formData.append(field, {
+      uri: fileUri,
+      type: mimeType,
+      name: filename,
+    } as any);
+  }
+};
 
 export interface UploadResponse {
   url: string;
@@ -71,12 +113,7 @@ export const filesApi = {
   ): Promise<{ success: boolean; url: string; path: string; productId: string }> => {
     const formData = new FormData();
 
-    // En React Native, el archivo se envía como un objeto con uri, type y name
-    formData.append('file', {
-      uri: fileUri,
-      type: mimeType,
-      name: filename,
-    } as any);
+    await appendFileToFormData(formData, 'file', fileUri, filename, mimeType);
     formData.append('productId', productId);
 
     // No especificar Content-Type - Axios lo establecerá automáticamente con el boundary correcto
@@ -121,13 +158,15 @@ export const filesApi = {
   }> => {
     const formData = new FormData();
 
-    files.forEach((file, index) => {
-      formData.append(`files`, {
-        uri: file.uri,
-        type: file.mimeType || 'image/jpeg',
-        name: file.filename,
-      } as any);
-    });
+    for (const file of files) {
+      await appendFileToFormData(
+        formData,
+        'files',
+        file.uri,
+        file.filename,
+        file.mimeType || 'image/jpeg'
+      );
+    }
 
     formData.append('category', category);
     formData.append('subfolder', subfolder);
@@ -176,11 +215,7 @@ export const filesApi = {
     mimeType: string = 'image/jpeg'
   ): Promise<{ success: boolean; url: string; path: string; category: string }> => {
     const formData = new FormData();
-    formData.append('file', {
-      uri: fileUri,
-      type: mimeType,
-      name: filename,
-    } as any);
+    await appendFileToFormData(formData, 'file', fileUri, filename, mimeType);
     formData.append('filename', filename);
     formData.append('category', category);
     if (subfolder) {
@@ -448,16 +483,12 @@ export const filesApi = {
     const formData = new FormData();
 
     if (isWebFile && fileUriOrFile instanceof File) {
-      // Web: Use File object directly
+      // Web: File real ya provisto
       console.log('📎 Using File object for web upload');
       formData.append('file', fileUriOrFile);
     } else {
-      // Mobile: Use uri, type, name object
-      formData.append('file', {
-        uri: fileUriOrFile as string,
-        type: mimeType,
-        name: filename,
-      } as any);
+      // Cross-platform via helper (convierte URI a Blob en web)
+      await appendFileToFormData(formData, 'file', fileUriOrFile as string, filename, mimeType);
     }
 
     formData.append('filename', filename);
@@ -465,10 +496,12 @@ export const filesApi = {
     formData.append('subfolder', supplierId);
 
     try {
-      const response = await apiClient.post<{ success: boolean; url: string; path: string; category: string }>(
-        '/files/upload/category/multipart',
-        formData
-      );
+      const response = await apiClient.post<{
+        success: boolean;
+        url: string;
+        path: string;
+        category: string;
+      }>('/files/upload/category/multipart', formData);
 
       console.log('✅ File uploaded successfully:', response);
       return response;
