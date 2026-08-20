@@ -430,23 +430,28 @@ export interface ValidateProductRequest {
 
 /**
  * Input de UNA variante dentro de una validacion multi-variante (Modo B).
- * quantityBase SIEMPRE en unidad base. Si tracksStock=false en la variante
- * el backend no descuenta stock pero conserva el registro.
+ *
+ * Campos comunes a la entrada (costCents, presentations, signatureUrl,
+ * warehouseId, areaId) se toman del request raiz. Aqui solo van los datos
+ * PROPIOS de la variante: identidad, stock, SKU/barcode y fotos.
+ *
+ * Reglas del backend:
+ * - validatedStock: entero >= 1 (obligatorio). El deposito siempre entra al
+ *   bucket de la variante.
+ * - tracksStock (default true): si es false y llega stock, el saldo queda
+ *   "fantasma" (el POS colapsa venta a nivel producto). Solo usar false si NO
+ *   se envia stock por color.
+ * - Debe traer variantId O variantName.
  */
 export interface PurchaseValidatedVariantInput {
   variantId?: string; // Alternativo a variantName
   variantName?: string; // Upsert por nombre normalizado
-  sku?: string; // SKU exclusivo de la variante (opcional)
-  barcode?: string; // Codigo alterno exclusivo de la variante
-  // Stock validado en unidad base (entero >= 1). Nombre alineado al backend.
-  validatedStock: number;
-  warehouseId?: string; // Si se omite usa el warehouseId del request
-  areaId?: string;
-  // Presentacion opcional aplicada a esta variante
-  presentationId?: string;
-  factorToBase?: number;
-  quantityPresentation?: number;
-  notes?: string;
+  variantSku?: string; // SKU exclusivo de la variante
+  variantBarcode?: string; // Codigo alterno exclusivo de la variante
+  validatedStock: number; // Entero >= 1, en unidad base
+  tracksStock?: boolean; // Default true. false = color descriptivo (riesgo stock fantasma)
+  photoUrl?: string; // Foto principal de esta variante
+  photos?: string[]; // Fotos adicionales de esta variante
 }
 
 /**

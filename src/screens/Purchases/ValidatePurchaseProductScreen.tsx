@@ -569,15 +569,16 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return {
         variantId: row.variantId,
         variantName: name || undefined,
-        sku: row.sku?.trim() || undefined,
-        barcode: row.barcode?.trim() || undefined,
+        variantSku: row.variantSku?.trim() || undefined,
+        variantBarcode: row.variantBarcode?.trim() || undefined,
         validatedStock: stock,
-        warehouseId: row.warehouseId,
-        areaId: row.areaId,
-        presentationId: row.presentationId,
-        factorToBase: row.factorToBase,
-        quantityPresentation: row.quantityPresentation,
-        notes: row.notes?.trim() || undefined,
+        // Default true. Solo enviar false si el usuario lo desmarca explicitamente.
+        tracksStock: row.tracksStock === false ? false : undefined,
+        photoUrl: row.photoUrl?.trim() || undefined,
+        photos:
+          Array.isArray(row.photos) && row.photos.length > 0
+            ? row.photos.filter((p) => !!p?.trim())
+            : undefined,
       };
     });
   };
@@ -1488,39 +1489,58 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       />
                       <Input
                         label="SKU (opcional)"
-                        value={row.sku || ''}
+                        value={row.variantSku || ''}
                         onChangeText={(text) =>
                           setVariantRows((rows) =>
-                            rows.map((r, i) => (i === index ? { ...r, sku: text || undefined } : r))
+                            rows.map((r, i) =>
+                              i === index ? { ...r, variantSku: text || undefined } : r
+                            )
                           )
                         }
                         placeholder="SKU exclusivo de esta variante"
                       />
                       <Input
                         label="Codigo alterno / barcode (opcional)"
-                        value={row.barcode || ''}
+                        value={row.variantBarcode || ''}
                         onChangeText={(text) =>
                           setVariantRows((rows) =>
                             rows.map((r, i) =>
-                              i === index ? { ...r, barcode: text || undefined } : r
+                              i === index ? { ...r, variantBarcode: text || undefined } : r
                             )
                           )
                         }
                         placeholder="Codigo de barras"
                       />
                       <Input
-                        label="Notas (opcional)"
-                        value={row.notes || ''}
+                        label="Foto principal (URL, opcional)"
+                        value={row.photoUrl || ''}
                         onChangeText={(text) =>
                           setVariantRows((rows) =>
                             rows.map((r, i) =>
-                              i === index ? { ...r, notes: text || undefined } : r
+                              i === index ? { ...r, photoUrl: text || undefined } : r
                             )
                           )
                         }
-                        placeholder="Observaciones"
-                        multiline
+                        placeholder="purchases/rojo.jpg"
                       />
+                      <View style={styles.multiToggle}>
+                        <Body>Descuenta stock (tracksStock)</Body>
+                        <Switch
+                          value={row.tracksStock !== false}
+                          onValueChange={(value) =>
+                            setVariantRows((rows) =>
+                              rows.map((r, i) => (i === index ? { ...r, tracksStock: value } : r))
+                            )
+                          }
+                        />
+                      </View>
+                      {row.tracksStock === false && (
+                        <Caption color="tertiary">
+                          ⚠ Advertencia: con stock recibido y tracksStock=false el saldo queda
+                          "fantasma" (el POS no puede vender). Solo usar cuando NO se necesita saldo
+                          por color.
+                        </Caption>
+                      )}
                     </Card>
                   ))}
                   <Button
