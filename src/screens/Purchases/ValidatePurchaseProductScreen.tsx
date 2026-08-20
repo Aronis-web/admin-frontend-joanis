@@ -4,7 +4,7 @@
  */
 
 import Alert from '@/utils/alert';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -136,10 +136,42 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [selectedArea, setSelectedArea] = useState<WarehouseArea | null>(null);
   const [barcode, setBarcode] = useState('');
   const [validationNotes, setValidationNotes] = useState('');
-  const [variantName, setVariantName] = useState('');
-  // Modo multi-variante (Mode B): permite validar varias variantes en un solo submit
+  // Flag "Usar variantes" y filas del multi-variante
   const [multiVariantMode, setMultiVariantMode] = useState(false);
   const [variantRows, setVariantRows] = useState<PurchaseValidatedVariantInput[]>([]);
+
+  /**
+   * Variantes ya registradas en este producto (deducidas del historial de
+   * validaciones). Sirven para reutilizar y evitar duplicados por typos
+   * ("rojo" vs "Rojo" vs "rrojo") cuando el usuario hace un segundo ingreso.
+   */
+  const existingVariants = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        sku?: string;
+        barcode?: string;
+        tracksStock?: boolean;
+      }
+    >();
+    (product?.validations || []).forEach((v) => {
+      if (v.isReversed) return;
+      const variantId = v.variantId || v.variant?.id;
+      const variantName = v.variantName || v.variant?.name;
+      if (!variantId || !variantName) return;
+      if (map.has(variantId)) return;
+      map.set(variantId, {
+        id: variantId,
+        name: variantName,
+        sku: v.variant?.sku,
+        barcode: v.variant?.barcode,
+        tracksStock: v.variant?.tracksStock,
+      });
+    });
+    return Array.from(map.values());
+  }, [product?.validations]);
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
@@ -541,8 +573,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       photoUrl: uploadedFiles.photoUrl,
       signatureUrl: uploadedFiles.signatureUrl,
       validationNotes: validationNotes.trim() || undefined,
-      // MODO A (single) vs MODO B (multi-variante): son mutuamente excluyentes
-      variantName: !multiVariantMode && variantName.trim() ? variantName.trim() : undefined,
+      // Cuando el usuario activa "Usar variantes" enviamos variants[].
+      // El campo raiz variantName ya no se ofrece en la UI.
+      variantName: undefined,
       variants:
         multiVariantMode && variantRows.length > 0 ? sanitizeVariantRows(variantRows) : undefined,
     };
@@ -672,7 +705,6 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setSignatureUri(undefined);
       setProductPhotoUri(undefined);
       setValidationNotes('');
-      setVariantName('');
       setVariantRows([]);
       setMultiVariantMode(false);
       setLooseUnits('0');
@@ -1403,22 +1435,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               )}
             </View>
 
-            {/* Variantes (color) - Modo A (single) o Modo B (multi) */}
+            {/* Variantes (color) - toggle + reutilizacion de variantes existentes */}
             <View style={styles.variantsSection}>
               <View style={styles.variantsHeader}>
                 <Label>Variantes / Colores</Label>
                 <View style={styles.multiToggle}>
-                  <Caption color="tertiary">Multiples variantes</Caption>
+                  <Caption color="tertiary">Usar variantes</Caption>
                   <Switch
                     value={multiVariantMode}
                     onValueChange={(value) => {
                       setMultiVariantMode(value);
-                      if (value) {
-                        setVariantName('');
-                        if (variantRows.length === 0) {
-                          setVariantRows([{ variantName: '', validatedStock: 1 }]);
-                        }
-                      } else {
+                      if (value && variantRows.length === 0) {
+                        setVariantRows([{ variantName: '', validatedStock: 1 }]);
+                      } else if (!value) {
                         setVariantRows([]);
                       }
                     }}
@@ -1426,126 +1455,187 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                 </View>
               </View>
 
-              {!multiVariantMode ? (
-                <Input
-                  label="Variante / Color (opcional)"
-                  value={variantName}
-                  onChangeText={setVariantName}
-                  placeholder="Ej: rojo, azul, amarillo..."
-                />
-              ) : (
+              {multiVariantMode && (
                 <View style={styles.variantRowsContainer}>
                   <Caption color="tertiary">
-                    El stock a nivel general se ignora. Cada variante define su propio stock, SKU,
-                    codigo alterno y ubicacion. Si se omite el almacen se usa el general.
+                    Cada variante lleva su propio stock, SKU, codigo alterno y foto. El stock del
+                    encabezado se ignora cuando se envian variantes.
                   </Caption>
-                  {variantRows.map((row, index) => (
-                    <Card
-                      key={`variant-row-${index}`}
-                      variant="outlined"
-                      padding="medium"
-                      style={styles.variantRow}
-                    >
-                      <View style={styles.variantRowHeader}>
-                        <Body>Variante #{index + 1}</Body>
-                        <IconButton
-                          icon="trash-outline"
-                          variant="ghost"
-                          size="small"
-                          onPress={() =>
-                            setVariantRows((rows) => rows.filter((_, i) => i !== index))
-                          }
-                        />
-                      </View>
-                      <Input
-                        label="Nombre (color)"
-                        value={row.variantName || ''}
-                        onChangeText={(text) =>
-                          setVariantRows((rows) =>
-                            rows.map((r, i) => (i === index ? { ...r, variantName: text } : r))
-                          )
-                        }
-                        placeholder="rojo, azul, verde..."
-                      />
-                      <Input
-                        label="Stock (unidad base, entero >= 1)"
-                        value={row.validatedStock ? String(row.validatedStock) : ''}
-                        onChangeText={(text) => {
-                          const parsed = parseInt(text, 10);
-                          setVariantRows((rows) =>
-                            rows.map((r, i) =>
-                              i === index
-                                ? {
-                                    ...r,
-                                    validatedStock:
-                                      Number.isFinite(parsed) && parsed > 0 ? parsed : 0,
-                                  }
-                                : r
-                            )
+
+                  {existingVariants.length > 0 && (
+                    <View style={styles.existingChipsBox}>
+                      <Caption color="secondary">
+                        Variantes ya registradas en este producto. Selecciona una para AGREGAR stock
+                        (evita duplicados por typos: "rojo" vs "Rojo").
+                      </Caption>
+                      <View style={styles.existingChipsRow}>
+                        {existingVariants.map((ev) => {
+                          const alreadyUsed = variantRows.some((r) => r.variantId === ev.id);
+                          return (
+                            <TouchableOpacity
+                              key={ev.id}
+                              disabled={alreadyUsed}
+                              onPress={() =>
+                                setVariantRows((rows) => [
+                                  ...rows,
+                                  {
+                                    variantId: ev.id,
+                                    variantName: ev.name,
+                                    variantSku: ev.sku,
+                                    variantBarcode: ev.barcode,
+                                    tracksStock: ev.tracksStock,
+                                    validatedStock: 1,
+                                  },
+                                ])
+                              }
+                              style={[
+                                styles.existingChip,
+                                alreadyUsed && styles.existingChipDisabled,
+                              ]}
+                            >
+                              <Body color={alreadyUsed ? 'tertiary' : 'primary'}>
+                                🎨 {ev.name}
+                                {ev.sku ? ` · ${ev.sku}` : ''}
+                              </Body>
+                            </TouchableOpacity>
                           );
-                        }}
-                        placeholder="1"
-                        keyboardType="numeric"
-                      />
-                      <Input
-                        label="SKU (opcional)"
-                        value={row.variantSku || ''}
-                        onChangeText={(text) =>
-                          setVariantRows((rows) =>
-                            rows.map((r, i) =>
-                              i === index ? { ...r, variantSku: text || undefined } : r
-                            )
-                          )
-                        }
-                        placeholder="SKU exclusivo de esta variante"
-                      />
-                      <Input
-                        label="Codigo alterno / barcode (opcional)"
-                        value={row.variantBarcode || ''}
-                        onChangeText={(text) =>
-                          setVariantRows((rows) =>
-                            rows.map((r, i) =>
-                              i === index ? { ...r, variantBarcode: text || undefined } : r
-                            )
-                          )
-                        }
-                        placeholder="Codigo de barras"
-                      />
-                      <Input
-                        label="Foto principal (URL, opcional)"
-                        value={row.photoUrl || ''}
-                        onChangeText={(text) =>
-                          setVariantRows((rows) =>
-                            rows.map((r, i) =>
-                              i === index ? { ...r, photoUrl: text || undefined } : r
-                            )
-                          )
-                        }
-                        placeholder="purchases/rojo.jpg"
-                      />
-                      <View style={styles.multiToggle}>
-                        <Body>Descuenta stock (tracksStock)</Body>
-                        <Switch
-                          value={row.tracksStock !== false}
-                          onValueChange={(value) =>
-                            setVariantRows((rows) =>
-                              rows.map((r, i) => (i === index ? { ...r, tracksStock: value } : r))
-                            )
-                          }
-                        />
+                        })}
                       </View>
-                      {row.tracksStock === false && (
-                        <Caption color="tertiary">
-                          ⚠ Advertencia: con stock recibido y tracksStock=false el saldo queda
-                          "fantasma" (el POS no puede vender). Solo usar cuando NO se necesita saldo
-                          por color.
-                        </Caption>
-                      )}
-                    </Card>
-                  ))}
+                    </View>
+                  )}
+
+                  {variantRows.map((row, index) => {
+                    const isExisting = !!row.variantId;
+                    return (
+                      <Card
+                        key={`variant-row-${index}`}
+                        variant="outlined"
+                        padding="medium"
+                        style={styles.variantRow}
+                      >
+                        <View style={styles.variantRowHeader}>
+                          <Body>
+                            {isExisting
+                              ? `🎨 ${row.variantName} (existente)`
+                              : `Nueva variante #${index + 1}`}
+                          </Body>
+                          <IconButton
+                            icon="trash-outline"
+                            variant="ghost"
+                            size="small"
+                            onPress={() =>
+                              setVariantRows((rows) => rows.filter((_, i) => i !== index))
+                            }
+                          />
+                        </View>
+
+                        {!isExisting && (
+                          <Input
+                            label="Nombre (color)"
+                            value={row.variantName || ''}
+                            onChangeText={(text) =>
+                              setVariantRows((rows) =>
+                                rows.map((r, i) => (i === index ? { ...r, variantName: text } : r))
+                              )
+                            }
+                            placeholder="rojo, azul, verde..."
+                          />
+                        )}
+
+                        <Input
+                          label="Stock (unidad base, entero >= 1)"
+                          value={row.validatedStock ? String(row.validatedStock) : ''}
+                          onChangeText={(text) => {
+                            const parsed = parseInt(text, 10);
+                            setVariantRows((rows) =>
+                              rows.map((r, i) =>
+                                i === index
+                                  ? {
+                                      ...r,
+                                      validatedStock:
+                                        Number.isFinite(parsed) && parsed > 0 ? parsed : 0,
+                                    }
+                                  : r
+                              )
+                            );
+                          }}
+                          placeholder="1"
+                          keyboardType="numeric"
+                        />
+
+                        {!isExisting && (
+                          <>
+                            <Input
+                              label="SKU (opcional)"
+                              value={row.variantSku || ''}
+                              onChangeText={(text) =>
+                                setVariantRows((rows) =>
+                                  rows.map((r, i) =>
+                                    i === index ? { ...r, variantSku: text || undefined } : r
+                                  )
+                                )
+                              }
+                              placeholder="SKU exclusivo de esta variante"
+                            />
+                            <Input
+                              label="Codigo alterno / barcode (opcional)"
+                              value={row.variantBarcode || ''}
+                              onChangeText={(text) =>
+                                setVariantRows((rows) =>
+                                  rows.map((r, i) =>
+                                    i === index ? { ...r, variantBarcode: text || undefined } : r
+                                  )
+                                )
+                              }
+                              placeholder="Codigo de barras"
+                            />
+                            <Input
+                              label="Foto principal (URL, opcional)"
+                              value={row.photoUrl || ''}
+                              onChangeText={(text) =>
+                                setVariantRows((rows) =>
+                                  rows.map((r, i) =>
+                                    i === index ? { ...r, photoUrl: text || undefined } : r
+                                  )
+                                )
+                              }
+                              placeholder="purchases/rojo.jpg"
+                            />
+                            <View style={styles.multiToggle}>
+                              <Body>Controlar stock por variante</Body>
+                              <Switch
+                                value={row.tracksStock !== false}
+                                onValueChange={(value) =>
+                                  setVariantRows((rows) =>
+                                    rows.map((r, i) =>
+                                      i === index ? { ...r, tracksStock: value } : r
+                                    )
+                                  )
+                                }
+                              />
+                            </View>
+                            {row.tracksStock === false && (
+                              <Caption color="tertiary">
+                                ⚠ Sin control de stock por variante: el saldo puede quedar
+                                "fantasma" (el POS no podra vender). Usar solo para variantes
+                                descriptivas SIN stock.
+                              </Caption>
+                            )}
+                          </>
+                        )}
+
+                        {isExisting && (
+                          <Caption color="tertiary">
+                            Se sumara este stock a la variante existente. SKU, codigo y foto no se
+                            editan desde aqui.
+                          </Caption>
+                        )}
+                      </Card>
+                    );
+                  })}
                   <Button
                     variant="secondary"
-                    title="+ Agregar variante"
+                    title="+ Nueva variante"
                     onPress={() =>
                       setVariantRows((rows) => [...rows, { variantName: '', validatedStock: 1 }])
                     }
@@ -1856,6 +1946,30 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+    },
+    existingChipsBox: {
+      gap: theme.space[2],
+      padding: theme.space[3],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    existingChipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    existingChip: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    existingChipDisabled: {
+      opacity: 0.5,
     },
     loadingContainer: {
       flex: 1,
