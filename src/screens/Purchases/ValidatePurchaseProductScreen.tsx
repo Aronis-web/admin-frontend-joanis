@@ -25,6 +25,7 @@ import { purchasesService } from '@/services/api';
 import { inventoryApi } from '@/services/api/inventory';
 import { presentationsApi } from '@/services/api/presentations';
 import { filesApi } from '@/services/api/files';
+import { launchImageLibraryAsync } from '@/utils/filePicker';
 import {
   PurchaseProduct,
   PurchaseProductStatus,
@@ -136,9 +137,15 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   const [selectedArea, setSelectedArea] = useState<WarehouseArea | null>(null);
   const [barcode, setBarcode] = useState('');
   const [validationNotes, setValidationNotes] = useState('');
-  // Flag "Usar variantes" y filas del multi-variante
+  // Flag "Usar variantes" (multi-variante)
   const [multiVariantMode, setMultiVariantMode] = useState(false);
-  const [variantRows, setVariantRows] = useState<PurchaseValidatedVariantInput[]>([]);
+  // Cuando esta activo, TODAS las variantes llevan stock; sino, ninguna.
+  // Default: false (variantes descriptivas sin control de stock).
+  const [tracksVariantStock, setTracksVariantStock] = useState(false);
+  // Estructura interna: usa PurchaseValidatedVariantInput + photoUri local
+  // (`photoUri` se sube antes de enviar y se transforma en `photoUrl`).
+  type VariantRow = PurchaseValidatedVariantInput & { photoUri?: string };
+  const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
 
   /**
    * Variantes ya registradas en este producto (deducidas del historial de
@@ -381,6 +388,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     return loose + presentationUnits;
   };
 
+  const pickVariantPhoto = async (index: number) => {
+    try {
+      const result = await launchImageLibraryAsync({ quality: 0.8 });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+      const uri = result.assets[0].uri;
+      setVariantRows((rows) =>
+        rows.map((r, i) => (i === index ? { ...r, photoUri: uri, photoUrl: undefined } : r))
+      );
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'No se pudo elegir la foto');
+    }
+  };
+
   const uploadValidationFiles = async (): Promise<{
     photoUrl?: string;
     signatureUrl?: string;
@@ -577,43 +597,80 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       // El campo raiz variantName ya no se ofrece en la UI.
       variantName: undefined,
       variants:
-        multiVariantMode && variantRows.length > 0 ? sanitizeVariantRows(variantRows) : undefined,
+        multiVariantMode && variantRows.length > 0
+          ? await sanitizeVariantRows(variantRows)
+          : undefined,
     };
   };
 
   /**
    * Limpia y valida las filas del modo multi-variante antes de enviar.
-   * - validatedStock debe ser entero >= 1 (regla del backend).
-   * - Debe traer variantId o variantName no vacio.
+   *
+   * Regla unificada:
+   *   - Si `tracksVariantStock=true`  → todas las variantes controlan stock,
+   *     exigen `validatedStock >= 1` y NO se envia `tracksStock` (default true en back).
+   *   - Si `tracksVariantStock=false` → ninguna controla stock, envia `validatedStock=1`
+   *     (minimo requerido por el back) y `tracksStock=false`.
+   *
+   * Ademas sube cada `photoUri` local (picker) y lo convierte en `photoUrl`.
    */
-  const sanitizeVariantRows = (
-    rows: PurchaseValidatedVariantInput[]
-  ): PurchaseValidatedVariantInput[] => {
-    return rows.map((row, index) => {
+  const sanitizeVariantRows = async (
+    rows: VariantRow[]
+  ): Promise<PurchaseValidatedVariantInput[]> => {
+    const out: PurchaseValidatedVariantInput[] = [];
+    for (let index = 0; index < rows.length; index++) {
+      const row = rows[index];
       const name = row.variantName?.trim();
       const hasId = !!row.variantId;
-      const stock = Math.floor(Number(row.validatedStock));
       if (!hasId && !name) {
         throw new Error(`La variante #${index + 1} debe tener nombre o ID`);
       }
-      if (!Number.isFinite(stock) || stock < 1) {
-        throw new Error(`El stock de la variante #${index + 1} debe ser entero >= 1`);
+
+      let validatedStock = 1;
+      if (tracksVariantStock) {
+        const stock = Math.floor(Number(row.validatedStock));
+        if (!Number.isFinite(stock) || stock < 1) {
+          throw new Error(`El stock de la variante #${index + 1} debe ser entero >= 1`);
+        }
+        validatedStock = stock;
       }
-      return {
+
+      // Sube foto local por variante si existe.
+      let photoUrl = row.photoUrl?.trim() || undefined;
+      if (!photoUrl && row.photoUri) {
+        try {
+          const filename = `variante-${(name || row.variantId || 'x').replace(/[^a-z0-9]/gi, '')}-${Date.now()}.jpg`;
+          const resp = await filesApi.uploadByCategory(
+            row.photoUri,
+            filename,
+            'PURCHASES_VALIDACIONES_FOTOS',
+            purchaseId,
+            'image/jpeg'
+          );
+          photoUrl = resp.url;
+        } catch (e: any) {
+          throw new Error(
+            `No se pudo subir la foto de la variante #${index + 1}: ${e?.message || 'error desconocido'}`
+          );
+        }
+      }
+
+      out.push({
         variantId: row.variantId,
         variantName: name || undefined,
         variantSku: row.variantSku?.trim() || undefined,
         variantBarcode: row.variantBarcode?.trim() || undefined,
-        validatedStock: stock,
-        // Default true. Solo enviar false si el usuario lo desmarca explicitamente.
-        tracksStock: row.tracksStock === false ? false : undefined,
-        photoUrl: row.photoUrl?.trim() || undefined,
+        validatedStock,
+        // Solo enviamos el flag cuando queremos apagarlo (backend usa true por default).
+        tracksStock: tracksVariantStock ? undefined : false,
+        photoUrl,
         photos:
           Array.isArray(row.photos) && row.photos.length > 0
             ? row.photos.filter((p) => !!p?.trim())
             : undefined,
-      };
-    });
+      });
+    }
+    return out;
   };
 
   const handleSubmitEntry = async () => {
@@ -707,6 +764,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setValidationNotes('');
       setVariantRows([]);
       setMultiVariantMode(false);
+      setTracksVariantStock(false);
       setLooseUnits('0');
       setValidatedPresentations((current) =>
         current.map((presentation) => ({ ...presentation, quantityOfPresentations: 0 }))
@@ -1355,87 +1413,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               </Caption>
             </View>
 
-            {/* Photo Capture */}
-            <View style={styles.section}>
-              <Label color="secondary">
-                Foto de Validación <Label color={theme.color.icon.danger}>*</Label>
-              </Label>
-              {photoUri ? (
-                <View style={styles.capturedContainer}>
-                  <Image source={{ uri: photoUri }} style={styles.capturedPhoto} />
-                  <Button
-                    title="📷 Cambiar Foto"
-                    onPress={() => setShowPhotoCapture(true)}
-                    variant="secondary"
-                    size="small"
-                  />
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.captureButton}
-                  onPress={() => setShowPhotoCapture(true)}
-                >
-                  <Ionicons name="camera" size={32} color={theme.color.brand.accent} />
-                  <Body color={theme.color.brand.accent}>Tomar Foto</Body>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Product Photo */}
-            {isFirstPhysicalEntry(product) && (
-              <View style={styles.section}>
-                <Label color="secondary">
-                  Foto del Producto (Catálogo) <Label color={theme.color.icon.danger}>*</Label>
-                </Label>
-                {productPhotoUri ? (
-                  <View style={styles.capturedContainer}>
-                    <Image source={{ uri: productPhotoUri }} style={styles.capturedPhoto} />
-                    <Button
-                      title="🖼️ Cambiar Foto"
-                      onPress={() => setShowProductPhotoCapture(true)}
-                      variant="secondary"
-                      size="small"
-                    />
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.captureButton}
-                    onPress={() => setShowProductPhotoCapture(true)}
-                  >
-                    <Ionicons name="image" size={32} color={theme.color.brand.accent} />
-                    <Body color={theme.color.brand.accent}>Tomar Foto del Producto</Body>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-
-            {/* Signature */}
-            <View style={styles.section}>
-              <Label color="secondary">
-                Firma de Validación <Label color={theme.color.icon.danger}>*</Label>
-              </Label>
-              {signatureUri ? (
-                <View style={styles.capturedContainer}>
-                  <Image source={{ uri: signatureUri }} style={styles.capturedSignature} />
-                  <Button
-                    title="✍️ Cambiar Firma"
-                    onPress={() => setShowSignatureCapture(true)}
-                    variant="secondary"
-                    size="small"
-                  />
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.captureButton}
-                  onPress={() => setShowSignatureCapture(true)}
-                >
-                  <Ionicons name="pencil" size={32} color={theme.color.brand.accent} />
-                  <Body color={theme.color.brand.accent}>Capturar Firma</Body>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Variantes (color) - toggle + reutilizacion de variantes existentes */}
+            {/* Variantes (color) - toggle + reutilizacion + stock unificado */}
             <View style={styles.variantsSection}>
               <View style={styles.variantsHeader}>
                 <Label>Variantes / Colores</Label>
@@ -1449,6 +1427,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                         setVariantRows([{ variantName: '', validatedStock: 1 }]);
                       } else if (!value) {
                         setVariantRows([]);
+                        setTracksVariantStock(false);
                       }
                     }}
                   />
@@ -1457,9 +1436,34 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
               {multiVariantMode && (
                 <View style={styles.variantRowsContainer}>
+                  {/* Control unificado: si UNA lleva stock, TODAS lo llevan */}
+                  <View style={styles.multiToggle}>
+                    <View style={{ flex: 1 }}>
+                      <Body>Controlar stock por variante</Body>
+                      <Caption color="tertiary">
+                        {tracksVariantStock
+                          ? 'Cada variante suma stock por separado (POS podra vender).'
+                          : 'Variantes descriptivas SIN stock. Se registran nombre/SKU/foto pero no afectan inventario.'}
+                      </Caption>
+                    </View>
+                    <Switch
+                      value={tracksVariantStock}
+                      onValueChange={(value) => {
+                        setTracksVariantStock(value);
+                        // Regla: si una tiene stock, todas usan stock. Al alternar
+                        // reseteamos validatedStock por defecto (1) por consistencia.
+                        setVariantRows((rows) =>
+                          rows.map((r) => ({ ...r, validatedStock: value ? 1 : 1 }))
+                        );
+                      }}
+                    />
+                  </View>
+
                   <Caption color="tertiary">
-                    Cada variante lleva su propio stock, SKU, codigo alterno y foto. El stock del
-                    encabezado se ignora cuando se envian variantes.
+                    Cada variante lleva su propio SKU, codigo alterno y foto.
+                    {tracksVariantStock
+                      ? ' El stock del encabezado se ignora cuando se envian variantes.'
+                      : ''}
                   </Caption>
 
                   {existingVariants.length > 0 && (
@@ -1542,26 +1546,28 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                           />
                         )}
 
-                        <Input
-                          label="Stock (unidad base, entero >= 1)"
-                          value={row.validatedStock ? String(row.validatedStock) : ''}
-                          onChangeText={(text) => {
-                            const parsed = parseInt(text, 10);
-                            setVariantRows((rows) =>
-                              rows.map((r, i) =>
-                                i === index
-                                  ? {
-                                      ...r,
-                                      validatedStock:
-                                        Number.isFinite(parsed) && parsed > 0 ? parsed : 0,
-                                    }
-                                  : r
-                              )
-                            );
-                          }}
-                          placeholder="1"
-                          keyboardType="numeric"
-                        />
+                        {tracksVariantStock && (
+                          <Input
+                            label="Stock (unidad base, entero >= 1)"
+                            value={row.validatedStock ? String(row.validatedStock) : ''}
+                            onChangeText={(text) => {
+                              const parsed = parseInt(text, 10);
+                              setVariantRows((rows) =>
+                                rows.map((r, i) =>
+                                  i === index
+                                    ? {
+                                        ...r,
+                                        validatedStock:
+                                          Number.isFinite(parsed) && parsed > 0 ? parsed : 0,
+                                      }
+                                    : r
+                                )
+                              );
+                            }}
+                            placeholder="1"
+                            keyboardType="numeric"
+                          />
+                        )}
 
                         {!isExisting && (
                           <>
@@ -1589,45 +1595,62 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                               }
                               placeholder="Codigo de barras"
                             />
-                            <Input
-                              label="Foto principal (URL, opcional)"
-                              value={row.photoUrl || ''}
-                              onChangeText={(text) =>
-                                setVariantRows((rows) =>
-                                  rows.map((r, i) =>
-                                    i === index ? { ...r, photoUrl: text || undefined } : r
-                                  )
-                                )
-                              }
-                              placeholder="purchases/rojo.jpg"
-                            />
-                            <View style={styles.multiToggle}>
-                              <Body>Controlar stock por variante</Body>
-                              <Switch
-                                value={row.tracksStock !== false}
-                                onValueChange={(value) =>
-                                  setVariantRows((rows) =>
-                                    rows.map((r, i) =>
-                                      i === index ? { ...r, tracksStock: value } : r
-                                    )
-                                  )
-                                }
-                              />
+
+                            {/* Foto por variante: picker + preview */}
+                            <View style={styles.section}>
+                              <Label color="secondary">Foto de la variante (opcional)</Label>
+                              {row.photoUri ? (
+                                <View style={styles.capturedContainer}>
+                                  <Image
+                                    source={{ uri: row.photoUri }}
+                                    style={styles.capturedPhoto}
+                                  />
+                                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                                    <Button
+                                      title="🖼️ Cambiar"
+                                      onPress={() => pickVariantPhoto(index)}
+                                      variant="secondary"
+                                      size="small"
+                                    />
+                                    <Button
+                                      title="🗑️ Quitar"
+                                      onPress={() =>
+                                        setVariantRows((rows) =>
+                                          rows.map((r, i) =>
+                                            i === index
+                                              ? { ...r, photoUri: undefined, photoUrl: undefined }
+                                              : r
+                                          )
+                                        )
+                                      }
+                                      variant="secondary"
+                                      size="small"
+                                    />
+                                  </View>
+                                </View>
+                              ) : (
+                                <TouchableOpacity
+                                  style={styles.captureButton}
+                                  onPress={() => pickVariantPhoto(index)}
+                                >
+                                  <Ionicons
+                                    name="image"
+                                    size={28}
+                                    color={theme.color.brand.accent}
+                                  />
+                                  <Body color={theme.color.brand.accent}>Elegir foto</Body>
+                                </TouchableOpacity>
+                              )}
                             </View>
-                            {row.tracksStock === false && (
-                              <Caption color="tertiary">
-                                ⚠ Sin control de stock por variante: el saldo puede quedar
-                                "fantasma" (el POS no podra vender). Usar solo para variantes
-                                descriptivas SIN stock.
-                              </Caption>
-                            )}
                           </>
                         )}
 
                         {isExisting && (
                           <Caption color="tertiary">
-                            Se sumara este stock a la variante existente. SKU, codigo y foto no se
-                            editan desde aqui.
+                            {tracksVariantStock
+                              ? 'Se sumara este stock a la variante existente.'
+                              : 'Se registrara la variante existente sin afectar stock.'}{' '}
+                            SKU, codigo y foto no se editan desde aqui.
                           </Caption>
                         )}
                       </Card>
@@ -1641,6 +1664,86 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                     }
                   />
                 </View>
+              )}
+            </View>
+
+            {/* Photo Capture */}
+            <View style={styles.section}>
+              <Label color="secondary">
+                Foto de Validación <Label color={theme.color.icon.danger}>*</Label>
+              </Label>
+              {photoUri ? (
+                <View style={styles.capturedContainer}>
+                  <Image source={{ uri: photoUri }} style={styles.capturedPhoto} />
+                  <Button
+                    title="📷 Cambiar Foto"
+                    onPress={() => setShowPhotoCapture(true)}
+                    variant="secondary"
+                    size="small"
+                  />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={() => setShowPhotoCapture(true)}
+                >
+                  <Ionicons name="camera" size={32} color={theme.color.brand.accent} />
+                  <Body color={theme.color.brand.accent}>Tomar Foto</Body>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Product Photo */}
+            {isFirstPhysicalEntry(product) && (
+              <View style={styles.section}>
+                <Label color="secondary">
+                  Foto del Producto (Catálogo) <Label color={theme.color.icon.danger}>*</Label>
+                </Label>
+                {productPhotoUri ? (
+                  <View style={styles.capturedContainer}>
+                    <Image source={{ uri: productPhotoUri }} style={styles.capturedPhoto} />
+                    <Button
+                      title="🖼️ Cambiar Foto"
+                      onPress={() => setShowProductPhotoCapture(true)}
+                      variant="secondary"
+                      size="small"
+                    />
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.captureButton}
+                    onPress={() => setShowProductPhotoCapture(true)}
+                  >
+                    <Ionicons name="image" size={32} color={theme.color.brand.accent} />
+                    <Body color={theme.color.brand.accent}>Tomar Foto del Producto</Body>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Signature */}
+            <View style={styles.section}>
+              <Label color="secondary">
+                Firma de Validación <Label color={theme.color.icon.danger}>*</Label>
+              </Label>
+              {signatureUri ? (
+                <View style={styles.capturedContainer}>
+                  <Image source={{ uri: signatureUri }} style={styles.capturedSignature} />
+                  <Button
+                    title="✍️ Cambiar Firma"
+                    onPress={() => setShowSignatureCapture(true)}
+                    variant="secondary"
+                    size="small"
+                  />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.captureButton}
+                  onPress={() => setShowSignatureCapture(true)}
+                >
+                  <Ionicons name="pencil" size={32} color={theme.color.brand.accent} />
+                  <Body color={theme.color.brand.accent}>Capturar Firma</Body>
+                </TouchableOpacity>
               )}
             </View>
 
@@ -1680,6 +1783,20 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       size="small"
                     />
                   </View>
+                  {(validation.variant?.name || validation.variantName) && (
+                    <View style={styles.infoRow}>
+                      <Label color="secondary" style={styles.infoLabel}>
+                        Variante:
+                      </Label>
+                      <Body style={styles.infoValue}>
+                        🎨 {validation.variant?.name || validation.variantName}
+                        {validation.variant?.sku ? ` · ${validation.variant.sku}` : ''}
+                        {validation.variant && validation.variant.tracksStock === false
+                          ? ' · (sin stock)'
+                          : ''}
+                      </Body>
+                    </View>
+                  )}
                   <View style={styles.infoRow}>
                     <Label color="secondary" style={styles.infoLabel}>
                       Stock:
