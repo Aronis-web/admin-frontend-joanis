@@ -417,7 +417,8 @@ export interface PurchaseValidatedVariantInput {
   variantName?: string; // Upsert por nombre normalizado
   sku?: string; // SKU exclusivo de la variante (opcional)
   barcode?: string; // Codigo alterno exclusivo de la variante
-  quantityBase: number; // Stock validado en unidad base (obligatorio)
+  // Stock validado en unidad base (entero >= 1). Nombre alineado al backend.
+  validatedStock: number;
   warehouseId?: string; // Si se omite usa el warehouseId del request
   areaId?: string;
   // Presentacion opcional aplicada a esta variante
@@ -563,7 +564,7 @@ export interface MultiValidationResponse {
       sku?: string;
       barcode?: string;
       tracksStock: boolean;
-      quantityBase: number;
+      validatedStock: number;
       stockMovementId?: string | null;
       warehouseId?: string;
       areaId?: string;

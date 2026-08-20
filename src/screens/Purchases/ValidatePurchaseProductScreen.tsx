@@ -543,8 +543,43 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       validationNotes: validationNotes.trim() || undefined,
       // MODO A (single) vs MODO B (multi-variante): son mutuamente excluyentes
       variantName: !multiVariantMode && variantName.trim() ? variantName.trim() : undefined,
-      variants: multiVariantMode && variantRows.length > 0 ? variantRows : undefined,
+      variants:
+        multiVariantMode && variantRows.length > 0 ? sanitizeVariantRows(variantRows) : undefined,
     };
+  };
+
+  /**
+   * Limpia y valida las filas del modo multi-variante antes de enviar.
+   * - validatedStock debe ser entero >= 1 (regla del backend).
+   * - Debe traer variantId o variantName no vacio.
+   */
+  const sanitizeVariantRows = (
+    rows: PurchaseValidatedVariantInput[]
+  ): PurchaseValidatedVariantInput[] => {
+    return rows.map((row, index) => {
+      const name = row.variantName?.trim();
+      const hasId = !!row.variantId;
+      const stock = Math.floor(Number(row.validatedStock));
+      if (!hasId && !name) {
+        throw new Error(`La variante #${index + 1} debe tener nombre o ID`);
+      }
+      if (!Number.isFinite(stock) || stock < 1) {
+        throw new Error(`El stock de la variante #${index + 1} debe ser entero >= 1`);
+      }
+      return {
+        variantId: row.variantId,
+        variantName: name || undefined,
+        sku: row.sku?.trim() || undefined,
+        barcode: row.barcode?.trim() || undefined,
+        validatedStock: stock,
+        warehouseId: row.warehouseId,
+        areaId: row.areaId,
+        presentationId: row.presentationId,
+        factorToBase: row.factorToBase,
+        quantityPresentation: row.quantityPresentation,
+        notes: row.notes?.trim() || undefined,
+      };
+    });
   };
 
   const handleSubmitEntry = async () => {
@@ -1371,7 +1406,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       if (value) {
                         setVariantName('');
                         if (variantRows.length === 0) {
-                          setVariantRows([{ variantName: '', quantityBase: 0 }]);
+                          setVariantRows([{ variantName: '', validatedStock: 1 }]);
                         }
                       } else {
                         setVariantRows([]);
@@ -1423,16 +1458,23 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                         placeholder="rojo, azul, verde..."
                       />
                       <Input
-                        label="Stock (unidad base)"
-                        value={row.quantityBase ? String(row.quantityBase) : ''}
-                        onChangeText={(text) =>
+                        label="Stock (unidad base, entero >= 1)"
+                        value={row.validatedStock ? String(row.validatedStock) : ''}
+                        onChangeText={(text) => {
+                          const parsed = parseInt(text, 10);
                           setVariantRows((rows) =>
                             rows.map((r, i) =>
-                              i === index ? { ...r, quantityBase: Number(text) || 0 } : r
+                              i === index
+                                ? {
+                                    ...r,
+                                    validatedStock:
+                                      Number.isFinite(parsed) && parsed > 0 ? parsed : 0,
+                                  }
+                                : r
                             )
-                          )
-                        }
-                        placeholder="0"
+                          );
+                        }}
+                        placeholder="1"
                         keyboardType="numeric"
                       />
                       <Input
@@ -1476,7 +1518,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                     variant="secondary"
                     title="+ Agregar variante"
                     onPress={() =>
-                      setVariantRows((rows) => [...rows, { variantName: '', quantityBase: 0 }])
+                      setVariantRows((rows) => [...rows, { variantName: '', validatedStock: 1 }])
                     }
                   />
                 </View>
