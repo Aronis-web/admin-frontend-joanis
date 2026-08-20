@@ -202,6 +202,12 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       setTracksVariantStock(false);
     }
   }, [multiVariantMode, existingStockPolicy, tracksVariantStock]);
+
+  // Flags derivados para ocultar campos generales cuando se manejan por variante.
+  const usingVariantStock = multiVariantMode && tracksVariantStock;
+  const anyVariantHasSku = multiVariantMode && variantRows.some((r) => !!r.variantSku?.trim());
+  const anyVariantHasBarcode =
+    multiVariantMode && variantRows.some((r) => !!r.variantBarcode?.trim());
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
@@ -514,7 +520,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       Alert.alert('Error', 'El nombre es obligatorio');
       return false;
     }
-    if (isFirstEntry && !barcode.trim()) {
+    // Barcode general solo requerido si NO se maneja por variante.
+    if (isFirstEntry && !anyVariantHasBarcode && !barcode.trim()) {
       Alert.alert('Error', 'El código de barras es obligatorio');
       return false;
     }
@@ -525,15 +532,25 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return false;
     }
 
-    const looseUnitsValue = parseInt(looseUnits);
-    if (isNaN(looseUnitsValue) || looseUnitsValue < 0) {
-      Alert.alert('Error', 'Debe ingresar unidades sueltas válidas');
-      return false;
-    }
+    // Stock general (unidades sueltas + presentaciones) solo se valida cuando
+    // NO se controla stock por variante.
+    if (!usingVariantStock) {
+      const looseUnitsValue = parseInt(looseUnits);
+      if (isNaN(looseUnitsValue) || looseUnitsValue < 0) {
+        Alert.alert('Error', 'Debe ingresar unidades sueltas válidas');
+        return false;
+      }
 
-    if (calculateTotalStock() < 1) {
-      Alert.alert('Error', 'Debe validar al menos 1 unidad');
-      return false;
+      if (calculateTotalStock() < 1) {
+        Alert.alert('Error', 'Debe validar al menos 1 unidad');
+        return false;
+      }
+    } else {
+      // Modo variante con stock: exige al menos una variante con stock >= 1.
+      if (variantRows.length === 0) {
+        Alert.alert('Error', 'Debe agregar al menos una variante');
+        return false;
+      }
     }
 
     const weightKg = getWeightInKg();
@@ -563,7 +580,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       return false;
     }
 
-    if (validatedPresentations.length > 0) {
+    if (!usingVariantStock && validatedPresentations.length > 0) {
       for (const pres of validatedPresentations) {
         if (!pres.presentationId || pres.factorToBase <= 0) {
           Alert.alert('Error', 'Todas las presentaciones deben tener un factor válido');
@@ -592,18 +609,28 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
     const uploadedFiles = await uploadValidationFiles();
 
+    // Cuando se maneja stock por variante, el stock general se ignora.
+    // Enviamos la suma de las variantes como validatedStock (para consistencia
+    // en reportes) y 0 en looseUnits/presentationQuantity + sin presentaciones.
+    const variantStockSum = usingVariantStock
+      ? variantRows.reduce((acc, r) => acc + (Number(r.validatedStock) || 0), 0)
+      : 0;
+
     return {
+      // sku sigue siendo requerido a nivel producto; si cada variante trae su
+      // propio SKU, mantenemos el sku del producto original (state pre-cargado)
+      // pero el input no se muestra al usuario.
       sku: sku.trim(),
       name: name.trim(),
       costCents: Math.round(costValue * 100),
       preliminaryStock: product.preliminaryStock,
-      validatedStock: totalStock,
-      validatedLooseUnits: looseUnitsValue,
-      validatedPresentationQuantity,
+      validatedStock: usingVariantStock ? Math.max(1, variantStockSum) : totalStock,
+      validatedLooseUnits: usingVariantStock ? 0 : looseUnitsValue,
+      validatedPresentationQuantity: usingVariantStock ? 0 : validatedPresentationQuantity,
       warehouseId: selectedWarehouse.id,
       areaId: selectedArea.id,
       presentations:
-        validatedPresentations.length > 0
+        !usingVariantStock && validatedPresentations.length > 0
           ? validatedPresentations.map((p) => ({
               presentationId: p.presentationId,
               factorToBase: Number(p.factorToBase),
@@ -611,7 +638,8 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
             }))
           : undefined,
       productPhotos: uploadedFiles.productPhotoUrl ? [uploadedFiles.productPhotoUrl] : undefined,
-      barcode: barcode.trim() || undefined,
+      // Barcode general se omite cuando cada variante trae su propio codigo.
+      barcode: anyVariantHasBarcode ? undefined : barcode.trim() || undefined,
       weightKg: getWeightInKg(),
       photoUrl: uploadedFiles.photoUrl,
       signatureUrl: uploadedFiles.signatureUrl,
@@ -1019,14 +1047,16 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         {/* Editable Fields */}
         {canEdit() && (
           <>
-            <Input
-              label="SKU"
-              value={sku}
-              onChangeText={setSku}
-              placeholder="Ej: PROD-001"
-              required
-              disabled={!canEditIdentity()}
-            />
+            {!anyVariantHasSku && (
+              <Input
+                label="SKU"
+                value={sku}
+                onChangeText={setSku}
+                placeholder="Ej: PROD-001"
+                required
+                disabled={!canEditIdentity()}
+              />
+            )}
 
             <Input
               label="Nombre"
@@ -1245,196 +1275,205 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
               </View>
             )}
 
-            {/* Presentations */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Label color="secondary">Presentaciones Validadas (Opcional)</Label>
-                {canEditIdentity() && (
-                  <Button
-                    title="+ Agregar"
-                    onPress={() => setShowAddPresentation(true)}
-                    variant="primary"
-                    size="small"
-                  />
-                )}
-              </View>
-              <Caption color="tertiary">
-                {isProductIdentityResolved(product)
-                  ? 'Las presentaciones ya fueron definidas en el primer ingreso. Solo ingrese cantidades para este ingreso.'
-                  : 'Confirme o edite los factores de conversión.'}
-              </Caption>
-
-              {validatedPresentations.map((pres, index) => (
-                <Card
-                  key={index}
-                  variant="outlined"
-                  padding="medium"
-                  style={styles.presentationCard}
-                >
-                  <View style={styles.presentationHeader}>
-                    <Title size="small">{pres.presentationName}</Title>
-                    {canEditIdentity() && (
-                      <IconButton
-                        icon="trash-outline"
-                        onPress={() => handleRemovePresentation(index)}
-                        variant="ghost"
-                        size="small"
-                      />
-                    )}
-                  </View>
-
-                  <View style={styles.presentationField}>
-                    <Label color="secondary">Factor a Base:</Label>
-                    <TextInput
-                      style={styles.presentationInput}
-                      value={pres.factorToBase.toString()}
-                      onChangeText={(text) => {
-                        if (!canEditIdentity()) return;
-                        const newPresentations = [...validatedPresentations];
-                        newPresentations[index].factorToBase = parseFloat(text) || 0;
-                        setValidatedPresentations(newPresentations);
-                      }}
-                      placeholder="Ej: 24"
-                      keyboardType="numeric"
-                      editable={canEditIdentity()}
+            {/* Presentations: se ocultan cuando el stock se maneja por variante */}
+            {!usingVariantStock && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Label color="secondary">Presentaciones Validadas (Opcional)</Label>
+                  {canEditIdentity() && (
+                    <Button
+                      title="+ Agregar"
+                      onPress={() => setShowAddPresentation(true)}
+                      variant="primary"
+                      size="small"
                     />
-                  </View>
+                  )}
+                </View>
+                <Caption color="tertiary">
+                  {isProductIdentityResolved(product)
+                    ? 'Las presentaciones ya fueron definidas en el primer ingreso. Solo ingrese cantidades para este ingreso.'
+                    : 'Confirme o edite los factores de conversión.'}
+                </Caption>
 
-                  <View style={styles.presentationField}>
-                    <View style={styles.quantityHeaderRow}>
-                      <Label color="secondary">Cantidad:</Label>
-                      <TouchableOpacity
+                {validatedPresentations.map((pres, index) => (
+                  <Card
+                    key={index}
+                    variant="outlined"
+                    padding="medium"
+                    style={styles.presentationCard}
+                  >
+                    <View style={styles.presentationHeader}>
+                      <Title size="small">{pres.presentationName}</Title>
+                      {canEditIdentity() && (
+                        <IconButton
+                          icon="trash-outline"
+                          onPress={() => handleRemovePresentation(index)}
+                          variant="ghost"
+                          size="small"
+                        />
+                      )}
+                    </View>
+
+                    <View style={styles.presentationField}>
+                      <Label color="secondary">Factor a Base:</Label>
+                      <TextInput
+                        style={styles.presentationInput}
+                        value={pres.factorToBase.toString()}
+                        onChangeText={(text) => {
+                          if (!canEditIdentity()) return;
+                          const newPresentations = [...validatedPresentations];
+                          newPresentations[index].factorToBase = parseFloat(text) || 0;
+                          setValidatedPresentations(newPresentations);
+                        }}
+                        placeholder="Ej: 24"
+                        keyboardType="numeric"
+                        editable={canEditIdentity()}
+                      />
+                    </View>
+
+                    <View style={styles.presentationField}>
+                      <View style={styles.quantityHeaderRow}>
+                        <Label color="secondary">Cantidad:</Label>
+                        <TouchableOpacity
+                          style={[
+                            styles.selectForQuantityButton,
+                            selectedPresentationForQuantity === pres.presentationId &&
+                              styles.selectForQuantityButtonActive,
+                          ]}
+                          disabled={!canEdit()}
+                          onPress={() => {
+                            if (!canEdit()) return;
+                            if (selectedPresentationForQuantity === pres.presentationId) {
+                              setSelectedPresentationForQuantity(null);
+                              const newPresentations = [...validatedPresentations];
+                              newPresentations[index].quantityOfPresentations = 0;
+                              setValidatedPresentations(newPresentations);
+                            } else {
+                              setSelectedPresentationForQuantity(pres.presentationId);
+                              const newPresentations = validatedPresentations.map((p, i) => ({
+                                ...p,
+                                quantityOfPresentations:
+                                  i === index ? p.quantityOfPresentations : 0,
+                              }));
+                              setValidatedPresentations(newPresentations);
+                            }
+                          }}
+                        >
+                          <Caption
+                            color={
+                              selectedPresentationForQuantity === pres.presentationId
+                                ? theme.color.text.inverse
+                                : theme.color.brand.accent
+                            }
+                          >
+                            {selectedPresentationForQuantity === pres.presentationId
+                              ? '✓ Seleccionada'
+                              : 'Seleccionar'}
+                          </Caption>
+                        </TouchableOpacity>
+                      </View>
+                      <TextInput
                         style={[
-                          styles.selectForQuantityButton,
-                          selectedPresentationForQuantity === pres.presentationId &&
-                            styles.selectForQuantityButtonActive,
+                          styles.presentationInput,
+                          selectedPresentationForQuantity !== pres.presentationId &&
+                            styles.inputDisabled,
                         ]}
-                        disabled={!canEdit()}
-                        onPress={() => {
-                          if (!canEdit()) return;
+                        value={pres.quantityOfPresentations.toString()}
+                        onChangeText={(text) => {
                           if (selectedPresentationForQuantity === pres.presentationId) {
-                            setSelectedPresentationForQuantity(null);
                             const newPresentations = [...validatedPresentations];
-                            newPresentations[index].quantityOfPresentations = 0;
-                            setValidatedPresentations(newPresentations);
-                          } else {
-                            setSelectedPresentationForQuantity(pres.presentationId);
-                            const newPresentations = validatedPresentations.map((p, i) => ({
-                              ...p,
-                              quantityOfPresentations: i === index ? p.quantityOfPresentations : 0,
-                            }));
+                            newPresentations[index].quantityOfPresentations = parseInt(text) || 0;
                             setValidatedPresentations(newPresentations);
                           }
                         }}
-                      >
-                        <Caption
-                          color={
-                            selectedPresentationForQuantity === pres.presentationId
-                              ? theme.color.text.inverse
-                              : theme.color.brand.accent
-                          }
-                        >
-                          {selectedPresentationForQuantity === pres.presentationId
-                            ? '✓ Seleccionada'
-                            : 'Seleccionar'}
-                        </Caption>
-                      </TouchableOpacity>
-                    </View>
-                    <TextInput
-                      style={[
-                        styles.presentationInput,
-                        selectedPresentationForQuantity !== pres.presentationId &&
-                          styles.inputDisabled,
-                      ]}
-                      value={pres.quantityOfPresentations.toString()}
-                      onChangeText={(text) => {
-                        if (selectedPresentationForQuantity === pres.presentationId) {
-                          const newPresentations = [...validatedPresentations];
-                          newPresentations[index].quantityOfPresentations = parseInt(text) || 0;
-                          setValidatedPresentations(newPresentations);
+                        placeholder={
+                          selectedPresentationForQuantity === pres.presentationId
+                            ? 'Ej: 5'
+                            : 'Seleccione primero'
                         }
-                      }}
-                      placeholder={
-                        selectedPresentationForQuantity === pres.presentationId
-                          ? 'Ej: 5'
-                          : 'Seleccione primero'
-                      }
-                      keyboardType="number-pad"
-                      editable={selectedPresentationForQuantity === pres.presentationId}
-                    />
-                    {selectedPresentationForQuantity === pres.presentationId &&
-                      pres.quantityOfPresentations > 0 && (
-                        <Caption color={theme.color.text.success}>
-                          = {pres.quantityOfPresentations} × {pres.factorToBase} ={' '}
-                          {pres.quantityOfPresentations * pres.factorToBase} unidades
-                        </Caption>
-                      )}
-                  </View>
-                </Card>
-              ))}
+                        keyboardType="number-pad"
+                        editable={selectedPresentationForQuantity === pres.presentationId}
+                      />
+                      {selectedPresentationForQuantity === pres.presentationId &&
+                        pres.quantityOfPresentations > 0 && (
+                          <Caption color={theme.color.text.success}>
+                            = {pres.quantityOfPresentations} × {pres.factorToBase} ={' '}
+                            {pres.quantityOfPresentations * pres.factorToBase} unidades
+                          </Caption>
+                        )}
+                    </View>
+                  </Card>
+                ))}
 
-              {validatedPresentations.length === 0 && (
-                <Card variant="filled" padding="medium">
-                  <Body color="secondary" align="center">
-                    No hay presentaciones agregadas
-                  </Body>
-                </Card>
-              )}
-            </View>
-
-            {/* Barcode */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Label color="secondary">
-                  Código de Barras <Label color={theme.color.icon.danger}>*</Label>
-                </Label>
-                {canEditIdentity() && (
-                  <TouchableOpacity
-                    style={styles.copyButton}
-                    onPress={() => {
-                      if (sku.trim()) {
-                        setBarcode(sku.trim());
-                        Alert.alert('Copiado', 'SKU copiado');
-                      }
-                    }}
-                  >
-                    <Caption color={theme.color.brand.accent}>📋 Copiar SKU</Caption>
-                  </TouchableOpacity>
+                {validatedPresentations.length === 0 && (
+                  <Card variant="filled" padding="medium">
+                    <Body color="secondary" align="center">
+                      No hay presentaciones agregadas
+                    </Body>
+                  </Card>
                 )}
               </View>
-              <TextInput
-                style={styles.input}
-                value={barcode}
-                onChangeText={setBarcode}
-                placeholder="Ej: ABC123XYZ"
-                placeholderTextColor={theme.color.text.placeholder}
-                editable={canEditIdentity()}
-              />
-            </View>
+            )}
 
-            {/* Loose Units */}
-            <Input
-              label="Unidades Sueltas"
-              value={looseUnits}
-              onChangeText={setLooseUnits}
-              placeholder="Ej: 5"
-              keyboardType="number-pad"
-              required
-              helperText="Cantidad de unidades individuales sueltas"
-            />
-
-            {/* Total Stock (Calculated) */}
-            <View style={styles.section}>
-              <Label color="secondary">Stock Total Validado (Calculado)</Label>
-              <View style={styles.calculatedField}>
-                <Title size="medium" color={theme.color.text.muted}>
-                  {calculateTotalStock()} unidades
-                </Title>
+            {/* Barcode */}
+            {!anyVariantHasBarcode && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Label color="secondary">
+                    Código de Barras <Label color={theme.color.icon.danger}>*</Label>
+                  </Label>
+                  {canEditIdentity() && (
+                    <TouchableOpacity
+                      style={styles.copyButton}
+                      onPress={() => {
+                        if (sku.trim()) {
+                          setBarcode(sku.trim());
+                          Alert.alert('Copiado', 'SKU copiado');
+                        }
+                      }}
+                    >
+                      <Caption color={theme.color.brand.accent}>📋 Copiar SKU</Caption>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TextInput
+                  style={styles.input}
+                  value={barcode}
+                  onChangeText={setBarcode}
+                  placeholder="Ej: ABC123XYZ"
+                  placeholderTextColor={theme.color.text.placeholder}
+                  editable={canEditIdentity()}
+                />
               </View>
-              <Caption color="tertiary">
-                Unidades sueltas + (Cantidad de presentaciones × Factor)
-              </Caption>
-            </View>
+            )}
+
+            {/* Loose Units + Stock Total: se ocultan cuando el stock se maneja
+                por variante (usingVariantStock). */}
+            {!usingVariantStock && (
+              <>
+                <Input
+                  label="Unidades Sueltas"
+                  value={looseUnits}
+                  onChangeText={setLooseUnits}
+                  placeholder="Ej: 5"
+                  keyboardType="number-pad"
+                  required
+                  helperText="Cantidad de unidades individuales sueltas"
+                />
+
+                <View style={styles.section}>
+                  <Label color="secondary">Stock Total Validado (Calculado)</Label>
+                  <View style={styles.calculatedField}>
+                    <Title size="medium" color={theme.color.text.muted}>
+                      {calculateTotalStock()} unidades
+                    </Title>
+                  </View>
+                  <Caption color="tertiary">
+                    Unidades sueltas + (Cantidad de presentaciones × Factor)
+                  </Caption>
+                </View>
+              </>
+            )}
 
             {/* Variantes (color) - toggle + reutilizacion + stock unificado */}
             <View style={styles.variantsSection}>
