@@ -1668,24 +1668,39 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
                         size="small"
                       />
                     </View>
-                    {(validation.variant?.name || validation.variantName) && (
+                    {Array.isArray(validation.variants) && validation.variants.length > 0 ? (
                       <View style={modalStyles.variantChipRow}>
-                        <Badge
-                          label={`🎨 ${validation.variant?.name || validation.variantName}`}
-                          variant="info"
-                          size="small"
-                        />
-                        {validation.variant?.sku && (
+                        {validation.variants.map((vv) => (
                           <Badge
-                            label={`SKU: ${validation.variant.sku}`}
-                            variant="default"
+                            key={vv.id}
+                            label={`🎨 ${vv.name}${
+                              typeof vv.validatedStock === 'number' ? ` · ${vv.validatedStock}` : ''
+                            }${vv.tracksStock === false ? ' · sin stock' : ''}`}
+                            variant="info"
                             size="small"
                           />
-                        )}
-                        {validation.variant?.tracksStock === false && (
-                          <Badge label="Sin stock" variant="warning" size="small" />
-                        )}
+                        ))}
                       </View>
+                    ) : (
+                      (validation.variant?.name || validation.variantName) && (
+                        <View style={modalStyles.variantChipRow}>
+                          <Badge
+                            label={`🎨 ${validation.variant?.name || validation.variantName}`}
+                            variant="info"
+                            size="small"
+                          />
+                          {validation.variant?.sku && (
+                            <Badge
+                              label={`SKU: ${validation.variant.sku}`}
+                              variant="default"
+                              size="small"
+                            />
+                          )}
+                          {validation.variant?.tracksStock === false && (
+                            <Badge label="Sin stock" variant="warning" size="small" />
+                          )}
+                        </View>
+                      )
                     )}
                     <InfoRow
                       label="Fecha"
@@ -1806,45 +1821,81 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
                         )}
                     </Card>
 
-                    {(selectedValidationDetail.variant?.name ||
-                      selectedValidationDetail.variantName) && (
+                    {Array.isArray(selectedValidationDetail.variants) &&
+                    selectedValidationDetail.variants.length > 0 ? (
                       <Card variant="outlined" padding="medium" style={modalStyles.section}>
                         <Label color="primary" style={modalStyles.sectionTitle}>
-                          🎨 Variante
+                          🎨 Variantes ({selectedValidationDetail.variants.length})
                         </Label>
-                        <InfoRow
-                          label="Nombre"
-                          value={
-                            selectedValidationDetail.variant?.name ||
-                            selectedValidationDetail.variantName ||
-                            'No disponible'
-                          }
-                        />
-                        {selectedValidationDetail.variant?.sku && (
-                          <InfoRow label="SKU" value={selectedValidationDetail.variant.sku} />
-                        )}
-                        {selectedValidationDetail.variant?.barcode && (
-                          <InfoRow
-                            label="Código barras"
-                            value={selectedValidationDetail.variant.barcode}
-                          />
-                        )}
-                        {typeof selectedValidationDetail.variant?.tracksStock === 'boolean' && (
-                          <InfoRow
-                            label="Descuenta stock"
-                            value={selectedValidationDetail.variant.tracksStock ? 'Sí' : 'No'}
-                          />
-                        )}
-                        {typeof selectedValidationDetail.variant?.isSellable === 'boolean' && (
-                          <InfoRow
-                            label="Vendible"
-                            value={selectedValidationDetail.variant.isSellable ? 'Sí' : 'No'}
-                          />
-                        )}
-                        {selectedValidationDetail.variant?.note && (
-                          <InfoRow label="Nota" value={selectedValidationDetail.variant.note} />
-                        )}
+                        {selectedValidationDetail.variants.map((vv, i) => (
+                          <View
+                            key={vv.id}
+                            style={{
+                              marginTop: i === 0 ? 0 : 8,
+                              paddingTop: i === 0 ? 0 : 8,
+                              borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                              borderTopColor: theme.color.border.subtle,
+                            }}
+                          >
+                            <InfoRow label="Nombre" value={`🎨 ${vv.name}`} />
+                            {vv.sku && <InfoRow label="SKU" value={vv.sku} />}
+                            {vv.barcode && <InfoRow label="Código barras" value={vv.barcode} />}
+                            {typeof vv.validatedStock === 'number' && (
+                              <InfoRow label="Stock" value={`${vv.validatedStock} unidades`} />
+                            )}
+                            {typeof vv.tracksStock === 'boolean' && (
+                              <InfoRow
+                                label="Descuenta stock"
+                                value={vv.tracksStock ? 'Sí' : 'No'}
+                              />
+                            )}
+                            {typeof vv.isSellable === 'boolean' && (
+                              <InfoRow label="Vendible" value={vv.isSellable ? 'Sí' : 'No'} />
+                            )}
+                          </View>
+                        ))}
                       </Card>
+                    ) : (
+                      (selectedValidationDetail.variant?.name ||
+                        selectedValidationDetail.variantName) && (
+                        <Card variant="outlined" padding="medium" style={modalStyles.section}>
+                          <Label color="primary" style={modalStyles.sectionTitle}>
+                            🎨 Variante
+                          </Label>
+                          <InfoRow
+                            label="Nombre"
+                            value={
+                              selectedValidationDetail.variant?.name ||
+                              selectedValidationDetail.variantName ||
+                              'No disponible'
+                            }
+                          />
+                          {selectedValidationDetail.variant?.sku && (
+                            <InfoRow label="SKU" value={selectedValidationDetail.variant.sku} />
+                          )}
+                          {selectedValidationDetail.variant?.barcode && (
+                            <InfoRow
+                              label="Código barras"
+                              value={selectedValidationDetail.variant.barcode}
+                            />
+                          )}
+                          {typeof selectedValidationDetail.variant?.tracksStock === 'boolean' && (
+                            <InfoRow
+                              label="Descuenta stock"
+                              value={selectedValidationDetail.variant.tracksStock ? 'Sí' : 'No'}
+                            />
+                          )}
+                          {typeof selectedValidationDetail.variant?.isSellable === 'boolean' && (
+                            <InfoRow
+                              label="Vendible"
+                              value={selectedValidationDetail.variant.isSellable ? 'Sí' : 'No'}
+                            />
+                          )}
+                          {selectedValidationDetail.variant?.note && (
+                            <InfoRow label="Nota" value={selectedValidationDetail.variant.note} />
+                          )}
+                        </Card>
+                      )
                     )}
 
                     {(selectedValidationDetail.presentationId ||

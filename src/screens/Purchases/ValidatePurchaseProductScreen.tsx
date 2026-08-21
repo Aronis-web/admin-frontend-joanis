@@ -2007,19 +2007,39 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
                       size="small"
                     />
                   </View>
-                  {(validation.variant?.name || validation.variantName) && (
+                  {Array.isArray(validation.variants) && validation.variants.length > 0 ? (
                     <View style={styles.infoRow}>
                       <Label color="secondary" style={styles.infoLabel}>
-                        Variante:
+                        Variantes:
                       </Label>
-                      <Body style={styles.infoValue}>
-                        🎨 {validation.variant?.name || validation.variantName}
-                        {validation.variant?.sku ? ` · ${validation.variant.sku}` : ''}
-                        {validation.variant && validation.variant.tracksStock === false
-                          ? ' · (sin stock)'
-                          : ''}
-                      </Body>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        {validation.variants.map((vv) => (
+                          <Body key={vv.id} style={styles.infoValue}>
+                            🎨 {vv.name}
+                            {vv.sku ? ` · ${vv.sku}` : ''}
+                            {typeof vv.validatedStock === 'number'
+                              ? ` · ${vv.validatedStock} und`
+                              : ''}
+                            {vv.tracksStock === false ? ' · (sin stock)' : ''}
+                          </Body>
+                        ))}
+                      </View>
                     </View>
+                  ) : (
+                    (validation.variant?.name || validation.variantName) && (
+                      <View style={styles.infoRow}>
+                        <Label color="secondary" style={styles.infoLabel}>
+                          Variante:
+                        </Label>
+                        <Body style={styles.infoValue}>
+                          🎨 {validation.variant?.name || validation.variantName}
+                          {validation.variant?.sku ? ` · ${validation.variant.sku}` : ''}
+                          {validation.variant && validation.variant.tracksStock === false
+                            ? ' · (sin stock)'
+                            : ''}
+                        </Body>
+                      </View>
+                    )
                   )}
                   <View style={styles.infoRow}>
                     <Label color="secondary" style={styles.infoLabel}>

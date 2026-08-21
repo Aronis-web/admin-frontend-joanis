@@ -292,6 +292,8 @@ export interface PurchaseProductValidation {
   stockEntryId?: string;
   stockMovementId?: string;
   // ========== Variante (color) aplicada a esta validación ==========
+  // Modo single: variantId + variant (una sola).
+  // Modo multi (Modo B): variants[] con todas las variantes aplicadas en el ingreso.
   variantId?: string;
   variantName?: string;
   variant?: {
@@ -304,6 +306,16 @@ export interface PurchaseProductValidation {
     tracksStock?: boolean;
     note?: string | null;
   };
+  variants?: Array<{
+    id: string;
+    name: string;
+    sku?: string | null;
+    barcode?: string | null;
+    isSellable?: boolean;
+    tracksStock?: boolean;
+    validatedStock?: number;
+    photoUrl?: string | null;
+  }>;
   warehouse?: {
     id: string;
     code?: string;
