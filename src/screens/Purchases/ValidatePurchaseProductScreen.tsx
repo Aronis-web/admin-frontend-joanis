@@ -326,6 +326,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         (warehouse) => warehouse.siteId === effectiveSite.id
       );
 
+      // Log defensivo: verificar si backend envia productVariants + validations.variants
+      // eslint-disable-next-line no-console
+      console.log('[VALIDATE] productData shape', {
+        id: productData.id,
+        productId: productData.productId,
+        hasProductVariants: Array.isArray((productData as any).productVariants),
+        productVariantsCount: (productData as any).productVariants?.length ?? null,
+        productVariants: (productData as any).productVariants,
+        validationsCount: productData.validations?.length ?? 0,
+        firstValidationVariants: productData.validations?.[0]?.variants ?? null,
+        firstValidationVariant: productData.validations?.[0]?.variant ?? null,
+      });
+
       setProduct(productData);
       setWarehouses(filteredWarehouses);
       setPresentations(presentationsData);
