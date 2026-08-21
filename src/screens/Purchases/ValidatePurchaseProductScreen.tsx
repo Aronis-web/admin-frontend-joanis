@@ -233,9 +233,14 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
   // Flags derivados para ocultar campos generales cuando se manejan por variante.
   const usingVariantStock = multiVariantMode && tracksVariantStock;
-  const anyVariantHasSku = multiVariantMode && variantRows.some((r) => !!r.variantSku?.trim());
+  // El input general se oculta cuando la politica del producto exige el
+  // identificador por variante (existingRequires*) o cuando el usuario ya lo
+  // esta escribiendo en alguna fila del modo variantes.
+  const anyVariantHasSku =
+    existingRequiresSku || (multiVariantMode && variantRows.some((r) => !!r.variantSku?.trim()));
   const anyVariantHasBarcode =
-    multiVariantMode && variantRows.some((r) => !!r.variantBarcode?.trim());
+    existingRequiresBarcode ||
+    (multiVariantMode && variantRows.some((r) => !!r.variantBarcode?.trim()));
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'g'>('kg');
 
