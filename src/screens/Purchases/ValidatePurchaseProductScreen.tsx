@@ -292,7 +292,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
       if (!effectiveSite) {
         Alert.alert('Error', 'No hay una sede seleccionada');
-        navigation.goBack();
+        goBackToPurchase();
         return;
       }
 
@@ -305,7 +305,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       const productData = productsData.find((p) => p.id === productId);
       if (!productData) {
         Alert.alert('Error', 'Producto no encontrado');
-        navigation.goBack();
+        goBackToPurchase();
         return;
       }
 
@@ -420,7 +420,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     } catch (error: any) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'No se pudo cargar los datos');
-      navigation.goBack();
+      goBackToPurchase();
     } finally {
       setLoading(false);
     }
@@ -917,6 +917,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     }
   };
 
+  /**
+   * En web/electron `goBack()` falla si no hay historial (deep-link, refresh,
+   * o stack reseteado por navegaciones previas), dejando al usuario atrapado
+   * en la pantalla. Se fuerza el navigate explicito a PurchaseDetail.
+   */
+  const goBackToPurchase = () => {
+    if (Platform.OS === 'web' || !navigation.canGoBack()) {
+      navigation.navigate('PurchaseDetail', { purchaseId });
+    } else {
+      navigation.goBack();
+    }
+  };
+
   const handleCancelEntry = () => {
     setPhotoUri(undefined);
     setSignatureUri(undefined);
@@ -935,7 +948,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     if (returnToEntriesModal) {
       navigation.navigate('PurchaseDetail', { purchaseId, reopenEntriesProductId: productId });
     } else {
-      navigation.goBack();
+      goBackToPurchase();
     }
   };
 
@@ -1051,7 +1064,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={goBackToPurchase}>
           <Ionicons name="chevron-back" size={24} color={theme.color.icon.default} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
