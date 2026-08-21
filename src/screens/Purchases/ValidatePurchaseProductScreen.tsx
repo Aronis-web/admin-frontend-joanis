@@ -1959,6 +1959,30 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
           </>
         )}
 
+        {/* Catalogo de variantes del producto (incluye descriptivas sin ingreso) */}
+        {existingVariants.length > 0 && (
+          <Card variant="elevated" padding="medium" style={styles.infoCard}>
+            <Title size="small">Variantes del producto</Title>
+            <Caption color="tertiary" style={styles.historySubtitle}>
+              Catalogo completo. Las descriptivas no generan ingreso pero se muestran aqui.
+            </Caption>
+            <View style={styles.existingChipsWrap}>
+              {existingVariants.map((v) => (
+                <View key={v.id} style={styles.existingChipStatic}>
+                  <Body>🎨 {v.name}</Body>
+                  {v.sku ? <Caption color="tertiary"> · SKU: {v.sku}</Caption> : null}
+                  {v.barcode ? <Caption color="tertiary"> · {v.barcode}</Caption> : null}
+                  {v.tracksStock === false ? (
+                    <Caption color="danger"> · sin stock</Caption>
+                  ) : (
+                    <Caption color="tertiary"> · con stock</Caption>
+                  )}
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
+
         {/* Validation Entries History */}
         {product.validations && product.validations.length > 0 && (
           <Card variant="elevated" padding="medium" style={styles.infoCard}>
@@ -2287,6 +2311,22 @@ const createStyles = (theme: Theme) =>
     },
     existingChipDisabled: {
       opacity: 0.5,
+    },
+    existingChipsWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+      marginTop: theme.space[2],
+    },
+    existingChipStatic: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.subtle,
     },
     loadingContainer: {
       flex: 1,
