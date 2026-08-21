@@ -198,14 +198,21 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
   // los identificadores: si las existentes tienen sku/barcode, las nuevas
   // tambien deben tenerlos para mantener consistencia.
   const mustUseVariants = existingVariants.length > 0;
-  const existingRequiresSku = useMemo(
-    () => existingVariants.some((v) => !!v.sku),
-    [existingVariants]
-  );
-  const existingRequiresBarcode = useMemo(
-    () => existingVariants.some((v) => !!v.barcode),
-    [existingVariants]
-  );
+  // Politica de identificadores heredada del historial del producto.
+  // Si al menos UNA variante existente tiene sku/barcode -> 'required' (todas
+  // las nuevas deben tenerlo).  Si NINGUNA lo tiene -> 'forbidden' (ninguna
+  // nueva puede tenerlo, para mantener el mismo formato).  Si no hay
+  // variantes registradas -> 'free' (aplica regla intra-ingreso).
+  const existingSkuPolicy = useMemo<'required' | 'forbidden' | 'free'>(() => {
+    if (existingVariants.length === 0) return 'free';
+    return existingVariants.some((v) => !!v.sku) ? 'required' : 'forbidden';
+  }, [existingVariants]);
+  const existingBarcodePolicy = useMemo<'required' | 'forbidden' | 'free'>(() => {
+    if (existingVariants.length === 0) return 'free';
+    return existingVariants.some((v) => !!v.barcode) ? 'required' : 'forbidden';
+  }, [existingVariants]);
+  const existingRequiresSku = existingSkuPolicy === 'required';
+  const existingRequiresBarcode = existingBarcodePolicy === 'required';
 
   // Fuerza "Usar variantes" cuando el producto ya tiene historial de variantes.
   useEffect(() => {
@@ -715,6 +722,18 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       if (!hasId && barcodeRequired && !row.variantBarcode?.trim()) {
         throw new Error(
           `La variante #${index + 1} debe tener codigo de barras (todas las variantes lo llevan).`
+        );
+      }
+      // Regla inversa: si el producto ya tiene variantes SIN sku/barcode, las
+      // nuevas TAMPOCO pueden tenerlos (formato uniforme del producto).
+      if (!hasId && existingSkuPolicy === 'forbidden' && row.variantSku?.trim()) {
+        throw new Error(
+          `La variante #${index + 1} no puede tener SKU: las variantes existentes del producto NO usan SKU.`
+        );
+      }
+      if (!hasId && existingBarcodePolicy === 'forbidden' && row.variantBarcode?.trim()) {
+        throw new Error(
+          `La variante #${index + 1} no puede tener codigo de barras: las variantes existentes NO lo usan.`
         );
       }
 
@@ -1683,52 +1702,65 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
                         {!isExisting && (
                           <>
-                            <Input
-                              label={
-                                existingRequiresSku ||
-                                variantRows.some((rr) => !rr.variantId && !!rr.variantSku?.trim())
-                                  ? 'SKU (obligatorio)'
-                                  : 'SKU (opcional)'
-                              }
-                              required={
-                                existingRequiresSku ||
-                                variantRows.some((rr) => !rr.variantId && !!rr.variantSku?.trim())
-                              }
-                              value={row.variantSku || ''}
-                              onChangeText={(text) =>
-                                setVariantRows((rows) =>
-                                  rows.map((r, i) =>
-                                    i === index ? { ...r, variantSku: text || undefined } : r
+                            {existingSkuPolicy === 'forbidden' ? (
+                              <Caption color="tertiary">
+                                🔒 Las variantes de este producto NO usan SKU (formato uniforme).
+                              </Caption>
+                            ) : (
+                              <Input
+                                label={
+                                  existingSkuPolicy === 'required' ||
+                                  variantRows.some((rr) => !rr.variantId && !!rr.variantSku?.trim())
+                                    ? 'SKU (obligatorio)'
+                                    : 'SKU (opcional)'
+                                }
+                                required={
+                                  existingSkuPolicy === 'required' ||
+                                  variantRows.some((rr) => !rr.variantId && !!rr.variantSku?.trim())
+                                }
+                                value={row.variantSku || ''}
+                                onChangeText={(text) =>
+                                  setVariantRows((rows) =>
+                                    rows.map((r, i) =>
+                                      i === index ? { ...r, variantSku: text || undefined } : r
+                                    )
                                   )
-                                )
-                              }
-                              placeholder="SKU exclusivo de esta variante"
-                            />
-                            <Input
-                              label={
-                                existingRequiresBarcode ||
-                                variantRows.some(
-                                  (rr) => !rr.variantId && !!rr.variantBarcode?.trim()
-                                )
-                                  ? 'Codigo alterno / barcode (obligatorio)'
-                                  : 'Codigo alterno / barcode (opcional)'
-                              }
-                              required={
-                                existingRequiresBarcode ||
-                                variantRows.some(
-                                  (rr) => !rr.variantId && !!rr.variantBarcode?.trim()
-                                )
-                              }
-                              value={row.variantBarcode || ''}
-                              onChangeText={(text) =>
-                                setVariantRows((rows) =>
-                                  rows.map((r, i) =>
-                                    i === index ? { ...r, variantBarcode: text || undefined } : r
+                                }
+                                placeholder="SKU exclusivo de esta variante"
+                              />
+                            )}
+                            {existingBarcodePolicy === 'forbidden' ? (
+                              <Caption color="tertiary">
+                                🔒 Las variantes de este producto NO usan codigo de barras (formato
+                                uniforme).
+                              </Caption>
+                            ) : (
+                              <Input
+                                label={
+                                  existingBarcodePolicy === 'required' ||
+                                  variantRows.some(
+                                    (rr) => !rr.variantId && !!rr.variantBarcode?.trim()
                                   )
-                                )
-                              }
-                              placeholder="Codigo de barras"
-                            />
+                                    ? 'Codigo alterno / barcode (obligatorio)'
+                                    : 'Codigo alterno / barcode (opcional)'
+                                }
+                                required={
+                                  existingBarcodePolicy === 'required' ||
+                                  variantRows.some(
+                                    (rr) => !rr.variantId && !!rr.variantBarcode?.trim()
+                                  )
+                                }
+                                value={row.variantBarcode || ''}
+                                onChangeText={(text) =>
+                                  setVariantRows((rows) =>
+                                    rows.map((r, i) =>
+                                      i === index ? { ...r, variantBarcode: text || undefined } : r
+                                    )
+                                  )
+                                }
+                                placeholder="Codigo de barras"
+                              />
+                            )}
 
                             {/* Foto por variante: picker + preview */}
                             <View style={styles.section}>
