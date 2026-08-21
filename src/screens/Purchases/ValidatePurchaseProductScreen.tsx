@@ -176,19 +176,36 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     });
     // 2) Fallback / merge desde validations (hidrata identificadores si el
     // catalogo no viniera, y garantiza compatibilidad con backends viejos).
+    // Cuando el ingreso es multi-variante sin stock, viene v.variants[] con
+    // varias entradas — todas se deben ver como variantes existentes.
     (product?.validations || []).forEach((v) => {
       if (v.isReversed) return;
-      const variantId = v.variantId || v.variant?.id;
-      const variantName = v.variantName || v.variant?.name;
-      if (!variantId || !variantName) return;
-      if (map.has(variantId)) return;
-      map.set(variantId, {
-        id: variantId,
-        name: variantName,
-        sku: v.variant?.sku,
-        barcode: v.variant?.barcode,
-        tracksStock: v.variant?.tracksStock,
-      });
+      // Modo single legacy
+      const singleId = v.variantId || v.variant?.id;
+      const singleName = v.variantName || v.variant?.name;
+      if (singleId && singleName && !map.has(singleId)) {
+        map.set(singleId, {
+          id: singleId,
+          name: singleName,
+          sku: v.variant?.sku,
+          barcode: v.variant?.barcode,
+          tracksStock: v.variant?.tracksStock,
+        });
+      }
+      // Modo multi (Mode B): varias variantes por ingreso
+      if (Array.isArray(v.variants)) {
+        v.variants.forEach((vv) => {
+          if (!vv?.id || !vv?.name) return;
+          if (map.has(vv.id)) return;
+          map.set(vv.id, {
+            id: vv.id,
+            name: vv.name,
+            sku: vv.sku ?? undefined,
+            barcode: vv.barcode ?? undefined,
+            tracksStock: vv.tracksStock,
+          });
+        });
+      }
     });
     return Array.from(map.values());
   }, [product?.productVariants, product?.validations]);
