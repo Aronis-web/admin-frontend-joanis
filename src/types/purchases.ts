@@ -225,6 +225,19 @@ export interface PurchaseProduct {
   };
   presentationHistory?: PurchaseProductPresentationHistory[];
   validations?: PurchaseProductValidation[]; // Historial de validaciones con fotos y firmas
+  /**
+   * Catalogo COMPLETO de variantes del producto (campo calculado, no persistido).
+   * Incluye variantes descriptivas (tracksStock=false) que no generan validation.
+   * Convive con validations[].variant que solo trae las que tuvieron ingreso con stock.
+   */
+  productVariants?: Array<{
+    id: string;
+    name: string;
+    sku?: string | null;
+    barcode?: string | null;
+    tracksStock: boolean;
+    isSellable: boolean;
+  }>;
 }
 
 /**

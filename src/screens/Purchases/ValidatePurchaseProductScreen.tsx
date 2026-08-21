@@ -163,6 +163,19 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         tracksStock?: boolean;
       }
     >();
+    // 1) Catalogo completo del producto (incluye descriptivas sin validation).
+    (product?.productVariants || []).forEach((v) => {
+      if (!v?.id || !v?.name) return;
+      map.set(v.id, {
+        id: v.id,
+        name: v.name,
+        sku: v.sku ?? undefined,
+        barcode: v.barcode ?? undefined,
+        tracksStock: v.tracksStock,
+      });
+    });
+    // 2) Fallback / merge desde validations (hidrata identificadores si el
+    // catalogo no viniera, y garantiza compatibilidad con backends viejos).
     (product?.validations || []).forEach((v) => {
       if (v.isReversed) return;
       const variantId = v.variantId || v.variant?.id;
@@ -178,7 +191,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
       });
     });
     return Array.from(map.values());
-  }, [product?.validations]);
+  }, [product?.productVariants, product?.validations]);
 
   // Si el producto YA tiene variantes con tracksStock=true, el nuevo ingreso
   // debe forzosamente controlar stock por variante (no se puede degradar a
