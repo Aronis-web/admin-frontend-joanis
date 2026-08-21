@@ -742,7 +742,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         );
       }
 
-      let validatedStock = 1;
+      // Cuando el ingreso NO controla stock por variante, no enviamos ni
+      // `validatedStock` ni `tracksStock` en cada item. El stock global va a
+      // nivel raiz (validatedStock/looseUnits/presentations).
+      let validatedStock: number | undefined;
       if (tracksVariantStock) {
         const stock = Math.floor(Number(row.validatedStock));
         if (!Number.isFinite(stock) || stock < 1) {
@@ -776,9 +779,9 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         variantName: name || undefined,
         variantSku: row.variantSku?.trim() || undefined,
         variantBarcode: row.variantBarcode?.trim() || undefined,
+        // Solo se envia stock+tracksStock cuando la variante controla stock.
+        // En modo descriptivo (sin stock) se omiten ambos.
         validatedStock,
-        // Solo enviamos el flag cuando queremos apagarlo (backend usa true por default).
-        tracksStock: tracksVariantStock ? undefined : false,
         photoUrl,
         photos:
           Array.isArray(row.photos) && row.photos.length > 0

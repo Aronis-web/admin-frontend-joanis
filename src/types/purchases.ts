@@ -448,8 +448,11 @@ export interface PurchaseValidatedVariantInput {
   variantName?: string; // Upsert por nombre normalizado
   variantSku?: string; // SKU exclusivo de la variante
   variantBarcode?: string; // Codigo alterno exclusivo de la variante
-  validatedStock: number; // Entero >= 1, en unidad base
-  tracksStock?: boolean; // Default true. false = color descriptivo (riesgo stock fantasma)
+  // Solo se envia cuando la variante controla stock (tracksStock=true).
+  // Cuando la variante es descriptiva (sin stock) se OMITE junto con tracksStock;
+  // el stock global del ingreso se envia a nivel raiz (validatedStock/looseUnits/presentations).
+  validatedStock?: number; // Entero >= 1, en unidad base
+  tracksStock?: boolean; // Default true. Omitir cuando la variante no controla stock.
   photoUrl?: string; // Foto principal de esta variante
   photos?: string[]; // Fotos adicionales de esta variante
 }
