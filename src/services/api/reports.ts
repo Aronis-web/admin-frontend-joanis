@@ -63,6 +63,18 @@ export interface SendPleReportResponse {
   message: string;
 }
 
+/**
+ * Payload para el reporte de Documentos Tributarios (Ventas) async por WhatsApp.
+ * Endpoint: POST /sales/reports/tax-sales/send
+ */
+export type SendTaxSalesReportPayload = {
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  correlative?: string;
+  series?: string[];
+  caption?: string;
+} & PleReportRecipient;
+
 export const reportsApi = {
   /**
    * GET /admin/reports/sales-profit
@@ -117,5 +129,16 @@ export const reportsApi = {
       '/admin/reports/kardex/salidas/export-detallado',
       payload
     );
+  },
+
+  /**
+   * POST /sales/reports/tax-sales/send
+   * Encola generación async del Reporte de Documentos Tributarios (Ventas)
+   * y lo envía por WhatsApp al destinatario indicado.
+   */
+  sendTaxSalesReport: async (
+    payload: SendTaxSalesReportPayload
+  ): Promise<SendPleReportResponse> => {
+    return apiClient.post<SendPleReportResponse>('/sales/reports/tax-sales/send', payload);
   },
 };

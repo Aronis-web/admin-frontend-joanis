@@ -5,6 +5,7 @@ import {
   SendKardexSalidasPayload,
   SendPleReportResponse,
   SendRegistroVentasPayload,
+  SendTaxSalesReportPayload,
 } from '@/services/api/reports';
 import { logger } from '@/utils/logger';
 
@@ -43,6 +44,20 @@ export const useSendKardexSalidasDetalle = () => {
     mutationFn: (payload) => reportsApi.sendKardexSalidasDetalle(payload),
     onError: (error) => {
       logger.error('Error enviando Kardex 12.1 Detallado por WhatsApp', error);
+    },
+  });
+};
+
+/**
+ * POST /sales/reports/tax-sales/send
+ * Encola generación async del Reporte de Documentos Tributarios (Ventas)
+ * y lo envía por WhatsApp.
+ */
+export const useSendTaxSalesReport = () => {
+  return useMutation<SendPleReportResponse, unknown, SendTaxSalesReportPayload>({
+    mutationFn: (payload) => reportsApi.sendTaxSalesReport(payload),
+    onError: (error) => {
+      logger.error('Error enviando Reporte de Documentos Tributarios por WhatsApp', error);
     },
   });
 };
