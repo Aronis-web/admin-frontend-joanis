@@ -13,16 +13,11 @@ import {
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { photoCampaignsApi } from '@/services/api';
-import {
-  PhotoCampaign,
-  PhotoCampaignStatus,
-  PhotoCampaignWhatsappContact,
-  PhotoType,
-} from '@/types/photo-campaigns';
+import { PhotoCampaign, PhotoCampaignStatus } from '@/types/photo-campaigns';
 import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import Alert from '@/utils/alert';
-import { logger } from '@/utils/logger';
+import { SendPhotoCampaignWhatsAppModal } from './SendPhotoCampaignWhatsAppModal';
 
 interface LinkPhotoCampaignModalProps {
   visible: boolean;
@@ -41,30 +36,8 @@ const statusLabel: Record<PhotoCampaignStatus, string> = {
   CLOSED: 'Cerrada',
 };
 
-const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
-  reference: 'Referencia',
-  design: 'Diseño',
-  price: 'Con precio',
-};
-
 // Cantidad máxima de campañas de fotos que se muestran en "Anexar a existente".
 const MAX_AVAILABLE_CAMPAIGNS = 5;
-
-const isUuid = (value?: string): boolean =>
-  !!value &&
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-
-// El backend puede devolver el id del contacto en distintas claves; tomamos la
-// primera que sea un UUID válido.
-const getWhatsappContactUuid = (contact: PhotoCampaignWhatsappContact): string => {
-  const candidates = [
-    contact.id,
-    (contact as any).contactId,
-    (contact as any).whatsappContactId,
-    (contact as any).uuid,
-  ].filter(Boolean) as string[];
-  return candidates.find((c) => isUuid(c)) || '';
-};
 
 export const LinkPhotoCampaignModal: React.FC<LinkPhotoCampaignModalProps> = ({
   visible,
@@ -89,16 +62,9 @@ export const LinkPhotoCampaignModal: React.FC<LinkPhotoCampaignModalProps> = ({
   const [createMode, setCreateMode] = useState(false);
   const [newCampaignName, setNewCampaignName] = useState('');
 
-  // WhatsApp: envío de fotos de una campaña anexada (mismo flujo que el
-  // módulo de campañas de fotos, en modo "enviar todo").
+  // WhatsApp: envío de fotos de una campaña anexada (mismo modal que el
+  // módulo de campaña de fotos, con selección opcional de productos).
   const [whatsappTarget, setWhatsappTarget] = useState<PhotoCampaign | null>(null);
-  const [whatsappContacts, setWhatsappContacts] = useState<PhotoCampaignWhatsappContact[]>([]);
-  const [whatsappContactsLoading, setWhatsappContactsLoading] = useState(false);
-  const [whatsappContactId, setWhatsappContactId] = useState('');
-  const [whatsappSelectedPhotoTypes, setWhatsappSelectedPhotoTypes] = useState<Set<PhotoType>>(
-    new Set()
-  );
-  const [whatsappCaption, setWhatsappCaption] = useState('');
 
   const canCreate = hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.CREATE);
   const canLink = hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.PRODUCTS.CREATE);
@@ -272,85 +238,11 @@ export const LinkPhotoCampaignModal: React.FC<LinkPhotoCampaignModalProps> = ({
 
   const closeWhatsapp = useCallback(() => {
     setWhatsappTarget(null);
-    setWhatsappContacts([]);
-    setWhatsappContactId('');
-    setWhatsappSelectedPhotoTypes(new Set());
-    setWhatsappCaption('');
   }, []);
 
-  const openWhatsapp = useCallback(async (photoCampaign: PhotoCampaign) => {
+  const openWhatsapp = useCallback((photoCampaign: PhotoCampaign) => {
     setWhatsappTarget(photoCampaign);
-    setWhatsappContactId('');
-    setWhatsappSelectedPhotoTypes(new Set());
-    setWhatsappCaption('');
-    try {
-      setWhatsappContactsLoading(true);
-      const contacts = await photoCampaignsApi.getCampaignWhatsappContacts(photoCampaign.id);
-      setWhatsappContacts(contacts || []);
-      setWhatsappContactId(getWhatsappContactUuid((contacts || [])[0] as any) || '');
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'No se pudieron cargar los contactos de WhatsApp.');
-    } finally {
-      setWhatsappContactsLoading(false);
-    }
   }, []);
-
-  const toggleWhatsappPhotoType = useCallback((photoType: PhotoType) => {
-    setWhatsappSelectedPhotoTypes((prev) => {
-      const next = new Set(prev);
-      if (next.has(photoType)) {
-        next.delete(photoType);
-      } else {
-        next.add(photoType);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleSendWhatsapp = useCallback(() => {
-    if (!whatsappTarget?.id) {
-      return;
-    }
-    if (!whatsappContactId) {
-      Alert.alert('Validación', 'Selecciona un contacto destino.');
-      return;
-    }
-    if (!isUuid(whatsappContactId)) {
-      Alert.alert('Validación', 'El contacto seleccionado no tiene un UUID válido.');
-      return;
-    }
-
-    const selectedPhotoTypes = Array.from(whatsappSelectedPhotoTypes);
-    const targetId = whatsappTarget.id;
-    const contactId = whatsappContactId;
-    const caption = whatsappCaption.trim() || undefined;
-
-    // El backend procesa el envío en segundo plano; no esperamos la respuesta.
-    // Disparamos la petición (fire-and-forget) y cerramos de inmediato.
-    void photoCampaignsApi
-      .sendCampaignPhotosWhatsapp(targetId, {
-        contactId,
-        sendAll: true,
-        photoAssetIds: [],
-        photoTypes: selectedPhotoTypes.length > 0 ? selectedPhotoTypes : undefined,
-        caption,
-      })
-      .catch((error: any) => {
-        logger.error('Error solicitando envío de fotos por WhatsApp', error);
-      });
-
-    Alert.alert(
-      'Envío en proceso',
-      'El envío de fotos por WhatsApp se está procesando en segundo plano.'
-    );
-    closeWhatsapp();
-  }, [
-    whatsappTarget,
-    whatsappContactId,
-    whatsappSelectedPhotoTypes,
-    whatsappCaption,
-    closeWhatsapp,
-  ]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -392,7 +284,7 @@ export const LinkPhotoCampaignModal: React.FC<LinkPhotoCampaignModalProps> = ({
                       {canSendWhatsapp && (
                         <TouchableOpacity
                           style={styles.whatsappButton}
-                          onPress={() => void openWhatsapp(c)}
+                          onPress={() => openWhatsapp(c)}
                           disabled={submitting}
                         >
                           <Text style={styles.whatsappButtonText}>WhatsApp</Text>
@@ -492,103 +384,16 @@ export const LinkPhotoCampaignModal: React.FC<LinkPhotoCampaignModalProps> = ({
         </View>
       </View>
 
-      {/* Sub-modal: enviar fotos por WhatsApp (modo "enviar todo") */}
-      <Modal
-        visible={!!whatsappTarget}
-        transparent
-        animationType="fade"
-        onRequestClose={closeWhatsapp}
-      >
-        <View style={styles.backdrop}>
-          <View style={styles.card}>
-            <View style={styles.header}>
-              <Text style={styles.title}>Enviar fotos por WhatsApp</Text>
-              <TouchableOpacity style={styles.secondaryButton} onPress={closeWhatsapp}>
-                <Text style={styles.secondaryButtonText}>Cerrar</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.whatsappSubtitle}>Campaña: {whatsappTarget?.name || '-'}</Text>
-
-            <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
-              <Text style={styles.sectionLabel}>Contacto destino</Text>
-              {whatsappContactsLoading ? (
-                <View style={styles.inlineLoadingRow}>
-                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
-                  <Text style={styles.loaderText}>Cargando contactos...</Text>
-                </View>
-              ) : whatsappContacts.length === 0 ? (
-                <Text style={styles.emptyText}>No hay contactos de WhatsApp configurados.</Text>
-              ) : (
-                <View style={styles.chipRow}>
-                  {whatsappContacts.map((contact) => {
-                    const resolvedContactId = getWhatsappContactUuid(contact);
-                    const selected = whatsappContactId === resolvedContactId;
-                    const label =
-                      contact.name ||
-                      (contact as any).fullName ||
-                      (contact as any).contactName ||
-                      (contact as any).displayName ||
-                      'Contacto sin nombre';
-                    return (
-                      <TouchableOpacity
-                        key={contact.id}
-                        style={[styles.chip, selected && styles.chipSelected]}
-                        onPress={() => setWhatsappContactId(resolvedContactId)}
-                        disabled={!resolvedContactId}
-                      >
-                        <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                          {label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-
-              <Text style={styles.sectionLabel}>Tipo de foto (opcional)</Text>
-              <View style={styles.chipRow}>
-                {(Object.keys(PHOTO_TYPE_LABELS) as PhotoType[]).map((photoType) => {
-                  const selected = whatsappSelectedPhotoTypes.has(photoType);
-                  return (
-                    <TouchableOpacity
-                      key={photoType}
-                      style={[styles.chip, selected && styles.chipSelected]}
-                      onPress={() => toggleWhatsappPhotoType(photoType)}
-                    >
-                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                        {PHOTO_TYPE_LABELS[photoType]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.sectionLabel}>Mensaje (opcional)</Text>
-              <TextInput
-                style={[styles.input, styles.multilineInput]}
-                multiline
-                value={whatsappCaption}
-                onChangeText={setWhatsappCaption}
-                placeholder="Ej: Hola, te compartimos las fotos de la campaña"
-                placeholderTextColor={theme.color.text.placeholder}
-              />
-            </ScrollView>
-
-            <View style={styles.createActions}>
-              <TouchableOpacity style={styles.secondaryButton} onPress={closeWhatsapp}>
-                <Text style={styles.secondaryButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.whatsappButton}
-                onPress={handleSendWhatsapp}
-                disabled={!whatsappContactId}
-              >
-                <Text style={styles.whatsappButtonText}>Enviar WhatsApp</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Sub-modal reutilizable: enviar fotos por WhatsApp con selección
+          opcional de productos y tipos. */}
+      {whatsappTarget && (
+        <SendPhotoCampaignWhatsAppModal
+          visible={!!whatsappTarget}
+          photoCampaignId={whatsappTarget.id}
+          photoCampaignName={whatsappTarget.name}
+          onClose={closeWhatsapp}
+        />
+      )}
     </Modal>
   );
 };

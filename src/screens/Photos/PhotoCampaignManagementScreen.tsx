@@ -26,7 +26,6 @@ import {
   PhotoType,
   ProductPhotoAsset,
   AdDesignTemplate,
-  PhotoCampaignWhatsappContact,
 } from '@/types/photo-campaigns';
 import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
 import {
@@ -36,9 +35,9 @@ import {
 } from '@/utils/filePicker';
 import { ensureSquareImageUri } from '@/utils/imageFile';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { SendPhotoCampaignWhatsAppModal } from '@/components/Photos/SendPhotoCampaignWhatsAppModal';
 import { PERMISSIONS } from '@/constants/permissions';
 import Alert from '@/utils/alert';
-import { logger } from '@/utils/logger';
 
 interface PhotoCampaignManagementScreenProps {
   navigation: any;
@@ -136,12 +135,6 @@ const defaultPricePhotoForm: PricePhotoFormState = {
   profileId: '',
 };
 
-const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
-  reference: 'Referencia',
-  design: 'Diseño',
-  price: 'Con precio',
-};
-
 export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScreenProps> = ({
   navigation,
   route,
@@ -212,18 +205,6 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   const [priceProfilesLoading, setPriceProfilesLoading] = useState(false);
 
   const [whatsappModalVisible, setWhatsappModalVisible] = useState(false);
-  const [whatsappContacts, setWhatsappContacts] = useState<PhotoCampaignWhatsappContact[]>([]);
-  const [whatsappContactsLoading, setWhatsappContactsLoading] = useState(false);
-  const [whatsappContactId, setWhatsappContactId] = useState('');
-  const [whatsappSendAll, setWhatsappSendAll] = useState(true);
-  const [whatsappSelectedProductIds, setWhatsappSelectedProductIds] = useState<Set<string>>(
-    new Set()
-  );
-  const [whatsappSelectedPhotoTypes, setWhatsappSelectedPhotoTypes] = useState<Set<PhotoType>>(
-    new Set()
-  );
-  const [whatsappCaption, setWhatsappCaption] = useState('');
-  const [whatsappProductSearchQuery, setWhatsappProductSearchQuery] = useState('');
 
   const photosCacheRef = useRef<Record<string, ProductPhotoAsset[]>>({});
 
@@ -1046,151 +1027,11 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     );
   };
 
-  const isUuid = (value?: string) =>
-    !!value &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-
-  const getWhatsappContactUuid = (contact: PhotoCampaignWhatsappContact): string => {
-    const directCandidates = [
-      contact.id,
-      (contact as any).contactId,
-      (contact as any).whatsappContactId,
-      (contact as any).uuid,
-    ].filter(Boolean) as string[];
-
-    const directMatch = directCandidates.find((candidate) => isUuid(candidate));
-    if (directMatch) {
-      return directMatch;
-    }
-
-    const allValues = Object.values(contact || {}).filter((v) => typeof v === 'string') as string[];
-    return allValues.find((candidate) => isUuid(candidate)) || '';
-  };
-
-  const toggleWhatsappProduct = (productId: string) => {
-    setWhatsappSelectedProductIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(productId)) {
-        next.delete(productId);
-      } else {
-        next.add(productId);
-      }
-      return next;
-    });
-  };
-
-  const toggleWhatsappPhotoType = (photoType: PhotoType) => {
-    setWhatsappSelectedPhotoTypes((prev) => {
-      const next = new Set(prev);
-      if (next.has(photoType)) {
-        next.delete(photoType);
-      } else {
-        next.add(photoType);
-      }
-      return next;
-    });
-  };
-
-  const openWhatsappModal = async () => {
+  const openWhatsappModal = () => {
     if (!selectedCampaign?.id) {
       return;
     }
-
-    try {
-      setWhatsappContactsLoading(true);
-      const contacts = await photoCampaignsApi.getCampaignWhatsappContacts(selectedCampaign.id);
-      setWhatsappContacts(contacts || []);
-      setWhatsappContactId(getWhatsappContactUuid((contacts || [])[0] as any) || '');
-      setWhatsappSendAll(true);
-      setWhatsappSelectedProductIds(new Set());
-      setWhatsappSelectedPhotoTypes(new Set());
-      setWhatsappCaption('');
-      setWhatsappProductSearchQuery('');
-      setWhatsappModalVisible(true);
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'No se pudieron cargar los contactos de WhatsApp.');
-    } finally {
-      setWhatsappContactsLoading(false);
-    }
-  };
-
-  const handleSendWhatsapp = async () => {
-    if (!selectedCampaign?.id) {
-      return;
-    }
-
-    if (!whatsappContactId) {
-      Alert.alert('Validación', 'Selecciona un contacto destino.');
-      return;
-    }
-
-    if (!isUuid(whatsappContactId)) {
-      Alert.alert('Validación', 'El contacto seleccionado no tiene un UUID válido.');
-      return;
-    }
-
-    if (!whatsappSendAll && whatsappSelectedProductIds.size === 0) {
-      Alert.alert('Validación', 'Selecciona al menos un producto o cambia a "Todos".');
-      return;
-    }
-
-    const selectedProductIds = Array.from(whatsappSelectedProductIds);
-
-    const selectedItems = selectedCampaignProducts.filter(
-      (item) => whatsappSendAll || selectedProductIds.includes(item.productId)
-    );
-
-    const productsWithoutLoadedPhotos = selectedItems.filter(
-      (item) => !photosCacheRef.current[item.productId] && !photoLoadingByProduct[item.productId]
-    );
-
-    if (productsWithoutLoadedPhotos.length > 0) {
-      await Promise.all(
-        productsWithoutLoadedPhotos.map((item) => loadProductPhotos(item.productId))
-      );
-    }
-
-    const selectedAssets = selectedItems.flatMap((item) => {
-      const assets =
-        photosCacheRef.current[item.productId] || photosByProduct[item.productId] || [];
-      return assets.filter((asset) => asset.isActive);
-    });
-
-    const selectedPhotoTypes = Array.from(new Set(Array.from(whatsappSelectedPhotoTypes)));
-    const filteredAssets =
-      selectedPhotoTypes.length > 0
-        ? selectedAssets.filter((asset) => selectedPhotoTypes.includes(asset.photoType))
-        : selectedAssets;
-
-    const photoAssetIds = Array.from(new Set(filteredAssets.map((asset) => asset.id)));
-
-    if (!whatsappSendAll && photoAssetIds.length === 0) {
-      Alert.alert(
-        'Validación',
-        'Cuando no envías todos, debes seleccionar productos con fotos disponibles.'
-      );
-      return;
-    }
-
-    // El backend procesa el envío en segundo plano; no esperamos la respuesta.
-    // Disparamos la petición (fire-and-forget) y cerramos de inmediato.
-    void photoCampaignsApi
-      .sendCampaignPhotosWhatsapp(selectedCampaign.id, {
-        contactId: whatsappContactId,
-        sendAll: whatsappSendAll,
-        photoAssetIds: whatsappSendAll ? [] : photoAssetIds,
-        photoTypes: selectedPhotoTypes.length > 0 ? selectedPhotoTypes : undefined,
-        caption: whatsappCaption.trim() || undefined,
-      })
-      .catch((error: any) => {
-        logger.error('Error solicitando envío de fotos por WhatsApp', error);
-      });
-
-    Alert.alert(
-      'Envío en proceso',
-      'El envío de fotos por WhatsApp se está procesando en segundo plano.'
-    );
-    setWhatsappModalVisible(false);
+    setWhatsappModalVisible(true);
   };
 
   if (loading) {
@@ -1508,185 +1349,14 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         />
       )}
 
-      <Modal visible={whatsappModalVisible} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.whatsappModalCard]}>
-            <Text style={styles.modalTitle}>Enviar fotos por WhatsApp</Text>
-            <Text style={styles.geminiModalSubtitle}>Campaña: {selectedCampaign?.name || '-'}</Text>
-
-            <ScrollView
-              style={styles.whatsappBodyScroll}
-              contentContainerStyle={styles.whatsappBodyScrollContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              <Text style={styles.inputLabel}>Contacto destino</Text>
-              {whatsappContactsLoading ? (
-                <View style={styles.inlineLoadingRow}>
-                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
-                  <Text style={styles.inlineLoadingText}>Cargando contactos...</Text>
-                </View>
-              ) : (
-                <View style={styles.templateRowWrap}>
-                  {whatsappContacts.map((contact) => {
-                    const resolvedContactId = getWhatsappContactUuid(contact);
-                    const selected = whatsappContactId === resolvedContactId;
-                    const label =
-                      contact.name ||
-                      (contact as any).fullName ||
-                      (contact as any).contactName ||
-                      (contact as any).displayName ||
-                      'Contacto sin nombre';
-                    return (
-                      <TouchableOpacity
-                        key={contact.id}
-                        style={[styles.templateChip, selected && styles.templateChipSelected]}
-                        onPress={() => setWhatsappContactId(resolvedContactId)}
-                        disabled={!resolvedContactId}
-                      >
-                        <Text
-                          style={[
-                            styles.templateChipText,
-                            selected && styles.templateChipTextSelected,
-                          ]}
-                        >
-                          {label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-
-              <Text style={styles.inputLabel}>Productos a enviar</Text>
-              <View style={styles.switchRow}>
-                <TouchableOpacity
-                  style={[styles.templateChip, whatsappSendAll && styles.templateChipSelected]}
-                  onPress={() => setWhatsappSendAll(true)}
-                >
-                  <Text
-                    style={[
-                      styles.templateChipText,
-                      whatsappSendAll && styles.templateChipTextSelected,
-                    ]}
-                  >
-                    Todos
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.templateChip, !whatsappSendAll && styles.templateChipSelected]}
-                  onPress={() => setWhatsappSendAll(false)}
-                >
-                  <Text
-                    style={[
-                      styles.templateChipText,
-                      !whatsappSendAll && styles.templateChipTextSelected,
-                    ]}
-                  >
-                    Seleccionar
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {!whatsappSendAll && (
-                <>
-                  <TextInput
-                    style={styles.input}
-                    value={whatsappProductSearchQuery}
-                    onChangeText={setWhatsappProductSearchQuery}
-                    placeholder="Buscar producto por nombre o SKU"
-                    placeholderTextColor={theme.color.text.placeholder}
-                  />
-                  <ScrollView
-                    style={styles.whatsappProductsList}
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    {selectedCampaignProducts
-                      .filter((item) => {
-                        const query = whatsappProductSearchQuery.trim().toLowerCase();
-                        if (!query) {
-                          return true;
-                        }
-                        const haystack =
-                          `${item.product?.title || ''} ${item.product?.sku || ''}`.toLowerCase();
-                        return haystack.includes(query);
-                      })
-                      .map((item) => {
-                        const selected = whatsappSelectedProductIds.has(item.productId);
-                        return (
-                          <TouchableOpacity
-                            key={item.id}
-                            style={[
-                              styles.whatsappProductRow,
-                              selected && styles.whatsappProductRowSelected,
-                            ]}
-                            onPress={() => toggleWhatsappProduct(item.productId)}
-                          >
-                            <Text style={styles.whatsappProductTitle}>
-                              {item.product?.title || item.productId}
-                            </Text>
-                            <Text style={styles.whatsappProductMeta}>
-                              SKU: {item.product?.sku || '-'}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                  </ScrollView>
-                </>
-              )}
-
-              <Text style={styles.inputLabel}>Tipo de foto</Text>
-              <View style={styles.templateRowWrap}>
-                {(Object.keys(PHOTO_TYPE_LABELS) as PhotoType[]).map((photoType) => {
-                  const selected = whatsappSelectedPhotoTypes.has(photoType);
-                  return (
-                    <TouchableOpacity
-                      key={photoType}
-                      style={[styles.templateChip, selected && styles.templateChipSelected]}
-                      onPress={() => toggleWhatsappPhotoType(photoType)}
-                    >
-                      <Text
-                        style={[
-                          styles.templateChipText,
-                          selected && styles.templateChipTextSelected,
-                        ]}
-                      >
-                        {PHOTO_TYPE_LABELS[photoType]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.inputLabel}>Mensaje (opcional)</Text>
-              <TextInput
-                style={[styles.input, styles.multiline]}
-                multiline
-                value={whatsappCaption}
-                onChangeText={setWhatsappCaption}
-                placeholder="Ej: Hola, te compartimos las fotos de la campaña"
-                placeholderTextColor={theme.color.text.placeholder}
-              />
-            </ScrollView>
-
-            <View style={styles.whatsappModalFooter}>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => setWhatsappModalVisible(false)}
-              >
-                <Text style={styles.secondaryButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.whatsappButton}
-                onPress={() => void handleSendWhatsapp()}
-                disabled={!whatsappContactId}
-              >
-                <Text style={styles.whatsappButtonText}>Enviar WhatsApp</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {selectedCampaign && (
+        <SendPhotoCampaignWhatsAppModal
+          visible={whatsappModalVisible}
+          photoCampaignId={selectedCampaign.id}
+          photoCampaignName={selectedCampaign.name}
+          onClose={() => setWhatsappModalVisible(false)}
+        />
+      )}
 
       <Modal visible={campaignFormVisible} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
