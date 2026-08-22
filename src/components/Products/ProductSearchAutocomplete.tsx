@@ -80,12 +80,20 @@ export const ProductSearchAutocomplete: React.FC<ProductSearchAutocompleteProps>
   if (!visible || !isValid) return null;
 
   const items = data ?? [];
-  const showLoader = isFetching && items.length === 0;
+  // Solo mostramos el estado "Buscando…" en el arranque (sin datos aún).
+  // Mientras haya sugerencias previas visibles (placeholderData), el refetch
+  // se comunica con un spinner discreto en la esquina para no reflashear.
+  const showInitialLoader = isFetching && items.length === 0;
   const showEmpty = !isFetching && items.length === 0;
 
   return (
     <View style={[styles.container, { maxHeight }, style]}>
-      {showLoader ? (
+      {isFetching && items.length > 0 && (
+        <View style={styles.inlineSpinner} pointerEvents="none">
+          <ActivityIndicator size="small" color={theme.color.brand.accent} />
+        </View>
+      )}
+      {showInitialLoader ? (
         <View style={styles.stateRow}>
           <ActivityIndicator size="small" color={theme.color.brand.accent} />
           <Caption color="tertiary" style={styles.stateText}>
@@ -160,6 +168,12 @@ const createStyles = (theme: Theme) =>
     },
     list: {
       flexGrow: 0,
+    },
+    inlineSpinner: {
+      position: 'absolute',
+      top: theme.space[2],
+      right: theme.space[3],
+      zIndex: 5,
     },
     stateRow: {
       flexDirection: 'row',

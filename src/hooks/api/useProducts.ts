@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   productsApi,
   ProductFilters,
@@ -37,6 +37,9 @@ export const useProductsAutocomplete = (q: string, limit = 10, enabled = true) =
     staleTime: 30 * 1000, // 30s: typeahead cambia con frecuencia
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    // Mantiene las sugerencias anteriores visibles mientras llegan las nuevas.
+    // Evita el "flash" al cambiar el término (misma UX que el buscador de campañas).
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -69,6 +72,9 @@ export const useProducts = (filters?: ProductFilters) => {
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 10 * 60 * 1000, // 10 minutos
     refetchOnWindowFocus: false, // ✅ No refetch automático al cambiar de ventana
+    // Mantiene la lista previa en pantalla mientras llega la nueva, en vez de
+    // volver `data` a undefined y disparar el guard de "Cargando productos…".
+    placeholderData: keepPreviousData,
   });
 };
 
