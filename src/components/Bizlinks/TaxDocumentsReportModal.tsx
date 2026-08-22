@@ -129,14 +129,21 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
         setLoadingContacts(true);
         const data = await siteContactsApi.getSiteContacts(selectedSite.id);
         if (cancelled) return;
-        const eligible = data.filter((c) => c.isActive && c.receiveWhatsApp && !!c.phoneNumber);
+        const list: SiteContact[] = Array.isArray(data) ? data : ((data as any)?.data ?? []);
+        const eligible = list.filter((c) => c.isActive && c.receiveWhatsApp && !!c.phoneNumber);
         setContacts(eligible);
         if (eligible.length === 1) {
           setSelectedContactId(eligible[0].id);
+        } else if (eligible.length === 0) {
+          // Sin contactos elegibles: auto-cambiar a modo "Celular libre"
+          setRecipientMode('phone');
         }
       } catch (error) {
         logger.error('Error cargando contactos de sede', error);
-        if (!cancelled) setContacts([]);
+        if (!cancelled) {
+          setContacts([]);
+          setRecipientMode('phone');
+        }
       } finally {
         if (!cancelled) setLoadingContacts(false);
       }
