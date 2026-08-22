@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productsApi, ProductFilters, CreateProductDto, UpdateProductDto } from '@/services/api/products';
+import {
+  productsApi,
+  ProductFilters,
+  CreateProductDto,
+  UpdateProductDto,
+} from '@/services/api/products';
 import { logger } from '@/utils/logger';
 
 // Query keys para productos
@@ -12,6 +17,27 @@ export const productKeys = {
   bySku: (sku: string) => [...productKeys.all, 'sku', sku] as const,
   salePrices: (productId: string) => [...productKeys.all, 'salePrices', productId] as const,
   images: (productId: string) => [...productKeys.all, 'images', productId] as const,
+  autocomplete: (q: string, limit: number) =>
+    [...productKeys.all, 'autocomplete', q, limit] as const,
+};
+
+/**
+ * Typeahead de catálogo (autocompletado inteligente con variantes).
+ * - Requiere mínimo 2 caracteres, si no, devuelve [].
+ * - Ideal para dropdowns bajo el input de búsqueda.
+ * - El caller es responsable de debouncear el `q` (~250-300ms).
+ */
+export const useProductsAutocomplete = (q: string, limit = 10, enabled = true) => {
+  const trimmed = q?.trim() ?? '';
+  const isValid = trimmed.length >= 2;
+  return useQuery({
+    queryKey: productKeys.autocomplete(trimmed, limit),
+    queryFn: () => productsApi.getProductsAutocomplete(trimmed, limit),
+    enabled: enabled && isValid,
+    staleTime: 30 * 1000, // 30s: typeahead cambia con frecuencia
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 };
 
 /**

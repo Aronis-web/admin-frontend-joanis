@@ -33,6 +33,7 @@ import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPricePr
 import { ProductCodesModal } from '@/components/Products/ProductCodesModal';
 import { ProductVariantsModal } from '@/components/Products/ProductVariantsModal';
 import { productsApi, Product } from '@/services/api/products';
+import { ProductSearchAutocomplete } from '@/components/Products/ProductSearchAutocomplete';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useProducts } from '@/hooks/api/useProducts';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
@@ -80,7 +81,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const { user, logout } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState<'all' | 'sku' | 'correlative'>('all');
+  const [isAutocompleteVisible, setIsAutocompleteVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -134,13 +135,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       ...(statusFilter !== 'all' && { status: statusFilter }),
       ...(debouncedSearchQuery.trim() && {
         q: debouncedSearchQuery.trim(),
-        ...(searchType !== 'all' && { searchField: searchType }),
       }),
       include: 'images',
       sortBy: 'correlativeNumber',
       sortOrder: 'desc' as const,
     }),
-    [page, statusFilter, debouncedSearchQuery, searchType]
+    [page, statusFilter, debouncedSearchQuery]
   );
 
   const { data: productsResponse, isLoading, isRefetching, refetch } = useProducts(filters);
@@ -285,16 +285,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   };
 
   const handleProductSuccess = useCallback(() => refetch(), [refetch]);
-
-  // Search type options
-  const searchTypeOptions = useMemo(
-    () => [
-      { label: 'Todos', value: 'all' },
-      { label: 'SKU', value: 'sku' },
-      { label: '#Correlativo', value: 'correlative' },
-    ],
-    []
-  );
 
   // Status filter options
   const statusOptions = useMemo(
@@ -596,49 +586,53 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder={
-                  searchType === 'correlative'
-                    ? 'Buscar por #correlativo...'
-                    : searchType === 'sku'
-                      ? 'Buscar por SKU...'
-                      : 'Buscar por nombre, SKU o #correlativo...'
-                }
+                onFocus={() => setIsAutocompleteVisible(true)}
+                onBlur={() => {
+                  // Delay para que el tap sobre una sugerencia alcance a dispararse.
+                  setTimeout(() => setIsAutocompleteVisible(false), 150);
+                }}
+                placeholder="Buscar por nombre, SKU, código de barras, variante o #correlativo..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSearchQuery('');
+                    setIsAutocompleteVisible(false);
+                  }}
+                  style={styles.clearButton}
+                >
                   <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Autocomplete dropdown (typeahead con variantes) */}
+            {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
+              <View style={styles.autocompleteWrapper}>
+                <ProductSearchAutocomplete
+                  query={searchQuery}
+                  onSelect={(item) => {
+                    // Al elegir una sugerencia forzamos el filtro por SKU exacto,
+                    // que en el listado desambigua incluso frente a variantes.
+                    setSearchQuery(item.sku);
+                    setDebouncedSearchQuery(item.sku);
+                    setPage(1);
+                    setIsAutocompleteVisible(false);
+                  }}
+                />
+              </View>
+            )}
           </View>
         </LinearGradient>
 
-        {/* Quick Filters - Search Type */}
+        {/* Quick Filters - Status */}
         <View style={styles.quickFiltersContainer}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.quickFiltersContent}
           >
-            {searchTypeOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[styles.filterChip, searchType === option.value && styles.filterChipActive]}
-                onPress={() => setSearchType(option.value as any)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    searchType === option.value && styles.filterChipTextActive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <View style={styles.filterDivider} />
             {statusOptions.map((option) => (
               <TouchableOpacity
                 key={option.value}
@@ -1039,6 +1033,16 @@ const createStyles = (theme: Theme) =>
     searchContainer: {
       flexDirection: 'row',
       gap: theme.space[2],
+      position: 'relative',
+      zIndex: 20,
+    },
+    autocompleteWrapper: {
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      marginTop: theme.space[2],
+      zIndex: 30,
     },
     searchInputContainer: {
       flex: 1,
