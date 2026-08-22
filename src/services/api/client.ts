@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { Platform } from 'react-native';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -6,6 +7,29 @@ import { authService } from '@/services/AuthService';
 import { TenantContext } from '@/types/companies';
 import logger from '@/utils/logger';
 import { updateLastApiCall } from '@/hooks/useActivityTracker';
+
+/**
+ * En web con cookies HttpOnly, los tokens ya no viajan en JS. El backend
+ * emite ademas una cookie `csrf_token` LEGIBLE por JS (no-HttpOnly) que el
+ * cliente re-envia como header X-CSRF-Token en requests mutantes
+ * (patron double-submit: un origen atacante puede provocar el envio de la
+ * cookie de sesion pero NO puede leer csrf_token para replicarlo).
+ */
+const COOKIE_AUTH_WEB = config.USE_COOKIE_AUTH_WEB && Platform.OS === 'web';
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined' || !document.cookie) return null;
+  const parts = document.cookie.split('; ');
+  for (const part of parts) {
+    const eq = part.indexOf('=');
+    if (eq === -1) continue;
+    if (part.slice(0, eq) === name) {
+      return decodeURIComponent(part.slice(eq + 1));
+    }
+  }
+  return null;
+}
 
 class ApiClient {
   private client: AxiosInstance;
@@ -17,6 +41,9 @@ class ApiClient {
     this.client = axios.create({
       baseURL: config.API_URL,
       timeout: config.API_TIMEOUT,
+      // Solo se envian cookies cross-site cuando el backend este configurado
+      // para cookies HttpOnly + CORS con Access-Control-Allow-Credentials.
+      withCredentials: COOKIE_AUTH_WEB,
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -98,7 +125,18 @@ class ApiClient {
         // Add Authorization header if token is available
         // Prefer authService token, fallback to store token
         const currentToken = authService.getAccessToken() || token;
-        if (currentToken) {
+        if (COOKIE_AUTH_WEB) {
+          // Cookie HttpOnly maneja la sesion. En mutaciones, patron double-submit CSRF.
+          const method = (requestConfig.method || 'get').toUpperCase();
+          if (MUTATING_METHODS.has(method)) {
+            const csrf = readCookie('csrf_token');
+            if (csrf) {
+              requestConfig.headers['X-CSRF-Token'] = csrf;
+            } else {
+              logger.warn('⚠️ CSRF token cookie missing on mutating request');
+            }
+          }
+        } else if (currentToken) {
           requestConfig.headers.Authorization = `Bearer ${currentToken}`;
           logger.debug('✅ Authorization header set with token length:', currentToken.length);
         } else {
@@ -377,8 +415,13 @@ class ApiClient {
       });
     }
 
-    // Add auth header
-    if (currentToken) {
+    // Add auth header (Bearer) SOLO cuando NO usamos cookies HttpOnly.
+    if (COOKIE_AUTH_WEB) {
+      const csrf = readCookie('csrf_token');
+      if (csrf) {
+        headers['X-CSRF-Token'] = csrf;
+      }
+    } else if (currentToken) {
       headers.Authorization = `Bearer ${currentToken}`;
     }
 
@@ -445,6 +488,7 @@ class ApiClient {
         method: method,
         headers,
         body: formData,
+        credentials: COOKIE_AUTH_WEB ? 'include' : 'same-origin',
       };
 
       logger.debug('🚀 [FETCH] Sending fetch request...');
@@ -516,6 +560,9 @@ class ApiClient {
     return new Promise<T>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open(method, fullUrl);
+      if (COOKIE_AUTH_WEB) {
+        xhr.withCredentials = true;
+      }
 
       // No seteamos Content-Type: XHR lo arma con el boundary correcto para FormData
       Object.entries(headers).forEach(([key, value]) => {

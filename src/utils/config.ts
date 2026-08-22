@@ -20,6 +20,16 @@ export const config = {
   APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION || version || '1.0.0',
   BUILD_NUMBER: process.env.EXPO_PUBLIC_BUILD_NUMBER || '1',
 
+  // SEGURIDAD (web): si el backend emite las tokens en cookies HttpOnly+Secure
+  // (recomendado), activar este flag para que en web:
+  //   - axios use `withCredentials: true`
+  //   - no se adjunte Authorization: Bearer (la cookie viaja sola)
+  //   - se lea el CSRF token de la cookie `csrf_token` y se env\u00ede como
+  //     `X-CSRF-Token` en requests mutantes (patr\u00f3n double-submit).
+  // Mantener en false hasta que el backend soporte cookies + CSRF. El flag
+  // NO afecta a Android/iOS/Electron, que siguen con Bearer + SecureStore.
+  USE_COOKIE_AUTH_WEB: process.env.EXPO_PUBLIC_USE_COOKIE_AUTH_WEB === 'true',
+
   STORAGE_KEYS: {
     // Secure storage keys (expo-secure-store) - for sensitive data
     AUTH_TOKEN: 'auth_token',
