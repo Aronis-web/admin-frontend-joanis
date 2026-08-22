@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   ExportInventoryEntriesParams,
   inventoryApi,
@@ -58,6 +58,9 @@ export const useProductsStock = (params?: ProductsStockParams) => {
     queryKey: stockKeys.productsList(params),
     queryFn: () => inventoryApi.getProductsStock(params),
     staleTime: 2 * 60 * 1000,
+    // Mantiene el listado previo mientras llega el nuevo (evita el guard de
+    // "Cargando inventario…" al cambiar filtros o al aplicar una sugerencia).
+    placeholderData: keepPreviousData,
   });
 };
 

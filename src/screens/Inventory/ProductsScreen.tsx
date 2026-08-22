@@ -6,7 +6,7 @@
 
 import Alert from '@/utils/alert';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -33,6 +33,7 @@ import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPricePr
 import { ProductCodesModal } from '@/components/Products/ProductCodesModal';
 import { ProductVariantsModal } from '@/components/Products/ProductVariantsModal';
 import { productsApi, Product } from '@/services/api/products';
+import { ProductSearchAutocomplete } from '@/components/Products/ProductSearchAutocomplete';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useProducts } from '@/hooks/api/useProducts';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
@@ -80,7 +81,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const { user, logout } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState<'all' | 'sku' | 'correlative'>('all');
+  const [isAutocompleteVisible, setIsAutocompleteVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -100,31 +101,21 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const [page, setPage] = useState(1);
   const limit = 20;
   const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const isTablet = width >= 768 || height >= 768;
 
-  // Debounce search query
+  // Sincroniza el filtro de la lista SOLO cuando el usuario vacía el input.
+  // Mientras escribe, la lista NO se refetchea (para no reflashear la pantalla):
+  // el input solo alimenta el dropdown de autocompletado. La lista se filtra
+  // al elegir una sugerencia (setea searchQuery + debouncedSearchQuery al SKU).
   useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+    if (searchQuery.trim().length === 0 && debouncedSearchQuery !== '') {
+      setDebouncedSearchQuery('');
+      setPage(1);
     }
-
-    debounceTimerRef.current = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-      if (searchQuery !== debouncedSearchQuery) {
-        setPage(1);
-      }
-    }, 300);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearchQuery]);
 
   // React Query filters
   const filters = useMemo(
@@ -134,13 +125,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
       ...(statusFilter !== 'all' && { status: statusFilter }),
       ...(debouncedSearchQuery.trim() && {
         q: debouncedSearchQuery.trim(),
-        ...(searchType !== 'all' && { searchField: searchType }),
       }),
       include: 'images',
       sortBy: 'correlativeNumber',
       sortOrder: 'desc' as const,
     }),
-    [page, statusFilter, debouncedSearchQuery, searchType]
+    [page, statusFilter, debouncedSearchQuery]
   );
 
   const { data: productsResponse, isLoading, isRefetching, refetch } = useProducts(filters);
@@ -285,16 +275,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   };
 
   const handleProductSuccess = useCallback(() => refetch(), [refetch]);
-
-  // Search type options
-  const searchTypeOptions = useMemo(
-    () => [
-      { label: 'Todos', value: 'all' },
-      { label: 'SKU', value: 'sku' },
-      { label: '#Correlativo', value: 'correlative' },
-    ],
-    []
-  );
 
   // Status filter options
   const statusOptions = useMemo(
@@ -519,39 +499,10 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     ]
   );
 
-  // Loading state
-  if (isLoading && !productsResponse) {
-    return (
-      <ScreenLayout navigation={navigation}>
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <LinearGradient
-            colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
-            <View style={styles.headerTop}>
-              <View style={styles.headerTitleContainer}>
-                <View style={styles.headerIconRow}>
-                  <View style={styles.headerIconContainer}>
-                    <Ionicons name="cube" size={22} color={theme.color.brand.onHeader} />
-                  </View>
-                  <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
-                </View>
-                <Text style={styles.subtitle}>Catálogo de productos</Text>
-              </View>
-            </View>
-          </LinearGradient>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.color.brand.primary} />
-            <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-              Cargando productos...
-            </Text>
-          </View>
-        </SafeAreaView>
-      </ScreenLayout>
-    );
-  }
+  // Nota: no usamos un guard de "loader a pantalla completa". Antes esto
+  // desmontaba el TextInput del buscador al cambiar `isLoading`, haciendo
+  // perder el foco. Ahora la carga inicial se refleja en el RefreshControl y
+  // en un pequeño loader inline dentro de la lista cuando aún no hay datos.
 
   return (
     <ScreenLayout navigation={navigation}>
@@ -596,17 +547,22 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder={
-                  searchType === 'correlative'
-                    ? 'Buscar por #correlativo...'
-                    : searchType === 'sku'
-                      ? 'Buscar por SKU...'
-                      : 'Buscar por nombre, SKU o #correlativo...'
-                }
+                onFocus={() => setIsAutocompleteVisible(true)}
+                onBlur={() => {
+                  // Delay para que el tap sobre una sugerencia alcance a dispararse.
+                  setTimeout(() => setIsAutocompleteVisible(false), 150);
+                }}
+                placeholder="Buscar por nombre, SKU, código de barras, variante o #correlativo..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSearchQuery('');
+                    setIsAutocompleteVisible(false);
+                  }}
+                  style={styles.clearButton}
+                >
                   <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
                 </TouchableOpacity>
               )}
@@ -614,31 +570,31 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
           </View>
         </LinearGradient>
 
-        {/* Quick Filters - Search Type */}
+        {/* Autocomplete dropdown (typeahead con variantes) — fuera del gradient
+            para que no se recorte por overflow del header */}
+        {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
+          <View style={styles.autocompleteWrapper}>
+            <ProductSearchAutocomplete
+              query={searchQuery}
+              onSelect={(item) => {
+                // Al elegir una sugerencia forzamos el filtro por SKU exacto,
+                // que en el listado desambigua incluso frente a variantes.
+                setSearchQuery(item.sku);
+                setDebouncedSearchQuery(item.sku);
+                setPage(1);
+                setIsAutocompleteVisible(false);
+              }}
+            />
+          </View>
+        )}
+
+        {/* Quick Filters - Status */}
         <View style={styles.quickFiltersContainer}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.quickFiltersContent}
           >
-            {searchTypeOptions.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[styles.filterChip, searchType === option.value && styles.filterChipActive]}
-                onPress={() => setSearchType(option.value as any)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    searchType === option.value && styles.filterChipTextActive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <View style={styles.filterDivider} />
             {statusOptions.map((option) => (
               <TouchableOpacity
                 key={option.value}
@@ -693,17 +649,23 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             />
           }
           ListEmptyComponent={
-            <EmptyState
-              icon="cube-outline"
-              title="No hay productos"
-              description={
-                debouncedSearchQuery
-                  ? 'No se encontraron productos con ese criterio de búsqueda'
-                  : 'Comienza creando tu primer producto'
-              }
-              actionLabel={!debouncedSearchQuery ? 'Crear Producto' : undefined}
-              onAction={!debouncedSearchQuery ? handleCreateProduct : undefined}
-            />
+            isLoading ? (
+              <View style={styles.inlineLoader}>
+                <ActivityIndicator size="small" color={theme.color.brand.primary} />
+              </View>
+            ) : (
+              <EmptyState
+                icon="cube-outline"
+                title="No hay productos"
+                description={
+                  debouncedSearchQuery
+                    ? 'No se encontraron productos con ese criterio de búsqueda'
+                    : 'Comienza creando tu primer producto'
+                }
+                actionLabel={!debouncedSearchQuery ? 'Crear Producto' : undefined}
+                onAction={!debouncedSearchQuery ? handleCreateProduct : undefined}
+              />
+            )
           }
           windowSize={5}
           maxToRenderPerBatch={10}
@@ -1040,6 +1002,12 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       gap: theme.space[2],
     },
+    autocompleteWrapper: {
+      paddingHorizontal: theme.space[4],
+      paddingTop: theme.space[2],
+      backgroundColor: theme.color.surface.base,
+      zIndex: 10,
+    },
     searchInputContainer: {
       flex: 1,
       flexDirection: 'row',
@@ -1108,6 +1076,10 @@ const createStyles = (theme: Theme) =>
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
+      alignItems: 'center',
+    },
+    inlineLoader: {
+      paddingVertical: theme.space[6],
       alignItems: 'center',
     },
 

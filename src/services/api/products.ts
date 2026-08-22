@@ -199,6 +199,47 @@ export interface ProductFilters {
   sortOrder?: 'asc' | 'desc';
 }
 
+/**
+ * Item devuelto por GET /admin/products/autocomplete.
+ * Typeahead pensado para dropdowns con precios por perfil y fotos.
+ * Cuando el término matchea SKU/barras de una variante, el item es el producto padre.
+ */
+export interface ProductAutocompleteItem {
+  id: string;
+  correlativeNumber: number;
+  title: string;
+  sku: string;
+  barcode: string | null;
+  status: string;
+  costCents: number;
+  currency: string;
+  category: {
+    id: string;
+    name: string;
+  } | null;
+  presentations: {
+    id: string;
+    code: string;
+    name: string;
+    isBase: boolean;
+    factorToBase: number;
+  }[];
+  priceProfiles: {
+    profileId: string;
+    profileCode: string;
+    profileName: string;
+    prices: {
+      presentationId: string | null;
+      presentationCode: string | null;
+      presentationName: string | null;
+      priceCents: number;
+      currency: string;
+      isOverridden: boolean;
+    }[];
+  }[];
+  photos: string[];
+}
+
 // Legacy interfaces for backward compatibility
 export interface ProductCategory {
   id: string;
@@ -301,6 +342,24 @@ export const productsApi = {
   // Get product by ID (admin) - GET /admin/products/:id
   getProductById: async (id: string): Promise<Product> => {
     return apiClient.get<Product>(`/admin/products/${id}`);
+  },
+
+  /**
+   * Autocomplete (typeahead) de catálogo con búsqueda inteligente.
+   * GET /admin/products/autocomplete
+   *
+   * - Mínimo 2 caracteres (con menos devuelve []).
+   * - Matchea título, alias, SKU y código de barras (incluye variantes),
+   *   correlativo numérico y full-text search en español.
+   * - El backend normaliza separadores (`-`, `,`, `'`, `/`, espacios),
+   *   por lo que se puede enviar el término tal cual lo escribe/escanea el usuario.
+   * - Si el término coincide con una variante, el item devuelto es el producto padre.
+   */
+  getProductsAutocomplete: async (q: string, limit = 10): Promise<ProductAutocompleteItem[]> => {
+    if (!q || q.trim().length < 2) return [];
+    return apiClient.get<ProductAutocompleteItem[]>('/admin/products/autocomplete', {
+      params: { q: q.trim(), limit },
+    });
   },
 
   // Get product by SKU (admin) - GET /admin/products/sku/:sku

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,16 +11,16 @@ import {
 } from 'react-native';
 import Alert from '@/utils/alert';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 
 import { DateRangePicker } from '@/components/DateRangePicker';
-import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { config } from '@/utils/config';
 import { apiClient } from '@/services/api/client';
+import { useSendTaxSalesReport } from '@/hooks/api/useReports';
+import type { SendPleReportResponse, SendTaxSalesReportPayload } from '@/services/api/reports';
+import { siteContactsApi } from '@/services/api/site-contacts';
+import type { SiteContact } from '@/types/site-contacts';
 import logger from '@/utils/logger';
 
 interface TaxSeriesItem {
@@ -35,6 +34,8 @@ interface TaxDocumentsReportModalProps {
   visible: boolean;
   onClose: () => void;
 }
+
+type RecipientMode = 'contact' | 'phone';
 
 const getDefaultStartDate = () => {
   const today = new Date();
@@ -61,25 +62,39 @@ const formatDateForDisplay = (date: Date) => {
   });
 };
 
+const sanitizePhoneNumber = (raw: string): string => raw.replace(/\D/g, '');
+
 export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = ({
   visible,
   onClose,
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
-  const authStore = useAuthStore();
   const tenantStore = useTenantStore();
+  const selectedSite = tenantStore.selectedSite;
+
+  const sendTaxSales = useSendTaxSalesReport();
 
   const [startDate, setStartDate] = useState<Date>(getDefaultStartDate);
   const [endDate, setEndDate] = useState<Date>(getDefaultEndDate);
   const [correlative, setCorrelative] = useState('');
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const [seriesExpanded, setSeriesExpanded] = useState(false);
   const [seriesList, setSeriesList] = useState<TaxSeriesItem[]>([]);
   const [selectedSeries, setSelectedSeries] = useState<string[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [seriesError, setSeriesError] = useState<string | null>(null);
+
+  // Recipient state
+  const [recipientMode, setRecipientMode] = useState<RecipientMode>('contact');
+  const [contacts, setContacts] = useState<SiteContact[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [caption, setCaption] = useState('');
+
+  const submitting = sendTaxSales.isPending;
 
   useEffect(() => {
     if (visible) {
@@ -90,10 +105,53 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
       setSeriesExpanded(false);
       setSelectedSeries([]);
       setSeriesError(null);
+      setRecipientMode('contact');
+      setSelectedContactId(null);
+      setPhoneNumber('');
+      setContactName('');
+      setCaption('');
       loadSeries();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  // Cargar contactos de la sede cuando el modal abre
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    if (!selectedSite?.id) {
+      setContacts([]);
+      setLoadingContacts(false);
+      return;
+    }
+    (async () => {
+      try {
+        setLoadingContacts(true);
+        const data = await siteContactsApi.getSiteContacts(selectedSite.id);
+        if (cancelled) return;
+        const list: SiteContact[] = Array.isArray(data) ? data : ((data as any)?.data ?? []);
+        const eligible = list.filter((c) => c.isActive && c.receiveWhatsApp && !!c.phoneNumber);
+        setContacts(eligible);
+        if (eligible.length === 1) {
+          setSelectedContactId(eligible[0].id);
+        } else if (eligible.length === 0) {
+          // Sin contactos elegibles: auto-cambiar a modo "Celular libre"
+          setRecipientMode('phone');
+        }
+      } catch (error) {
+        logger.error('Error cargando contactos de sede', error);
+        if (!cancelled) {
+          setContacts([]);
+          setRecipientMode('phone');
+        }
+      } finally {
+        if (!cancelled) setLoadingContacts(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, selectedSite?.id]);
 
   const loadSeries = async () => {
     try {
@@ -146,135 +204,67 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
     return `${formatDateForDisplay(startDate)} — ${formatDateForDisplay(endDate)}`;
   }, [endDate, startDate]);
 
-  const buildHeaders = () => {
-    const token = authStore.token;
-    const userId = authStore.user?.id;
-    const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id;
-    const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id;
+  const cleanedPhone = useMemo(() => sanitizePhoneNumber(phoneNumber), [phoneNumber]);
+  const recipientValid = useMemo(() => {
+    if (recipientMode === 'contact') return !!selectedContactId;
+    return cleanedPhone.length >= 8;
+  }, [recipientMode, selectedContactId, cleanedPhone]);
 
-    if (!token) {
-      throw new Error('No hay token de autenticación disponible');
-    }
+  const canSubmit = !submitting && recipientValid;
 
-    const headers: Record<string, string> = {
-      'X-App-Id': config.APP_ID,
-      'X-App-Version': config.APP_VERSION,
-      Authorization: `Bearer ${token}`,
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
-    };
-
-    if (userId) {
-      headers['X-User-Id'] = userId;
-    }
-    if (companyId) {
-      headers['X-Company-Id'] = companyId;
-    }
-    if (siteId) {
-      headers['X-Site-Id'] = siteId;
-    }
-
-    return headers;
-  };
-
-  const buildReportUrl = () => {
-    const params = new URLSearchParams({
-      startDate: formattedStartDate,
-      endDate: formattedEndDate,
-    });
-
-    const cleanCorrelative = correlative.trim();
-    if (cleanCorrelative) {
-      params.append('correlative', cleanCorrelative);
-    }
-
-    if (selectedSeries.length > 0) {
-      params.append('series', selectedSeries.join(','));
-    }
-
-    params.append('t', Date.now().toString());
-
-    return `/sales/reports/tax-sales?${params.toString()}`;
-  };
-
-  const downloadBlobOnWeb = (blob: Blob, fileName: string) => {
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-  };
-
-  const shareBlobOnMobile = async (blob: Blob, fileName: string) => {
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
-        resolve(dataUrl.split(',')[1]);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-
-    const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-    await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        dialogTitle: 'Reporte de Documentos Tributarios',
-        UTI: 'org.openxmlformats.spreadsheetml.sheet',
-      });
-    } else {
-      Alert.alert('Éxito', `Reporte guardado en: ${fileUri}`);
-    }
-  };
-
-  const handleDownload = async () => {
+  const handleSend = async () => {
     if (startDate > endDate) {
       Alert.alert('Rango inválido', 'La fecha inicial no puede ser mayor que la fecha final.');
       return;
     }
 
+    if (!recipientValid) {
+      Alert.alert(
+        'Destinatario requerido',
+        recipientMode === 'contact'
+          ? 'Selecciona un contacto de sede con WhatsApp habilitado.'
+          : 'Ingresa un número de celular válido con código de país (ej. 51999888777).'
+      );
+      return;
+    }
+
+    const base: Omit<SendTaxSalesReportPayload, 'siteContactId' | 'phoneNumber' | 'contactName'> = {
+      startDate: formattedStartDate,
+      endDate: formattedEndDate,
+      ...(correlative.trim() && { correlative: correlative.trim() }),
+      ...(selectedSeries.length > 0 && { series: selectedSeries }),
+      ...(caption.trim() && { caption: caption.trim() }),
+    };
+
+    const payload: SendTaxSalesReportPayload =
+      recipientMode === 'contact'
+        ? { ...base, siteContactId: selectedContactId! }
+        : {
+            ...base,
+            phoneNumber: cleanedPhone,
+            ...(contactName.trim() && { contactName: contactName.trim() }),
+          };
+
     try {
-      setDownloading(true);
-      const reportPath = buildReportUrl();
-      const response = await fetch(`${config.API_URL}${reportPath}`, {
-        method: 'GET',
-        headers: buildHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        Alert.alert('Error', errorText || `No se pudo descargar el reporte (${response.status})`);
-        return;
-      }
-
-      const excelBlob = await response.blob();
-      const fileName = `reporte-documentos-tributarios-${formattedStartDate}-${formattedEndDate}.xlsx`;
-
-      if (Platform.OS === 'web') {
-        downloadBlobOnWeb(excelBlob, fileName);
-        Alert.alert('Éxito', 'El reporte se está descargando');
-      } else {
-        await shareBlobOnMobile(excelBlob, fileName);
-      }
-
+      const result: SendPleReportResponse = await sendTaxSales.mutateAsync(payload);
+      const displayName =
+        result.contactName ||
+        (recipientMode === 'contact'
+          ? contacts.find((c) => c.id === selectedContactId)?.contactName || 'el destinatario'
+          : contactName.trim() || cleanedPhone);
+      Alert.alert(
+        'Envío programado',
+        result.message || `El reporte se está generando y se enviará por WhatsApp a ${displayName}.`
+      );
       onClose();
     } catch (error: any) {
-      console.error('Error downloading tax documents report:', error);
+      logger.error('Error enviando reporte de documentos tributarios', error);
       Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el reporte de documentos tributarios'
+        'No se pudo generar el reporte',
+        error?.response?.data?.message ||
+          error?.message ||
+          'No se pudo generar el reporte de documentos tributarios'
       );
-    } finally {
-      setDownloading(false);
     }
   };
 
@@ -284,11 +274,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
         <View style={styles.overlay}>
           <View style={styles.container}>
             <View style={styles.header}>
-              <TouchableOpacity
-                onPress={onClose}
-                style={styles.headerButton}
-                disabled={downloading}
-              >
+              <TouchableOpacity onPress={onClose} style={styles.headerButton} disabled={submitting}>
                 <Ionicons name="close" size={24} color={theme.color.text.muted} />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>Reporte de Documentos Tributarios</Text>
@@ -298,12 +284,15 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
               <View style={styles.heroCard}>
                 <View style={styles.heroIcon}>
-                  <Ionicons name="document-text-outline" size={28} color={theme.color.brand.accent} />
+                  <Ionicons name="logo-whatsapp" size={28} color={theme.color.brand.accent} />
                 </View>
                 <View style={styles.heroTextContainer}>
-                  <Text style={styles.heroTitle}>Reporte tributario en Excel</Text>
+                  <Text style={styles.heroTitle}>Envío por WhatsApp</Text>
                   <Text style={styles.heroSubtitle}>
                     Incluye Facturas, Boletas y Notas de Crédito con hojas de resumen y detalle.
+                  </Text>
+                  <Text style={styles.heroHelper}>
+                    El reporte se genera en background y llega al destinatario por WhatsApp.
                   </Text>
                 </View>
               </View>
@@ -314,7 +303,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                   style={styles.dateRangeButton}
                   onPress={() => setShowDateRangePicker(true)}
                   activeOpacity={0.8}
-                  disabled={downloading}
+                  disabled={submitting}
                 >
                   <View style={styles.dateRangeLeft}>
                     <Ionicons name="calendar-outline" size={22} color={theme.color.brand.primary} />
@@ -338,11 +327,15 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                     placeholder="Ej: F001-00000001"
                     placeholderTextColor={theme.color.text.placeholder}
                     autoCapitalize="characters"
-                    editable={!downloading}
+                    editable={!submitting}
                   />
                   {correlative.length > 0 && (
-                    <TouchableOpacity onPress={() => setCorrelative('')} disabled={downloading}>
-                      <Ionicons name="close-circle" size={20} color={theme.color.text.placeholder} />
+                    <TouchableOpacity onPress={() => setCorrelative('')} disabled={submitting}>
+                      <Ionicons
+                        name="close-circle"
+                        size={20}
+                        color={theme.color.text.placeholder}
+                      />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -353,7 +346,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                   style={styles.collapsibleHeader}
                   onPress={() => setSeriesExpanded((v) => !v)}
                   activeOpacity={0.8}
-                  disabled={downloading}
+                  disabled={submitting}
                 >
                   <View style={styles.collapsibleHeaderLeft}>
                     <Ionicons name="layers-outline" size={20} color={theme.color.brand.primary} />
@@ -394,11 +387,11 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                     ) : (
                       <>
                         <View style={styles.seriesActions}>
-                          <TouchableOpacity onPress={selectAllSeries} disabled={downloading}>
+                          <TouchableOpacity onPress={selectAllSeries} disabled={submitting}>
                             <Text style={styles.seriesActionText}>Seleccionar todas</Text>
                           </TouchableOpacity>
                           <Text style={styles.seriesActionSeparator}>·</Text>
-                          <TouchableOpacity onPress={clearAllSeries} disabled={downloading}>
+                          <TouchableOpacity onPress={clearAllSeries} disabled={submitting}>
                             <Text style={styles.seriesActionText}>Limpiar</Text>
                           </TouchableOpacity>
                         </View>
@@ -415,7 +408,7 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                                   key={item.series}
                                   style={styles.seriesRow}
                                   onPress={() => toggleSeries(item.series)}
-                                  disabled={downloading}
+                                  disabled={submitting}
                                   activeOpacity={0.7}
                                 >
                                   <View
@@ -444,35 +437,187 @@ export const TaxDocumentsReportModal: React.FC<TaxDocumentsReportModalProps> = (
                 )}
               </View>
 
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Destinatario</Text>
+                <View style={styles.modeSwitch}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeSwitchButton,
+                      recipientMode === 'contact' && styles.modeSwitchButtonActive,
+                    ]}
+                    onPress={() => setRecipientMode('contact')}
+                    disabled={submitting}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="people-outline"
+                      size={16}
+                      color={
+                        recipientMode === 'contact'
+                          ? theme.color.text.inverse
+                          : theme.color.text.body
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.modeSwitchText,
+                        recipientMode === 'contact' && styles.modeSwitchTextActive,
+                      ]}
+                    >
+                      Contacto de sede
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeSwitchButton,
+                      recipientMode === 'phone' && styles.modeSwitchButtonActive,
+                    ]}
+                    onPress={() => setRecipientMode('phone')}
+                    disabled={submitting}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="call-outline"
+                      size={16}
+                      color={
+                        recipientMode === 'phone' ? theme.color.text.inverse : theme.color.text.body
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.modeSwitchText,
+                        recipientMode === 'phone' && styles.modeSwitchTextActive,
+                      ]}
+                    >
+                      Celular libre
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {recipientMode === 'contact' ? (
+                  loadingContacts ? (
+                    <View style={styles.contactsLoading}>
+                      <ActivityIndicator size="small" color={theme.color.brand.primary} />
+                      <Text style={styles.contactsLoadingText}>Cargando contactos...</Text>
+                    </View>
+                  ) : !selectedSite ? (
+                    <View style={styles.emptyContacts}>
+                      <Text style={styles.emptyContactsText}>
+                        Selecciona una sede para ver los contactos disponibles.
+                      </Text>
+                    </View>
+                  ) : contacts.length === 0 ? (
+                    <View style={styles.emptyContacts}>
+                      <Text style={styles.emptyContactsText}>
+                        No hay contactos activos con WhatsApp habilitado para la sede{' '}
+                        {selectedSite.name}.
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.contactsList}>
+                      {contacts.map((contact) => {
+                        const isSelected = selectedContactId === contact.id;
+                        return (
+                          <TouchableOpacity
+                            key={contact.id}
+                            style={[styles.contactItem, isSelected && styles.contactItemSelected]}
+                            onPress={() => setSelectedContactId(contact.id)}
+                            disabled={submitting}
+                            activeOpacity={0.8}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.contactName}>{contact.contactName}</Text>
+                              <Text style={styles.contactMeta}>
+                                {contact.phoneNumber}
+                                {contact.position ? ` · ${contact.position}` : ''}
+                              </Text>
+                            </View>
+                            {isSelected && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={20}
+                                color={theme.color.brand.primary}
+                              />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )
+                ) : (
+                  <View style={styles.phoneForm}>
+                    <Text style={styles.fieldLabel}>Número de celular *</Text>
+                    <TextInput
+                      style={styles.phoneInput}
+                      placeholder="51999888777"
+                      placeholderTextColor={theme.color.text.placeholder}
+                      value={phoneNumber}
+                      onChangeText={setPhoneNumber}
+                      keyboardType="phone-pad"
+                      editable={!submitting}
+                      maxLength={15}
+                    />
+                    <Text style={styles.helperText}>
+                      Incluye el código de país (Perú: 51). Solo dígitos.
+                    </Text>
+                    <Text style={[styles.fieldLabel, { marginTop: theme.space[3] }]}>
+                      Nombre del contacto (opcional)
+                    </Text>
+                    <TextInput
+                      style={styles.phoneInput}
+                      placeholder="Ej. Contabilidad"
+                      placeholderTextColor={theme.color.text.placeholder}
+                      value={contactName}
+                      onChangeText={setContactName}
+                      editable={!submitting}
+                    />
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Mensaje (opcional)</Text>
+                <TextInput
+                  style={[styles.phoneInput, styles.captionInput]}
+                  placeholder="Reporte de ventas del periodo"
+                  placeholderTextColor={theme.color.text.placeholder}
+                  value={caption}
+                  onChangeText={setCaption}
+                  editable={!submitting}
+                  multiline
+                  numberOfLines={2}
+                />
+              </View>
+
               <View style={styles.infoBox}>
-                <Ionicons name="information-circle-outline" size={20} color={theme.color.state.info.text} />
+                <Ionicons
+                  name="information-circle-outline"
+                  size={20}
+                  color={theme.color.state.info.text}
+                />
                 <Text style={styles.infoText}>
                   Si tu sesión tiene sede seleccionada, el reporte se restringirá a esa sede
-                  automáticamente.
+                  automáticamente. El archivo llega por WhatsApp; no hay descarga directa.
                 </Text>
               </View>
             </ScrollView>
 
             <View style={styles.footer}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={onClose}
-                disabled={downloading}
-              >
+              <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={submitting}>
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.downloadButton, downloading && styles.downloadButtonDisabled]}
-                onPress={handleDownload}
-                disabled={downloading}
+                style={[styles.sendButton, !canSubmit && styles.sendButtonDisabled]}
+                onPress={handleSend}
+                disabled={!canSubmit}
               >
-                {downloading ? (
+                {submitting ? (
                   <ActivityIndicator size="small" color={theme.color.text.inverse} />
                 ) : (
-                  <Ionicons name="download-outline" size={20} color={theme.color.text.inverse} />
+                  <Ionicons name="logo-whatsapp" size={20} color={theme.color.text.inverse} />
                 )}
-                <Text style={styles.downloadButtonText}>
-                  {downloading ? 'Descargando...' : 'Descargar Excel'}
+                <Text style={styles.sendButtonText}>
+                  {submitting ? 'Enviando...' : 'Generar y enviar por WhatsApp'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -507,7 +652,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.color.surface.base,
       borderTopLeftRadius: theme.radii['2xl'],
       borderTopRightRadius: theme.radii['2xl'],
-      maxHeight: '88%',
+      maxHeight: '92%',
       minHeight: 420,
       overflow: 'hidden',
     },
@@ -570,6 +715,12 @@ const createStyles = (theme: Theme) =>
       fontSize: 13,
       lineHeight: 19,
       color: theme.color.text.body,
+    },
+    heroHelper: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
     },
     section: {
       gap: theme.space[2],
@@ -744,6 +895,92 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.muted,
       fontWeight: '600',
     },
+    modeSwitch: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.full,
+      padding: 4,
+      gap: 4,
+    },
+    modeSwitchButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[1],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.full,
+    },
+    modeSwitchButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    modeSwitchText: { fontSize: 13, fontWeight: '600', color: theme.color.text.body },
+    modeSwitchTextActive: { color: theme.color.text.inverse },
+    contactsLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+    },
+    contactsLoadingText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginLeft: theme.space[2],
+    },
+    emptyContacts: {
+      backgroundColor: theme.color.state.warning.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.warning.border,
+    },
+    emptyContactsText: { fontSize: 13, color: theme.color.state.warning.text },
+    contactsList: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      overflow: 'hidden',
+    },
+    contactItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    contactItemSelected: {
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    contactName: { fontSize: 14, fontWeight: '600', color: theme.color.text.heading },
+    contactMeta: { fontSize: 12, color: theme.color.text.muted, marginTop: 2 },
+    phoneForm: { gap: theme.space[1] },
+    fieldLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[1],
+    },
+    phoneInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    helperText: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+    captionInput: {
+      minHeight: 60,
+      textAlignVertical: 'top',
+    },
     infoBox: {
       flexDirection: 'row',
       gap: theme.space[2],
@@ -778,20 +1015,21 @@ const createStyles = (theme: Theme) =>
       fontWeight: '700',
       color: theme.color.text.body,
     },
-    downloadButton: {
-      flex: 1.4,
+    sendButton: {
+      flex: 1.6,
       flexDirection: 'row',
       gap: theme.space[2],
       paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
       borderRadius: theme.radii.lg,
       backgroundColor: theme.color.brand.accent,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    downloadButtonDisabled: {
-      opacity: 0.7,
+    sendButtonDisabled: {
+      opacity: 0.5,
     },
-    downloadButtonText: {
+    sendButtonText: {
       fontSize: 14,
       fontWeight: '700',
       color: theme.color.text.inverse,

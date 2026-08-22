@@ -156,14 +156,16 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     selectedWarehouseId !== 'all'
   );
 
+  // El input solo alimenta el dropdown de autocompletado; la lista NO se
+  // refetchea mientras el usuario escribe (evita el "flash" de recarga).
+  // El filtro se aplica cuando se elige una sugerencia (setea el SKU) o al
+  // limpiar el input.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
+    if (searchQuery.trim().length === 0 && debouncedSearchQuery !== '') {
+      setDebouncedSearchQuery('');
       setPage(1);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Lectora de códigos de barra (keyboard-wedge) en web/Electron: escanear
   // dispara la búsqueda sin necesidad de enfocar el input. Aplica el código de
@@ -569,38 +571,12 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     );
   };
 
-  if (isLoading && !stockResponse) {
-    return (
-      <ScreenLayout navigation={navigation}>
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <LinearGradient
-            colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
-            <View style={styles.headerTop}>
-              <View style={styles.headerTitleContainer}>
-                <View style={styles.headerIconRow}>
-                  <View style={styles.headerIconContainer}>
-                    <Ionicons name="cube" size={22} color={theme.color.brand.onHeader} />
-                  </View>
-                  <Text style={styles.title}>Inventario</Text>
-                </View>
-                <Text style={styles.subtitle}>Stock consolidado por producto</Text>
-              </View>
-            </View>
-          </LinearGradient>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.color.brand.accent} />
-            <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-              Cargando inventario...
-            </Text>
-          </View>
-        </SafeAreaView>
-      </ScreenLayout>
-    );
-  }
+  // Nota: no usamos un guard para "loader a pantalla completa". Antes esto
+  // desmontaba el TextInput del buscador al cambiar isLoading, haciendo perder
+  // el foco. Ahora la carga inicial se refleja discretamente en `isRefetching`
+  // (RefreshControl) y con `placeholderData: keepPreviousData` la lista previa
+  // sigue en pantalla mientras llega la nueva. El EmptyState cubre el caso de
+  // primer render sin datos.
 
   return (
     <ScreenLayout navigation={navigation}>
@@ -659,25 +635,26 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 </TouchableOpacity>
               )}
             </View>
-
-            {/* Autocomplete dropdown (typeahead con variantes) */}
-            {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
-              <View style={styles.autocompleteWrapper}>
-                <ProductSearchAutocomplete
-                  query={searchQuery}
-                  onSelect={(item) => {
-                    // Al elegir sugerencia usamos el SKU exacto: el listado de stock
-                    // igual lo resuelve por su matching inteligente (incluye variantes).
-                    setSearchQuery(item.sku);
-                    setDebouncedSearchQuery(item.sku);
-                    setPage(1);
-                    setIsAutocompleteVisible(false);
-                  }}
-                />
-              </View>
-            )}
           </View>
         </LinearGradient>
+
+        {/* Autocomplete dropdown (typeahead con variantes) — fuera del gradient
+            para que no se recorte por overflow del header */}
+        {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
+          <View style={styles.autocompleteWrapper}>
+            <ProductSearchAutocomplete
+              query={searchQuery}
+              onSelect={(item) => {
+                // Al elegir sugerencia usamos el SKU exacto: el listado de stock
+                // igual lo resuelve por su matching inteligente (incluye variantes).
+                setSearchQuery(item.sku);
+                setDebouncedSearchQuery(item.sku);
+                setPage(1);
+                setIsAutocompleteVisible(false);
+              }}
+            />
+          </View>
+        )}
 
         <View style={styles.contentWrapper}>
           <View style={styles.filtersWrapper}>
@@ -808,18 +785,24 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
               />
             }
           >
-            {!isLoading && products.length === 0 ? (
-              <EmptyState
-                emoji=""
-                title="No hay productos con stock"
-                description={
-                  debouncedSearchQuery
-                    ? 'No se encontraron productos con ese criterio de búsqueda.'
-                    : 'Ajusta los filtros o incluye productos con stock cero.'
-                }
-                actionLabel={!includeZeroStock ? 'Incluir stock cero' : undefined}
-                onAction={!includeZeroStock ? () => setIncludeZeroStock(true) : undefined}
-              />
+            {products.length === 0 ? (
+              isLoading ? (
+                <View style={styles.inlineLoader}>
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                </View>
+              ) : (
+                <EmptyState
+                  emoji=""
+                  title="No hay productos con stock"
+                  description={
+                    debouncedSearchQuery
+                      ? 'No se encontraron productos con ese criterio de búsqueda.'
+                      : 'Ajusta los filtros o incluye productos con stock cero.'
+                  }
+                  actionLabel={!includeZeroStock ? 'Incluir stock cero' : undefined}
+                  onAction={!includeZeroStock ? () => setIncludeZeroStock(true) : undefined}
+                />
+              )
             ) : (
               <View style={styles.stockList}>{products.map(renderProductCard)}</View>
             )}
@@ -981,16 +964,12 @@ const createStyles = (theme: Theme) =>
     searchContainer: {
       flexDirection: 'row',
       gap: theme.space[2],
-      position: 'relative',
-      zIndex: 20,
     },
     autocompleteWrapper: {
-      position: 'absolute',
-      top: '100%',
-      left: 0,
-      right: 0,
-      marginTop: theme.space[2],
-      zIndex: 30,
+      paddingHorizontal: theme.space[4],
+      paddingTop: theme.space[2],
+      backgroundColor: theme.color.surface.base,
+      zIndex: 10,
     },
     searchInputContainer: {
       flex: 1,
@@ -1012,9 +991,6 @@ const createStyles = (theme: Theme) =>
     clearButton: {
       padding: theme.space[1],
     },
-    autocompleteWrapper: {
-      marginTop: theme.space[2],
-    },
     contentWrapper: {
       flex: 1,
     },
@@ -1025,6 +1001,10 @@ const createStyles = (theme: Theme) =>
     },
     loadingText: {
       marginTop: theme.space[4],
+    },
+    inlineLoader: {
+      paddingVertical: theme.space[6],
+      alignItems: 'center',
     },
     filtersWrapper: {
       backgroundColor: theme.color.surface.base,
