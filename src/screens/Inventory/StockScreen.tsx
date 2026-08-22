@@ -571,38 +571,11 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     );
   };
 
-  if (isLoading && !stockResponse) {
-    return (
-      <ScreenLayout navigation={navigation}>
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <LinearGradient
-            colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
-            <View style={styles.headerTop}>
-              <View style={styles.headerTitleContainer}>
-                <View style={styles.headerIconRow}>
-                  <View style={styles.headerIconContainer}>
-                    <Ionicons name="cube" size={22} color={theme.color.brand.onHeader} />
-                  </View>
-                  <Text style={styles.title}>Inventario</Text>
-                </View>
-                <Text style={styles.subtitle}>Stock consolidado por producto</Text>
-              </View>
-            </View>
-          </LinearGradient>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.color.brand.accent} />
-            <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-              Cargando inventario...
-            </Text>
-          </View>
-        </SafeAreaView>
-      </ScreenLayout>
-    );
-  }
+  // El estado de carga inicial se muestra INLINE dentro del árbol principal
+  // (ver más abajo). Antes se reemplazaba el árbol completo por una pantalla
+  // distinta, lo que desmontaba el TextInput y hacía perder el foco mientras
+  // el usuario escribía en el buscador.
+  const showInitialLoader = isLoading && !stockResponse;
 
   return (
     <ScreenLayout navigation={navigation}>
@@ -799,34 +772,43 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             </View>
           </View>
 
-          <ScrollView
-            style={[styles.content, isLandscape && styles.contentLandscape]}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefetching}
-                onRefresh={onRefresh}
-                tintColor={theme.color.brand.accent}
-                colors={[theme.color.brand.accent]}
-              />
-            }
-          >
-            {!isLoading && products.length === 0 ? (
-              <EmptyState
-                emoji=""
-                title="No hay productos con stock"
-                description={
-                  debouncedSearchQuery
-                    ? 'No se encontraron productos con ese criterio de búsqueda.'
-                    : 'Ajusta los filtros o incluye productos con stock cero.'
-                }
-                actionLabel={!includeZeroStock ? 'Incluir stock cero' : undefined}
-                onAction={!includeZeroStock ? () => setIncludeZeroStock(true) : undefined}
-              />
-            ) : (
-              <View style={styles.stockList}>{products.map(renderProductCard)}</View>
-            )}
-          </ScrollView>
+          {showInitialLoader ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.color.brand.accent} />
+              <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
+                Cargando inventario...
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              style={[styles.content, isLandscape && styles.contentLandscape]}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefetching}
+                  onRefresh={onRefresh}
+                  tintColor={theme.color.brand.accent}
+                  colors={[theme.color.brand.accent]}
+                />
+              }
+            >
+              {!isLoading && products.length === 0 ? (
+                <EmptyState
+                  emoji=""
+                  title="No hay productos con stock"
+                  description={
+                    debouncedSearchQuery
+                      ? 'No se encontraron productos con ese criterio de búsqueda.'
+                      : 'Ajusta los filtros o incluye productos con stock cero.'
+                  }
+                  actionLabel={!includeZeroStock ? 'Incluir stock cero' : undefined}
+                  onAction={!includeZeroStock ? () => setIncludeZeroStock(true) : undefined}
+                />
+              ) : (
+                <View style={styles.stockList}>{products.map(renderProductCard)}</View>
+              )}
+            </ScrollView>
+          )}
 
           {meta.totalItems > 0 && (
             <Pagination

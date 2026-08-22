@@ -499,39 +499,11 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     ]
   );
 
-  // Loading state
-  if (isLoading && !productsResponse) {
-    return (
-      <ScreenLayout navigation={navigation}>
-        <SafeAreaView style={styles.container} edges={['top']}>
-          <LinearGradient
-            colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
-            <View style={styles.headerTop}>
-              <View style={styles.headerTitleContainer}>
-                <View style={styles.headerIconRow}>
-                  <View style={styles.headerIconContainer}>
-                    <Ionicons name="cube" size={22} color={theme.color.brand.onHeader} />
-                  </View>
-                  <Text style={[styles.title, isTablet && styles.titleTablet]}>Productos</Text>
-                </View>
-                <Text style={styles.subtitle}>Catálogo de productos</Text>
-              </View>
-            </View>
-          </LinearGradient>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.color.brand.primary} />
-            <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-              Cargando productos...
-            </Text>
-          </View>
-        </SafeAreaView>
-      </ScreenLayout>
-    );
-  }
+  // Nota: el estado de carga inicial se muestra INLINE dentro del árbol
+  // principal (ver más abajo) — antes se reemplazaba el árbol completo por
+  // una pantalla distinta, lo que desmontaba el TextInput del buscador y
+  // hacía perder el foco mientras el usuario escribía.
+  const showInitialLoader = isLoading && !productsResponse;
 
   return (
     <ScreenLayout navigation={navigation}>
@@ -663,38 +635,47 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         )}
 
         {/* Products List */}
-        <FlatList
-          data={filteredProducts}
-          renderItem={renderProductCard}
-          keyExtractor={(item, index) => item.id || index.toString()}
-          style={styles.listContainer}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={onRefresh}
-              tintColor={theme.color.brand.primary}
-              colors={[theme.color.brand.primary]}
-            />
-          }
-          ListEmptyComponent={
-            <EmptyState
-              icon="cube-outline"
-              title="No hay productos"
-              description={
-                debouncedSearchQuery
-                  ? 'No se encontraron productos con ese criterio de búsqueda'
-                  : 'Comienza creando tu primer producto'
-              }
-              actionLabel={!debouncedSearchQuery ? 'Crear Producto' : undefined}
-              onAction={!debouncedSearchQuery ? handleCreateProduct : undefined}
-            />
-          }
-          windowSize={5}
-          maxToRenderPerBatch={10}
-          removeClippedSubviews={true}
-          initialNumToRender={10}
-        />
+        {showInitialLoader ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.color.brand.primary} />
+            <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
+              Cargando productos...
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredProducts}
+            renderItem={renderProductCard}
+            keyExtractor={(item, index) => item.id || index.toString()}
+            style={styles.listContainer}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={onRefresh}
+                tintColor={theme.color.brand.primary}
+                colors={[theme.color.brand.primary]}
+              />
+            }
+            ListEmptyComponent={
+              <EmptyState
+                icon="cube-outline"
+                title="No hay productos"
+                description={
+                  debouncedSearchQuery
+                    ? 'No se encontraron productos con ese criterio de búsqueda'
+                    : 'Comienza creando tu primer producto'
+                }
+                actionLabel={!debouncedSearchQuery ? 'Crear Producto' : undefined}
+                onAction={!debouncedSearchQuery ? handleCreateProduct : undefined}
+              />
+            }
+            windowSize={5}
+            maxToRenderPerBatch={10}
+            removeClippedSubviews={true}
+            initialNumToRender={10}
+          />
+        )}
 
         {/* Pagination */}
         {!isLoading && pagination.total > 0 && (
