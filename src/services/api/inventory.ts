@@ -338,12 +338,42 @@ export interface ProductStockDetailResponse {
 
 export type ExportFormat = 'excel' | 'pdf';
 
-export interface ExportStockDto {
+/**
+ * Destinatario WhatsApp (compartido por formato y reporte de stock).
+ * Se envía UNO de los dos: siteContactId (prioritario) o phoneNumber.
+ */
+export interface StockWhatsAppRecipient {
+  /** UUID de un contacto de sede activo con WhatsApp habilitado (prioritario). */
+  siteContactId?: string;
+  /** Celular libre con código de país (solo dígitos, 10-15). */
+  phoneNumber?: string;
+  /** Nombre informativo cuando se usa phoneNumber. */
+  contactName?: string;
+  /** Texto opcional que acompaña al WhatsApp. */
+  caption?: string;
+}
+
+export interface SendStockFormatDto extends StockWhatsAppRecipient {
+  siteId: string;
+  /** Opcional. Si se omite, incluye todos los almacenes de la sede. */
+  warehouseId?: string;
+}
+
+export interface ExportStockDto extends StockWhatsAppRecipient {
   format: ExportFormat;
   siteId: string;
   startDate?: string; // ISO 8601 format
   endDate?: string; // ISO 8601 format
   includePrices?: boolean;
+}
+
+/**
+ * Respuesta 202 Accepted común para envío async por WhatsApp.
+ */
+export interface SendStockJobResponse {
+  jobId: string;
+  contactName: string;
+  message: string;
 }
 
 // ========== INVENTORY ENTRIES ==========
@@ -587,137 +617,33 @@ export const inventoryApi = {
     return apiClient.delete('/admin/inventory/v2/cache');
   },
 
-  // ========== EXPORT ENDPOINTS ==========
+  // ========== EXPORT / SEND ENDPOINTS (async por WhatsApp) ==========
 
-  // Export stock report - POST /admin/inventory/export
-  // Returns a blob/buffer for download
-  exportStock: async (exportData: ExportStockDto): Promise<Blob> => {
-    const { config } = await import('@/utils/config');
-    const { authService } = await import('@/services/AuthService');
-    const { useAuthStore } = await import('@/store/auth');
-    const { useTenantStore } = await import('@/store/tenant');
-
-    const token = authService.getAccessToken();
-    const baseURL = config.API_URL;
-
-    // Get tenant context from stores
-    const authStore = useAuthStore.getState();
-    const tenantStore = useTenantStore.getState();
-    const { user, currentCompany, currentSite } = authStore;
-    const { selectedCompany, selectedSite, selectedWarehouse } = tenantStore;
-
-    // Build headers with tenant context
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-App-Id': config.APP_ID,
-      'X-App-Version': config.APP_VERSION,
-    };
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    // Add tenant context headers (prefer tenant store, fallback to auth store)
-    const effectiveCompanyId = selectedCompany?.id || currentCompany?.id;
-    const effectiveSiteId = selectedSite?.id || currentSite?.id;
-    const effectiveWarehouseId = selectedWarehouse?.id;
-    const effectiveUserId = user?.id;
-
-    if (effectiveUserId) {
-      headers['X-User-Id'] = effectiveUserId;
-    }
-    if (effectiveCompanyId) {
-      headers['X-Company-Id'] = effectiveCompanyId;
-    }
-    if (effectiveSiteId) {
-      headers['X-Site-Id'] = effectiveSiteId;
-    }
-    if (effectiveWarehouseId) {
-      headers['X-Warehouse-Id'] = effectiveWarehouseId;
-    }
-
-    const response = await fetch(`${baseURL}/admin/inventory/export`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(exportData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: 'Error al exportar el reporte' }));
-      throw new Error(errorData.message || 'Error al exportar el reporte');
-    }
-
-    return response.blob();
+  /**
+   * Generar y enviar el REPORTE de stock por WhatsApp.
+   * POST /admin/inventory/export
+   *
+   * Ya NO devuelve un blob: el backend responde 202 con un jobId y el reporte
+   * se procesa en background (por lotes) y se envía por WhatsApp al contacto
+   * indicado. Requiere siteContactId o phoneNumber en el body.
+   */
+  sendStockReport: async (data: ExportStockDto): Promise<SendStockJobResponse> => {
+    return apiClient.post<SendStockJobResponse>('/admin/inventory/export', data);
   },
 
   // ========== BULK STOCK UPDATE ENDPOINTS ==========
 
   /**
-   * Download stock format for bulk update
+   * Generar y enviar el FORMATO de actualización masiva de stock por WhatsApp.
    * POST /admin/inventory/stock/download-format
-   * Returns an Excel file with current stock data ready for editing
+   *
+   * Antes descargaba un Excel; ahora responde 202 con jobId y el archivo llega
+   * por WhatsApp. El Excel incluye dos columnas de estado del producto
+   * (ESTADO ACTUAL solo lectura y NUEVO ESTADO editable con dropdown
+   * ACTIVO/ARCHIVADO). Los productos archivados no se incluyen.
    */
-  downloadStockFormat: async (params: { siteId: string; warehouseId?: string }): Promise<Blob> => {
-    const { config } = await import('@/utils/config');
-    const { authService } = await import('@/services/AuthService');
-    const { useAuthStore } = await import('@/store/auth');
-    const { useTenantStore } = await import('@/store/tenant');
-
-    const token = authService.getAccessToken();
-    const baseURL = config.API_URL;
-
-    // Get tenant context from stores
-    const authStore = useAuthStore.getState();
-    const tenantStore = useTenantStore.getState();
-    const { user, currentCompany, currentSite } = authStore;
-    const { selectedCompany, selectedSite, selectedWarehouse } = tenantStore;
-
-    // Build headers with tenant context
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-App-Id': config.APP_ID,
-      'X-App-Version': config.APP_VERSION,
-    };
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    // Add tenant context headers (prefer tenant store, fallback to auth store)
-    const effectiveCompanyId = selectedCompany?.id || currentCompany?.id;
-    const effectiveSiteId = selectedSite?.id || currentSite?.id;
-    const effectiveWarehouseId = selectedWarehouse?.id;
-    const effectiveUserId = user?.id;
-
-    if (effectiveUserId) {
-      headers['X-User-Id'] = effectiveUserId;
-    }
-    if (effectiveCompanyId) {
-      headers['X-Company-Id'] = effectiveCompanyId;
-    }
-    if (effectiveSiteId) {
-      headers['X-Site-Id'] = effectiveSiteId;
-    }
-    if (effectiveWarehouseId) {
-      headers['X-Warehouse-Id'] = effectiveWarehouseId;
-    }
-
-    const response = await fetch(`${baseURL}/admin/inventory/stock/download-format`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: 'Error al descargar el formato' }));
-      throw new Error(errorData.message || 'Error al descargar el formato');
-    }
-
-    return response.blob();
+  sendStockFormat: async (data: SendStockFormatDto): Promise<SendStockJobResponse> => {
+    return apiClient.post<SendStockJobResponse>('/admin/inventory/stock/download-format', data);
   },
 
   /**

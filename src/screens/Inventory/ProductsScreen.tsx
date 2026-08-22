@@ -33,7 +33,6 @@ import { ProductPriceProfilesModal } from '@/components/Inventory/ProductPricePr
 import { ProductCodesModal } from '@/components/Products/ProductCodesModal';
 import { ProductVariantsModal } from '@/components/Products/ProductVariantsModal';
 import { productsApi, Product } from '@/services/api/products';
-import { ProductSearchAutocomplete } from '@/components/Products/ProductSearchAutocomplete';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useProducts } from '@/hooks/api/useProducts';
 import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpacity';
@@ -81,7 +80,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const { user, logout } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [isAutocompleteVisible, setIsAutocompleteVisible] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isProductModalVisible, setIsProductModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -106,15 +104,19 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const isLandscape = width > height;
   const isTablet = width >= 768 || height >= 768;
 
-  // Sincroniza el filtro de la lista SOLO cuando el usuario vacía el input.
-  // Mientras escribe, la lista NO se refetchea (para no reflashear la pantalla):
-  // el input solo alimenta el dropdown de autocompletado. La lista se filtra
-  // al elegir una sugerencia (setea searchQuery + debouncedSearchQuery al SKU).
+  // Debounce del término de búsqueda: alimenta el filtro `q` del listado.
+  // El debounce evita hacer una request por tecla. Combinado con
+  // `placeholderData: keepPreviousData` en `useProducts`, la lista actual se
+  // mantiene en pantalla mientras llegan los nuevos resultados, así el foco
+  // del TextInput NO se pierde y el teclado no se cierra.
   useEffect(() => {
-    if (searchQuery.trim().length === 0 && debouncedSearchQuery !== '') {
-      setDebouncedSearchQuery('');
+    const trimmed = searchQuery.trim();
+    if (trimmed === debouncedSearchQuery) return;
+    const id = setTimeout(() => {
+      setDebouncedSearchQuery(trimmed);
       setPage(1);
-    }
+    }, 350);
+    return () => clearTimeout(id);
   }, [searchQuery, debouncedSearchQuery]);
 
   // React Query filters
@@ -547,11 +549,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 style={[styles.searchInput, isTablet && styles.searchInputTablet]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                onFocus={() => setIsAutocompleteVisible(true)}
-                onBlur={() => {
-                  // Delay para que el tap sobre una sugerencia alcance a dispararse.
-                  setTimeout(() => setIsAutocompleteVisible(false), 150);
-                }}
                 placeholder="Buscar por nombre, SKU, código de barras, variante o #correlativo..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
@@ -559,7 +556,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 <TouchableOpacity
                   onPress={() => {
                     setSearchQuery('');
-                    setIsAutocompleteVisible(false);
                   }}
                   style={styles.clearButton}
                 >
@@ -569,24 +565,6 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
             </View>
           </View>
         </LinearGradient>
-
-        {/* Autocomplete dropdown (typeahead con variantes) — fuera del gradient
-            para que no se recorte por overflow del header */}
-        {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
-          <View style={styles.autocompleteWrapper}>
-            <ProductSearchAutocomplete
-              query={searchQuery}
-              onSelect={(item) => {
-                // Al elegir una sugerencia forzamos el filtro por SKU exacto,
-                // que en el listado desambigua incluso frente a variantes.
-                setSearchQuery(item.sku);
-                setDebouncedSearchQuery(item.sku);
-                setPage(1);
-                setIsAutocompleteVisible(false);
-              }}
-            />
-          </View>
-        )}
 
         {/* Quick Filters - Status */}
         <View style={styles.quickFiltersContainer}>
