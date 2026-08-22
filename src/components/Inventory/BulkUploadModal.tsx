@@ -1,38 +1,45 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  StyleSheet,
+  ActivityIndicator,
   Modal,
   ScrollView,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
   Platform,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
+import { Ionicons } from '@expo/vector-icons';
+import Alert from '@/utils/alert';
+
 import { inventoryApi } from '@/services/api/inventory';
+import { useSendStockFormat } from '@/hooks/api/useStock';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { getDocumentAsync } from '@/utils/filePicker';
-import Alert from '@/utils/alert';
-
+import { siteContactsApi } from '@/services/api/site-contacts';
+import type { SiteContact } from '@/types/site-contacts';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import {
-  Title,
-  Body,
-  Caption,
-  Label,
-  Numeric,
-  Button,
-  Card,
-  IconButton,
-} from '@/design-system/components';
+import logger from '@/utils/logger';
+
+type RecipientMode = 'contact' | 'phone';
 
 interface BulkUploadModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
+
+interface UploadResult {
+  success: boolean;
+  totalRows: number;
+  updatedRows: number;
+  errors: Array<{ row: number; sku: string; error: string }>;
+}
+
+const sanitizePhoneNumber = (raw: string): string => raw.replace(/\D/g, '');
 
 export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   visible,
@@ -43,120 +50,128 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const styles = useThemedStyles(createStyles);
   const { user, currentSite } = useAuthStore();
   const { selectedSite } = useTenantStore();
-  const [loading, setLoading] = useState(false);
-  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{
-    success: boolean;
-    totalRows: number;
-    updatedRows: number;
-    errors: Array<{
-      row: number;
-      sku: string;
-      error: string;
-    }>;
-  } | null>(null);
 
-  // Get effective site (prefer tenant store, fallback to auth store)
+  const sendStockFormat = useSendStockFormat();
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+
+  // Destinatario para envío del formato por WhatsApp
+  const [recipientMode, setRecipientMode] = useState<RecipientMode>('contact');
+  const [contacts, setContacts] = useState<SiteContact[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [caption, setCaption] = useState('');
+
   const effectiveSite = selectedSite || currentSite;
+  const sendingFormat = sendStockFormat.isPending;
 
-  const handleDownloadTemplate = async () => {
-    try {
-      setDownloadingTemplate(true);
-      console.log('📥 Downloading stock bulk update format...');
+  useEffect(() => {
+    if (visible) {
+      setUploadResult(null);
+      setRecipientMode('contact');
+      setSelectedContactId(null);
+      setPhoneNumber('');
+      setContactName('');
+      setCaption('');
+    }
+  }, [visible]);
 
-      if (!effectiveSite) {
-        throw new Error('No se ha seleccionado una sede');
-      }
-
-      // Download the format from the API
-      const blob = await inventoryApi.downloadStockFormat({
-        siteId: effectiveSite.id,
-      });
-      console.log('✅ Format downloaded successfully');
-      console.log('📦 Tamaño del archivo:', blob.size, 'bytes');
-
-      // Handle download based on platform
-      const timestamp = new Date().toISOString().split('T')[0];
-      const fileName = `formato_stock_${timestamp}.xlsx`;
-
-      // Check if we're on web by checking for document object
-      const isWeb = typeof document !== 'undefined';
-      console.log('🌐 Platform detection:', {
-        platformOS: Platform.OS,
-        isWeb,
-        hasDocument: typeof document !== 'undefined',
-      });
-
-      if (isWeb) {
-        // For web, create a download link using blob URL
-        console.log('📥 Using web download method');
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-
-        Alert.alert('Éxito', 'El formato de stock se está descargando');
-      } else {
-        // For mobile (iOS/Android), use legacy expo-file-system API
-        console.log('📱 Using mobile download method (legacy API)');
-
-        // Convert blob to base64
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const dataUrl = reader.result as string;
-            // Remove the data URL prefix to get just the base64 data
-            const base64 = dataUrl.split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-
-        // Save to file system using legacy API
-        const fileUri = FileSystem.cacheDirectory + fileName;
-        console.log('💾 Saving file to:', fileUri);
-
-        await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-
-        console.log('✅ File saved successfully');
-
-        // Share the file - user can choose to save to Downloads from share menu
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          console.log('📤 Sharing file...');
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            dialogTitle: 'Formato de Stock',
-            UTI: 'org.openxmlformats.spreadsheetml.sheet',
-          });
-        } else {
-          Alert.alert('Éxito', `Formato guardado en: ${fileUri}`);
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    if (!effectiveSite?.id) {
+      setContacts([]);
+      setLoadingContacts(false);
+      return;
+    }
+    (async () => {
+      try {
+        setLoadingContacts(true);
+        const data = await siteContactsApi.getSiteContacts(effectiveSite.id);
+        if (cancelled) return;
+        const list: SiteContact[] = Array.isArray(data) ? data : ((data as any)?.data ?? []);
+        const eligible = list.filter((c) => c.isActive && c.receiveWhatsApp && !!c.phoneNumber);
+        setContacts(eligible);
+        if (eligible.length === 1) {
+          setSelectedContactId(eligible[0].id);
+        } else if (eligible.length === 0) {
+          setRecipientMode('phone');
         }
+      } catch (error) {
+        logger.error('Error cargando contactos de sede', error);
+        if (!cancelled) {
+          setContacts([]);
+          setRecipientMode('phone');
+        }
+      } finally {
+        if (!cancelled) setLoadingContacts(false);
       }
-    } catch (error: any) {
-      console.error('❌ Error downloading format:', error);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, effectiveSite?.id]);
+
+  const cleanedPhone = useMemo(() => sanitizePhoneNumber(phoneNumber), [phoneNumber]);
+  const recipientValid = useMemo(() => {
+    if (recipientMode === 'contact') return !!selectedContactId;
+    return cleanedPhone.length >= 8;
+  }, [recipientMode, selectedContactId, cleanedPhone]);
+
+  const handleSendFormat = async () => {
+    if (!effectiveSite) {
+      Alert.alert('Sede requerida', 'Selecciona una sede antes de generar el formato');
+      return;
+    }
+    if (!recipientValid) {
       Alert.alert(
-        'Error',
-        error.message || 'No se pudo descargar el formato. Por favor, intenta nuevamente.'
+        'Destinatario requerido',
+        recipientMode === 'contact'
+          ? 'Selecciona un contacto de sede con WhatsApp habilitado.'
+          : 'Ingresa un número de celular válido con código de país (ej. 51999888777).'
       );
-    } finally {
-      setDownloadingTemplate(false);
+      return;
+    }
+
+    const base = {
+      siteId: effectiveSite.id,
+      ...(caption.trim() && { caption: caption.trim() }),
+    };
+
+    const payload =
+      recipientMode === 'contact'
+        ? { ...base, siteContactId: selectedContactId! }
+        : {
+            ...base,
+            phoneNumber: cleanedPhone,
+            ...(contactName.trim() && { contactName: contactName.trim() }),
+          };
+
+    try {
+      const result = await sendStockFormat.mutateAsync(payload);
+      const displayName =
+        result.contactName ||
+        (recipientMode === 'contact'
+          ? contacts.find((c) => c.id === selectedContactId)?.contactName || 'el destinatario'
+          : contactName.trim() || cleanedPhone);
+      Alert.alert(
+        'Envío programado',
+        result.message ||
+          `El formato de stock se está generando y se enviará por WhatsApp a ${displayName}.`
+      );
+    } catch (err: any) {
+      logger.error('Error enviando formato de stock por WhatsApp', err);
+      const backendMessage =
+        err?.response?.data?.message || err?.message || 'No se pudo generar el formato de stock';
+      Alert.alert('No se pudo generar el formato', backendMessage);
     }
   };
 
   const handleSelectFile = async () => {
     try {
-      console.log('📂 Opening document picker...');
-
       const result = await getDocumentAsync({
         type: [
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -164,99 +179,64 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         ],
         copyToCacheDirectory: true,
       });
-
-      if (result.canceled) {
-        console.log('❌ User cancelled file selection');
-        return;
-      }
-
-      console.log('✅ File selected:', result);
-
-      // Upload the file
+      if (result.canceled) return;
       await handleUploadFile(result);
     } catch (error: any) {
-      console.error('❌ Error selecting file:', error);
+      logger.error('Error seleccionando archivo', error);
       Alert.alert('Error', 'No se pudo seleccionar el archivo. Por favor, intenta nuevamente.');
     }
   };
 
   const handleUploadFile = async (fileResult: any) => {
     try {
-      setLoading(true);
+      setUploading(true);
       setUploadResult(null);
 
-      console.log('🔍 [UPLOAD] Starting upload process...');
-      console.log('🔍 [UPLOAD] File result received:', JSON.stringify(fileResult, null, 2));
-
       const file = fileResult.assets?.[0];
-      if (!file) {
-        console.error('❌ [UPLOAD] No file found in result.assets');
-        throw new Error('No se pudo obtener el archivo');
-      }
-
-      console.log('✅ [UPLOAD] File extracted from assets:', {
-        name: file.name,
-        uri: file.uri,
-        size: file.size,
-        mimeType: file.mimeType,
-      });
-
-      if (!user?.id) {
-        console.error('❌ [UPLOAD] User ID not found');
-        throw new Error('No se pudo identificar el usuario');
-      }
-
-      console.log('✅ [UPLOAD] User ID:', user.id);
-      console.log('📤 [UPLOAD] Uploading stock update file:', file.name);
+      if (!file) throw new Error('No se pudo obtener el archivo');
+      if (!user?.id) throw new Error('No se pudo identificar el usuario');
 
       let fileToUpload: any;
-
       if (Platform.OS === 'web') {
-        // Web: Use the original File object if available
-        console.log('📤 [Web] Preparing file upload...');
         if (file.file) {
           fileToUpload = file.file;
-          console.log('✅ Using File object');
         } else {
-          // Fallback: fetch the blob from URI and create a File
-          console.log('⚠️ No File object, fetching from URI...');
           const response = await fetch(file.uri);
           const blob = await response.blob();
           fileToUpload = new File([blob], file.name, {
-            type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            type:
+              file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           });
         }
       } else {
-        // Mobile: Use file metadata object
         fileToUpload = {
           uri: file.uri,
-          type: file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          type:
+            file.mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           name: file.name,
         };
       }
 
-      console.log('📦 [UPLOAD] File object prepared for upload');
-
-      // Upload to API
-      console.log('🚀 [UPLOAD] Calling inventoryApi.uploadStockUpdate...');
       const result = await inventoryApi.uploadStockUpdate(fileToUpload as any, user.id);
-      console.log('✅ [UPLOAD] Upload result received:', JSON.stringify(result, null, 2));
-
       setUploadResult(result);
 
       if (result.errors.length === 0) {
-        Alert.alert('Éxito', `Se actualizaron ${result.updatedRows} registros de stock correctamente.`, [
-          {
-            text: 'OK',
-            onPress: () => {
-              onSuccess();
-              onClose();
+        Alert.alert(
+          'Éxito',
+          `Se actualizaron ${result.updatedRows} registros de stock correctamente.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                onSuccess();
+                onClose();
+              },
             },
-          },
-        ]);
+          ]
+        );
       } else if (result.updatedRows > 0) {
         Alert.alert(
-          'Actualización Parcial',
+          'Actualización parcial',
           `Se actualizaron ${result.updatedRows} registros correctamente.\n\n` +
             `${result.errors.length} registros tuvieron errores. Revisa los detalles a continuación.`
         );
@@ -267,146 +247,327 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         );
       }
     } catch (error: any) {
-      console.error('❌ [UPLOAD] Error uploading file:', error);
-      console.error('❌ [UPLOAD] Error details:', {
-        message: error.message,
-        response: error.response,
-        responseData: error.response?.data,
-        responseStatus: error.response?.status,
-        responseHeaders: error.response?.headers,
-        stack: error.stack,
-      });
-
+      logger.error('Error subiendo actualización de stock', error);
       Alert.alert(
         'Error',
-        error.response?.data?.message || error.message ||
+        error?.response?.data?.message ||
+          error?.message ||
           'No se pudo cargar el archivo. Por favor, intenta nuevamente.'
       );
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   };
 
   const handleClose = () => {
+    if (sendingFormat || uploading) return;
     setUploadResult(null);
     onClose();
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <Title size="medium">Actualización Masiva de Stock</Title>
-            <IconButton
-              icon="close"
+            <TouchableOpacity
               onPress={handleClose}
-              variant="ghost"
-              size="small"
-            />
+              style={styles.headerButton}
+              disabled={sendingFormat || uploading}
+            >
+              <Ionicons name="close" size={24} color={theme.color.text.muted} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Actualización masiva de stock</Text>
+            <View style={styles.headerButton} />
           </View>
 
-          {/* Content */}
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Instructions */}
-            <View style={styles.section}>
-              <Label size="large" style={styles.sectionTitle}>📋 Instrucciones</Label>
-              <Body size="small" color="secondary" style={styles.instructionText}>
-                1. Descarga el formato Excel con el stock actual
-              </Body>
-              <Body size="small" color="secondary" style={styles.instructionText}>
-                2. Edita la columna "NUEVO STOCK BASE" (amarilla) con los nuevos valores
-              </Body>
-              <Body size="small" color="secondary" style={styles.instructionText}>
-                3. Sube el archivo para actualizar el stock automáticamente
-              </Body>
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+            {/* Hero */}
+            <View style={styles.heroCard}>
+              <View style={styles.heroIcon}>
+                <Ionicons name="logo-whatsapp" size={28} color={theme.color.brand.accent} />
+              </View>
+              <View style={styles.heroTextContainer}>
+                <Text style={styles.heroTitle}>Envío del formato por WhatsApp</Text>
+                <Text style={styles.heroSubtitle}>Sede: {effectiveSite?.name || '—'}</Text>
+                <Text style={styles.heroHelper}>
+                  El Excel se genera en background y llega al destinatario por WhatsApp.
+                </Text>
+              </View>
             </View>
 
-            {/* Download Template Button */}
-            <Button
-              title="📥 Descargar Formato de Stock"
-              variant="primary"
-              onPress={handleDownloadTemplate}
-              disabled={downloadingTemplate || loading}
-              loading={downloadingTemplate}
-              style={styles.primaryButton}
-            />
+            {/* Instrucciones */}
+            <View style={styles.notesSection}>
+              <Text style={styles.notesTitle}>📋 ¿Cómo funciona?</Text>
+              <Text style={styles.noteText}>
+                1. Selecciona el destinatario y genera el formato — llega por WhatsApp.
+              </Text>
+              <Text style={styles.noteText}>
+                2. Edita el Excel: columna &quot;NUEVO STOCK BASE&quot; y opcionalmente &quot;NUEVO
+                ESTADO&quot; (ACTIVO / ARCHIVADO).
+              </Text>
+              <Text style={styles.noteText}>
+                3. Vuelve aquí y sube el archivo editado para aplicar los cambios.
+              </Text>
+              <Text style={styles.noteText}>
+                • Los productos archivados no aparecen en el formato ni en el reporte.
+              </Text>
+            </View>
 
-            {/* Upload File Button */}
-            <Button
-              title="📤 Subir Actualización de Stock"
-              variant="outline"
+            {/* Destinatario */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Destinatario</Text>
+              <View style={styles.modeSwitch}>
+                <TouchableOpacity
+                  style={[
+                    styles.modeSwitchButton,
+                    recipientMode === 'contact' && styles.modeSwitchButtonActive,
+                  ]}
+                  onPress={() => setRecipientMode('contact')}
+                  disabled={sendingFormat}
+                >
+                  <Ionicons
+                    name="people-outline"
+                    size={16}
+                    color={
+                      recipientMode === 'contact' ? theme.color.text.inverse : theme.color.text.body
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.modeSwitchText,
+                      recipientMode === 'contact' && styles.modeSwitchTextActive,
+                    ]}
+                  >
+                    Contacto de sede
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modeSwitchButton,
+                    recipientMode === 'phone' && styles.modeSwitchButtonActive,
+                  ]}
+                  onPress={() => setRecipientMode('phone')}
+                  disabled={sendingFormat}
+                >
+                  <Ionicons
+                    name="call-outline"
+                    size={16}
+                    color={
+                      recipientMode === 'phone' ? theme.color.text.inverse : theme.color.text.body
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.modeSwitchText,
+                      recipientMode === 'phone' && styles.modeSwitchTextActive,
+                    ]}
+                  >
+                    Celular libre
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {recipientMode === 'contact' ? (
+                loadingContacts ? (
+                  <View style={styles.contactsLoading}>
+                    <ActivityIndicator size="small" color={theme.color.brand.primary} />
+                    <Text style={styles.contactsLoadingText}>Cargando contactos...</Text>
+                  </View>
+                ) : !effectiveSite ? (
+                  <View style={styles.emptyContacts}>
+                    <Text style={styles.emptyContactsText}>
+                      Selecciona una sede para ver los contactos disponibles.
+                    </Text>
+                  </View>
+                ) : contacts.length === 0 ? (
+                  <View style={styles.emptyContacts}>
+                    <Text style={styles.emptyContactsText}>
+                      No hay contactos activos con WhatsApp habilitado para la sede{' '}
+                      {effectiveSite.name}.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.contactsList}>
+                    {contacts.map((contact) => {
+                      const isSelected = selectedContactId === contact.id;
+                      return (
+                        <TouchableOpacity
+                          key={contact.id}
+                          style={[styles.contactItem, isSelected && styles.contactItemSelected]}
+                          onPress={() => setSelectedContactId(contact.id)}
+                          disabled={sendingFormat}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.contactName}>{contact.contactName}</Text>
+                            <Text style={styles.contactMeta}>
+                              {contact.phoneNumber}
+                              {contact.position ? ` · ${contact.position}` : ''}
+                            </Text>
+                          </View>
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={20}
+                              color={theme.color.brand.primary}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )
+              ) : (
+                <View style={styles.phoneForm}>
+                  <Text style={styles.fieldLabel}>Número de celular *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="51999888777"
+                    placeholderTextColor={theme.color.text.placeholder}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    keyboardType="phone-pad"
+                    editable={!sendingFormat}
+                    maxLength={15}
+                  />
+                  <Text style={styles.helperText}>
+                    Incluye el código de país (Perú: 51). Solo dígitos.
+                  </Text>
+                  <Text style={[styles.fieldLabel, { marginTop: theme.space[3] }]}>
+                    Nombre del contacto (opcional)
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ej. Almacén Cercado"
+                    placeholderTextColor={theme.color.text.placeholder}
+                    value={contactName}
+                    onChangeText={setContactName}
+                    editable={!sendingFormat}
+                  />
+                </View>
+              )}
+            </View>
+
+            {/* Caption */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Mensaje (opcional)</Text>
+              <TextInput
+                style={[styles.input, styles.captionInput]}
+                placeholder="Formato de stock Cercado"
+                placeholderTextColor={theme.color.text.placeholder}
+                value={caption}
+                onChangeText={setCaption}
+                editable={!sendingFormat}
+                multiline
+                numberOfLines={2}
+              />
+            </View>
+
+            {/* Enviar formato */}
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                (!recipientValid || sendingFormat) && styles.sendButtonDisabled,
+              ]}
+              onPress={handleSendFormat}
+              disabled={!recipientValid || sendingFormat}
+            >
+              {sendingFormat ? (
+                <ActivityIndicator size="small" color={theme.color.text.inverse} />
+              ) : (
+                <Ionicons name="logo-whatsapp" size={20} color={theme.color.text.inverse} />
+              )}
+              <Text style={styles.sendButtonText}>
+                {sendingFormat ? 'Enviando formato...' : 'Generar y enviar formato por WhatsApp'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Separador */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>o sube el formato ya editado</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Subir archivo */}
+            <TouchableOpacity
+              style={[
+                styles.uploadButton,
+                (uploading || sendingFormat) && styles.sendButtonDisabled,
+              ]}
               onPress={handleSelectFile}
-              disabled={loading || downloadingTemplate}
-              loading={loading}
-              style={styles.secondaryButton}
-            />
+              disabled={uploading || sendingFormat}
+            >
+              {uploading ? (
+                <ActivityIndicator size="small" color={theme.color.brand.primary} />
+              ) : (
+                <Ionicons name="cloud-upload-outline" size={20} color={theme.color.brand.primary} />
+              )}
+              <Text style={styles.uploadButtonText}>
+                {uploading ? 'Subiendo...' : 'Subir archivo editado (.xlsx)'}
+              </Text>
+            </TouchableOpacity>
 
-            {/* Upload Result */}
+            {/* Resultado */}
             {uploadResult && (
-              <Card variant="filled" padding="medium" style={styles.resultSection}>
-                <Label size="large" style={styles.resultTitle}>Resultado de la Actualización</Label>
-
+              <View style={styles.resultCard}>
+                <Text style={styles.resultTitle}>Resultado de la actualización</Text>
                 <View style={styles.resultStats}>
                   <View style={styles.resultStatItem}>
-                    <Numeric size="large">{uploadResult.totalRows}</Numeric>
-                    <Caption color="secondary">Total Filas</Caption>
+                    <Text style={styles.resultStatValue}>{uploadResult.totalRows}</Text>
+                    <Text style={styles.resultStatLabel}>Total filas</Text>
                   </View>
                   <View style={[styles.resultStatItem, styles.successStat]}>
-                    <Numeric size="large" color={theme.color.state.success.text}>
+                    <Text
+                      style={[styles.resultStatValue, { color: theme.color.state.success.text }]}
+                    >
                       {uploadResult.updatedRows}
-                    </Numeric>
-                    <Caption color="secondary">Actualizados</Caption>
+                    </Text>
+                    <Text style={styles.resultStatLabel}>Actualizados</Text>
                   </View>
                   <View style={[styles.resultStatItem, styles.errorStat]}>
-                    <Numeric size="large" color={theme.color.state.danger.text}>
+                    <Text
+                      style={[styles.resultStatValue, { color: theme.color.state.danger.text }]}
+                    >
                       {uploadResult.errors.length}
-                    </Numeric>
-                    <Caption color="secondary">Errores</Caption>
+                    </Text>
+                    <Text style={styles.resultStatLabel}>Errores</Text>
                   </View>
                 </View>
 
-                {/* Errors List */}
                 {uploadResult.errors.length > 0 && (
                   <View style={styles.errorsSection}>
-                    <Label size="medium" color={theme.color.state.danger.text} style={styles.errorsTitle}>
-                      ⚠️ Errores Encontrados ({uploadResult.errors.length})
-                    </Label>
-                    <ScrollView style={styles.errorsList} nestedScrollEnabled>
-                      {uploadResult.errors.map((error, index) => (
-                        <View key={index} style={styles.errorItem}>
-                          <Label size="small" color={theme.color.state.danger.text}>Fila {error.row}</Label>
-                          <Caption color="tertiary">SKU: {error.sku}</Caption>
-                          <Body size="small">{error.error}</Body>
-                        </View>
-                      ))}
-                    </ScrollView>
+                    <Text style={styles.errorsTitle}>
+                      ⚠️ Errores encontrados ({uploadResult.errors.length})
+                    </Text>
+                    {uploadResult.errors.slice(0, 20).map((error, index) => (
+                      <View key={index} style={styles.errorItem}>
+                        <Text style={styles.errorRow}>Fila {error.row}</Text>
+                        <Text style={styles.errorMeta}>SKU: {error.sku}</Text>
+                        <Text style={styles.errorMessage}>{error.error}</Text>
+                      </View>
+                    ))}
+                    {uploadResult.errors.length > 20 && (
+                      <Text style={styles.helperText}>
+                        Mostrando 20 de {uploadResult.errors.length} errores.
+                      </Text>
+                    )}
                   </View>
                 )}
-              </Card>
+              </View>
             )}
 
-            {/* Important Notes */}
-            <View style={styles.notesSection}>
-              <Label size="medium" color={theme.color.state.info.text} style={styles.notesTitle}>
-                💡 Notas Importantes
-              </Label>
-              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
-                • El formato incluye el stock actual de todos los productos
-              </Body>
-              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
-                • Solo edita la columna "NUEVO STOCK BASE" (resaltada en amarillo)
-              </Body>
-              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
-                • No modifiques las columnas de IDs (están ocultas en gris)
-              </Body>
-              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
-                • Cada actualización se registra automáticamente en el historial de movimientos
-              </Body>
-              <Body size="small" color={theme.color.state.info.text} style={styles.noteText}>
-                • El stock disponible se calcula automáticamente (Stock Base - Stock Reservado)
-              </Body>
+            <View style={styles.infoBox}>
+              <Ionicons
+                name="information-circle-outline"
+                size={18}
+                color={theme.color.state.info.text}
+              />
+              <Text style={styles.infoText}>
+                Datasets grandes (~20k filas) se procesan por lotes y el WhatsApp puede tardar
+                algunos minutos. Es normal.
+              </Text>
             </View>
           </ScrollView>
         </View>
@@ -417,102 +578,249 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    modalOverlay: {
+    overlay: {
       flex: 1,
-      backgroundColor: theme.color.overlay.medium,
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: theme.color.overlay.strong,
+      justifyContent: 'flex-end',
     },
-    modalContainer: {
+    container: {
       backgroundColor: theme.color.surface.base,
-      borderRadius: theme.radii.xl,
-      width: '90%',
-      maxWidth: 600,
-      maxHeight: '85%',
-      ...theme.shadow.xl,
+      borderTopLeftRadius: theme.radii['2xl'],
+      borderTopRightRadius: theme.radii['2xl'],
+      maxHeight: '92%',
+      minHeight: 420,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: theme.space[5],
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
       paddingVertical: theme.space[4],
       borderBottomWidth: 1,
       borderBottomColor: theme.color.border.subtle,
     },
-    content: {
-      padding: theme.space[5],
+    headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    headerTitle: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.color.text.heading,
     },
-    section: {
-      marginBottom: theme.space[5],
+    scrollView: { flex: 1 },
+    scrollContent: { padding: theme.space[4], gap: theme.space[4] },
+    heroCard: {
+      flexDirection: 'row',
+      gap: theme.space[3],
+      padding: theme.space[4],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
     },
-    sectionTitle: {
-      marginBottom: theme.space[3],
+    heroIcon: {
+      width: 52,
+      height: 52,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    instructionText: {
-      marginBottom: theme.space[2],
-      lineHeight: 20,
+    heroTextContainer: { flex: 1 },
+    heroTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
     },
-    primaryButton: {
-      marginBottom: theme.space[3],
+    heroSubtitle: { fontSize: 13, lineHeight: 19, color: theme.color.text.body },
+    heroHelper: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
     },
-    secondaryButton: {
-      marginBottom: theme.space[5],
+    notesSection: {
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+      gap: theme.space[1.5],
     },
-    resultSection: {
-      marginBottom: theme.space[5],
+    notesTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.state.info.text,
+      marginBottom: theme.space[1],
     },
-    resultTitle: {
-      marginBottom: theme.space[4],
+    noteText: { fontSize: 12, lineHeight: 18, color: theme.color.state.info.text },
+    section: { gap: theme.space[2] },
+    sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.color.text.heading },
+    helperText: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
     },
+    modeSwitch: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.full,
+      padding: 4,
+      gap: 4,
+    },
+    modeSwitchButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[1],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.full,
+    },
+    modeSwitchButtonActive: { backgroundColor: theme.color.brand.primary },
+    modeSwitchText: { fontSize: 13, fontWeight: '600', color: theme.color.text.body },
+    modeSwitchTextActive: { color: theme.color.text.inverse },
+    contactsLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+    },
+    contactsLoadingText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginLeft: theme.space[2],
+    },
+    emptyContacts: {
+      backgroundColor: theme.color.state.warning.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.warning.border,
+    },
+    emptyContactsText: { fontSize: 13, color: theme.color.state.warning.text },
+    contactsList: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      overflow: 'hidden',
+    },
+    contactItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    contactItemSelected: { backgroundColor: theme.color.brand.accentSoft },
+    contactName: { fontSize: 14, fontWeight: '600', color: theme.color.text.heading },
+    contactMeta: { fontSize: 12, color: theme.color.text.muted, marginTop: 2 },
+    phoneForm: { gap: theme.space[1] },
+    fieldLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[1],
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    captionInput: { minHeight: 60, textAlignVertical: 'top' },
+    sendButton: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingVertical: theme.space[3.5],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sendButtonDisabled: { opacity: 0.5 },
+    sendButtonText: { fontSize: 14, fontWeight: '700', color: theme.color.text.inverse },
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[3],
+      marginVertical: theme.space[1],
+    },
+    dividerLine: { flex: 1, height: 1, backgroundColor: theme.color.border.subtle },
+    dividerText: { fontSize: 12, color: theme.color.text.muted, fontWeight: '600' },
+    uploadButton: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingVertical: theme.space[3.5],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 2,
+      borderColor: theme.color.brand.primary,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    uploadButtonText: { fontSize: 14, fontWeight: '700', color: theme.color.brand.primary },
+    resultCard: {
+      padding: theme.space[4],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    resultTitle: { fontSize: 14, fontWeight: '700', color: theme.color.text.heading },
     resultStats: {
       flexDirection: 'row',
+      gap: theme.space[3],
       justifyContent: 'space-around',
-      marginBottom: theme.space[4],
     },
     resultStatItem: {
+      flex: 1,
       alignItems: 'center',
       padding: theme.space[3],
       backgroundColor: theme.color.surface.base,
       borderRadius: theme.radii.md,
-      minWidth: 80,
     },
-    successStat: {
-      backgroundColor: theme.color.state.success.background,
-    },
-    errorStat: {
-      backgroundColor: theme.color.state.danger.background,
-    },
-    errorsSection: {
-      marginTop: theme.space[4],
-    },
-    errorsTitle: {
-      marginBottom: theme.space[3],
-    },
-    errorsList: {
-      maxHeight: 200,
-    },
+    successStat: { backgroundColor: theme.color.state.success.background },
+    errorStat: { backgroundColor: theme.color.state.danger.background },
+    resultStatValue: { fontSize: 20, fontWeight: '700', color: theme.color.text.heading },
+    resultStatLabel: { fontSize: 11, color: theme.color.text.muted, marginTop: 2 },
+    errorsSection: { gap: theme.space[2] },
+    errorsTitle: { fontSize: 13, fontWeight: '700', color: theme.color.state.danger.text },
     errorItem: {
       backgroundColor: theme.color.surface.base,
       padding: theme.space[3],
       borderRadius: theme.radii.md,
-      marginBottom: theme.space[2],
       borderLeftWidth: 3,
       borderLeftColor: theme.color.state.danger.border,
+      gap: 2,
     },
-    notesSection: {
+    errorRow: { fontSize: 12, fontWeight: '600', color: theme.color.state.danger.text },
+    errorMeta: { fontSize: 11, color: theme.color.text.muted },
+    errorMessage: { fontSize: 12, color: theme.color.text.body },
+    infoBox: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      padding: theme.space[3],
+      borderRadius: theme.radii.lg,
       backgroundColor: theme.color.state.info.background,
-      borderRadius: theme.radii.xl,
-      padding: theme.space[4],
-      borderWidth: 1,
-      borderColor: theme.color.state.info.border,
     },
-    notesTitle: {
-      marginBottom: theme.space[3],
-    },
-    noteText: {
-      marginBottom: theme.space[1.5],
+    infoText: {
+      flex: 1,
+      fontSize: 12,
       lineHeight: 18,
+      color: theme.color.state.info.text,
     },
   });
 
