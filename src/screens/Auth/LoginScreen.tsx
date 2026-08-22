@@ -5,6 +5,8 @@
  */
 
 import Alert from '@/utils/alert';
+import logger from '@/utils/logger';
+import * as yup from 'yup';
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -42,6 +44,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { usePwaInstall } from '@/hooks/usePwaInstall';
 
+// Validacion basica de credenciales antes de golpear al backend. El backend
+// re-valida y responde 401/400; esto solo mejora UX y evita requests basura.
+const loginSchema = yup.object({
+  email: yup
+    .string()
+    .trim()
+    .lowercase()
+    .required('El correo es obligatorio')
+    .email('Correo invalido')
+    .max(254, 'Correo demasiado largo'),
+  password: yup
+    .string()
+    .required('La contrasena es obligatoria')
+    .min(6, 'La contrasena es demasiado corta')
+    .max(200, 'La contrasena es demasiado larga'),
+});
+
 interface LoginScreenProps {
   navigation: any;
 }
@@ -78,26 +97,29 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+    let clean: { email: string; password: string };
+    try {
+      clean = await loginSchema.validate({ email, password }, { abortEarly: true });
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Datos invalidos');
       return;
     }
 
     try {
-      console.log('🔑 Iniciando proceso de login...');
-      const success = await loginWithCredentials(email, password, rememberMe);
+      logger.info('Iniciando proceso de login...');
+      const success = await loginWithCredentials(clean.email, clean.password, rememberMe);
 
       if (!success) {
-        console.log('❌ Login falló');
+        logger.warn('Login fallo');
         Alert.alert('Error', error || 'Credenciales incorrectas');
         return;
       }
 
-      console.log('✅ Login exitoso, limpiando contexto de tenant...');
+      logger.info('Login exitoso, limpiando contexto de tenant...');
       await clearTenantContext();
-      console.log('✅ Login completado - La navegación se manejará automáticamente');
-    } catch (error) {
-      console.error('❌ Error en handleLogin:', error);
+      logger.info('Login completado - La navegacion se manejara automaticamente');
+    } catch (err) {
+      logger.error('Error en handleLogin:', err);
       Alert.alert('Error', 'No se pudo conectar al servidor');
     }
   };
