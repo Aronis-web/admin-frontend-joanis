@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DOMPurify from 'dompurify';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { Button, EmptyState } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -57,14 +58,48 @@ const stripHtml = (html: string): string =>
     : '';
 
 /**
- * Renderiza HTML sólo en web usando un `<div>` nativo (no `View`) para no
+ * Sanitiza HTML de correos entrantes con DOMPurify.
+ *
+ * SEGURIDAD: El HTML de correos es contenido no confiable. Sin sanitizar,
+ * un correo con <script> o handlers `on*=` puede ejecutar JS en el origen
+ * del panel y exfiltrar sesi\u00f3n / tokens. Por eso:
+ *   - Se remueven todos los <script>, <iframe>, <object>, <embed>, event
+ *     handlers y URLs javascript: (por defecto de DOMPurify).
+ *   - Todos los <a> se abren en nueva pesta\u00f1a con rel noopener noreferrer.
+ *   - Solo se permiten esquemas seguros en href/src.
+ */
+const sanitizeMailHtml = (html: string): string => {
+  if (!html) return '';
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'base', 'meta', 'link'],
+    FORBID_ATTR: ['style'], // opcional: reduce riesgos de CSS injection / tracking
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|cid|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+    ADD_ATTR: ['target', 'rel'],
+  });
+};
+
+// Hook once: fuerza target=_blank + rel seguro en <a> post-sanitize.
+if (typeof window !== 'undefined' && typeof DOMPurify.addHook === 'function') {
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'A') {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer nofollow');
+    }
+  });
+}
+
+/**
+ * Renderiza HTML s\u00f3lo en web usando un `<div>` nativo (no `View`) para no
  * romper el layout HTML embebido con `display: flex` de React Native Web.
+ * El HTML pasa por DOMPurify antes de inyectarse.
  */
 const WebHtml: React.FC<{ html: string; theme: Theme }> = ({ html, theme }) => {
   if (Platform.OS !== 'web') return null;
+  const safeHtml = useMemo(() => sanitizeMailHtml(html), [html]);
   return React.createElement('div', {
     // eslint-disable-next-line react/no-danger
-    dangerouslySetInnerHTML: { __html: html },
+    dangerouslySetInnerHTML: { __html: safeHtml },
     style: {
       color: theme.color.text.body,
       fontSize: 14,
