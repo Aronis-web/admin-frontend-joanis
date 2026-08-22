@@ -34,7 +34,15 @@ if (!fs.existsSync(outDir)) {
 }
 
 // 1) Copiar _headers, manifest y service worker desde public/
-const publicFiles = ['_headers', 'manifest.webmanifest', 'service-worker.js'];
+// También los mini scripts externos que reemplazan los inline (necesario para
+// poder aplicar una CSP estricta script-src 'self' sin 'unsafe-inline').
+const publicFiles = [
+  '_headers',
+  'manifest.webmanifest',
+  'service-worker.js',
+  'metro-polyfill.js',
+  'sw-register.js',
+];
 for (const file of publicFiles) {
   const src = path.join(publicDir, file);
   const dest = path.join(outDir, file);
@@ -97,24 +105,18 @@ if (fs.existsSync(htmlPath)) {
     },
   );
 
-  // Inyectar polyfills Metro antes de </head> (idempotente por marker).
-  const METRO_POLYFILL_MARKER = '__METRO_GLOBAL_PREFIX__';
+  // Inyectar polyfills Metro antes de </head> como script EXTERNO
+  // (idempotente por marker). Usamos archivo externo en vez de inline para
+  // permitir CSP script-src 'self' sin 'unsafe-inline'.
+  const METRO_POLYFILL_MARKER = 'src="/metro-polyfill.js"';
   if (!html.includes(METRO_POLYFILL_MARKER)) {
     const polyfill = `
-    <script>
-      // Metro/Web runtime polyfills (React.lazy dynamic import compatibility)
-      window.__METRO_GLOBAL_PREFIX__ = '';
-      window.__importMetaUrl = window.location.href;
-      if (typeof window.global === 'undefined') { window.global = window; }
-      if (typeof window.process === 'undefined') {
-        window.process = { env: { NODE_ENV: 'production' }, platform: 'browser' };
-      }
-    </script>
+    <script src="/metro-polyfill.js"></script>
   </head>`;
     html = html.replace('</head>', polyfill);
   }
 
-  // Inyectar meta tags PWA + registro de SW (idempotente por marker).
+  // Inyectar meta tags PWA + registro de SW EXTERNO (idempotente por marker).
   const PWA_MARKER = 'data-pwa-injected';
   if (!html.includes(PWA_MARKER)) {
     const pwaTags = `
@@ -127,18 +129,7 @@ if (fs.existsSync(htmlPath)) {
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <script>
-      // Registro del Service Worker (solo en producción y navegadores compatibles).
-      if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker
-            .register('/service-worker.js')
-            .catch(function (err) {
-              console.warn('[PWA] SW registration failed:', err);
-            });
-        });
-      }
-    </script>
+    <script src="/sw-register.js" defer></script>
   </head>`;
     html = html.replace('</head>', pwaTags);
   }

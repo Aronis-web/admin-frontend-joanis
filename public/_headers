@@ -1,8 +1,29 @@
+# Cloudflare Workers Static Assets · headers de seguridad y caché
+# Docs: https://developers.cloudflare.com/pages/configuration/headers/
+#
+# Notas:
+# - HSTS con preload: solo activar tras verificar HTTPS estable en TODOS los
+#   subdominios de gritlabs.app. La preload list es difícil de revertir.
+# - style-src permite 'unsafe-inline' porque React Native Web inyecta estilos
+#   en runtime (StyleSheet -> <style>). El vector crítico de XSS es script-src,
+#   que sí queda estricto ('self').
+# - Los scripts inline del template (polyfills Metro y registro SW) se
+#   externalizan en /metro-polyfill.js y /sw-register.js
+#   (ver scripts/copy-cloudflare-assets.js) precisamente para permitir esto.
+# - connect-src usa https: como red de seguridad. Cuando el API_URL sea
+#   estable y único, reemplazar por el host exacto (ej. https://api.tu.com).
+# - Si en el futuro se embeben Google Maps u otro iframe, ajustar frame-src.
+
 /*
-  X-Frame-Options: SAMEORIGIN
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; frame-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=(self)
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  X-Permitted-Cross-Domain-Policies: none
 
 /_expo/static/*
   Cache-Control: public, max-age=31536000, immutable
