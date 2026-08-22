@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -17,9 +17,18 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { config } from '@/utils/config';
-import { downloadWithAuth } from '@/utils/downloadWithAuth';
-import { saveAndShareFile } from '@/utils/fileDownload';
+import {
+  useSendKardexSalidas,
+  useSendKardexSalidasDetalle,
+  useSendRegistroVentas,
+} from '@/hooks/api/useReports';
+import type {
+  SendKardexSalidasPayload,
+  SendPleReportResponse,
+  SendRegistroVentasPayload,
+} from '@/services/api/reports';
+import { siteContactsApi } from '@/services/api/site-contacts';
+import type { SiteContact } from '@/types/site-contacts';
 import logger from '@/utils/logger';
 import {
   AVAILABLE_QUICK_FILTERS,
@@ -36,8 +45,7 @@ interface PleLibroMeta {
   codigoLibro: string;
   title: string;
   subtitle: string;
-  endpointPath: string;
-  filePrefix: string;
+  captionPlaceholder: string;
 }
 
 const PLE_LIBRO_META: Record<PleLibroCode, PleLibroMeta> = {
@@ -46,38 +54,25 @@ const PLE_LIBRO_META: Record<PleLibroCode, PleLibroMeta> = {
     codigoLibro: '14010000',
     title: 'Registro de Ventas 14.1',
     subtitle: 'PLE SUNAT · Libro Electrónico de Ventas e Ingresos (01/03/07/08)',
-    endpointPath: '/admin/reports/registro-ventas/export',
-    filePrefix: 'registro-ventas',
+    captionPlaceholder: 'Registro de ventas del periodo',
   },
   '12.1': {
     code: '12.1',
     codigoLibro: '12010000',
     title: 'Kardex 12.1 (Salidas)',
     subtitle: 'PLE SUNAT · Kardex Físico de Salidas (Guías de Remisión 09)',
-    endpointPath: '/admin/reports/kardex/salidas/export',
-    filePrefix: 'kardex-salidas',
+    captionPlaceholder: 'Kardex de salidas del periodo',
   },
   '12.1-detallado': {
     code: '12.1-detallado',
     codigoLibro: '12010000',
     title: 'Kardex 12.1 Detallado (Salidas)',
     subtitle: 'Movimiento de almacén · Egresos (Guías 09 detalle)',
-    endpointPath: '/admin/reports/kardex/salidas/export-detallado',
-    filePrefix: 'movimiento-almacen-egresos',
+    captionPlaceholder: 'Movimiento de almacén del periodo',
   },
 };
 
-const XLSX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-const slugifyForFile = (value: string): string =>
-  value
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .substring(0, 40) || 'sede';
+type RecipientMode = 'contact' | 'phone';
 
 interface PleSunatReportModalProps {
   visible: boolean;
@@ -108,17 +103,7 @@ const formatDisplay = (iso: string): string => {
 
 const periodoFromIso = (iso: string): string => iso.replace(/-/g, '').substring(0, 6);
 
-const buildPleFileName = (
-  meta: PleLibroMeta,
-  fromIso: string,
-  ruc: string,
-  siteName: string
-): string => {
-  const periodo = periodoFromIso(fromIso);
-  const rucPadded = (ruc || '00000000000').padStart(11, '0').slice(-11);
-  const sede = slugifyForFile(siteName || 'sede');
-  return `${meta.filePrefix}-${rucPadded}-${sede}-${periodo}.xlsx`;
-};
+const sanitizePhoneNumber = (raw: string): string => raw.replace(/\D/g, '');
 
 export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
   visible,
@@ -131,6 +116,21 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
   const authStore = useAuthStore();
   const tenantStore = useTenantStore();
 
+  const sendRegistroVentas = useSendRegistroVentas();
+  const sendKardexSalidas = useSendKardexSalidas();
+  const sendKardexSalidasDetalle = useSendKardexSalidasDetalle();
+
+  const activeMutation = useMemo(() => {
+    switch (libro) {
+      case '14.1':
+        return sendRegistroVentas;
+      case '12.1':
+        return sendKardexSalidas;
+      case '12.1-detallado':
+        return sendKardexSalidasDetalle;
+    }
+  }, [libro, sendRegistroVentas, sendKardexSalidas, sendKardexSalidasDetalle]);
+
   const initialRange = useMemo(() => getDateRangeByFilter(QUICK_DATE_FILTERS.LAST_MONTH)!, []);
   const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickDateFilter>(
     QUICK_DATE_FILTERS.LAST_MONTH
@@ -138,7 +138,18 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
   const [fromDate, setFromDate] = useState(initialRange.fromDate);
   const [toDate, setToDate] = useState(initialRange.toDate);
   const [showRangePicker, setShowRangePicker] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+
+  // Recipient state
+  const [recipientMode, setRecipientMode] = useState<RecipientMode>('contact');
+  const [contacts, setContacts] = useState<SiteContact[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [caption, setCaption] = useState('');
+
+  const submitting = activeMutation.isPending;
+  const selectedSite = tenantStore.selectedSite;
 
   useEffect(() => {
     if (visible) {
@@ -149,8 +160,44 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
       }
       setSelectedQuickFilter(QUICK_DATE_FILTERS.LAST_MONTH);
       setShowRangePicker(false);
+      setRecipientMode('contact');
+      setSelectedContactId(null);
+      setPhoneNumber('');
+      setContactName('');
+      setCaption('');
     }
   }, [visible]);
+
+  // Cargar contactos de la sede cuando el modal abre en modo "contact"
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    if (!selectedSite?.id) {
+      setContacts([]);
+      setLoadingContacts(false);
+      return;
+    }
+    (async () => {
+      try {
+        setLoadingContacts(true);
+        const data = await siteContactsApi.getSiteContacts(selectedSite.id);
+        if (cancelled) return;
+        const eligible = data.filter((c) => c.isActive && c.receiveWhatsApp && !!c.phoneNumber);
+        setContacts(eligible);
+        if (eligible.length === 1) {
+          setSelectedContactId(eligible[0].id);
+        }
+      } catch (error) {
+        logger.error('Error cargando contactos de sede', error);
+        if (!cancelled) setContacts([]);
+      } finally {
+        if (!cancelled) setLoadingContacts(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, selectedSite?.id]);
 
   const handleQuickFilter = (filter: QuickDateFilter) => {
     setSelectedQuickFilter(filter);
@@ -172,53 +219,76 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
     return `${p.substring(0, 4)}-${p.substring(4, 6)}`;
   }, [fromDate]);
 
-  const handleDownload = async () => {
+  const cleanedPhone = useMemo(() => sanitizePhoneNumber(phoneNumber), [phoneNumber]);
+  const recipientValid = useMemo(() => {
+    if (recipientMode === 'contact') return !!selectedContactId;
+    return cleanedPhone.length >= 8;
+  }, [recipientMode, selectedContactId, cleanedPhone]);
+
+  const canSubmit = !submitting && recipientValid;
+
+  const handleSend = async () => {
     const validation = validateDateRange(fromDate, toDate, 366);
     if (!validation.valid) {
       Alert.alert('Rango inválido', validation.message || 'Revisa el periodo seleccionado');
       return;
     }
+    const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id || '';
+    const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id || '';
+    if (!companyId || !siteId) {
+      Alert.alert(
+        'Contexto incompleto',
+        'Selecciona empresa y sede antes de generar el reporte PLE'
+      );
+      return;
+    }
+
+    if (!recipientValid) {
+      Alert.alert(
+        'Destinatario requerido',
+        recipientMode === 'contact'
+          ? 'Selecciona un contacto de sede con WhatsApp habilitado.'
+          : 'Ingresa un número de celular válido con código de país (ej. 51999888777).'
+      );
+      return;
+    }
+
+    const base = {
+      companyId,
+      siteId,
+      fechaInicio: fromDate,
+      fechaFin: toDate,
+      ...(caption.trim() && { caption: caption.trim() }),
+    };
+
+    const payload =
+      recipientMode === 'contact'
+        ? ({ ...base, siteContactId: selectedContactId! } as
+            | SendRegistroVentasPayload
+            | SendKardexSalidasPayload)
+        : ({
+            ...base,
+            phoneNumber: cleanedPhone,
+            ...(contactName.trim() && { contactName: contactName.trim() }),
+          } as SendRegistroVentasPayload | SendKardexSalidasPayload);
+
     try {
-      setDownloading(true);
-      const ruc = tenantStore.selectedCompany?.ruc || authStore.currentCompany?.ruc || '';
-      const companyId = tenantStore.selectedCompany?.id || authStore.currentCompany?.id || '';
-      const siteId = tenantStore.selectedSite?.id || authStore.currentSite?.id || '';
-      const siteName = tenantStore.selectedSite?.name || authStore.currentSite?.name || 'sede';
-      if (!companyId || !siteId) {
-        Alert.alert(
-          'Contexto incompleto',
-          'Selecciona empresa y sede antes de generar el reporte PLE'
-        );
-        setDownloading(false);
-        return;
-      }
-      const url = `${config.API_URL}${meta.endpointPath}?t=${Date.now()}`;
-      const blob = await downloadWithAuth(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyId,
-          siteId,
-          fechaInicio: fromDate,
-          fechaFin: toDate,
-        }),
-      });
-      const fileName = buildPleFileName(meta, fromDate, ruc, siteName);
-      await saveAndShareFile({
-        blob,
-        fileName,
-        mimeType: XLSX_MIME_TYPE,
-        dialogTitle: meta.title,
-      });
-      if (Platform.OS === 'web') {
-        Alert.alert('Éxito', 'El archivo PLE se está descargando');
-      }
+      const result: SendPleReportResponse = await activeMutation.mutateAsync(payload as any);
+      const displayName =
+        result.contactName ||
+        (recipientMode === 'contact'
+          ? contacts.find((c) => c.id === selectedContactId)?.contactName || 'el destinatario'
+          : contactName.trim() || cleanedPhone);
+      Alert.alert(
+        'Envío programado',
+        result.message || `El reporte se está generando y se enviará por WhatsApp a ${displayName}.`
+      );
       onClose();
     } catch (err: any) {
-      logger.error('Error descargando reporte PLE', err);
-      Alert.alert('Error', err?.message || 'No se pudo descargar el reporte PLE');
-    } finally {
-      setDownloading(false);
+      logger.error('Error enviando reporte PLE por WhatsApp', err);
+      const backendMessage =
+        err?.response?.data?.message || err?.message || 'No se pudo generar el reporte PLE';
+      Alert.alert('No se pudo generar el reporte', backendMessage);
     }
   };
 
@@ -228,11 +298,7 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
         <View style={styles.overlay}>
           <View style={styles.container}>
             <View style={styles.header}>
-              <TouchableOpacity
-                onPress={onClose}
-                style={styles.headerButton}
-                disabled={downloading}
-              >
+              <TouchableOpacity onPress={onClose} style={styles.headerButton} disabled={submitting}>
                 <Ionicons name="close" size={24} color={theme.color.text.muted} />
               </TouchableOpacity>
               <Text style={styles.headerTitle}>{meta.title}</Text>
@@ -242,15 +308,14 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
               <View style={styles.heroCard}>
                 <View style={styles.heroIcon}>
-                  <Ionicons
-                    name="document-text-outline"
-                    size={28}
-                    color={theme.color.brand.accent}
-                  />
+                  <Ionicons name="logo-whatsapp" size={28} color={theme.color.brand.accent} />
                 </View>
                 <View style={styles.heroTextContainer}>
-                  <Text style={styles.heroTitle}>Reporte Excel (.xlsx)</Text>
+                  <Text style={styles.heroTitle}>Envío por WhatsApp</Text>
                   <Text style={styles.heroSubtitle}>{meta.subtitle}</Text>
+                  <Text style={styles.heroHelper}>
+                    El reporte se genera en background y llega al destinatario por WhatsApp.
+                  </Text>
                 </View>
               </View>
 
@@ -268,7 +333,7 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
                         key={filter.key}
                         style={[styles.quickFilterChip, isActive && styles.quickFilterChipActive]}
                         onPress={() => handleQuickFilter(filter.key)}
-                        disabled={downloading}
+                        disabled={submitting}
                         activeOpacity={0.8}
                       >
                         <Text style={styles.quickFilterIcon}>{filter.icon}</Text>
@@ -287,7 +352,7 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
                         styles.quickFilterChipActive,
                     ]}
                     onPress={() => setShowRangePicker(true)}
-                    disabled={downloading}
+                    disabled={submitting}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.quickFilterIcon}>🗓️</Text>
@@ -307,7 +372,7 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
                   style={styles.dateRangeButton}
                   onPress={() => setShowRangePicker(true)}
                   activeOpacity={0.8}
-                  disabled={downloading}
+                  disabled={submitting}
                 >
                   <View style={styles.dateRangeLeft}>
                     <Ionicons name="calendar-outline" size={22} color={theme.color.brand.primary} />
@@ -318,6 +383,158 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={theme.color.text.placeholder} />
                 </TouchableOpacity>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Destinatario</Text>
+                <View style={styles.modeSwitch}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeSwitchButton,
+                      recipientMode === 'contact' && styles.modeSwitchButtonActive,
+                    ]}
+                    onPress={() => setRecipientMode('contact')}
+                    disabled={submitting}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="people-outline"
+                      size={16}
+                      color={
+                        recipientMode === 'contact'
+                          ? theme.color.text.inverse
+                          : theme.color.text.body
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.modeSwitchText,
+                        recipientMode === 'contact' && styles.modeSwitchTextActive,
+                      ]}
+                    >
+                      Contacto de sede
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeSwitchButton,
+                      recipientMode === 'phone' && styles.modeSwitchButtonActive,
+                    ]}
+                    onPress={() => setRecipientMode('phone')}
+                    disabled={submitting}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="call-outline"
+                      size={16}
+                      color={
+                        recipientMode === 'phone' ? theme.color.text.inverse : theme.color.text.body
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.modeSwitchText,
+                        recipientMode === 'phone' && styles.modeSwitchTextActive,
+                      ]}
+                    >
+                      Celular libre
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {recipientMode === 'contact' ? (
+                  loadingContacts ? (
+                    <View style={styles.contactsLoading}>
+                      <ActivityIndicator size="small" color={theme.color.brand.primary} />
+                      <Text style={styles.contactsLoadingText}>Cargando contactos...</Text>
+                    </View>
+                  ) : !selectedSite ? (
+                    <View style={styles.emptyContacts}>
+                      <Text style={styles.emptyContactsText}>
+                        Selecciona una sede para ver los contactos disponibles.
+                      </Text>
+                    </View>
+                  ) : contacts.length === 0 ? (
+                    <View style={styles.emptyContacts}>
+                      <Text style={styles.emptyContactsText}>
+                        No hay contactos activos con WhatsApp habilitado para la sede{' '}
+                        {selectedSite.name}.
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.contactsList}>
+                      {contacts.map((contact) => {
+                        const isSelected = selectedContactId === contact.id;
+                        return (
+                          <TouchableOpacity
+                            key={contact.id}
+                            style={[styles.contactItem, isSelected && styles.contactItemSelected]}
+                            onPress={() => setSelectedContactId(contact.id)}
+                            disabled={submitting}
+                            activeOpacity={0.8}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.contactName}>{contact.contactName}</Text>
+                              <Text style={styles.contactMeta}>
+                                {contact.phoneNumber}
+                                {contact.position ? ` · ${contact.position}` : ''}
+                              </Text>
+                            </View>
+                            {isSelected && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={20}
+                                color={theme.color.brand.primary}
+                              />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )
+                ) : (
+                  <View style={styles.phoneForm}>
+                    <Text style={styles.fieldLabel}>Número de celular *</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="51999888777"
+                      placeholderTextColor={theme.color.text.placeholder}
+                      value={phoneNumber}
+                      onChangeText={setPhoneNumber}
+                      keyboardType="phone-pad"
+                      editable={!submitting}
+                      maxLength={15}
+                    />
+                    <Text style={styles.helperText}>
+                      Incluye el código de país (Perú: 51). Solo dígitos.
+                    </Text>
+                    <Text style={[styles.fieldLabel, { marginTop: theme.space[3] }]}>
+                      Nombre del contacto (opcional)
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ej. Contabilidad"
+                      placeholderTextColor={theme.color.text.placeholder}
+                      value={contactName}
+                      onChangeText={setContactName}
+                      editable={!submitting}
+                    />
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Mensaje (opcional)</Text>
+                <TextInput
+                  style={[styles.input, styles.captionInput]}
+                  placeholder={meta.captionPlaceholder}
+                  placeholderTextColor={theme.color.text.placeholder}
+                  value={caption}
+                  onChangeText={setCaption}
+                  editable={!submitting}
+                  multiline
+                  numberOfLines={2}
+                />
               </View>
 
               <View style={styles.metaCard}>
@@ -340,32 +557,28 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
                   color={theme.color.state.info.text}
                 />
                 <Text style={styles.infoText}>
-                  El reporte se genera en formato Excel (.xlsx) con las columnas oficiales del libro
-                  SUNAT para el periodo y sede seleccionados.
+                  El reporte se encola en background y llega por WhatsApp al destinatario. No hay
+                  descarga directa desde el navegador.
                 </Text>
               </View>
             </ScrollView>
 
             <View style={styles.footer}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={onClose}
-                disabled={downloading}
-              >
+              <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={submitting}>
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.downloadButton, downloading && styles.downloadButtonDisabled]}
-                onPress={handleDownload}
-                disabled={downloading}
+                style={[styles.sendButton, !canSubmit && styles.sendButtonDisabled]}
+                onPress={handleSend}
+                disabled={!canSubmit}
               >
-                {downloading ? (
+                {submitting ? (
                   <ActivityIndicator size="small" color={theme.color.text.inverse} />
                 ) : (
-                  <Ionicons name="download-outline" size={20} color={theme.color.text.inverse} />
+                  <Ionicons name="logo-whatsapp" size={20} color={theme.color.text.inverse} />
                 )}
-                <Text style={styles.downloadButtonText}>
-                  {downloading ? 'Descargando...' : 'Descargar Excel'}
+                <Text style={styles.sendButtonText}>
+                  {submitting ? 'Enviando...' : 'Generar y enviar por WhatsApp'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -401,7 +614,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.color.surface.base,
       borderTopLeftRadius: theme.radii['2xl'],
       borderTopRightRadius: theme.radii['2xl'],
-      maxHeight: '88%',
+      maxHeight: '92%',
       minHeight: 420,
       overflow: 'hidden',
     },
@@ -449,6 +662,12 @@ const createStyles = (theme: Theme) =>
       marginBottom: theme.space[1],
     },
     heroSubtitle: { fontSize: 13, lineHeight: 19, color: theme.color.text.body },
+    heroHelper: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+    },
     section: { gap: theme.space[2] },
     sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.color.text.heading },
     quickFiltersContent: { gap: theme.space[2], paddingVertical: theme.space[1] },
@@ -488,6 +707,92 @@ const createStyles = (theme: Theme) =>
     },
     dateRangeLabel: { fontSize: 12, color: theme.color.text.muted, marginBottom: 2 },
     dateRangeValue: { fontSize: 15, fontWeight: '700', color: theme.color.text.heading },
+    modeSwitch: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.full,
+      padding: 4,
+      gap: 4,
+    },
+    modeSwitchButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[1],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.full,
+    },
+    modeSwitchButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+    },
+    modeSwitchText: { fontSize: 13, fontWeight: '600', color: theme.color.text.body },
+    modeSwitchTextActive: { color: theme.color.text.inverse },
+    contactsLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+    },
+    contactsLoadingText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginLeft: theme.space[2],
+    },
+    emptyContacts: {
+      backgroundColor: theme.color.state.warning.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.warning.border,
+    },
+    emptyContactsText: { fontSize: 13, color: theme.color.state.warning.text },
+    contactsList: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      overflow: 'hidden',
+    },
+    contactItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    contactItemSelected: {
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    contactName: { fontSize: 14, fontWeight: '600', color: theme.color.text.heading },
+    contactMeta: { fontSize: 12, color: theme.color.text.muted, marginTop: 2 },
+    phoneForm: { gap: theme.space[1] },
+    fieldLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[1],
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    helperText: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+    captionInput: {
+      minHeight: 60,
+      textAlignVertical: 'top',
+    },
     metaCard: {
       padding: theme.space[3],
       borderRadius: theme.radii.xl,
@@ -529,18 +834,19 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'center',
     },
     cancelButtonText: { fontSize: 14, fontWeight: '700', color: theme.color.text.body },
-    downloadButton: {
-      flex: 1.4,
+    sendButton: {
+      flex: 1.6,
       flexDirection: 'row',
       gap: theme.space[2],
       paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
       borderRadius: theme.radii.lg,
       backgroundColor: theme.color.brand.accent,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    downloadButtonDisabled: { opacity: 0.7 },
-    downloadButtonText: { fontSize: 14, fontWeight: '700', color: theme.color.text.inverse },
+    sendButtonDisabled: { opacity: 0.5 },
+    sendButtonText: { fontSize: 14, fontWeight: '700', color: theme.color.text.inverse },
   });
 
 export default PleSunatReportModal;
