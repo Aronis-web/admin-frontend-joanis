@@ -79,9 +79,31 @@ const HERO_SIZE_RULE = `⚠️ REGLA DE TAMAÑO (OBLIGATORIA E INNEGOCIABLE): el
 
 const LIFESTYLE_SIZE_RULE = `⚠️ REGLA DE TAMAÑO (OBLIGATORIA): el producto debe estar en primer plano y ocupar entre el 40% y el 60% del área total de la imagen, claramente cercano y protagonista. Puede haber ambientación alrededor, pero el producto NUNCA debe verse pequeño ni lejano. Si ocupa menos del 40% de la imagen, el resultado es INCORRECTO y debe rehacerse más cerca.`;
 
+// Reglas transversales de calidad de imagen y armonía cromática con el fondo.
+// Se inyectan en todos los templates para forzar resultados nítidos, sin
+// reflejos parásitos de la foto original y con el producto integrado al tono
+// del ambiente.
+const QUALITY_AND_REFLECTIONS_RULE = `✨ REGLA DE CALIDAD Y LIMPIEZA (OBLIGATORIA):
+* Mejora la calidad de la imagen a nivel comercial: máxima nitidez, resolución alta, foco perfecto en el producto, sin ruido, sin compresión visible, sin bordes borrosos, sin artefactos de IA (dedos/manos extra, deformaciones, textos ilegibles).
+* Reproduce colores, materiales y textos del producto de forma fiel y limpia; recupera detalles perdidos si la referencia estaba subexpuesta, movida o de baja resolución.
+* ELIMINA POR COMPLETO los reflejos parásitos, brillos duros, destellos especulares blancos, flashes del celular, resplandores de foco directo, halos y highlights quemados sobre el producto y su empaque. La superficie debe verse limpia, uniforme y sin manchas de luz.
+* Sustituye cualquier reflejo brillante por un realce suave y controlado tipo softbox de estudio, que aporte volumen sin quemar zonas ni tapar gráficos/textos del empaque.
+* Si el producto es brillante o plastificado, muéstralo mate premium o con un brillo muy sutil y difuso; nunca con reflejos crudos de la foto original.`;
+
+const BACKGROUND_HARMONY_RULE = `🎨 REGLA DE ARMONÍA CROMÁTICA CON EL FONDO (OBLIGATORIA):
+* La iluminación, temperatura de color y paleta del PRODUCTO deben coincidir con la del FONDO: el producto tiene que parecer fotografiado dentro de esa escena, no pegado encima.
+* Aplica un color grading unificado producto + fondo: mismos matices, misma temperatura (cálida/fría/ámbar/pastel según el TONO configurado) y mismo nivel de saturación general.
+* Añade un rebote de luz sutil del fondo sobre el producto (color bleed suave) y una sombra realista proyectada sobre la superficie del ambiente que ancle al producto a la escena.
+* Los blancos del producto/empaque deben absorber un tinte muy leve del ambiente (no blancos puros neones si el fondo es pastel o cálido).
+* NUNCA dejes al producto con una iluminación fría o neutra si el fondo es cálido/pastel/kawaii, ni al revés: producto y fondo comparten el mismo "look" cromático.`;
+
 const DEFAULT_DESIGN_PROMPT = `Genera una fotografía de producto premium de nivel comercial y publicitario a partir de la imagen de referencia.
 
 ${HERO_SIZE_RULE}
+
+${QUALITY_AND_REFLECTIONS_RULE}
+
+${BACKGROUND_HARMONY_RULE}
 
 ${PRESERVE_PRODUCT_BLOCK}
 
@@ -112,6 +134,10 @@ const LIFESTYLE_DESIGN_PROMPT = `Genera una fotografía lifestyle de producto pa
 
 ${LIFESTYLE_SIZE_RULE}
 
+${QUALITY_AND_REFLECTIONS_RULE}
+
+${BACKGROUND_HARMONY_RULE}
+
 ${PRESERVE_PRODUCT_BLOCK}
 
 Composición:
@@ -139,6 +165,10 @@ Salida final:
 const PROMO_DESIGN_PROMPT = `Genera una fotografía publicitaria de alto impacto para promociones en redes sociales a partir de la imagen de referencia.
 
 ${HERO_SIZE_RULE}
+
+${QUALITY_AND_REFLECTIONS_RULE}
+
+${BACKGROUND_HARMONY_RULE}
 
 ${PRESERVE_PRODUCT_BLOCK}
 
