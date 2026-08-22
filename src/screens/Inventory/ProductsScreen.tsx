@@ -6,7 +6,7 @@
 
 import Alert from '@/utils/alert';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -101,31 +101,21 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
   const [page, setPage] = useState(1);
   const limit = 20;
   const [isBulkUpdateModalVisible, setIsBulkUpdateModalVisible] = useState(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const isTablet = width >= 768 || height >= 768;
 
-  // Debounce search query
+  // Sincroniza el filtro de la lista SOLO cuando el usuario vacía el input.
+  // Mientras escribe, la lista NO se refetchea (para no reflashear la pantalla):
+  // el input solo alimenta el dropdown de autocompletado. La lista se filtra
+  // al elegir una sugerencia (setea searchQuery + debouncedSearchQuery al SKU).
   useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+    if (searchQuery.trim().length === 0 && debouncedSearchQuery !== '') {
+      setDebouncedSearchQuery('');
+      setPage(1);
     }
-
-    debounceTimerRef.current = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-      if (searchQuery !== debouncedSearchQuery) {
-        setPage(1);
-      }
-    }, 300);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearchQuery]);
 
   // React Query filters
   const filters = useMemo(

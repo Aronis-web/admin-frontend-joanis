@@ -156,14 +156,16 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     selectedWarehouseId !== 'all'
   );
 
+  // El input solo alimenta el dropdown de autocompletado; la lista NO se
+  // refetchea mientras el usuario escribe (evita el "flash" de recarga).
+  // El filtro se aplica cuando se elige una sugerencia (setea el SKU) o al
+  // limpiar el input.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
+    if (searchQuery.trim().length === 0 && debouncedSearchQuery !== '') {
+      setDebouncedSearchQuery('');
       setPage(1);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    }
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Lectora de códigos de barra (keyboard-wedge) en web/Electron: escanear
   // dispara la búsqueda sin necesidad de enfocar el input. Aplica el código de
