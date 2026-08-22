@@ -16,7 +16,7 @@
  * anterior en `activate`.
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE = `erp-aio-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `erp-aio-runtime-${CACHE_VERSION}`;
 
@@ -108,6 +108,17 @@ self.addEventListener('fetch', (event) => {
         if (cached) return cached;
         return fetch(request)
           .then((response) => {
+            // Guard: si Cloudflare devolvió el SPA fallback (index.html con
+            // MIME text/html) para un chunk que ya no existe en el deploy,
+            // NO lo cacheamos y devolvemos un 404 sintético. Si cacheáramos
+            // esto, el browser vería un .js con MIME text/html y romperia
+            // la ejecución (Refused to execute script).
+            if (response.ok && !isValidStaticResponse(request.url, response)) {
+              return new Response('', {
+                status: 404,
+                statusText: 'Not Found (stale asset)',
+              });
+            }
             if (response.ok) {
               const copy = response.clone();
               caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy));
@@ -119,3 +130,22 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+/**
+ * Valida que el content-type de la respuesta coincida con la extensión
+ * pedida. Evita cachear index.html como si fuera JS/CSS cuando Cloudflare
+ * responde con SPA fallback para un asset que ya no existe.
+ */
+function isValidStaticResponse(url, response) {
+  const path = new URL(url).pathname.toLowerCase();
+  const ct = (response.headers.get('content-type') || '').toLowerCase();
+  if (path.endsWith('.js') || path.endsWith('.mjs')) {
+    return ct.includes('javascript') || ct.includes('ecmascript');
+  }
+  if (path.endsWith('.css')) return ct.includes('css');
+  if (path.endsWith('.json') || path.endsWith('.webmanifest')) {
+    return ct.includes('json') || ct.includes('manifest');
+  }
+  // Para fuentes/imágenes rechazamos explícitamente text/html.
+  return !ct.includes('text/html');
+}
