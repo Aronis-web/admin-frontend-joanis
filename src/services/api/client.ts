@@ -334,14 +334,20 @@ class ApiClient {
   }
 
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    // Add cache-busting headers instead of query params to avoid backend validation errors
-    const cacheBustingConfig = {
-      ...config,
-      headers: {
-        ...config?.headers,
-        'X-Request-Time': Date.now().toString(),
-      },
-    };
+    // Cache-busting: solo en nativo (Android/iOS), donde a veces la capa nativa
+    // de red cachea agresivamente. En web el browser ya respeta Cache-Control
+    // del backend y agregar un header custom obliga a preflight CORS y exige
+    // que el backend lo liste en Access-Control-Allow-Headers.
+    const cacheBustingConfig: AxiosRequestConfig =
+      Platform.OS === 'web'
+        ? { ...config, headers: { ...config?.headers } }
+        : {
+            ...config,
+            headers: {
+              ...config?.headers,
+              'X-Request-Time': Date.now().toString(),
+            },
+          };
 
     const response: AxiosResponse<T> = await this.client.get(url, cacheBustingConfig);
 
