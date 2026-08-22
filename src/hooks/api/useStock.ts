@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   ExportInventoryEntriesParams,
+  ExportStockDto,
   inventoryApi,
   ProductInventoryEntriesParams,
   ProductStockDetailParams,
   ProductsStockParams,
+  SendStockFormatDto,
 } from '@/services/api/inventory';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { transfersApi, ExportProductStockMovementsParams } from '@/services/api/transfers';
@@ -97,6 +99,32 @@ export const useProductInventoryEntries = (
       const status = error?.response?.status;
       if (status && status >= 400 && status < 500) return false;
       return failureCount < 2;
+    },
+  });
+};
+
+/**
+ * Hook mutation para generar y enviar el REPORTE de stock por WhatsApp.
+ * Responde 202 con jobId; el archivo llega por WhatsApp al contacto indicado.
+ */
+export const useSendStockReport = () => {
+  return useMutation({
+    mutationFn: (data: ExportStockDto) => inventoryApi.sendStockReport(data),
+    onError: (error) => {
+      logger.error('Error enviando reporte de stock por WhatsApp', error);
+    },
+  });
+};
+
+/**
+ * Hook mutation para generar y enviar el FORMATO de actualización masiva
+ * de stock por WhatsApp. Responde 202 con jobId.
+ */
+export const useSendStockFormat = () => {
+  return useMutation({
+    mutationFn: (data: SendStockFormatDto) => inventoryApi.sendStockFormat(data),
+    onError: (error) => {
+      logger.error('Error enviando formato de stock por WhatsApp', error);
     },
   });
 };
