@@ -20,7 +20,6 @@ import { saveAndShareFile } from '@/utils/fileDownload';
 
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
-import { TaxDocumentsReportModal } from '@/components/Bizlinks/TaxDocumentsReportModal';
 import { PleSunatReportModal } from '@/components/Bizlinks/PleSunatReportModal';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useBizlinksDocuments } from '@/hooks/useBizlinks';
@@ -185,7 +184,6 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
   const [showFromDatePicker, setShowFromDatePicker] = useState(false);
   const [showToDatePicker, setShowToDatePicker] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [showTaxDocumentsReportModal, setShowTaxDocumentsReportModal] = useState(false);
   const [showRegistroVentasPleModal, setShowRegistroVentasPleModal] = useState(false);
   const [showKardexPleModal, setShowKardexPleModal] = useState(false);
   const [showKardexDetalladoModal, setShowKardexDetalladoModal] = useState(false);
@@ -503,10 +501,6 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
       ]
     );
   };
-
-  const handleOpenTaxDocumentsReport = useCallback(() => {
-    setShowTaxDocumentsReportModal(true);
-  }, []);
 
   const handleOpenRegistroVentas = useCallback(() => {
     setShowRegistroVentasPleModal(true);
@@ -1000,11 +994,6 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
           title="Seleccionar Fecha Final"
         />
 
-        <TaxDocumentsReportModal
-          visible={showTaxDocumentsReportModal}
-          onClose={() => setShowTaxDocumentsReportModal(false)}
-        />
-
         <PleSunatReportModal
           visible={showRegistroVentasPleModal}
           onClose={() => setShowRegistroVentasPleModal(false)}
@@ -1025,12 +1014,6 @@ export const BizlinksDocumentsScreen: React.FC<Props> = ({ navigation }) => {
 
         <ProtectedFAB
           actions={[
-            {
-              icon: 'download-outline',
-              label: 'Reporte de Ventas',
-              onPress: handleOpenTaxDocumentsReport,
-              requiredPermissions: ['bizlinks.documents.view', 'sales.read'],
-            },
             {
               icon: 'receipt-outline',
               label: 'Registro de Ventas 14.1',
