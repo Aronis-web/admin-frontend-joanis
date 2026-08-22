@@ -185,7 +185,7 @@ const TONE_OPTIONS: Array<{
 }> = [
   {
     key: 'warm',
-    label: 'Cálido (default)',
+    label: 'Cálido',
     description: 'Luz cálida tipo mañana / tarde con tonos tierra y dorados suaves.',
     prompt: `🌡️ TONO: CÁLIDO. Iluminación cálida tipo luz de ventana matinal o de tarde con tonos anaranjados/dorados suaves; sombras suaves y naturales. Paleta cálida armónica: tierras, ocres, terracotas, mostazas suaves, marrones, cremas cálidos, dorados sutiles. Prioriza materiales naturales y superficies con textura (madera, cerámica, textiles, ratán) cuando el ambiente lo permita. ❌ EVITA por defecto mármol blanco/gris, superficies clínicas frías, fondos 100% blancos, acabados brillantes tipo laboratorio, tonos azules/grises fríos y estética minimalista fría.`,
   },
@@ -203,7 +203,7 @@ const TONE_OPTIONS: Array<{
   },
   {
     key: 'auto',
-    label: 'Automático',
+    label: 'Automático (default)',
     description: 'Gemini elige el tono que mejor encaje con el producto.',
     prompt: `🌡️ TONO: AUTOMÁTICO. Elige la temperatura de iluminación y paleta que mejor represente al producto según su categoría e identidad de marca (cálido/ámbar para productos artesanales, gourmet, hogar, textiles; frío/limpio para tecnología, cosmética clínica, laboratorio o líneas premium modernas). Justifica visualmente la elección con luz y color coherentes con el uso del producto.`,
   },
@@ -218,6 +218,7 @@ type DesignEnvironment =
   | 'bathroom'
   | 'bedroom'
   | 'school'
+  | 'kawaii'
   | 'custom';
 
 const ENVIRONMENT_OPTIONS: Array<{
@@ -268,6 +269,12 @@ const ENVIRONMENT_OPTIONS: Array<{
     label: 'Escolar',
     description: 'Escritorio, útiles escolares, cuadernos, aula cálida.',
     prompt: `🎨 AMBIENTACIÓN: escena ESCOLAR / de escritorio de estudio. Superficies y props: escritorio de madera, cuadernos, lápices y crayones, regla, tijeras, mochila, libros abiertos, globo terráqueo, pizarra con tiza, mapa, corcho con notas. Puede ser aula, pupitre o estudio en casa. Iluminación cálida tipo luz de ventana matinal, sombras suaves. Paleta cálida con maderas, ocres, mostazas suaves, verdes pizarra, terracotas y cremas; puede incluir toques de colores primarios propios de útiles escolares sin que dominen. Fondo desenfocado y ordenado. ❌ EVITA estética 100% blanca fría o de laboratorio.`,
+  },
+  {
+    key: 'kawaii',
+    label: 'Kawaii',
+    description: 'Estética kawaii japonesa: pasteles, personajes tiernos, corazones y stickers.',
+    prompt: `🎨 AMBIENTACIÓN: escena KAWAII japonesa, tierna y aspiracional. Estética inspirada en la cultura kawaii/Sanrio con paleta de colores pastel suaves (rosa bebé, lavanda, celeste, menta, amarillo mantequilla, coral claro). Props y decoración: peluches suaves, stickers y emojis en 3D estilo puffy, corazones, estrellitas, lazos, nubes esponjosas, flores en dibujos simples, personajes tipo mascotas kawaii pequeños alrededor sin tapar el producto, glitter sutil, purpurina suave, burbujas, cintas washi. Superficies posibles: mesa con mantel pastel, papel con lunares, fondo con degradado suave rosa/lila, corcho decorado, escritorio adolescente/joven ordenado con detalles cute. Iluminación suave, luminosa, difusa y alegre; sombras muy sutiles. Tipografía sugerida en props: redonda y burbujeante (no texto sobre el producto real). Composición limpia, con el producto centrado como protagonista rodeado de decoración kawaii sin saturarlo. Ambiente juvenil, dulce, femenino y divertido. ❌ EVITA estética oscura, industrial, rústica pesada, minimalismo frío o clínico, tonos apagados o desaturados.`,
   },
   {
     key: 'custom',
@@ -533,7 +540,7 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
   const [designTemplateKey, setDesignTemplateKey] = useState(DESIGN_PROMPT_TEMPLATES[0].key);
   const [designPackaging, setDesignPackaging] = useState<DesignPackaging>('without');
   const [designPresentation, setDesignPresentation] = useState<DesignPresentation>('individual');
-  const [designTone, setDesignTone] = useState<DesignTone>('warm');
+  const [designTone, setDesignTone] = useState<DesignTone>('auto');
   const [designEnvironment, setDesignEnvironment] = useState<DesignEnvironment>('auto');
   const [designEnvironmentCustom, setDesignEnvironmentCustom] = useState('');
   const [designObservations, setDesignObservations] = useState('');
@@ -871,7 +878,7 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
     setDesignTemplateKey(DESIGN_PROMPT_TEMPLATES[0].key);
     setDesignPackaging('without');
     setDesignPresentation('individual');
-    setDesignTone('warm');
+    setDesignTone('auto');
     setDesignEnvironment('auto');
     setDesignEnvironmentCustom('');
     setDesignObservations('');
