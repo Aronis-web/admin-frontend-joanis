@@ -8,7 +8,10 @@ export const config = {
   API_TIMEOUT_BIZLINKS: 60000, // 60 segundos para emisión de comprobantes (firma + consulta + descarga)
   API_TIMEOUT_REMISSION_GUIDE: 90000, // 90 segundos para generación de guías de remisión (incluye comunicación con SUNAT)
   API_TIMEOUT_CASH_RECONCILIATION: 0, // Sin límite de tiempo para procesamiento de cuadre de caja (puede tardar varios minutos)
-  APP_ID: process.env.EXPO_PUBLIC_APP_ID || 'e28208b8-89b4-4682-80dc-925059424b1f',
+  // SEGURIDAD: No dejar un UUID hardcodeado como fallback. Si falta la env
+  // var, el header X-App-Id irá vacío y el backend responderá 4xx, lo que es
+  // preferible a operar con un tenant "por defecto" sin querer.
+  APP_ID: process.env.EXPO_PUBLIC_APP_ID || '',
 
   // Sentry Configuration
   SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN || '',

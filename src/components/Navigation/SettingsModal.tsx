@@ -41,17 +41,8 @@ import { config } from '@/utils/config';
 import logger from '@/utils/logger';
 
 // Design System
-import {
-  activeOpacity,
-  iconSizes,
-} from '@/design-system/tokens';
-import {
-  Text,
-  Title,
-  Caption,
-  Divider,
-  IconButton,
-} from '@/design-system/components';
+import { activeOpacity, iconSizes } from '@/design-system/tokens';
+import { Text, Title, Caption, Divider, IconButton } from '@/design-system/components';
 
 // Store
 import { useThemeStore } from '@/store/theme';
@@ -61,7 +52,11 @@ import type { Theme } from '@/design-system/themes';
 // Configuración de GitHub para actualizaciones
 const GITHUB_OWNER = 'Aronis-web';
 const GITHUB_REPO = 'admin-frontend-joanis';
-const GITHUB_TOKEN = process.env.EXPO_PUBLIC_GITHUB_TOKEN || '';
+// SEGURIDAD: NO usar un PAT de GitHub en el cliente. Cualquier `EXPO_PUBLIC_*`
+// se inlinea en el bundle web y queda expuesto a todos los usuarios. Si el
+// repo es privado, este chequeo debe hacerse desde un endpoint del backend
+// que sí puede guardar el token. Para repos públicos, la API sin auth alcanza
+// (60 req/hora por IP), suficiente para chequeos ocasionales de versión.
 
 // ============================================
 // TYPES
@@ -142,9 +137,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ title, icon, children }) =>
       ]}
     >
       <View style={styles.cardHeader}>
-        <View
-          style={[styles.cardIconContainer, { backgroundColor: theme.color.surface.base }]}
-        >
+        <View style={[styles.cardIconContainer, { backgroundColor: theme.color.surface.base }]}>
           <Ionicons name={icon} size={iconSizes.md} color={theme.color.icon.default} />
         </View>
         <Text variant="titleSmall" color="primary">
@@ -206,7 +199,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     // Escuchar estado de actualización
     electronAPI.onUpdateStatus?.((status: { status: string; version: string }) => {
       if (status.status === 'downloaded') {
-        setUpdateInfo((prev) => prev ? { ...prev, updateDownloaded: true } : null);
+        setUpdateInfo((prev) => (prev ? { ...prev, updateDownloaded: true } : null));
         setIsDownloading(false);
       }
     });
@@ -237,10 +230,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       const headers: Record<string, string> = {
         Accept: 'application/vnd.github.v3+json',
       };
-
-      if (GITHUB_TOKEN) {
-        headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
-      }
 
       const response = await fetch(
         `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
@@ -286,7 +275,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
   // Verificar actualizaciones via Backend (para Android)
   const checkForUpdatesViaBackend = useCallback(async (): Promise<UpdateInfo> => {
-    logger.debug('[BACKEND_CHECK] Verificando actualizaciones', { appId: 'erp-aio', platform: 'android', currentVersion: appVersion });
+    logger.debug('[BACKEND_CHECK] Verificando actualizaciones', {
+      appId: 'erp-aio',
+      platform: 'android',
+      currentVersion: appVersion,
+    });
 
     try {
       const response: CheckUpdateResponse = await appUpdatesApi.checkForUpdates(
@@ -350,7 +343,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       }
     } catch (error: any) {
       // Si hay error, intentar con GitHub como fallback
-      logger.warn('Error verificando actualizaciones, intentando con GitHub API...', error?.message || error);
+      logger.warn(
+        'Error verificando actualizaciones, intentando con GitHub API...',
+        error?.message || error
+      );
       try {
         const githubResult = await checkForUpdatesViaGitHub();
         setUpdateInfo(githubResult);
@@ -409,7 +405,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
     }
 
     setIsDownloading(true);
-    setDownloadProgress({ percent: 0, bytesPerSecond: 0, transferred: 0, total: updateInfo.fileSize || 0 });
+    setDownloadProgress({
+      percent: 0,
+      bytesPerSecond: 0,
+      transferred: 0,
+      total: updateInfo.fileSize || 0,
+    });
 
     try {
       const fileName = updateInfo.fileName || `erp-aio-v${updateInfo.latestVersion}.apk`;
@@ -451,7 +452,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       }
 
       logger.debug('[APK_UPDATE] APK descargado', { uri: result.uri, status: result.status });
-      setDownloadProgress((prev) => prev ? { ...prev, percent: 100 } : null);
+      setDownloadProgress((prev) => (prev ? { ...prev, percent: 100 } : null));
 
       // Intentar abrir el APK para instalación
       try {
@@ -497,7 +498,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         }
       }
 
-      setUpdateInfo((prev) => prev ? { ...prev, updateDownloaded: true } : null);
+      setUpdateInfo((prev) => (prev ? { ...prev, updateDownloaded: true } : null));
     } catch (error: any) {
       logger.error('[APK_UPDATE] Error descargando/instalando APK', error?.message || error);
       Alert.alert(
@@ -512,7 +513,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
   // Abrir página de releases en GitHub
   const openGitHubRelease = useCallback(() => {
-    const url = latestReleaseUrl || `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+    const url =
+      latestReleaseUrl || `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
     Linking.openURL(url).catch((err) => {
       logger.error('Error opening URL:', err);
       Alert.alert('Error', 'No se pudo abrir el enlace');
@@ -527,12 +529,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={[styles.modalContainer, { backgroundColor: theme.color.overlay.medium }]}>
         <View
           style={[
@@ -548,7 +545,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <View
-                style={[styles.headerIconContainer, { backgroundColor: theme.color.brand.accentSoft }]}
+                style={[
+                  styles.headerIconContainer,
+                  { backgroundColor: theme.color.brand.accentSoft },
+                ]}
               >
                 <Ionicons name="settings" size={iconSizes.lg} color={theme.color.icon.default} />
               </View>
@@ -582,20 +582,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                     <Text variant="bodyMedium" color="primary">
                       Modo Oscuro
                     </Text>
-                    <Caption color="tertiary">
-                      {isDarkMode ? 'Activado' : 'Desactivado'}
-                    </Caption>
+                    <Caption color="tertiary">{isDarkMode ? 'Activado' : 'Desactivado'}</Caption>
                   </View>
                 </View>
                 <Switch
                   value={isDarkMode}
                   onValueChange={handleToggleDarkMode}
-                  trackColor={{ false: theme.color.border.subtle, true: theme.color.action.primary.background }}
+                  trackColor={{
+                    false: theme.color.border.subtle,
+                    true: theme.color.action.primary.background,
+                  }}
                   thumbColor={isDarkMode ? theme.color.surface.base : theme.color.text.disabled}
                 />
               </View>
               <Caption color="tertiary" style={styles.settingHint}>
-                El modo oscuro reduce el brillo de la pantalla y puede ayudar a reducir la fatiga visual.
+                El modo oscuro reduce el brillo de la pantalla y puede ayudar a reducir la fatiga
+                visual.
               </Caption>
             </SettingsCard>
 
@@ -639,9 +641,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 {isCheckingUpdate ? (
                   <ActivityIndicator size="small" color={theme.color.action.primary.text} />
                 ) : (
-                  <Ionicons name="cloud-download-outline" size={iconSizes.md} color={theme.color.action.primary.text} />
+                  <Ionicons
+                    name="cloud-download-outline"
+                    size={iconSizes.md}
+                    color={theme.color.action.primary.text}
+                  />
                 )}
-                <Text variant="buttonMedium" color={theme.color.action.primary.text} style={styles.updateButtonText}>
+                <Text
+                  variant="buttonMedium"
+                  color={theme.color.action.primary.text}
+                  style={styles.updateButtonText}
+                >
                   {isCheckingUpdate ? 'Verificando...' : 'Buscar Actualizaciones'}
                 </Text>
               </TouchableOpacity>
@@ -651,14 +661,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 <View style={styles.updateInfoContainer}>
                   {updateInfo.error ? (
                     <View style={styles.updateError}>
-                      <Ionicons name="warning-outline" size={iconSizes.md} color={theme.color.icon.danger} />
-                      <Text variant="bodySmall" color={theme.color.text.danger} style={styles.updateInfoText}>
+                      <Ionicons
+                        name="warning-outline"
+                        size={iconSizes.md}
+                        color={theme.color.icon.danger}
+                      />
+                      <Text
+                        variant="bodySmall"
+                        color={theme.color.text.danger}
+                        style={styles.updateInfoText}
+                      >
                         {updateInfo.error}
                       </Text>
                     </View>
                   ) : updateInfo.message ? (
                     <View style={styles.updateMessage}>
-                      <Ionicons name="information-circle-outline" size={iconSizes.md} color={theme.color.state.info.border} />
+                      <Ionicons
+                        name="information-circle-outline"
+                        size={iconSizes.md}
+                        color={theme.color.state.info.border}
+                      />
                       <Text variant="bodySmall" color="secondary" style={styles.updateInfoText}>
                         {updateInfo.message}
                       </Text>
@@ -666,7 +688,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                   ) : updateInfo.updateAvailable ? (
                     <View style={styles.updateAvailable}>
                       <View style={styles.updateAvailableHeader}>
-                        <Ionicons name="arrow-up-circle" size={iconSizes.lg} color={theme.color.icon.success} />
+                        <Ionicons
+                          name="arrow-up-circle"
+                          size={iconSizes.lg}
+                          color={theme.color.icon.success}
+                        />
                         <View style={styles.updateAvailableText}>
                           <Text variant="titleSmall" color="primary">
                             ¡Nueva versión disponible!
@@ -680,7 +706,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                       {/* Changelog (si está disponible) */}
                       {updateInfo.changelog && (
                         <View style={styles.changelogContainer}>
-                          <Text variant="labelSmall" color="secondary" style={styles.changelogTitle}>
+                          <Text
+                            variant="labelSmall"
+                            color="secondary"
+                            style={styles.changelogTitle}
+                          >
                             Novedades:
                           </Text>
                           <Text variant="bodySmall" color="tertiary" style={styles.changelogText}>
@@ -705,7 +735,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                               {downloadProgress.percent.toFixed(0)}%
                             </Text>
                             <Text variant="caption" color="tertiary">
-                              {formatBytes(downloadProgress.transferred)} / {formatBytes(downloadProgress.total)}
+                              {formatBytes(downloadProgress.transferred)} /{' '}
+                              {formatBytes(downloadProgress.total)}
                             </Text>
                           </View>
                         </View>
@@ -716,17 +747,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                         // En Electron: descargar e instalar automáticamente
                         !updateInfo.updateDownloaded ? (
                           <TouchableOpacity
-                            style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
+                            style={[
+                              styles.downloadButton,
+                              isDownloading && styles.downloadButtonDisabled,
+                            ]}
                             onPress={downloadUpdate}
                             disabled={isDownloading}
                             activeOpacity={activeOpacity.medium}
                           >
                             {isDownloading ? (
-                              <ActivityIndicator size="small" color={theme.color.action.success.text} />
+                              <ActivityIndicator
+                                size="small"
+                                color={theme.color.action.success.text}
+                              />
                             ) : (
-                              <Ionicons name="download-outline" size={iconSizes.sm} color={theme.color.action.success.text} />
+                              <Ionicons
+                                name="download-outline"
+                                size={iconSizes.sm}
+                                color={theme.color.action.success.text}
+                              />
                             )}
-                            <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
+                            <Text
+                              variant="buttonSmall"
+                              color={theme.color.action.success.text}
+                              style={styles.downloadButtonText}
+                            >
                               {isDownloading ? 'Descargando...' : 'Descargar Actualización'}
                             </Text>
                           </TouchableOpacity>
@@ -736,8 +781,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                             onPress={installUpdate}
                             activeOpacity={activeOpacity.medium}
                           >
-                            <Ionicons name="rocket-outline" size={iconSizes.sm} color={theme.color.action.primary.text} />
-                            <Text variant="buttonSmall" color={theme.color.action.primary.text} style={styles.downloadButtonText}>
+                            <Ionicons
+                              name="rocket-outline"
+                              size={iconSizes.sm}
+                              color={theme.color.action.primary.text}
+                            />
+                            <Text
+                              variant="buttonSmall"
+                              color={theme.color.action.primary.text}
+                              style={styles.downloadButtonText}
+                            >
                               Instalar y Reiniciar
                             </Text>
                           </TouchableOpacity>
@@ -747,17 +800,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                         !updateInfo.updateDownloaded ? (
                           <View>
                             <TouchableOpacity
-                              style={[styles.downloadButton, isDownloading && styles.downloadButtonDisabled]}
+                              style={[
+                                styles.downloadButton,
+                                isDownloading && styles.downloadButtonDisabled,
+                              ]}
                               onPress={downloadAndInstallApk}
                               disabled={isDownloading}
                               activeOpacity={activeOpacity.medium}
                             >
                               {isDownloading ? (
-                                <ActivityIndicator size="small" color={theme.color.action.success.text} />
+                                <ActivityIndicator
+                                  size="small"
+                                  color={theme.color.action.success.text}
+                                />
                               ) : (
-                                <Ionicons name="download-outline" size={iconSizes.sm} color={theme.color.action.success.text} />
+                                <Ionicons
+                                  name="download-outline"
+                                  size={iconSizes.sm}
+                                  color={theme.color.action.success.text}
+                                />
                               )}
-                              <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
+                              <Text
+                                variant="buttonSmall"
+                                color={theme.color.action.success.text}
+                                style={styles.downloadButtonText}
+                              >
                                 {isDownloading ? 'Descargando APK...' : 'Descargar e Instalar'}
                               </Text>
                             </TouchableOpacity>
@@ -769,7 +836,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                           </View>
                         ) : (
                           <View style={styles.downloadedContainer}>
-                            <Ionicons name="checkmark-circle" size={iconSizes.md} color={theme.color.icon.success} />
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={iconSizes.md}
+                              color={theme.color.icon.success}
+                            />
                             <Text variant="bodySmall" color="success" style={styles.downloadedText}>
                               APK descargado. El instalador debería abrirse automáticamente.
                             </Text>
@@ -778,8 +849,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                               onPress={downloadAndInstallApk}
                               activeOpacity={activeOpacity.medium}
                             >
-                              <Ionicons name="refresh-outline" size={iconSizes.sm} color={theme.color.brand.primary} />
-                              <Text variant="buttonSmall" color={theme.color.brand.primary} style={styles.retryButtonText}>
+                              <Ionicons
+                                name="refresh-outline"
+                                size={iconSizes.sm}
+                                color={theme.color.brand.primary}
+                              />
+                              <Text
+                                variant="buttonSmall"
+                                color={theme.color.brand.primary}
+                                style={styles.retryButtonText}
+                              >
                                 Descargar de nuevo
                               </Text>
                             </TouchableOpacity>
@@ -792,8 +871,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                           onPress={openGitHubRelease}
                           activeOpacity={activeOpacity.medium}
                         >
-                          <Ionicons name="logo-github" size={iconSizes.sm} color={theme.color.action.success.text} />
-                          <Text variant="buttonSmall" color={theme.color.action.success.text} style={styles.downloadButtonText}>
+                          <Ionicons
+                            name="logo-github"
+                            size={iconSizes.sm}
+                            color={theme.color.action.success.text}
+                          />
+                          <Text
+                            variant="buttonSmall"
+                            color={theme.color.action.success.text}
+                            style={styles.downloadButtonText}
+                          >
                             Ver en GitHub
                           </Text>
                         </TouchableOpacity>
@@ -801,13 +888,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                     </View>
                   ) : (
                     <View style={styles.upToDate}>
-                      <Ionicons name="checkmark-circle" size={iconSizes.lg} color={theme.color.icon.success} />
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={iconSizes.lg}
+                        color={theme.color.icon.success}
+                      />
                       <Text variant="bodyMedium" color="primary" style={styles.updateInfoText}>
                         ¡Estás al día!
                       </Text>
-                      <Caption color="tertiary">
-                        Ya tienes la última versión instalada.
-                      </Caption>
+                      <Caption color="tertiary">Ya tienes la última versión instalada.</Caption>
                     </View>
                   )}
                 </View>
@@ -815,7 +904,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
               {/* Info adicional */}
               <View style={styles.webNotice}>
-                <Ionicons name="information-circle-outline" size={iconSizes.sm} color={theme.color.state.info.border} />
+                <Ionicons
+                  name="information-circle-outline"
+                  size={iconSizes.sm}
+                  color={theme.color.state.info.border}
+                />
                 <Caption color="secondary" style={styles.webNoticeText}>
                   {isElectron()
                     ? 'Las actualizaciones se descargan e instalan automáticamente.'
@@ -830,11 +923,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
             <SettingsCard title="Información" icon="information-circle-outline">
               <View style={styles.infoRow}>
                 <Caption color="tertiary">Desarrollado por</Caption>
-                <Text variant="bodySmall" color="primary">Aronis Web</Text>
+                <Text variant="bodySmall" color="primary">
+                  Aronis Web
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <Caption color="tertiary">Nombre de la app</Caption>
-                <Text variant="bodySmall" color="primary">ERP-aio</Text>
+                <Text variant="bodySmall" color="primary">
+                  ERP-aio
+                </Text>
               </View>
             </SettingsCard>
           </ScrollView>
@@ -847,342 +944,343 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 // ============================================
 // STYLES
 // ============================================
-const createStyles = (theme: Theme) => StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: theme.color.overlay.medium,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
 
-  modalContent: {
-    width: '95%',
-    maxWidth: 500,
-    maxHeight: '90%',
-    minHeight: Platform.OS === 'android' ? '70%' : undefined,
-    backgroundColor: theme.color.surface.elevated,
-    borderRadius: theme.radii.xl,
-    ...theme.shadow.xl,
-  },
+    modalContent: {
+      width: '95%',
+      maxWidth: 500,
+      maxHeight: '90%',
+      minHeight: Platform.OS === 'android' ? '70%' : undefined,
+      backgroundColor: theme.color.surface.elevated,
+      borderRadius: theme.radii.xl,
+      ...theme.shadow.xl,
+    },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[4],
-    paddingBottom: theme.space[3],
-  },
+    // Header
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[4],
+      paddingBottom: theme.space[3],
+    },
 
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
 
-  headerIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radii.lg,
-    backgroundColor: theme.color.brand.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: theme.space[3],
-  },
+    headerIconContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.accentSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.space[3],
+    },
 
-  // Scroll
-  scrollView: {
-    flex: 1,
-  },
+    // Scroll
+    scrollView: {
+      flex: 1,
+    },
 
-  scrollContent: {
-    padding: theme.space[4],
-    paddingTop: theme.space[2],
-  },
+    scrollContent: {
+      padding: theme.space[4],
+      paddingTop: theme.space[2],
+    },
 
-  // Card
-  card: {
-    backgroundColor: theme.color.surface.subtle,
-    borderRadius: theme.radii.lg,
-    padding: theme.space[4],
-    marginBottom: theme.space[4],
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
+    // Card
+    card: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      padding: theme.space[4],
+      marginBottom: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
 
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.space[4],
-  },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[4],
+    },
 
-  cardIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.color.surface.base,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: theme.space[3],
-  },
+    cardIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.space[3],
+    },
 
-  cardContent: {},
+    cardContent: {},
 
-  // Setting Row
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    // Setting Row
+    settingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
 
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
+    settingInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
 
-  settingIconSmall: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.surface.base,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: theme.space[3],
-  },
+    settingIconSmall: {
+      width: 32,
+      height: 32,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.space[3],
+    },
 
-  settingText: {
-    flex: 1,
-  },
+    settingText: {
+      flex: 1,
+    },
 
-  settingHint: {
-    marginTop: theme.space[3],
-    paddingLeft: theme.space[11],
-  },
+    settingHint: {
+      marginTop: theme.space[3],
+      paddingLeft: theme.space[11],
+    },
 
-  // Version
-  versionContainer: {
-    gap: theme.space[2],
-  },
+    // Version
+    versionContainer: {
+      gap: theme.space[2],
+    },
 
-  versionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    versionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
 
-  versionBadge: {
-    backgroundColor: theme.color.brand.primarySoft,
-    paddingHorizontal: theme.space[3],
-    paddingVertical: theme.space[1],
-    borderRadius: theme.radii.full,
-  },
+    versionBadge: {
+      backgroundColor: theme.color.brand.primarySoft,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.full,
+    },
 
-  // Update Button
-  updateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.color.action.primary.background,
-    paddingVertical: theme.space[3],
-    paddingHorizontal: theme.space[4],
-    borderRadius: theme.radii.lg,
-    marginTop: theme.space[3],
-    gap: theme.space[2],
-  },
+    // Update Button
+    updateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.action.primary.background,
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.lg,
+      marginTop: theme.space[3],
+      gap: theme.space[2],
+    },
 
-  updateButtonDisabled: {
-    backgroundColor: theme.color.action.primary.backgroundDisabled,
-  },
+    updateButtonDisabled: {
+      backgroundColor: theme.color.action.primary.backgroundDisabled,
+    },
 
-  updateButtonText: {
-    marginLeft: theme.space[2],
-  },
+    updateButtonText: {
+      marginLeft: theme.space[2],
+    },
 
-  // Update Info
-  updateInfoContainer: {
-    marginTop: theme.space[4],
-  },
+    // Update Info
+    updateInfoContainer: {
+      marginTop: theme.space[4],
+    },
 
-  updateError: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.state.danger.background,
-    padding: theme.space[3],
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: theme.color.state.danger.border,
-  },
+    updateError: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.state.danger.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+    },
 
-  updateMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.state.info.background,
-    padding: theme.space[3],
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: theme.color.state.info.border,
-  },
+    updateMessage: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.state.info.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.state.info.border,
+    },
 
-  updateInfoText: {
-    flex: 1,
-    marginLeft: theme.space[2],
-  },
+    updateInfoText: {
+      flex: 1,
+      marginLeft: theme.space[2],
+    },
 
-  updateAvailable: {
-    backgroundColor: theme.color.state.success.background,
-    padding: theme.space[4],
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: theme.color.state.success.border,
-  },
+    updateAvailable: {
+      backgroundColor: theme.color.state.success.background,
+      padding: theme.space[4],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+    },
 
-  updateAvailableHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.space[3],
-  },
+    updateAvailableHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[3],
+    },
 
-  updateAvailableText: {
-    marginLeft: theme.space[3],
-  },
+    updateAvailableText: {
+      marginLeft: theme.space[3],
+    },
 
-  // Download Progress
-  downloadProgress: {
-    marginBottom: theme.space[3],
-  },
+    // Download Progress
+    downloadProgress: {
+      marginBottom: theme.space[3],
+    },
 
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: theme.color.border.subtle,
-    borderRadius: theme.radii.full,
-    overflow: 'hidden',
-    marginBottom: theme.space[2],
-  },
+    progressBarContainer: {
+      height: 8,
+      backgroundColor: theme.color.border.subtle,
+      borderRadius: theme.radii.full,
+      overflow: 'hidden',
+      marginBottom: theme.space[2],
+    },
 
-  progressBar: {
-    height: '100%',
-    backgroundColor: theme.color.action.success.background,
-    borderRadius: theme.radii.full,
-  },
+    progressBar: {
+      height: '100%',
+      backgroundColor: theme.color.action.success.background,
+      borderRadius: theme.radii.full,
+    },
 
-  progressInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+    progressInfo: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
 
-  // Download Button
-  downloadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.color.action.success.background,
-    paddingVertical: theme.space[2.5],
-    paddingHorizontal: theme.space[4],
-    borderRadius: theme.radii.md,
-    gap: theme.space[2],
-  },
+    // Download Button
+    downloadButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.action.success.background,
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.md,
+      gap: theme.space[2],
+    },
 
-  downloadButtonDisabled: {
-    backgroundColor: theme.color.action.success.backgroundDisabled,
-  },
+    downloadButtonDisabled: {
+      backgroundColor: theme.color.action.success.backgroundDisabled,
+    },
 
-  downloadButtonText: {
-    marginLeft: theme.space[1],
-  },
+    downloadButtonText: {
+      marginLeft: theme.space[1],
+    },
 
-  installButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.color.brand.accent,
-    paddingVertical: theme.space[2.5],
-    paddingHorizontal: theme.space[4],
-    borderRadius: theme.radii.md,
-    gap: theme.space[2],
-  },
+    installButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[4],
+      borderRadius: theme.radii.md,
+      gap: theme.space[2],
+    },
 
-  // Up to date
-  upToDate: {
-    alignItems: 'center',
-    padding: theme.space[4],
-    backgroundColor: theme.color.state.success.background,
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: theme.color.state.success.border,
-  },
+    // Up to date
+    upToDate: {
+      alignItems: 'center',
+      padding: theme.space[4],
+      backgroundColor: theme.color.state.success.background,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.state.success.border,
+    },
 
-  // Changelog
-  changelogContainer: {
-    marginBottom: theme.space[3],
-    paddingTop: theme.space[2],
-    borderTopWidth: 1,
-    borderTopColor: theme.color.state.success.border,
-  },
+    // Changelog
+    changelogContainer: {
+      marginBottom: theme.space[3],
+      paddingTop: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.state.success.border,
+    },
 
-  changelogTitle: {
-    marginBottom: theme.space[1],
-  },
+    changelogTitle: {
+      marginBottom: theme.space[1],
+    },
 
-  changelogText: {
-    lineHeight: 18,
-  },
+    changelogText: {
+      lineHeight: 18,
+    },
 
-  // File size text
-  fileSizeText: {
-    textAlign: 'center',
-    marginTop: theme.space[2],
-  },
+    // File size text
+    fileSizeText: {
+      textAlign: 'center',
+      marginTop: theme.space[2],
+    },
 
-  // Downloaded container
-  downloadedContainer: {
-    alignItems: 'center',
-    gap: theme.space[2],
-  },
+    // Downloaded container
+    downloadedContainer: {
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
 
-  downloadedText: {
-    textAlign: 'center',
-  },
+    downloadedText: {
+      textAlign: 'center',
+    },
 
-  // Retry button
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.space[2],
-    paddingHorizontal: theme.space[3],
-    borderRadius: theme.radii.md,
-    borderWidth: 1,
-    borderColor: theme.color.border.default,
-    marginTop: theme.space[2],
-    gap: theme.space[1],
-  },
+    // Retry button
+    retryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      marginTop: theme.space[2],
+      gap: theme.space[1],
+    },
 
-  retryButtonText: {
-    marginLeft: theme.space[1],
-  },
+    retryButtonText: {
+      marginLeft: theme.space[1],
+    },
 
-  // Web Notice
-  webNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: theme.space[4],
-    padding: theme.space[3],
-    backgroundColor: theme.color.state.info.background,
-    borderRadius: theme.radii.md,
-  },
+    // Web Notice
+    webNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: theme.space[4],
+      padding: theme.space[3],
+      backgroundColor: theme.color.state.info.background,
+      borderRadius: theme.radii.md,
+    },
 
-  webNoticeText: {
-    flex: 1,
-    marginLeft: theme.space[2],
-  },
+    webNoticeText: {
+      flex: 1,
+      marginLeft: theme.space[2],
+    },
 
-  // Info
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: theme.space[2],
-  },
-});
+    // Info
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: theme.space[2],
+    },
+  });
 
 export default SettingsModal;
