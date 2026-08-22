@@ -499,11 +499,10 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
     ]
   );
 
-  // Nota: el estado de carga inicial se muestra INLINE dentro del árbol
-  // principal (ver más abajo) — antes se reemplazaba el árbol completo por
-  // una pantalla distinta, lo que desmontaba el TextInput del buscador y
-  // hacía perder el foco mientras el usuario escribía.
-  const showInitialLoader = isLoading && !productsResponse;
+  // Nota: no usamos un guard de "loader a pantalla completa". Antes esto
+  // desmontaba el TextInput del buscador al cambiar `isLoading`, haciendo
+  // perder el foco. Ahora la carga inicial se refleja en el RefreshControl y
+  // en un pequeño loader inline dentro de la lista cuando aún no hay datos.
 
   return (
     <ScreenLayout navigation={navigation}>
@@ -635,29 +634,26 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
         )}
 
         {/* Products List */}
-        {showInitialLoader ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.color.brand.primary} />
-            <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-              Cargando productos...
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filteredProducts}
-            renderItem={renderProductCard}
-            keyExtractor={(item, index) => item.id || index.toString()}
-            style={styles.listContainer}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefetching}
-                onRefresh={onRefresh}
-                tintColor={theme.color.brand.primary}
-                colors={[theme.color.brand.primary]}
-              />
-            }
-            ListEmptyComponent={
+        <FlatList
+          data={filteredProducts}
+          renderItem={renderProductCard}
+          keyExtractor={(item, index) => item.id || index.toString()}
+          style={styles.listContainer}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={onRefresh}
+              tintColor={theme.color.brand.primary}
+              colors={[theme.color.brand.primary]}
+            />
+          }
+          ListEmptyComponent={
+            isLoading ? (
+              <View style={styles.inlineLoader}>
+                <ActivityIndicator size="small" color={theme.color.brand.primary} />
+              </View>
+            ) : (
               <EmptyState
                 icon="cube-outline"
                 title="No hay productos"
@@ -669,13 +665,13 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
                 actionLabel={!debouncedSearchQuery ? 'Crear Producto' : undefined}
                 onAction={!debouncedSearchQuery ? handleCreateProduct : undefined}
               />
-            }
-            windowSize={5}
-            maxToRenderPerBatch={10}
-            removeClippedSubviews={true}
-            initialNumToRender={10}
-          />
-        )}
+            )
+          }
+          windowSize={5}
+          maxToRenderPerBatch={10}
+          removeClippedSubviews={true}
+          initialNumToRender={10}
+        />
 
         {/* Pagination */}
         {!isLoading && pagination.total > 0 && (
@@ -1080,6 +1076,10 @@ const createStyles = (theme: Theme) =>
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
+      alignItems: 'center',
+    },
+    inlineLoader: {
+      paddingVertical: theme.space[6],
       alignItems: 'center',
     },
 

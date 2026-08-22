@@ -571,11 +571,12 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     );
   };
 
-  // El estado de carga inicial se muestra INLINE dentro del árbol principal
-  // (ver más abajo). Antes se reemplazaba el árbol completo por una pantalla
-  // distinta, lo que desmontaba el TextInput y hacía perder el foco mientras
-  // el usuario escribía en el buscador.
-  const showInitialLoader = isLoading && !stockResponse;
+  // Nota: no usamos un guard para "loader a pantalla completa". Antes esto
+  // desmontaba el TextInput del buscador al cambiar isLoading, haciendo perder
+  // el foco. Ahora la carga inicial se refleja discretamente en `isRefetching`
+  // (RefreshControl) y con `placeholderData: keepPreviousData` la lista previa
+  // sigue en pantalla mientras llega la nueva. El EmptyState cubre el caso de
+  // primer render sin datos.
 
   return (
     <ScreenLayout navigation={navigation}>
@@ -772,27 +773,24 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
             </View>
           </View>
 
-          {showInitialLoader ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.color.brand.accent} />
-              <Text variant="bodyMedium" color="secondary" style={styles.loadingText}>
-                Cargando inventario...
-              </Text>
-            </View>
-          ) : (
-            <ScrollView
-              style={[styles.content, isLandscape && styles.contentLandscape]}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isRefetching}
-                  onRefresh={onRefresh}
-                  tintColor={theme.color.brand.accent}
-                  colors={[theme.color.brand.accent]}
-                />
-              }
-            >
-              {!isLoading && products.length === 0 ? (
+          <ScrollView
+            style={[styles.content, isLandscape && styles.contentLandscape]}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={onRefresh}
+                tintColor={theme.color.brand.accent}
+                colors={[theme.color.brand.accent]}
+              />
+            }
+          >
+            {products.length === 0 ? (
+              isLoading ? (
+                <View style={styles.inlineLoader}>
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                </View>
+              ) : (
                 <EmptyState
                   emoji=""
                   title="No hay productos con stock"
@@ -804,11 +802,11 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                   actionLabel={!includeZeroStock ? 'Incluir stock cero' : undefined}
                   onAction={!includeZeroStock ? () => setIncludeZeroStock(true) : undefined}
                 />
-              ) : (
-                <View style={styles.stockList}>{products.map(renderProductCard)}</View>
-              )}
-            </ScrollView>
-          )}
+              )
+            ) : (
+              <View style={styles.stockList}>{products.map(renderProductCard)}</View>
+            )}
+          </ScrollView>
 
           {meta.totalItems > 0 && (
             <Pagination
@@ -1003,6 +1001,10 @@ const createStyles = (theme: Theme) =>
     },
     loadingText: {
       marginTop: theme.space[4],
+    },
+    inlineLoader: {
+      paddingVertical: theme.space[6],
+      alignItems: 'center',
     },
     filtersWrapper: {
       backgroundColor: theme.color.surface.base,
