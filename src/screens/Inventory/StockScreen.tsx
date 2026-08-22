@@ -33,6 +33,7 @@ import { useTenantStore } from '@/store/tenant';
 import { WarehouseArea } from '@/types/warehouses';
 import { useProductsStock, useWarehouseAreas, useWarehouses } from '@/hooks/api/useStock';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { ProductSearchAutocomplete } from '@/components/Products/ProductSearchAutocomplete';
 import { logger } from '@/utils/logger';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
@@ -123,6 +124,7 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   const isLandscape = width > height;
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAutocompleteVisible, setIsAutocompleteVisible] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
@@ -640,15 +642,40 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Buscar por nombre, SKU, código o correlativo..."
+                onFocus={() => setIsAutocompleteVisible(true)}
+                onBlur={() => setTimeout(() => setIsAutocompleteVisible(false), 150)}
+                placeholder="Buscar por nombre, SKU, código de barras, variante o correlativo..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSearchQuery('');
+                    setIsAutocompleteVisible(false);
+                  }}
+                  style={styles.clearButton}
+                >
                   <Ionicons name="close-circle" size={20} color={theme.color.icon.subtle} />
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Autocomplete dropdown (typeahead con variantes) */}
+            {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
+              <View style={styles.autocompleteWrapper}>
+                <ProductSearchAutocomplete
+                  query={searchQuery}
+                  onSelect={(item) => {
+                    // Al elegir sugerencia usamos el SKU exacto: el listado de stock
+                    // igual lo resuelve por su matching inteligente (incluye variantes).
+                    setSearchQuery(item.sku);
+                    setDebouncedSearchQuery(item.sku);
+                    setPage(1);
+                    setIsAutocompleteVisible(false);
+                  }}
+                />
+              </View>
+            )}
           </View>
         </LinearGradient>
 
@@ -954,6 +981,16 @@ const createStyles = (theme: Theme) =>
     searchContainer: {
       flexDirection: 'row',
       gap: theme.space[2],
+      position: 'relative',
+      zIndex: 20,
+    },
+    autocompleteWrapper: {
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      marginTop: theme.space[2],
+      zIndex: 30,
     },
     searchInputContainer: {
       flex: 1,
@@ -974,6 +1011,9 @@ const createStyles = (theme: Theme) =>
     },
     clearButton: {
       padding: theme.space[1],
+    },
+    autocompleteWrapper: {
+      marginTop: theme.space[2],
     },
     contentWrapper: {
       flex: 1,
