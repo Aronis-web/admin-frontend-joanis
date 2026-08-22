@@ -206,20 +206,44 @@ Middleware que en TODA request mutante (`POST`, `PUT`, `PATCH`, `DELETE`):
    tiene sesion) y opcionalmente `POST /auth/refresh` (basta con el
    `SameSite=Strict` en su cookie).
 
-### 2.4 CORS (obligatorio para 4.1)
+### 2.4 CORS (obligatorio · aplica ya, no solo para 4.1)
 
-El backend responde desde un dominio distinto (`api.<dominio>`) al frontend
-(`app.gritlabs.app`), asi que el navegador considera esto cross-site. Para
-que las cookies HttpOnly viajen:
+El backend (`api.app-joanis-backend.com`) responde desde un dominio distinto
+al frontend, asi que el navegador considera esto cross-site. Config minima
+que el backend DEBE tener HOY para que la web funcione:
 
 ```
-Access-Control-Allow-Origin: https://app.gritlabs.app     # NUNCA * con credenciales
-Access-Control-Allow-Credentials: true
+Access-Control-Allow-Origin: https://gritlabs.app        # apex actual
+# o, si se sirve tambien desde subdominio, mantener una whitelist:
+#   https://gritlabs.app
+#   https://app.gritlabs.app
+Access-Control-Allow-Credentials: true                    # solo si activas 4.1
 Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
-Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, X-App-Id, X-App-Version,
-                              X-User-Id, X-Company-Id, X-Site-Id, X-Warehouse-Id
+Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token,
+                              X-App-Id, X-App-Version, X-User-Id,
+                              X-Company-Id, X-Site-Id, X-Warehouse-Id
 Access-Control-Max-Age: 600
+Vary: Origin
 ```
+
+Reglas duras:
+
+- El origen debe ser el exacto (uno solo, o una lista blanca). `*` es
+  incompatible con `Allow-Credentials: true`.
+- El header NO debe estar duplicado (una capa nginx/CDN + la app suele
+  emitirlo dos veces → `contains multiple values` y falla).
+- Responder correctamente al preflight `OPTIONS` con los mismos headers.
+
+#### Incidente 22/08/2025 · `X-Request-Time` no permitido
+
+Sintoma: `Request header field x-request-time is not allowed by
+Access-Control-Allow-Headers in preflight response`.
+
+Causa: el frontend agregaba el header `X-Request-Time` en cada `GET` para
+cache-busting nativo, y el backend no lo tenia en la whitelist. Se movio el
+header a solo enviarse en nativo (`Platform.OS !== 'web'`) en `apiClient.get`.
+El backend NO necesita permitirlo. Si a futuro se agregan otros headers
+custom en web, deben incluirse en `Access-Control-Allow-Headers`.
 
 - El origen debe ser el exacto (uno solo, o una lista blanca). `*` es
   incompatible con `Allow-Credentials: true`.
