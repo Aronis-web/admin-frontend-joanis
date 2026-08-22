@@ -1012,9 +1012,6 @@ const createStyles = (theme: Theme) =>
     clearButton: {
       padding: theme.space[1],
     },
-    autocompleteWrapper: {
-      marginTop: theme.space[2],
-    },
     contentWrapper: {
       flex: 1,
     },
