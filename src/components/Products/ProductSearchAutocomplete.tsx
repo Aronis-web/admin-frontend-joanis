@@ -4,17 +4,27 @@
  * Dropdown de sugerencias (typeahead) para el buscador de productos.
  * Consume `GET /admin/products/autocomplete` vía `useProductsAutocomplete`.
  *
- * Reglas:
- * - Se activa con mínimo 2 caracteres (limitación del endpoint).
- * - El caller debe pasar el término ya debounced (~250-300ms) para no saturar.
- * - Al tocar una sugerencia se dispara `onSelect(item)` — el consumer decide qué hacer
- *   (setear el input al SKU, navegar al detalle, etc.).
- * - Cubre variantes: si el usuario busca por SKU/barras de una variante, el item
- *   devuelto es el producto padre (comportamiento del backend).
+ * Se renderiza inline (como el buscador de campañas: sin `position: absolute`)
+ * para evitar recortes por ancestros con overflow (LinearGradient del header).
+ * Tiene scroll interno con `maxHeight` y respeta el teclado con
+ * `keyboardShouldPersistTaps="handled"`.
+ *
+ * Reglas de negocio (backend):
+ * - Mínimo 2 caracteres (con menos devuelve `[]`).
+ * - Matchea nombre, alias, SKU, código de barras (incluye variantes),
+ *   correlativo numérico y full-text search en español.
+ * - Si el término matchea una variante, el item devuelto es el producto padre.
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -34,7 +44,9 @@ interface ProductSearchAutocompleteProps {
   onSelect: (item: ProductAutocompleteItem) => void;
   /** Permite ocultar el dropdown desde afuera (blur, click-away, etc). */
   visible?: boolean;
-  /** Estilos extra para el contenedor absoluto. */
+  /** Altura máxima del contenedor (default 320). */
+  maxHeight?: number;
+  /** Estilos extra para el contenedor. */
   style?: any;
 }
 
@@ -44,6 +56,7 @@ export const ProductSearchAutocomplete: React.FC<ProductSearchAutocompleteProps>
   debounceMs = 300,
   onSelect,
   visible = true,
+  maxHeight = 320,
   style,
 }) => {
   const theme = useTheme();
@@ -67,17 +80,19 @@ export const ProductSearchAutocomplete: React.FC<ProductSearchAutocompleteProps>
   if (!visible || !isValid) return null;
 
   const items = data ?? [];
+  const showLoader = isFetching && items.length === 0;
+  const showEmpty = !isFetching && items.length === 0;
 
   return (
-    <View style={[styles.container, style]}>
-      {isFetching && items.length === 0 ? (
+    <View style={[styles.container, { maxHeight }, style]}>
+      {showLoader ? (
         <View style={styles.stateRow}>
           <ActivityIndicator size="small" color={theme.color.brand.accent} />
           <Caption color="tertiary" style={styles.stateText}>
             Buscando…
           </Caption>
         </View>
-      ) : items.length === 0 ? (
+      ) : showEmpty ? (
         <View style={styles.stateRow}>
           <Ionicons name="search" size={16} color={theme.color.icon.subtle} />
           <Caption color="tertiary" style={styles.stateText}>
@@ -85,47 +100,45 @@ export const ProductSearchAutocomplete: React.FC<ProductSearchAutocompleteProps>
           </Caption>
         </View>
       ) : (
-        items.map((item) => {
-          const thumb = item.photos?.[0];
-          const priceCents = item.priceProfiles?.[0]?.prices?.[0]?.priceCents;
-          const currency = item.priceProfiles?.[0]?.prices?.[0]?.currency ?? item.currency;
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.itemRow}
-              onPress={() => onSelect(item)}
-              activeOpacity={0.7}
-            >
-              {thumb ? (
-                <Image source={{ uri: thumb }} style={styles.thumb} resizeMode="cover" />
-              ) : (
-                <View style={styles.thumbPlaceholder}>
-                  <Text style={styles.thumbPlaceholderText}>📦</Text>
-                </View>
-              )}
+        <ScrollView style={styles.list} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+          {items.map((item) => {
+            const thumb = item.photos?.[0];
+            const priceCents = item.priceProfiles?.[0]?.prices?.[0]?.priceCents;
+            const currency = item.priceProfiles?.[0]?.prices?.[0]?.currency ?? item.currency;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.itemRow}
+                onPress={() => onSelect(item)}
+                activeOpacity={0.7}
+              >
+                {thumb ? (
+                  <Image source={{ uri: thumb }} style={styles.thumb} resizeMode="cover" />
+                ) : (
+                  <View style={styles.thumbPlaceholder}>
+                    <Text style={styles.thumbPlaceholderText}>📦</Text>
+                  </View>
+                )}
 
-              <View style={styles.itemBody}>
-                <Text variant="labelLarge" color="primary" numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <View style={styles.itemMetaRow}>
+                <View style={styles.itemBody}>
+                  <Text variant="labelLarge" color="primary" numberOfLines={1}>
+                    {item.title}
+                  </Text>
                   <Caption color="tertiary" numberOfLines={1}>
                     #{item.correlativeNumber} · SKU {item.sku}
                     {item.barcode ? ` · ${item.barcode}` : ''}
                   </Caption>
                 </View>
-              </View>
 
-              {typeof priceCents === 'number' && (
-                <View style={styles.priceBox}>
+                {typeof priceCents === 'number' && (
                   <Text variant="labelMedium" color={theme.color.brand.accent}>
                     {currency} {(priceCents / 100).toFixed(2)}
                   </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       )}
     </View>
   );
@@ -144,6 +157,9 @@ const createStyles = (theme: Theme) =>
       shadowOffset: { width: 0, height: 4 },
       shadowRadius: 12,
       elevation: 6,
+    },
+    list: {
+      flexGrow: 0,
     },
     stateRow: {
       flexDirection: 'row',
@@ -182,12 +198,6 @@ const createStyles = (theme: Theme) =>
     itemBody: {
       flex: 1,
       minWidth: 0,
-    },
-    itemMetaRow: {
-      marginTop: 2,
-    },
-    priceBox: {
-      alignItems: 'flex-end',
     },
   });
 

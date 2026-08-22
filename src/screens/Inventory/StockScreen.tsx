@@ -659,25 +659,26 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 </TouchableOpacity>
               )}
             </View>
-
-            {/* Autocomplete dropdown (typeahead con variantes) */}
-            {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
-              <View style={styles.autocompleteWrapper}>
-                <ProductSearchAutocomplete
-                  query={searchQuery}
-                  onSelect={(item) => {
-                    // Al elegir sugerencia usamos el SKU exacto: el listado de stock
-                    // igual lo resuelve por su matching inteligente (incluye variantes).
-                    setSearchQuery(item.sku);
-                    setDebouncedSearchQuery(item.sku);
-                    setPage(1);
-                    setIsAutocompleteVisible(false);
-                  }}
-                />
-              </View>
-            )}
           </View>
         </LinearGradient>
+
+        {/* Autocomplete dropdown (typeahead con variantes) — fuera del gradient
+            para que no se recorte por overflow del header */}
+        {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
+          <View style={styles.autocompleteWrapper}>
+            <ProductSearchAutocomplete
+              query={searchQuery}
+              onSelect={(item) => {
+                // Al elegir sugerencia usamos el SKU exacto: el listado de stock
+                // igual lo resuelve por su matching inteligente (incluye variantes).
+                setSearchQuery(item.sku);
+                setDebouncedSearchQuery(item.sku);
+                setPage(1);
+                setIsAutocompleteVisible(false);
+              }}
+            />
+          </View>
+        )}
 
         <View style={styles.contentWrapper}>
           <View style={styles.filtersWrapper}>
@@ -981,16 +982,12 @@ const createStyles = (theme: Theme) =>
     searchContainer: {
       flexDirection: 'row',
       gap: theme.space[2],
-      position: 'relative',
-      zIndex: 20,
     },
     autocompleteWrapper: {
-      position: 'absolute',
-      top: '100%',
-      left: 0,
-      right: 0,
-      marginTop: theme.space[2],
-      zIndex: 30,
+      paddingHorizontal: theme.space[4],
+      paddingTop: theme.space[2],
+      backgroundColor: theme.color.surface.base,
+      zIndex: 10,
     },
     searchInputContainer: {
       flex: 1,
