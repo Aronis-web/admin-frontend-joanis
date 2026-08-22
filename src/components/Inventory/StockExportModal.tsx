@@ -1,33 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
-  Platform,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { DatePicker, DatePickerButton } from '@/components/DatePicker';
-import { inventoryApi, ExportFormat } from '@/services/api/inventory';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system/legacy';
 import Alert from '@/utils/alert';
 
-import { iconSizes } from '@/design-system/tokens';
+import { DatePicker } from '@/components/DatePicker';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import {
-  Text,
-  Title,
-  Body,
-  Caption,
-  Label,
-  Button,
-  Card,
-  IconButton,
-} from '@/design-system/components';
+import { useSendStockReport } from '@/hooks/api/useStock';
+import type { ExportFormat, ExportStockDto } from '@/services/api/inventory';
+import { siteContactsApi } from '@/services/api/site-contacts';
+import type { SiteContact } from '@/types/site-contacts';
+import logger from '@/utils/logger';
+
+type RecipientMode = 'contact' | 'phone';
 
 interface StockExportModalProps {
   visible: boolean;
@@ -35,6 +29,8 @@ interface StockExportModalProps {
   siteId: string;
   siteName: string;
 }
+
+const sanitizePhoneNumber = (raw: string): string => raw.replace(/\D/g, '');
 
 export const StockExportModal: React.FC<StockExportModalProps> = ({
   visible,
@@ -44,244 +40,259 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const sendStockReport = useSendStockReport();
+
+  // Config del reporte
   const [format, setFormat] = useState<ExportFormat>('excel');
   const [includePrices, setIncludePrices] = useState(false);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [loading, setLoading] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
-  const handleExport = async () => {
-    try {
-      setLoading(true);
+  // Destinatario
+  const [recipientMode, setRecipientMode] = useState<RecipientMode>('contact');
+  const [contacts, setContacts] = useState<SiteContact[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [caption, setCaption] = useState('');
 
-      // Validate date range
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        if (start > end) {
-          Alert.alert('Error', 'La fecha de inicio no puede ser mayor a la fecha de fin');
-          setLoading(false);
-          return;
-        }
-      }
+  const submitting = sendStockReport.isPending;
 
-      console.log('📊 Exporting stock report:', {
-        format,
-        siteId,
-        startDate,
-        endDate,
-        includePrices,
-      });
-
-      // Call the export API
-      const blob = await inventoryApi.exportStock({
-        format,
-        siteId,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-        includePrices,
-      });
-
-      // Generate filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      const extension = format === 'excel' ? 'xlsx' : 'pdf';
-      const filename = `reporte-stock-${timestamp}.${extension}`;
-
-      // For web/React Native, create a download link
-      if (Platform.OS === 'web') {
-        // Web download
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        Alert.alert('Éxito', 'Reporte descargado correctamente');
-        setLoading(false);
-        onClose();
-      } else {
-        // Mobile - convert blob to base64 and save
-        try {
-          // Convert blob to base64 using FileReader (available in React Native)
-          const base64Data = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const dataUrl = reader.result as string;
-              // Remove the data URL prefix to get just the base64 data
-              const base64 = dataUrl.split(',')[1];
-              resolve(base64);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-
-          // Create a temporary file URI
-          const fileUri = `${FileSystem.cacheDirectory}${filename}`;
-
-          await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-
-          console.log('✅ File saved to:', fileUri);
-
-          // Share the file
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(fileUri, {
-              mimeType:
-                format === 'excel'
-                  ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                  : 'application/pdf',
-              dialogTitle: 'Guardar Reporte de Stock',
-              UTI: format === 'excel' ? 'com.microsoft.excel.xlsx' : 'com.adobe.pdf',
-            });
-          } else {
-            Alert.alert('Éxito', `Reporte guardado en: ${fileUri}`);
-          }
-
-          setLoading(false);
-          onClose();
-        } catch (error) {
-          console.error('Error saving file:', error);
-          Alert.alert('Error', 'No se pudo guardar el archivo');
-          setLoading(false);
-        }
-      }
-
-      // Reset form
+  // Reset al abrir
+  useEffect(() => {
+    if (visible) {
       setFormat('excel');
       setIncludePrices(false);
       setStartDate('');
       setEndDate('');
-    } catch (error: any) {
-      console.error('Error exporting stock:', error);
+      setRecipientMode('contact');
+      setSelectedContactId(null);
+      setPhoneNumber('');
+      setContactName('');
+      setCaption('');
+    }
+  }, [visible]);
+
+  // Cargar contactos elegibles cuando se abre el modal
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    if (!siteId) {
+      setContacts([]);
+      setLoadingContacts(false);
+      return;
+    }
+    (async () => {
+      try {
+        setLoadingContacts(true);
+        const data = await siteContactsApi.getSiteContacts(siteId);
+        if (cancelled) return;
+        const list: SiteContact[] = Array.isArray(data) ? data : ((data as any)?.data ?? []);
+        const eligible = list.filter((c) => c.isActive && c.receiveWhatsApp && !!c.phoneNumber);
+        setContacts(eligible);
+        if (eligible.length === 1) {
+          setSelectedContactId(eligible[0].id);
+        } else if (eligible.length === 0) {
+          setRecipientMode('phone');
+        }
+      } catch (error) {
+        logger.error('Error cargando contactos de sede', error);
+        if (!cancelled) {
+          setContacts([]);
+          setRecipientMode('phone');
+        }
+      } finally {
+        if (!cancelled) setLoadingContacts(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, siteId]);
+
+  const cleanedPhone = useMemo(() => sanitizePhoneNumber(phoneNumber), [phoneNumber]);
+  const recipientValid = useMemo(() => {
+    if (recipientMode === 'contact') return !!selectedContactId;
+    return cleanedPhone.length >= 8;
+  }, [recipientMode, selectedContactId, cleanedPhone]);
+  const canSubmit = !submitting && recipientValid;
+
+  const parseDate = (dateString: string): Date => (dateString ? new Date(dateString) : new Date());
+
+  const handleSend = async () => {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (start > end) {
+        Alert.alert('Error', 'La fecha de inicio no puede ser mayor a la fecha de fin');
+        return;
+      }
+    }
+
+    if (!recipientValid) {
       Alert.alert(
-        'Error',
-        error.message || 'No se pudo exportar el reporte. Por favor, intenta nuevamente.'
+        'Destinatario requerido',
+        recipientMode === 'contact'
+          ? 'Selecciona un contacto de sede con WhatsApp habilitado.'
+          : 'Ingresa un número de celular válido con código de país (ej. 51999888777).'
       );
-      setLoading(false);
+      return;
+    }
+
+    const base: ExportStockDto = {
+      format,
+      siteId,
+      startDate: startDate ? new Date(startDate).toISOString() : undefined,
+      endDate: endDate ? new Date(endDate).toISOString() : undefined,
+      includePrices,
+      ...(caption.trim() && { caption: caption.trim() }),
+    };
+
+    const payload: ExportStockDto =
+      recipientMode === 'contact'
+        ? { ...base, siteContactId: selectedContactId! }
+        : {
+            ...base,
+            phoneNumber: cleanedPhone,
+            ...(contactName.trim() && { contactName: contactName.trim() }),
+          };
+
+    try {
+      const result = await sendStockReport.mutateAsync(payload);
+      const displayName =
+        result.contactName ||
+        (recipientMode === 'contact'
+          ? contacts.find((c) => c.id === selectedContactId)?.contactName || 'el destinatario'
+          : contactName.trim() || cleanedPhone);
+      Alert.alert(
+        'Envío programado',
+        result.message ||
+          `El reporte de stock se está generando y se enviará por WhatsApp a ${displayName}.`
+      );
+      onClose();
+    } catch (err: any) {
+      logger.error('Error enviando reporte de stock por WhatsApp', err);
+      const backendMessage =
+        err?.response?.data?.message || err?.message || 'No se pudo generar el reporte de stock';
+      Alert.alert('No se pudo generar el reporte', backendMessage);
     }
   };
 
   const handleClose = () => {
-    if (!loading) {
-      onClose();
-    }
-  };
-
-  const formatDateForDisplay = (dateString: string) => {
-    if (!dateString) {
-      return '';
-    }
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-PE', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
-
-  const parseDate = (dateString: string): Date => {
-    if (!dateString) {
-      return new Date();
-    }
-    return new Date(dateString);
+    if (!submitting) onClose();
   };
 
   return (
     <>
-      <Modal
-        visible={visible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={handleClose}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+        <View style={styles.overlay}>
+          <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-              <View style={styles.headerTitleContainer}>
-                <Ionicons name="download-outline" size={iconSizes.lg} color={theme.color.brand.accent} />
-                <Title size="medium">Exportar Reporte de Stock</Title>
-              </View>
-              <IconButton
-                icon="close"
+              <TouchableOpacity
                 onPress={handleClose}
-                variant="ghost"
-                size="medium"
-                disabled={loading}
-              />
+                style={styles.headerButton}
+                disabled={submitting}
+              >
+                <Ionicons name="close" size={24} color={theme.color.text.muted} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Reporte de Stock</Text>
+              <View style={styles.headerButton} />
             </View>
 
-            <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-              {/* Site Info */}
-              <View style={styles.siteInfo}>
-                <Ionicons name="business-outline" size={iconSizes.md} color={theme.color.brand.accent} />
-                <Label size="medium" color={theme.color.state.info.text}>Sede: {siteName}</Label>
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+              {/* Hero */}
+              <View style={styles.heroCard}>
+                <View style={styles.heroIcon}>
+                  <Ionicons name="logo-whatsapp" size={28} color={theme.color.brand.accent} />
+                </View>
+                <View style={styles.heroTextContainer}>
+                  <Text style={styles.heroTitle}>Envío por WhatsApp</Text>
+                  <Text style={styles.heroSubtitle}>Sede: {siteName}</Text>
+                  <Text style={styles.heroHelper}>
+                    El reporte se genera en background y llega al destinatario por WhatsApp.
+                  </Text>
+                </View>
               </View>
 
-              {/* Format Selection */}
+              {/* Formato */}
               <View style={styles.section}>
-                <Title size="small" style={styles.sectionTitle}>Formato de Exportación</Title>
+                <Text style={styles.sectionTitle}>Formato de exportación</Text>
                 <View style={styles.formatContainer}>
                   <TouchableOpacity
                     style={[styles.formatButton, format === 'excel' && styles.formatButtonSelected]}
                     onPress={() => setFormat('excel')}
-                    disabled={loading}
+                    disabled={submitting}
                   >
                     <Ionicons
                       name="document-text-outline"
-                      size={iconSizes.lg}
-                      color={format === 'excel' ? theme.color.text.inverse : theme.color.text.subtle}
+                      size={20}
+                      color={
+                        format === 'excel' ? theme.color.text.inverse : theme.color.text.subtle
+                      }
                     />
-                    <Label size="large" color={format === 'excel' ? theme.color.text.inverse : theme.color.text.muted}>
+                    <Text
+                      style={[
+                        styles.formatButtonText,
+                        format === 'excel' && styles.formatButtonTextSelected,
+                      ]}
+                    >
                       Excel
-                    </Label>
+                    </Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity
                     style={[styles.formatButton, format === 'pdf' && styles.formatButtonSelected]}
                     onPress={() => setFormat('pdf')}
-                    disabled={loading}
+                    disabled={submitting}
                   >
                     <Ionicons
                       name="document-outline"
-                      size={iconSizes.lg}
+                      size={20}
                       color={format === 'pdf' ? theme.color.text.inverse : theme.color.text.subtle}
                     />
-                    <Label size="large" color={format === 'pdf' ? theme.color.text.inverse : theme.color.text.muted}>
+                    <Text
+                      style={[
+                        styles.formatButtonText,
+                        format === 'pdf' && styles.formatButtonTextSelected,
+                      ]}
+                    >
                       PDF
-                    </Label>
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Date Range */}
+              {/* Fechas */}
               <View style={styles.section}>
-                <Title size="small" style={styles.sectionTitle}>Rango de Fechas (Opcional)</Title>
-                <Caption color="secondary" style={styles.sectionDescription}>
-                  Filtra productos por fecha de creación
-                </Caption>
+                <Text style={styles.sectionTitle}>Rango de fechas (opcional)</Text>
+                <Text style={styles.helperText}>Filtra productos por fecha de creación.</Text>
 
-                <DatePickerButton
-                  label="Fecha de Inicio"
-                  value={startDate}
+                <TouchableOpacity
+                  style={styles.dateButton}
                   onPress={() => setShowStartDatePicker(true)}
-                  placeholder="Seleccionar fecha de inicio"
-                  icon="calendar-outline"
-                />
+                  disabled={submitting}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={theme.color.brand.primary} />
+                  <Text style={styles.dateButtonText}>
+                    {startDate
+                      ? new Date(startDate).toLocaleDateString('es-PE')
+                      : 'Fecha de inicio'}
+                  </Text>
+                </TouchableOpacity>
 
-                <DatePickerButton
-                  label="Fecha de Fin"
-                  value={endDate}
+                <TouchableOpacity
+                  style={styles.dateButton}
                   onPress={() => setShowEndDatePicker(true)}
-                  placeholder="Seleccionar fecha de fin"
-                  icon="calendar-outline"
-                />
+                  disabled={submitting}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={theme.color.brand.primary} />
+                  <Text style={styles.dateButtonText}>
+                    {endDate ? new Date(endDate).toLocaleDateString('es-PE') : 'Fecha de fin'}
+                  </Text>
+                </TouchableOpacity>
 
                 {(startDate || endDate) && (
                   <TouchableOpacity
@@ -290,68 +301,224 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
                       setStartDate('');
                       setEndDate('');
                     }}
-                    disabled={loading}
+                    disabled={submitting}
                   >
-                    <Ionicons name="close-circle-outline" size={18} color={theme.color.state.danger.border} />
-                    <Label size="medium" color={theme.color.state.danger.border}>Limpiar fechas</Label>
+                    <Ionicons
+                      name="close-circle-outline"
+                      size={16}
+                      color={theme.color.state.danger.border}
+                    />
+                    <Text style={styles.clearDatesText}>Limpiar fechas</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* Include Prices Option */}
+              {/* Opciones */}
               <View style={styles.section}>
-                <Title size="small" style={styles.sectionTitle}>Opciones Adicionales</Title>
                 <TouchableOpacity
-                  style={styles.checkboxContainer}
+                  style={styles.checkboxRow}
                   onPress={() => setIncludePrices(!includePrices)}
-                  disabled={loading}
+                  disabled={submitting}
                 >
                   <View style={[styles.checkbox, includePrices && styles.checkboxChecked]}>
-                    {includePrices && <Ionicons name="checkmark" size={18} color={theme.color.text.inverse} />}
+                    {includePrices && (
+                      <Ionicons name="checkmark" size={14} color={theme.color.text.inverse} />
+                    )}
                   </View>
-                  <View style={styles.checkboxLabelContainer}>
-                    <Label size="large" color="primary">Incluir Precios y Valorización</Label>
-                    <Caption color="secondary">
-                      Muestra costos unitarios y valor total del inventario
-                    </Caption>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.checkboxTitle}>Incluir precios y valorización</Text>
+                    <Text style={styles.helperText}>
+                      Muestra costos unitarios y valor total del inventario.
+                    </Text>
                   </View>
                 </TouchableOpacity>
               </View>
 
-              {/* Info Box */}
+              {/* Destinatario */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Destinatario</Text>
+                <View style={styles.modeSwitch}>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeSwitchButton,
+                      recipientMode === 'contact' && styles.modeSwitchButtonActive,
+                    ]}
+                    onPress={() => setRecipientMode('contact')}
+                    disabled={submitting}
+                  >
+                    <Ionicons
+                      name="people-outline"
+                      size={16}
+                      color={
+                        recipientMode === 'contact'
+                          ? theme.color.text.inverse
+                          : theme.color.text.body
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.modeSwitchText,
+                        recipientMode === 'contact' && styles.modeSwitchTextActive,
+                      ]}
+                    >
+                      Contacto de sede
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.modeSwitchButton,
+                      recipientMode === 'phone' && styles.modeSwitchButtonActive,
+                    ]}
+                    onPress={() => setRecipientMode('phone')}
+                    disabled={submitting}
+                  >
+                    <Ionicons
+                      name="call-outline"
+                      size={16}
+                      color={
+                        recipientMode === 'phone' ? theme.color.text.inverse : theme.color.text.body
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.modeSwitchText,
+                        recipientMode === 'phone' && styles.modeSwitchTextActive,
+                      ]}
+                    >
+                      Celular libre
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {recipientMode === 'contact' ? (
+                  loadingContacts ? (
+                    <View style={styles.contactsLoading}>
+                      <ActivityIndicator size="small" color={theme.color.brand.primary} />
+                      <Text style={styles.contactsLoadingText}>Cargando contactos...</Text>
+                    </View>
+                  ) : contacts.length === 0 ? (
+                    <View style={styles.emptyContacts}>
+                      <Text style={styles.emptyContactsText}>
+                        No hay contactos activos con WhatsApp habilitado para la sede {siteName}.
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.contactsList}>
+                      {contacts.map((contact) => {
+                        const isSelected = selectedContactId === contact.id;
+                        return (
+                          <TouchableOpacity
+                            key={contact.id}
+                            style={[styles.contactItem, isSelected && styles.contactItemSelected]}
+                            onPress={() => setSelectedContactId(contact.id)}
+                            disabled={submitting}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.contactName}>{contact.contactName}</Text>
+                              <Text style={styles.contactMeta}>
+                                {contact.phoneNumber}
+                                {contact.position ? ` · ${contact.position}` : ''}
+                              </Text>
+                            </View>
+                            {isSelected && (
+                              <Ionicons
+                                name="checkmark-circle"
+                                size={20}
+                                color={theme.color.brand.primary}
+                              />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )
+                ) : (
+                  <View style={styles.phoneForm}>
+                    <Text style={styles.fieldLabel}>Número de celular *</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="51999888777"
+                      placeholderTextColor={theme.color.text.placeholder}
+                      value={phoneNumber}
+                      onChangeText={setPhoneNumber}
+                      keyboardType="phone-pad"
+                      editable={!submitting}
+                      maxLength={15}
+                    />
+                    <Text style={styles.helperText}>
+                      Incluye el código de país (Perú: 51). Solo dígitos.
+                    </Text>
+                    <Text style={[styles.fieldLabel, { marginTop: theme.space[3] }]}>
+                      Nombre del contacto (opcional)
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Ej. Almacén Central"
+                      placeholderTextColor={theme.color.text.placeholder}
+                      value={contactName}
+                      onChangeText={setContactName}
+                      editable={!submitting}
+                    />
+                  </View>
+                )}
+              </View>
+
+              {/* Mensaje opcional */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Mensaje (opcional)</Text>
+                <TextInput
+                  style={[styles.input, styles.captionInput]}
+                  placeholder="Reporte valorizado agosto"
+                  placeholderTextColor={theme.color.text.placeholder}
+                  value={caption}
+                  onChangeText={setCaption}
+                  editable={!submitting}
+                  multiline
+                  numberOfLines={2}
+                />
+              </View>
+
               <View style={styles.infoBox}>
-                <Ionicons name="information-circle-outline" size={iconSizes.md} color={theme.color.state.info.border} />
-                <Body size="small" color={theme.color.state.info.text} style={styles.infoText}>
-                  El reporte incluirá todos los productos con stock en la sede seleccionada
-                  {startDate || endDate ? ' dentro del rango de fechas especificado' : ''}.
-                </Body>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={18}
+                  color={theme.color.state.info.text}
+                />
+                <Text style={styles.infoText}>
+                  El reporte se encola en background y llega por WhatsApp al destinatario. No hay
+                  descarga directa desde el navegador. Los productos archivados no se incluyen.
+                </Text>
               </View>
             </ScrollView>
 
-            {/* Footer Actions */}
+            {/* Footer */}
             <View style={styles.footer}>
-              <Button
-                title="Cancelar"
-                variant="secondary"
+              <TouchableOpacity
+                style={styles.cancelButton}
                 onPress={handleClose}
-                disabled={loading}
-                style={{ flex: 1 }}
-              />
-              <Button
-                title={loading ? 'Exportando...' : 'Exportar'}
-                variant="primary"
-                onPress={handleExport}
-                disabled={loading}
-                loading={loading}
-                leftIcon="download-outline"
-                style={{ flex: 1 }}
-              />
+                disabled={submitting}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sendButton, !canSubmit && styles.sendButtonDisabled]}
+                onPress={handleSend}
+                disabled={!canSubmit}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color={theme.color.text.inverse} />
+                ) : (
+                  <Ionicons name="logo-whatsapp" size={20} color={theme.color.text.inverse} />
+                )}
+                <Text style={styles.sendButtonText}>
+                  {submitting ? 'Enviando...' : 'Generar y enviar por WhatsApp'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Date Pickers */}
       <DatePicker
         visible={showStartDatePicker}
         date={startDate ? parseDate(startDate) : new Date()}
@@ -359,13 +526,12 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
           const isoDate = date.toISOString().split('T')[0];
           setStartDate(isoDate);
           setShowStartDatePicker(false);
-          // Si la fecha de inicio es mayor que la fecha de fin, ajustar la fecha de fin
           if (endDate && date > parseDate(endDate)) {
             setEndDate(isoDate);
           }
         }}
         onCancel={() => setShowStartDatePicker(false)}
-        title="Fecha de Inicio"
+        title="Fecha de inicio"
         maximumDate={new Date()}
       />
 
@@ -376,13 +542,12 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
           const isoDate = date.toISOString().split('T')[0];
           setEndDate(isoDate);
           setShowEndDatePicker(false);
-          // Si la fecha de fin es menor que la fecha de inicio, ajustar la fecha de inicio
           if (startDate && date < parseDate(startDate)) {
             setStartDate(isoDate);
           }
         }}
         onCancel={() => setShowEndDatePicker(false)}
-        title="Fecha de Fin"
+        title="Fecha de fin"
         maximumDate={new Date()}
       />
     </>
@@ -391,68 +556,85 @@ export const StockExportModal: React.FC<StockExportModalProps> = ({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    modalOverlay: {
+    overlay: {
       flex: 1,
-      backgroundColor: theme.color.overlay.medium,
+      backgroundColor: theme.color.overlay.strong,
       justifyContent: 'flex-end',
     },
-    modalContent: {
+    container: {
       backgroundColor: theme.color.surface.base,
       borderTopLeftRadius: theme.radii['2xl'],
       borderTopRightRadius: theme.radii['2xl'],
-      height: '85%',
-      paddingBottom: theme.space[5],
+      maxHeight: '92%',
+      minHeight: 420,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: theme.space[5],
+      paddingHorizontal: theme.space[4],
       paddingVertical: theme.space[4],
       borderBottomWidth: 1,
       borderBottomColor: theme.color.border.subtle,
     },
-    headerTitleContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.space[3],
-    },
-    scrollContent: {
+    headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    headerTitle: {
       flex: 1,
-      paddingHorizontal: theme.space[5],
+      textAlign: 'center',
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.color.text.heading,
     },
-    siteInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.space[2],
-      backgroundColor: theme.color.state.info.background,
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[3],
-      borderRadius: theme.radii.lg,
-      marginTop: theme.space[4],
-      marginBottom: theme.space[2],
-    },
-    section: {
-      marginTop: theme.space[5],
-    },
-    sectionTitle: {
-      marginBottom: theme.space[2],
-    },
-    sectionDescription: {
-      marginBottom: theme.space[3],
-    },
-    formatContainer: {
+    scrollView: { flex: 1 },
+    scrollContent: { padding: theme.space[4], gap: theme.space[4] },
+    heroCard: {
       flexDirection: 'row',
       gap: theme.space[3],
+      padding: theme.space[4],
+      borderRadius: theme.radii.xl,
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
     },
+    heroIcon: {
+      width: 52,
+      height: 52,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.base,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    heroTextContainer: { flex: 1 },
+    heroTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: theme.space[1],
+    },
+    heroSubtitle: { fontSize: 13, lineHeight: 19, color: theme.color.text.body },
+    heroHelper: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+    },
+    section: { gap: theme.space[2] },
+    sectionTitle: { fontSize: 14, fontWeight: '700', color: theme.color.text.heading },
+    helperText: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: theme.space[1],
+      fontStyle: 'italic',
+    },
+    formatContainer: { flexDirection: 'row', gap: theme.space[3] },
     formatButton: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: theme.space[2],
-      paddingVertical: theme.space[4],
-      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
       borderRadius: theme.radii.lg,
       borderWidth: 2,
       borderColor: theme.color.border.subtle,
@@ -462,29 +644,44 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.color.brand.primary,
       borderColor: theme.color.brand.primary,
     },
+    formatButtonText: { fontSize: 14, fontWeight: '600', color: theme.color.text.muted },
+    formatButtonTextSelected: { color: theme.color.text.inverse },
+    dateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+      marginTop: theme.space[2],
+    },
+    dateButtonText: { fontSize: 14, color: theme.color.text.body },
     clearDatesButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.space[1.5],
       alignSelf: 'flex-start',
-      paddingVertical: theme.space[2],
-      paddingHorizontal: theme.space[3],
-      marginTop: theme.space[2],
+      paddingVertical: theme.space[1.5],
+      marginTop: theme.space[1],
     },
-    checkboxContainer: {
+    clearDatesText: { fontSize: 12, color: theme.color.state.danger.border, fontWeight: '600' },
+    checkboxRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: theme.space[3],
       paddingVertical: theme.space[3],
-      paddingHorizontal: theme.space[4],
-      backgroundColor: theme.color.surface.subtle,
-      borderRadius: theme.radii.lg,
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
       borderWidth: 1,
       borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.subtle,
     },
     checkbox: {
-      width: 24,
-      height: 24,
+      width: 22,
+      height: 22,
       borderRadius: theme.radii.sm,
       borderWidth: 2,
       borderColor: theme.color.border.default,
@@ -497,30 +694,123 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.color.brand.primary,
       borderColor: theme.color.brand.primary,
     },
-    checkboxLabelContainer: {
-      flex: 1,
+    checkboxTitle: { fontSize: 14, fontWeight: '600', color: theme.color.text.heading },
+    modeSwitch: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.full,
+      padding: 4,
+      gap: 4,
     },
+    modeSwitchButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[1],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.full,
+    },
+    modeSwitchButtonActive: { backgroundColor: theme.color.brand.primary },
+    modeSwitchText: { fontSize: 13, fontWeight: '600', color: theme.color.text.body },
+    modeSwitchTextActive: { color: theme.color.text.inverse },
+    contactsLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+    },
+    contactsLoadingText: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginLeft: theme.space[2],
+    },
+    emptyContacts: {
+      backgroundColor: theme.color.state.warning.background,
+      padding: theme.space[3],
+      borderRadius: theme.radii.md,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.color.state.warning.border,
+    },
+    emptyContactsText: { fontSize: 13, color: theme.color.state.warning.text },
+    contactsList: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      overflow: 'hidden',
+    },
+    contactItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    contactItemSelected: { backgroundColor: theme.color.brand.accentSoft },
+    contactName: { fontSize: 14, fontWeight: '600', color: theme.color.text.heading },
+    contactMeta: { fontSize: 12, color: theme.color.text.muted, marginTop: 2 },
+    phoneForm: { gap: theme.space[1] },
+    fieldLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: theme.space[1],
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2.5],
+      fontSize: 14,
+      color: theme.color.text.heading,
+      backgroundColor: theme.color.surface.base,
+    },
+    captionInput: { minHeight: 60, textAlignVertical: 'top' },
     infoBox: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: theme.space[3],
-      backgroundColor: theme.color.state.info.background,
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[3],
+      gap: theme.space[2],
+      padding: theme.space[3],
       borderRadius: theme.radii.lg,
-      marginTop: theme.space[5],
-      marginBottom: theme.space[5],
+      backgroundColor: theme.color.state.info.background,
     },
     infoText: {
       flex: 1,
+      fontSize: 12,
       lineHeight: 18,
+      color: theme.color.state.info.text,
     },
     footer: {
       flexDirection: 'row',
-      paddingHorizontal: theme.space[5],
-      paddingTop: theme.space[4],
       gap: theme.space[3],
+      padding: theme.space[4],
       borderTopWidth: 1,
       borderTopColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
     },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cancelButtonText: { fontSize: 14, fontWeight: '700', color: theme.color.text.body },
+    sendButton: {
+      flex: 1.6,
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sendButtonDisabled: { opacity: 0.5 },
+    sendButtonText: { fontSize: 14, fontWeight: '700', color: theme.color.text.inverse },
   });
+
+export default StockExportModal;

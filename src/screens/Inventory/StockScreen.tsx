@@ -33,7 +33,6 @@ import { useTenantStore } from '@/store/tenant';
 import { WarehouseArea } from '@/types/warehouses';
 import { useProductsStock, useWarehouseAreas, useWarehouses } from '@/hooks/api/useStock';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
-import { ProductSearchAutocomplete } from '@/components/Products/ProductSearchAutocomplete';
 import { logger } from '@/utils/logger';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
@@ -124,7 +123,6 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
   const isLandscape = width > height;
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAutocompleteVisible, setIsAutocompleteVisible] = useState(false);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
@@ -156,15 +154,18 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
     selectedWarehouseId !== 'all'
   );
 
-  // El input solo alimenta el dropdown de autocompletado; la lista NO se
-  // refetchea mientras el usuario escribe (evita el "flash" de recarga).
-  // El filtro se aplica cuando se elige una sugerencia (setea el SKU) o al
-  // limpiar el input.
+  // Debounce del término de búsqueda: alimenta el filtro `q` del listado.
+  // Combinado con `placeholderData: keepPreviousData` en `useProductsStock`,
+  // la lista actual se mantiene mientras llegan los nuevos resultados, así el
+  // foco del TextInput NO se pierde y la escritura fluye.
   useEffect(() => {
-    if (searchQuery.trim().length === 0 && debouncedSearchQuery !== '') {
-      setDebouncedSearchQuery('');
+    const trimmed = searchQuery.trim();
+    if (trimmed === debouncedSearchQuery) return;
+    const id = setTimeout(() => {
+      setDebouncedSearchQuery(trimmed);
       setPage(1);
-    }
+    }, 400);
+    return () => clearTimeout(id);
   }, [searchQuery, debouncedSearchQuery]);
 
   // Lectora de códigos de barra (keyboard-wedge) en web/Electron: escanear
@@ -618,43 +619,17 @@ export const StockScreen: React.FC<StockScreenProps> = ({ navigation }) => {
                 style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                onFocus={() => setIsAutocompleteVisible(true)}
-                onBlur={() => setTimeout(() => setIsAutocompleteVisible(false), 150)}
                 placeholder="Buscar por nombre, SKU, código de barras, variante o correlativo..."
                 placeholderTextColor={theme.color.text.placeholder}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSearchQuery('');
-                    setIsAutocompleteVisible(false);
-                  }}
-                  style={styles.clearButton}
-                >
+                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
                   <Ionicons name="close-circle" size={20} color={theme.color.icon.subtle} />
                 </TouchableOpacity>
               )}
             </View>
           </View>
         </LinearGradient>
-
-        {/* Autocomplete dropdown (typeahead con variantes) — fuera del gradient
-            para que no se recorte por overflow del header */}
-        {isAutocompleteVisible && searchQuery.trim().length >= 2 && (
-          <View style={styles.autocompleteWrapper}>
-            <ProductSearchAutocomplete
-              query={searchQuery}
-              onSelect={(item) => {
-                // Al elegir sugerencia usamos el SKU exacto: el listado de stock
-                // igual lo resuelve por su matching inteligente (incluye variantes).
-                setSearchQuery(item.sku);
-                setDebouncedSearchQuery(item.sku);
-                setPage(1);
-                setIsAutocompleteVisible(false);
-              }}
-            />
-          </View>
-        )}
 
         <View style={styles.contentWrapper}>
           <View style={styles.filtersWrapper}>
@@ -964,12 +939,6 @@ const createStyles = (theme: Theme) =>
     searchContainer: {
       flexDirection: 'row',
       gap: theme.space[2],
-    },
-    autocompleteWrapper: {
-      paddingHorizontal: theme.space[4],
-      paddingTop: theme.space[2],
-      backgroundColor: theme.color.surface.base,
-      zIndex: 10,
     },
     searchInputContainer: {
       flex: 1,
