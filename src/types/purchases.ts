@@ -1,6 +1,36 @@
 // Purchase Types and Interfaces
 
 /**
+ * Referencia a un usuario embebida en respuestas de compras
+ * (p.ej. quién validó un producto o una validación individual).
+ * El backend puede enviar `name` (legacy) o el detalle nuevo con `fullName`.
+ */
+export interface PurchaseUserRef {
+  id: string;
+  email?: string;
+  name?: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+}
+
+/**
+ * Resuelve el nombre visible de un `PurchaseUserRef` priorizando `fullName`,
+ * luego `name`, `username` y finalmente `email`.
+ */
+export const getPurchaseUserDisplayName = (user?: PurchaseUserRef | null): string | undefined => {
+  if (!user) return undefined;
+  const composed =
+    user.fullName ||
+    [user.firstName, user.lastName].filter(Boolean).join(' ').trim() ||
+    user.name ||
+    user.username ||
+    user.email;
+  return composed || undefined;
+};
+
+/**
  * Purchase Status
  */
 export enum PurchaseStatus {
@@ -218,11 +248,7 @@ export interface PurchaseProduct {
     legalName: string;
     ruc: string;
   };
-  validatedByUser?: {
-    id: string;
-    name?: string;
-    email: string;
-  };
+  validatedByUser?: PurchaseUserRef;
   presentationHistory?: PurchaseProductPresentationHistory[];
   validations?: PurchaseProductValidation[]; // Historial de validaciones con fotos y firmas
   /**
@@ -326,11 +352,7 @@ export interface PurchaseProductValidation {
     code?: string;
     name?: string;
   };
-  validatedByUser?: {
-    id: string;
-    name?: string;
-    email: string;
-  };
+  validatedByUser?: PurchaseUserRef;
 }
 
 // ============================================

@@ -31,6 +31,7 @@ import {
   PurchaseProductStatusColors,
   GuideTypeLabels,
   PurchaseTotalSumResponse,
+  getPurchaseUserDisplayName,
 } from '@/types/purchases';
 import { Supplier as FullSupplier, SupplierType } from '@/types/suppliers';
 import { Supplier as ExpenseSupplier } from '@/types/expenses';
@@ -1347,7 +1348,7 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
                 {product.validatedByUser && (
                   <InfoRow
                     label="Validado Por"
-                    value={product.validatedByUser.name || product.validatedByUser.email}
+                    value={getPurchaseUserDisplayName(product.validatedByUser) || '—'}
                     highlight
                   />
                 )}
@@ -1619,7 +1620,7 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
   };
 
   const getValidatedByName = (validation: PurchaseProductValidationEntry) => {
-    return validation.validatedByUser?.name || validation.validatedByUser?.email || 'No disponible';
+    return getPurchaseUserDisplayName(validation.validatedByUser) || 'No disponible';
   };
 
   return (

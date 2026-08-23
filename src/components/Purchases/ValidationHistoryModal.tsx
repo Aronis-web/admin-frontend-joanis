@@ -9,7 +9,7 @@ import {
   Image,
   useWindowDimensions,
 } from 'react-native';
-import { PurchaseProductValidation } from '@/types/purchases';
+import { PurchaseProductValidation, getPurchaseUserDisplayName } from '@/types/purchases';
 import { useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 
@@ -66,9 +66,7 @@ export const ValidationHistoryModal: React.FC<ValidationHistoryModalProps> = ({
                     <View style={styles.infoRow}>
                       <Text style={styles.infoLabel}>Validado por:</Text>
                       <Text style={styles.infoValue}>
-                        {validation.validatedByUser?.name ||
-                          validation.validatedByUser?.email ||
-                          'N/A'}
+                        {getPurchaseUserDisplayName(validation.validatedByUser) || 'N/A'}
                       </Text>
                     </View>
 
