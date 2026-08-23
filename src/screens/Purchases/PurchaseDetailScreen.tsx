@@ -1354,6 +1354,9 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
               </Card>
             )}
 
+            {/* Catálogo completo de variantes (incluye descriptivas sin stock) */}
+            <ProductVariantsCatalog product={product} />
+
             {/* Validation History */}
             {product.validations && product.validations.length > 0 && (
               <Card variant="outlined" padding="medium" style={modalStyles.section}>
@@ -1430,6 +1433,53 @@ const ProductInfoModal: React.FC<ProductInfoModalProps> = ({
         </View>
       </View>
     </Modal>
+  );
+};
+
+// Product Variants Catalog Component
+// Muestra TODAS las variantes del producto (incluidas las descriptivas
+// sin stock que no generan validation) con el total ingresado por variante.
+const ProductVariantsCatalog: React.FC<{ product: PurchaseProduct }> = ({ product }) => {
+  const modalStyles = useThemedStyles(createModalStyles);
+  const variants = product.productVariants || [];
+  if (variants.length === 0) return null;
+
+  // Suma validatedStock por variantId (ignora ingresos anulados)
+  const stockByVariantId = new Map<string, number>();
+  (product.validations || []).forEach((v) => {
+    if (v.isReversed) return;
+    if (Array.isArray(v.variants) && v.variants.length > 0) {
+      v.variants.forEach((vv) => {
+        const prev = stockByVariantId.get(vv.id) || 0;
+        stockByVariantId.set(vv.id, prev + (vv.validatedStock || 0));
+      });
+    } else if (v.variantId) {
+      const prev = stockByVariantId.get(v.variantId) || 0;
+      stockByVariantId.set(v.variantId, prev + (v.validatedStock || 0));
+    }
+  });
+
+  return (
+    <Card variant="outlined" padding="medium" style={modalStyles.section}>
+      <Label color="primary" style={modalStyles.sectionTitle}>
+        🎨 Variantes del producto
+      </Label>
+      <View style={modalStyles.variantChipRow}>
+        {variants.map((v) => {
+          const stock = stockByVariantId.get(v.id) || 0;
+          const isDescriptive = !v.tracksStock;
+          const label = isDescriptive ? `🎨 ${v.name} · descriptiva` : `🎨 ${v.name} · ${stock}`;
+          return (
+            <Badge
+              key={v.id}
+              label={label}
+              variant={isDescriptive ? 'warning' : stock > 0 ? 'info' : 'default'}
+              size="small"
+            />
+          );
+        })}
+      </View>
+    </Card>
   );
 };
 
@@ -1644,6 +1694,9 @@ const EntriesManagementModal: React.FC<EntriesManagementModalProps> = ({
                   )}
               </Card>
             )}
+
+            {/* Catálogo completo de variantes (incluye descriptivas sin stock) */}
+            <ProductVariantsCatalog product={product} />
 
             <Card variant="outlined" padding="medium" style={modalStyles.section}>
               <Label color="primary" style={modalStyles.sectionTitle}>
