@@ -21,12 +21,13 @@ import { productsApi } from '@/services/api/products';
 import { googleLensApi, GoogleLensResult } from '@/services/api/google-lens';
 import { geminiImageEditorApi, GeminiEditImageResponse } from '@/services/api/gemini-image-editor';
 import { validateImageFile } from '@/utils/fileHelpers';
+import { dataUrlToBlob } from '@/utils/imageFile';
 import {
   launchImageLibraryAsync,
   launchCameraAsync,
   requestMediaLibraryPermissionsAsync,
   requestCameraPermissionsAsync,
-  MediaTypeOptions
+  MediaTypeOptions,
 } from '@/utils/filePicker';
 import Alert from '@/utils/alert';
 
@@ -82,7 +83,10 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
     'Crea un video comercial dinámico donde el producto cobre vida con movimiento suave de cámara, efectos de parallax y transiciones elegantes que resalten sus características principales'
   );
   const [selectedImageForVideo, setSelectedImageForVideo] = useState<ProductImage | null>(null);
-  const [generatedVideo, setGeneratedVideo] = useState<{ videoBase64: string; mimeType: string } | null>(null);
+  const [generatedVideo, setGeneratedVideo] = useState<{
+    videoBase64: string;
+    mimeType: string;
+  } | null>(null);
   const [showVideoPreview, setShowVideoPreview] = useState(false);
 
   // Load product images when modal opens
@@ -102,7 +106,9 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
       setShowGeminiPreview(false);
 
       // Clear Video IA states
-      setVideoPrompt('Crea un video comercial dinámico donde el producto cobre vida con movimiento suave de cámara, efectos de parallax y transiciones elegantes que resalten sus características principales');
+      setVideoPrompt(
+        'Crea un video comercial dinámico donde el producto cobre vida con movimiento suave de cámara, efectos de parallax y transiciones elegantes que resalten sus características principales'
+      );
       setSelectedImageForVideo(null);
       setGeneratedVideo(null);
       setShowVideoPreview(false);
@@ -378,7 +384,10 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
           );
 
           setLensResults([...response.results, ...response.visualMatches]);
-          Alert.alert('Éxito', `Se encontraron ${response.results.length + response.visualMatches.length} resultados`);
+          Alert.alert(
+            'Éxito',
+            `Se encontraron ${response.results.length + response.visualMatches.length} resultados`
+          );
         } catch (error: any) {
           console.error('Error searching with Google Lens:', error);
           Alert.alert('Error', error.message || 'No se pudo realizar la búsqueda');
@@ -402,7 +411,10 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
     try {
       const response = await googleLensApi.searchByUrl(lensImageUrl);
       setLensResults([...response.results, ...response.visualMatches]);
-      Alert.alert('Éxito', `Se encontraron ${response.results.length + response.visualMatches.length} resultados`);
+      Alert.alert(
+        'Éxito',
+        `Se encontraron ${response.results.length + response.visualMatches.length} resultados`
+      );
     } catch (error: any) {
       console.error('Error searching with Google Lens:', error);
       Alert.alert('Error', error.message || 'No se pudo realizar la búsqueda');
@@ -418,7 +430,10 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
     try {
       const response = await googleLensApi.searchByUrl(image.url);
       setLensResults([...response.results, ...response.visualMatches]);
-      Alert.alert('Éxito', `Se encontraron ${response.results.length + response.visualMatches.length} resultados similares`);
+      Alert.alert(
+        'Éxito',
+        `Se encontraron ${response.results.length + response.visualMatches.length} resultados similares`
+      );
     } catch (error: any) {
       console.error('Error searching with Google Lens:', error);
       Alert.alert('Error', error.message || 'No se pudo realizar la búsqueda');
@@ -449,7 +464,10 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
       ]);
 
       setActiveTab('gallery');
-      Alert.alert('Éxito', 'Imagen de alta calidad agregada. Puedes subirla desde la pestaña Galería');
+      Alert.alert(
+        'Éxito',
+        'Imagen de alta calidad agregada. Puedes subirla desde la pestaña Galería'
+      );
     } catch (error: any) {
       console.error('Error adding Lens image:', error);
       Alert.alert('Error', error.message || 'No se pudo agregar la imagen');
@@ -602,7 +620,9 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
 
       if (Platform.OS === 'web') {
         // Web: Create download link
-        const videoBlob = await fetch(`data:${generatedVideo.mimeType};base64,${generatedVideo.videoBase64}`).then(r => r.blob());
+        const videoBlob = dataUrlToBlob(
+          `data:${generatedVideo.mimeType};base64,${generatedVideo.videoBase64}`
+        );
         const url = URL.createObjectURL(videoBlob);
         const link = document.createElement('a');
         link.href = url;
@@ -731,7 +751,11 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                   <View style={styles.imagesGrid}>
                     {productImages.map((image, index) => (
                       <View key={image.filename} style={styles.imageCard}>
-                        <Image source={{ uri: image.url }} style={styles.image} resizeMode="cover" />
+                        <Image
+                          source={{ uri: image.url }}
+                          style={styles.image}
+                          resizeMode="cover"
+                        />
                         {index === 0 && (
                           <View style={styles.mainImageBadge}>
                             <Text style={styles.mainImageBadgeText}>Principal</Text>
@@ -809,7 +833,11 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                   <View style={styles.imagesGrid}>
                     {newImages.map((image, index) => (
                       <View key={index} style={styles.imageCard}>
-                        <Image source={{ uri: image.uri }} style={styles.image} resizeMode="cover" />
+                        <Image
+                          source={{ uri: image.uri }}
+                          style={styles.image}
+                          resizeMode="cover"
+                        />
                         <TouchableOpacity
                           style={styles.deleteButton}
                           onPress={() => handleRemoveNewImage(index)}
@@ -895,9 +923,7 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
 
               {lensResults.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>
-                    🎯 Resultados ({lensResults.length})
-                  </Text>
+                  <Text style={styles.sectionTitle}>🎯 Resultados ({lensResults.length})</Text>
 
                   <View style={styles.imagesGrid}>
                     {lensResults.map((result, index) => {
@@ -959,7 +985,11 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                     <View style={styles.imagesGrid}>
                       {productImages.map((image, index) => (
                         <View key={image.filename} style={styles.imageCard}>
-                          <Image source={{ uri: image.url }} style={styles.image} resizeMode="cover" />
+                          <Image
+                            source={{ uri: image.url }}
+                            style={styles.image}
+                            resizeMode="cover"
+                          />
                           {index === 0 && (
                             <View style={styles.mainImageBadge}>
                               <Text style={styles.mainImageBadgeText}>Principal</Text>
@@ -1012,7 +1042,10 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                       />
 
                       <TouchableOpacity
-                        style={[styles.geminiEditActionButton, geminiEditing && styles.buttonDisabled]}
+                        style={[
+                          styles.geminiEditActionButton,
+                          geminiEditing && styles.buttonDisabled,
+                        ]}
                         onPress={handleEditWithGemini}
                         disabled={geminiEditing}
                       >
@@ -1081,7 +1114,11 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                     <View style={styles.imagesGrid}>
                       {productImages.map((image, index) => (
                         <View key={image.filename} style={styles.imageCard}>
-                          <Image source={{ uri: image.url }} style={styles.image} resizeMode="cover" />
+                          <Image
+                            source={{ uri: image.url }}
+                            style={styles.image}
+                            resizeMode="cover"
+                          />
                           {index === 0 && (
                             <View style={styles.mainImageBadge}>
                               <Text style={styles.mainImageBadgeText}>Principal</Text>
@@ -1134,12 +1171,17 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                       />
 
                       <TouchableOpacity
-                        style={[styles.videoGenerateActionButton, generatingVideo && styles.buttonDisabled]}
+                        style={[
+                          styles.videoGenerateActionButton,
+                          generatingVideo && styles.buttonDisabled,
+                        ]}
                         onPress={handleGenerateVideo}
                         disabled={generatingVideo}
                       >
                         <Text style={styles.videoGenerateActionButtonText}>
-                          {generatingVideo ? '⏳ Generando video...' : '🎬 Generar Video con Gemini'}
+                          {generatingVideo
+                            ? '⏳ Generando video...'
+                            : '🎬 Generar Video con Gemini'}
                         </Text>
                       </TouchableOpacity>
 
@@ -1153,7 +1195,8 @@ export const ProductPhotosModal: React.FC<ProductPhotosModalProps> = ({
                               🎬 Video generado exitosamente
                             </Text>
                             <Text style={styles.videoPlayerPlaceholderSubtext}>
-                              Tamaño: {(generatedVideo.videoBase64.length / 1024 / 1024).toFixed(2)} MB
+                              Tamaño: {(generatedVideo.videoBase64.length / 1024 / 1024).toFixed(2)}{' '}
+                              MB
                             </Text>
                           </View>
 

@@ -21,6 +21,24 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
   return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
 };
 
+/**
+ * Decodifica un `data:` URL a Blob sin usar `fetch`. Necesario porque el CSP
+ * (`connect-src`) bloquea `fetch('data:...')` en producción web.
+ */
+export const dataUrlToBlob = (dataUrl: string): Blob => {
+  const commaIdx = dataUrl.indexOf(',');
+  if (commaIdx < 0) throw new Error('data URL inválido');
+  const header = dataUrl.substring(5, commaIdx); // quita "data:"
+  const payload = dataUrl.substring(commaIdx + 1);
+  const isBase64 = /;base64/i.test(header);
+  const mimeType = header.replace(/;base64/i, '') || 'application/octet-stream';
+  if (isBase64) {
+    return base64ToBlob(payload, mimeType);
+  }
+  const decoded = decodeURIComponent(payload);
+  return new Blob([decoded], { type: mimeType });
+};
+
 /** Opciones comunes de preparación de imágenes para subir. */
 export interface UploadFileOptions {
   /** Si es `true`, recorta la imagen a un cuadrado 1:1 centrado antes de subir. */
@@ -41,6 +59,12 @@ export const uploadFileFromUrl = async (
   const sourceUrl = options?.square ? await ensureSquareImageUri(url) : url;
 
   if (Platform.OS === 'web') {
+    // `data:` URLs se decodifican en memoria: `fetch('data:...')` está
+    // bloqueado por el CSP (`connect-src`) en producción web.
+    if (sourceUrl.startsWith('data:')) {
+      const blob = dataUrlToBlob(sourceUrl);
+      return new File([blob], name, { type: blob.type || type });
+    }
     const response = await fetch(sourceUrl);
     if (!response.ok) {
       throw new Error('No se pudo obtener la imagen');
@@ -151,8 +175,9 @@ export const uploadFileFromBase64 = async (
     const objectUrl = URL.createObjectURL(blob);
     try {
       const squareUri = await cropSquareWeb(objectUrl);
-      const response = await fetch(squareUri);
-      const squareBlob = await response.blob();
+      // `cropSquareWeb` devuelve un `data:` URL (canvas.toDataURL) o la uri
+      // original si falla. Decodificamos sin `fetch` para respetar el CSP.
+      const squareBlob = squareUri.startsWith('data:') ? dataUrlToBlob(squareUri) : blob;
       return new File([squareBlob], name, { type: squareBlob.type || mimeType });
     } finally {
       URL.revokeObjectURL(objectUrl);
