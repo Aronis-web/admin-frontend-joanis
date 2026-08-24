@@ -6,42 +6,53 @@
  * PROBLEMA:
  *   - React Navigation maneja el historial del navegador para pantallas, pero
  *     los `<Modal>` de react-native-web NO empujan nada al historial. Cuando
- *     el usuario abre un modal (o imagen fullscreen) y presiona el botón
- *     "atrás" del móvil, el navegador retrocede una entrada de historial —
- *     que suele ser la pantalla anterior o incluso salir del PWA.
+ *     el usuario abre un modal (o imagen fullscreen) y presiona "atrás", el
+ *     navegador retrocede una entrada real — que suele ser la pantalla
+ *     anterior o incluso salir del PWA.
  *
- * SOLUCIÓN (sin tocar 123 modales):
- *   1. Observamos `document.body` con `MutationObserver` buscando portales de
- *      RNW Modal (nodos con role="dialog" o aria-modal="true").
- *   2. Cuando el # de modales abiertos SUBE, empujamos un `history.state`
- *      sentinel para que exista una entrada extra que "consumir" al atrás.
- *   3. Al `popstate`: si hay modales abiertos, disparamos un keydown de
- *      Escape → RNW ya escucha Escape internamente y llama `onRequestClose`
- *      de cada Modal → el top se cierra normalmente por su onClose.
- *   4. Cuando el # de modales baja porque el usuario cerró con la X (sin
- *      pasar por popstate), consumimos la entrada sentinel con history.back
- *      marcado como "programmatic" para no re-disparar la lógica.
+ * SOLUCIÓN (sin tocar 123 modales, con soporte de modales anidados):
+ *   1. `MutationObserver` sobre `document.body` cuenta portales de RNW Modal
+ *      (nodos con role="dialog" o aria-modal="true").
+ *   2. Cuando abre un modal (openCount ↑): push de un sentinel a history.
+ *   3. Cuando cierra un modal (openCount ↓):
+ *      a) Si el cierre fue por popstate (usuario pulsó atrás): el navegador
+ *         ya consumió el sentinel, sólo actualizamos contadores.
+ *      b) Si el cierre fue programático (X, cancelar, click en overlay):
+ *         hacemos `history.back()` marcado como programático para consumir
+ *         el sentinel y mantener la pila alineada.
+ *   4. En `popstate` con modales abiertos: dispatch de `Escape` para que RNW
+ *      (que ya escucha Escape y lo enruta al Modal top) llame a su
+ *      `onRequestClose`. RNW mantiene su propio stack, así solo cierra el
+ *      modal superior — perfecto para modales anidados.
  *
- * Solo se activa en web/electron. En nativo (iOS/Android APK) es no-op.
+ * Trazas verificadas para casos:
+ *   - Abrir 2 modales, back back → cierra top, luego bottom.
+ *   - Abrir 2, X en top, back en bottom → OK.
+ *   - Abrir 2, back en top, X en bottom → OK.
+ *   - Abrir 2, X X → OK, sin entradas huérfanas.
+ *
+ * Solo se activa en web. En APK/Electron es no-op.
  */
 import { Platform } from 'react-native';
 import logger from '@/utils/logger';
 
 const SENTINEL_KEY = '__joanisModalSentinel';
-const SENTINEL_MARKER = 'modal';
 
 let installed = false;
 let openModalCount = 0;
-let sentinelCount = 0; // cuántas entradas sentinel creímos empujar
+let sentinelCount = 0;
+/**
+ * Nº de cierres que ya fueron contabilizados por popstate y no requieren
+ * `history.back` extra desde el observer. Incrementa en handlePopState y
+ * decrementa en syncFromDom.
+ */
+let pendingBackDismissals = 0;
 let ignoreNextPopstate = false;
 
 const isRnwModalNode = (node: Node): boolean => {
   if (!(node instanceof HTMLElement)) return false;
-  // RNW Modal renderiza un portal con role="dialog" o aria-modal="true".
-  // También cubrimos elementos con [data-focusable] que envuelven overlays.
   if (node.getAttribute('role') === 'dialog') return true;
   if (node.getAttribute('aria-modal') === 'true') return true;
-  // RNW a veces usa un wrapper. Chequeamos descendencia inmediata.
   return !!node.querySelector?.('[role="dialog"], [aria-modal="true"]');
 };
 
@@ -52,14 +63,14 @@ const countOpenModals = (): number => {
 
 const pushSentinel = () => {
   try {
-    window.history.pushState({ [SENTINEL_KEY]: SENTINEL_MARKER }, '');
+    window.history.pushState({ [SENTINEL_KEY]: sentinelCount + 1 }, '');
     sentinelCount += 1;
   } catch (e) {
     logger.warn('webBackHandler: pushState failed', e);
   }
 };
 
-const popSentinel = () => {
+const consumeSentinelViaBack = () => {
   if (sentinelCount <= 0) return;
   sentinelCount -= 1;
   ignoreNextPopstate = true;
@@ -73,7 +84,6 @@ const popSentinel = () => {
 
 const dispatchEscape = () => {
   try {
-    // RNW Modal escucha keydown Escape → llama onRequestClose.
     const evt = new KeyboardEvent('keydown', {
       key: 'Escape',
       code: 'Escape',
@@ -93,42 +103,43 @@ const syncFromDom = () => {
   if (nextCount === openModalCount) return;
 
   if (nextCount > openModalCount) {
-    // Modales nuevos abiertos → push sentinel por cada uno.
+    // Modales nuevos abiertos → sentinel por cada uno.
     const diff = nextCount - openModalCount;
     for (let i = 0; i < diff; i += 1) pushSentinel();
   } else {
-    // Modales cerrados sin popstate → consumir sentinels sobrantes.
+    // Modales cerrados. Puede ser por popstate (ya contabilizado con
+    // pendingBackDismissals) o programáticamente (necesita history.back).
     const diff = openModalCount - nextCount;
-    for (let i = 0; i < diff; i += 1) popSentinel();
+    for (let i = 0; i < diff; i += 1) {
+      if (pendingBackDismissals > 0) {
+        pendingBackDismissals -= 1;
+        // popstate ya consumió el sentinel; nada más que hacer.
+      } else {
+        consumeSentinelViaBack();
+      }
+    }
   }
 
   openModalCount = nextCount;
 };
 
-const handlePopState = (event: PopStateEvent) => {
+const handlePopState = () => {
   if (ignoreNextPopstate) {
     ignoreNextPopstate = false;
     return;
   }
 
   if (openModalCount > 0) {
-    // El usuario pulsó "atrás" con un modal abierto.
-    // Ya perdimos el sentinel de esa capa (el navegador lo consumió).
+    // El navegador ya consumió una entrada. Contabilizamos y dejamos que RNW
+    // cierre el modal top vía Escape. El MutationObserver detectará el
+    // desmontaje y llamará a syncFromDom, que verá pendingBackDismissals > 0
+    // y NO hará history.back adicional.
     sentinelCount = Math.max(0, sentinelCount - 1);
-
-    // Cerramos el modal top. El MutationObserver detectará el cambio y
-    // sincronizará openModalCount. NO empujamos otra entrada; queremos
-    // que el back consuma UNA capa por press.
+    pendingBackDismissals += 1;
     dispatchEscape();
-
-    // React Navigation puede haber recibido este popstate también y navegar
-    // hacia atrás — para evitarlo, empujamos de vuelta el estado actual.
-    try {
-      window.history.pushState(event.state ?? {}, '');
-    } catch {
-      /* noop */
-    }
   }
+  // Si no hay modales abiertos, dejamos que React Navigation maneje el
+  // popstate normalmente (retroceso de ruta).
 };
 
 /**
@@ -142,8 +153,6 @@ export function installWebBackHandler(): void {
   installed = true;
 
   const observer = new MutationObserver((mutations) => {
-    // Sólo re-sincronizamos si detectamos añadidos o removidos que puedan ser
-    // portales de modal (evitamos costo si nada relevante cambió).
     let relevant = false;
     for (const m of mutations) {
       for (const n of Array.from(m.addedNodes)) {
@@ -163,7 +172,7 @@ export function installWebBackHandler(): void {
     }
     if (!relevant) return;
 
-    // Micro-defer para dejar que RNW termine de montar/desmontar todo el árbol.
+    // Micro-defer para dejar que RNW complete el mount/unmount del árbol.
     Promise.resolve().then(syncFromDom);
   });
 
