@@ -320,6 +320,9 @@ export type MainStackParamList = {
   };
   CreateRetencion: undefined;
 
+  // SIRE Compras (RCE)
+  SireCompras: undefined;
+
   // Transport
   Vehicles: undefined;
   VehicleDetail: {

@@ -532,6 +532,12 @@ const CreateRetencionScreen = lazyLoad(
   'Cargando formulario...'
 );
 
+// SIRE Compras (RCE) - Lazy Loaded
+const SireComprasScreen = lazyLoad(
+  () => import('@/screens/SireCompras').then((m) => ({ default: m.SireComprasScreen })),
+  'Cargando Registro de Compras...'
+);
+
 // Drive Screens - Lazy Loaded
 const DriveHomeScreen = lazyLoad(
   () => import('@/screens/Drive').then((m) => ({ default: m.DriveHomeScreen })),
@@ -2017,6 +2023,20 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.retenciones.create']}>
             <CreateRetencionScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* SIRE Compras (RCE) - Registro Compras / Conciliación */}
+      <MainStackNavigator.Screen
+        name="SireCompras"
+        options={{
+          title: 'Registro Compras · Conciliación',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sire_compras.invoices.read']}>
+            <SireComprasScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
