@@ -23,6 +23,8 @@ import { ThemeProvider, FloatingFooterProvider, useThemeValue } from '@/design-s
 import { useSessionWarning } from '@/hooks/useSessionWarning';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { clearLazyReloadFlag } from '@/utils/lazyLoad';
+import { installWebBackHandler } from '@/utils/webBackHandler';
+import { installWebPullToRefresh } from '@/utils/webPullToRefresh';
 
 export const App = () => {
   const [fontsLoaded] = useFonts({
@@ -50,6 +52,14 @@ export const App = () => {
   // La app llegó a montar; limpiar flag de reload por chunk fallido.
   useEffect(() => {
     clearLazyReloadFlag();
+  }, []);
+
+  // Web-only: fixes globales de UX
+  //  - Interceptor del botón "atrás" del navegador para modales/overlays.
+  //  - Pull-to-refresh táctil (RN Web no lo implementa nativo).
+  useEffect(() => {
+    installWebBackHandler();
+    installWebPullToRefresh();
   }, []);
 
   useEffect(() => {
