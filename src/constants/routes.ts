@@ -151,6 +151,9 @@ export const MAIN_ROUTES = {
   CREATE_RETENCION: 'CreateRetencion',
   RETENCION_DETAIL: 'RetencionDetail',
 
+  // SIRE Compras (RCE) - Registro de Compras / Conciliación
+  SIRE_COMPRAS: 'SireCompras',
+
   // Balances
   BALANCES: 'Balances',
   BALANCE_DETAIL: 'BalanceDetail',
@@ -374,6 +377,9 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   RETENCIONES: 'bizlinks.retenciones.read',
   CREATE_RETENCION: 'bizlinks.retenciones.create',
   RETENCION_DETAIL: 'bizlinks.retenciones.read',
+
+  // SIRE Compras (RCE)
+  SIRE_COMPRAS: 'admin.sire_compras.invoices.read',
 
   // Balances
   BALANCES: 'balances.read',

@@ -8,3 +8,4 @@ export * from './usePurchases';
 export * from './useExpenses';
 export * from './useRepartos';
 export * from './useReports';
+export * from './useSireCompras';

@@ -465,6 +465,18 @@ export const PERMISSIONS = {
     },
   },
 
+  // ========== SIRE COMPRAS (RCE) ==========
+  SIRE_COMPRAS: {
+    SYNC: 'admin.sire_compras.sync',
+    RUNS: {
+      READ: 'admin.sire_compras.runs.read',
+    },
+    INVOICES: {
+      READ: 'admin.sire_compras.invoices.read',
+      LINK: 'admin.sire_compras.invoices.link',
+    },
+  },
+
   // ========== CUENTAS POR PAGAR ==========
   ACCOUNTS_PAYABLE: {
     // Lectura
