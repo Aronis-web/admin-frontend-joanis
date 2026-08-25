@@ -58,10 +58,17 @@ const CPE_LABELS: Record<string, string> = {
   '14': 'Servicios',
 };
 
-const MONEDA_OPTIONS = [
-  { label: 'S/ Soles (PEN)', value: 'PEN' },
-  { label: '$ Dólares (USD)', value: 'USD' },
-];
+const CURRENCIES: Array<'PEN' | 'USD'> = ['PEN', 'USD'];
+
+const CURRENCY_LABELS: Record<'PEN' | 'USD', string> = {
+  PEN: 'Soles (PEN)',
+  USD: 'Dólares (USD)',
+};
+
+const CURRENCY_ACCENTS: Record<'PEN' | 'USD', string> = {
+  PEN: '#10B981',
+  USD: '#3B82F6',
+};
 
 const MONTH_LABELS = [
   'Ene',
@@ -202,7 +209,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   });
   const [customEndDate, setCustomEndDate] = useState<Date>(() => new Date());
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
-  const [moneda, setMoneda] = useState<'PEN' | 'USD'>('PEN');
 
   const dateRange = useMemo(
     () => getDateRange(selectedFilter, customStartDate, customEndDate),
@@ -288,12 +294,36 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     );
   }, [providerItems, providerSearch]);
 
-  const displayCurrency = moneda;
-  const totals = summary?.totals?.[moneda];
-  const summaryByPeriodoFiltered = useMemo(
-    () => (summary?.byPeriodo ?? []).filter((p) => p.moneda === moneda),
-    [summary?.byPeriodo, moneda]
+  // Monedas con datos en el período seleccionado
+  const visibleCurrencies = useMemo(
+    () =>
+      CURRENCIES.filter((c) => {
+        const t = summary?.totals?.[c];
+        return t ? t.count > 0 : false;
+      }),
+    [summary?.totals]
   );
+
+  // Monedas con datos en el año en curso
+  const visibleYearCurrencies = useMemo(
+    () =>
+      CURRENCIES.filter((c) => {
+        const t = yearSummary?.totals?.[c];
+        return t ? t.count > 0 : false;
+      }),
+    [yearSummary?.totals]
+  );
+
+  const hasSummaryData = visibleCurrencies.length > 0;
+
+  // Índice { moneda -> filas byPeriodo } del período seleccionado
+  const summaryByPeriodoByMoneda = useMemo(() => {
+    const acc: Record<'PEN' | 'USD', SireSummaryByPeriodo[]> = { PEN: [], USD: [] };
+    (summary?.byPeriodo ?? []).forEach((p) => {
+      if (p.moneda === 'PEN' || p.moneda === 'USD') acc[p.moneda].push(p);
+    });
+    return acc;
+  }, [summary?.byPeriodo]);
 
   const handleRefresh = useCallback(() => {
     void refetchSummary();
@@ -378,34 +408,21 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   // ============ Distribution row (period) ============
-  const maxPeriodoTotal = useMemo(() => {
-    if (!summaryByPeriodoFiltered.length) return 0;
-    return summaryByPeriodoFiltered.reduce(
-      (max, p) => Math.max(max, Number(p.importeTotal) || 0),
-      0
-    );
-  }, [summaryByPeriodoFiltered]);
-
-  const renderPeriodoRow = (item: SireSummaryByPeriodo) => {
+  const renderPeriodoRow = (item: SireSummaryByPeriodo, maxTotal: number, accent: string) => {
     const total = Number(item.importeTotal) || 0;
-    const ratio = maxPeriodoTotal > 0 ? Math.max(0.04, total / maxPeriodoTotal) : 0;
+    const ratio = maxTotal > 0 ? Math.max(0.04, total / maxTotal) : 0;
     return (
-      <View key={item.perTributario} style={styles.periodRow}>
+      <View key={`${item.perTributario}-${item.moneda}`} style={styles.periodRow}>
         <View style={styles.periodLabelCol}>
           <Body style={{ fontWeight: '600' }}>{formatPeriodo(item.perTributario)}</Body>
           <Caption color={theme.color.text.muted}>{formatInt(item.count)} docs</Caption>
         </View>
         <View style={styles.periodBarCol}>
-          <View
-            style={[
-              styles.periodBar,
-              { width: `${ratio * 100}%`, backgroundColor: theme.color.brand.accent },
-            ]}
-          />
+          <View style={[styles.periodBar, { width: `${ratio * 100}%`, backgroundColor: accent }]} />
         </View>
         <View style={styles.periodValueCol}>
           <Body style={{ fontWeight: '600' }}>
-            {formatCurrency(item.importeTotal, displayCurrency)}
+            {formatCurrency(item.importeTotal, item.moneda)}
           </Body>
         </View>
       </View>
@@ -422,140 +439,118 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             Código {item.tipoCpe} · {formatInt(item.count)} docs
           </Caption>
         </View>
-        <Body style={{ fontWeight: '600' }}>
-          {formatCurrency(item.importeTotal, displayCurrency)}
-        </Body>
+        <Body style={{ fontWeight: '600' }}>{formatInt(item.count)}</Body>
       </View>
     );
   };
 
-  // ============ Yearly monthly bar chart ============
-  const yearMonthly = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const map = new Map<string, { count: number; importeTotal: number }>();
-    (yearSummary?.byPeriodo ?? [])
-      .filter((p) => p.moneda === moneda)
-      .forEach((p) => {
-        if (!p.perTributario || p.perTributario.length !== 6) return;
-        map.set(p.perTributario, {
-          count: p.count,
-          importeTotal: Number(p.importeTotal) || 0,
-        });
-      });
-    return Array.from({ length: 12 }, (_, i) => {
-      const key = `${currentYear}${String(i + 1).padStart(2, '0')}`;
-      const found = map.get(key);
-      return {
-        month: i,
-        key,
-        label: MONTH_LABELS[i],
-        count: found?.count ?? 0,
-        importeTotal: found?.importeTotal ?? 0,
-      };
-    });
-  }, [yearSummary?.byPeriodo, moneda]);
-
-  const maxMonthlyTotal = useMemo(
-    () => yearMonthly.reduce((max, m) => Math.max(max, m.importeTotal), 0),
-    [yearMonthly]
-  );
-
-  const yearAccumulated = useMemo(
-    () => yearMonthly.reduce((sum, m) => sum + m.importeTotal, 0),
-    [yearMonthly]
-  );
-
+  // ============ Yearly monthly bar chart (por moneda) ============
   const currentMonthIdx = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
 
-  const renderMonthlyChart = () => {
+  const yearMonthlyByCurrency = useMemo(() => {
+    const build = (cur: 'PEN' | 'USD') => {
+      const map = new Map<string, { count: number; importeTotal: number }>();
+      (yearSummary?.byPeriodo ?? [])
+        .filter((p) => p.moneda === cur)
+        .forEach((p) => {
+          if (!p.perTributario || p.perTributario.length !== 6) return;
+          map.set(p.perTributario, {
+            count: p.count,
+            importeTotal: Number(p.importeTotal) || 0,
+          });
+        });
+      const months = Array.from({ length: 12 }, (_, i) => {
+        const key = `${currentYear}${String(i + 1).padStart(2, '0')}`;
+        const found = map.get(key);
+        return {
+          month: i,
+          key,
+          label: MONTH_LABELS[i],
+          count: found?.count ?? 0,
+          importeTotal: found?.importeTotal ?? 0,
+        };
+      });
+      const maxTotal = months.reduce((max, m) => Math.max(max, m.importeTotal), 0);
+      const accumulated = months.reduce((sum, m) => sum + m.importeTotal, 0);
+      return { months, maxTotal, accumulated };
+    };
+    return { PEN: build('PEN'), USD: build('USD') } as const;
+  }, [yearSummary?.byPeriodo, currentYear]);
+
+  const renderMonthlyChart = (cur: 'PEN' | 'USD') => {
     const CHART_HEIGHT = 180;
+    const { months, maxTotal, accumulated } = yearMonthlyByCurrency[cur];
+    const accent = CURRENCY_ACCENTS[cur];
     return (
-      <Card style={styles.blockCard}>
+      <Card key={`chart-${cur}`} style={styles.blockCard}>
         <View style={styles.blockHeader}>
-          <Ionicons name="stats-chart-outline" size={18} color={theme.color.text.body} />
+          <Ionicons name="stats-chart-outline" size={18} color={accent} />
           <View style={{ flex: 1 }}>
-            <Title size="small">Compras por mes · {new Date().getFullYear()}</Title>
+            <Title size="small">
+              Compras por mes · {currentYear} · {CURRENCY_LABELS[cur]}
+            </Title>
             <Caption color={theme.color.text.muted}>
-              Acumulado {formatCurrency(String(yearAccumulated), displayCurrency)} · Moneda{' '}
-              {displayCurrency}
+              Acumulado {formatCurrency(String(accumulated), cur)}
             </Caption>
           </View>
         </View>
 
-        {loadingYear ? (
-          <View style={styles.loadingBoxSmall}>
-            <ActivityIndicator size="small" color={theme.color.brand.accent} />
-          </View>
-        ) : yearAccumulated <= 0 ? (
-          <EmptyState
-            icon="bar-chart-outline"
-            title="Sin datos"
-            description={`No hay compras registradas en ${displayCurrency} este año.`}
-          />
-        ) : (
-          <>
-            <View style={[styles.chart, { height: CHART_HEIGHT }]}>
-              {yearMonthly.map((m) => {
-                const ratio =
-                  maxMonthlyTotal > 0 ? Math.max(0, m.importeTotal / maxMonthlyTotal) : 0;
-                const barHeight = Math.max(2, Math.round(ratio * (CHART_HEIGHT - 32)));
-                const isCurrent = m.month === currentMonthIdx;
-                return (
-                  <View key={m.key} style={styles.chartCol}>
-                    <RNText style={styles.chartBarValue} numberOfLines={1}>
-                      {m.importeTotal > 0
-                        ? formatCurrencyCompact(String(m.importeTotal), displayCurrency)
-                        : ''}
-                    </RNText>
-                    <View style={styles.chartBarTrack}>
-                      <View
-                        style={[
-                          styles.chartBar,
-                          {
-                            height: barHeight,
-                            backgroundColor: isCurrent
-                              ? theme.color.brand.accent
-                              : `${theme.color.brand.accent}AA`,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <RNText style={[styles.chartBarLabel, isCurrent && styles.chartBarLabelActive]}>
-                      {m.label}
-                    </RNText>
-                  </View>
-                );
-              })}
-            </View>
+        <View style={[styles.chart, { height: CHART_HEIGHT }]}>
+          {months.map((m) => {
+            const ratio = maxTotal > 0 ? Math.max(0, m.importeTotal / maxTotal) : 0;
+            const barHeight = Math.max(2, Math.round(ratio * (CHART_HEIGHT - 32)));
+            const isCurrent = m.month === currentMonthIdx;
+            return (
+              <View key={m.key} style={styles.chartCol}>
+                <RNText style={styles.chartBarValue} numberOfLines={1}>
+                  {m.importeTotal > 0 ? formatCurrencyCompact(String(m.importeTotal), cur) : ''}
+                </RNText>
+                <View style={styles.chartBarTrack}>
+                  <View
+                    style={[
+                      styles.chartBar,
+                      {
+                        height: barHeight,
+                        backgroundColor: isCurrent ? accent : `${accent}AA`,
+                      },
+                    ]}
+                  />
+                </View>
+                <RNText style={[styles.chartBarLabel, isCurrent && styles.chartBarLabelActive]}>
+                  {m.label}
+                </RNText>
+              </View>
+            );
+          })}
+        </View>
 
-            {/* Tabla detalle mensual */}
-            <View style={styles.monthlyTable}>
-              {yearMonthly
-                .filter((m) => m.importeTotal > 0 || m.count > 0)
-                .map((m) => (
-                  <View key={`row-${m.key}`} style={styles.monthlyRow}>
-                    <View style={styles.monthlyLabelCol}>
-                      <Body style={{ fontWeight: '600' }}>
-                        {m.label} {new Date().getFullYear()}
-                      </Body>
-                      <Caption color={theme.color.text.muted}>{formatInt(m.count)} docs</Caption>
-                    </View>
-                    <Body style={{ fontWeight: '600' }}>
-                      {formatCurrency(String(m.importeTotal), displayCurrency)}
-                    </Body>
-                  </View>
-                ))}
-            </View>
-          </>
-        )}
+        {/* Tabla detalle mensual */}
+        <View style={styles.monthlyTable}>
+          {months
+            .filter((m) => m.importeTotal > 0 || m.count > 0)
+            .map((m) => (
+              <View key={`row-${m.key}`} style={styles.monthlyRow}>
+                <View style={styles.monthlyLabelCol}>
+                  <Body style={{ fontWeight: '600' }}>
+                    {m.label} {currentYear}
+                  </Body>
+                  <Caption color={theme.color.text.muted}>{formatInt(m.count)} docs</Caption>
+                </View>
+                <Body style={{ fontWeight: '600' }}>
+                  {formatCurrency(String(m.importeTotal), cur)}
+                </Body>
+              </View>
+            ))}
+        </View>
       </Card>
     );
   };
 
   return (
     <ScreenLayout navigation={navigation as any}>
-      <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header con gradiente (patrón global) */}
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
+        {/* Header alineado al patrón global (gradient + badge) */}
         <LinearGradient
           colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
           start={{ x: 0, y: 0 }}
@@ -566,21 +561,21 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="stats-chart" size={22} color={theme.color.brand.onHeader} />
+                  <Ionicons name="stats-chart" size={20} color={theme.color.brand.onHeader} />
                 </View>
                 <RNText style={styles.title}>Dashboard Contaduría</RNText>
               </View>
               <RNText style={styles.subtitle} numberOfLines={1}>
-                {getFilterLabel(selectedFilter)} · Moneda {displayCurrency}
+                {getFilterLabel(selectedFilter)} · Soles y Dólares
               </RNText>
             </View>
             <TouchableOpacity
-              onPress={openProviderModal}
               style={styles.headerAction}
-              activeOpacity={0.8}
+              onPress={openProviderModal}
+              activeOpacity={0.85}
             >
               <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
-              <RNText style={styles.headerActionText}>Por proveedor</RNText>
+              <RNText style={styles.headerActionText}>Detalle por proveedor</RNText>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -589,16 +584,12 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
           refreshControl={
-            <RefreshControl
-              refreshing={fetchingSummary && !loadingSummary}
-              onRefresh={handleRefresh}
-              colors={[theme.color.brand.accent]}
-            />
+            <RefreshControl refreshing={fetchingSummary} onRefresh={handleRefresh} />
           }
         >
-          {/* Filtros globales — patrón dashboard general */}
+          {/* Filtros globales */}
           <View style={styles.filtersSection}>
-            <RNText style={styles.filtersLabel}>📅 Período de Análisis</RNText>
+            <RNText style={styles.filtersLabel}>Filtros</RNText>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -612,35 +603,12 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
               {renderFilterButton('year', 'Este Año')}
               {renderFilterButton('custom', '📅 Personalizado')}
             </ScrollView>
-            <View style={styles.currencyRow}>
-              <Caption color={theme.color.text.muted}>Moneda</Caption>
-              <ChipGroup
-                options={MONEDA_OPTIONS}
-                selected={[moneda]}
-                onChange={(sel) => {
-                  const v = sel[0];
-                  if (v === 'PEN' || v === 'USD') setMoneda(v);
-                }}
-                variant="filled"
-                size="small"
-              />
-            </View>
           </View>
 
           {/* Sección Compras — del período seleccionado */}
           <View style={styles.sectionHeader}>
-            <View style={{ flex: 1 }}>
-              <Title size="small">Compras del período</Title>
-              <Caption color={theme.color.text.muted}>
-                {getFilterLabel(selectedFilter)} · {displayCurrency}
-              </Caption>
-            </View>
-            <Button
-              title="Por proveedor"
-              onPress={openProviderModal}
-              variant="secondary"
-              size="small"
-            />
+            <Ionicons name="wallet-outline" size={20} color={theme.color.brand.accent} />
+            <Title size="small">Compras del período</Title>
           </View>
 
           {loadingSummary ? (
@@ -650,60 +618,78 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           ) : summaryError ? (
             <ErrorState
               title="No se pudo cargar el resumen"
-              description={(summaryErrorObj as Error)?.message || 'Intenta nuevamente'}
+              description={(summaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
               onRetry={() => refetchSummary()}
             />
-          ) : !totals || totals.count === 0 ? (
+          ) : !hasSummaryData ? (
             <EmptyState
-              icon="cube-outline"
-              title="Sin datos"
-              description={`No hay comprobantes en ${displayCurrency} para el período seleccionado.`}
+              icon="stats-chart-outline"
+              title="Sin compras"
+              description="No se registran compras en el período seleccionado."
             />
           ) : (
             <>
-              <View style={styles.kpisGrid}>
-                {renderKpi(
-                  'document-text-outline',
-                  'Comprobantes',
-                  formatInt(totals.count),
-                  '#3B82F6',
-                  `Moneda ${displayCurrency}`
-                )}
-                {renderKpi(
-                  'cash-outline',
-                  'Base imponible',
-                  formatCurrency(totals.baseImponible, displayCurrency),
-                  '#10B981'
-                )}
-                {renderKpi(
-                  'calculator-outline',
-                  'IGV',
-                  formatCurrency(totals.igv, displayCurrency),
-                  '#F59E0B'
-                )}
-                {renderKpi(
-                  'wallet-outline',
-                  'Importe total',
-                  formatCurrency(totals.importeTotal, displayCurrency),
-                  '#8B5CF6',
-                  `ISC ${formatCurrency(totals.isc, displayCurrency)} · Otros ${formatCurrency(
-                    totals.otros,
-                    displayCurrency
-                  )}`
-                )}
-              </View>
+              {visibleCurrencies.map((cur) => {
+                const t = summary!.totals[cur];
+                const rows = summaryByPeriodoByMoneda[cur];
+                const maxTotal = rows.reduce(
+                  (max, p) => Math.max(max, Number(p.importeTotal) || 0),
+                  0
+                );
+                const accent = CURRENCY_ACCENTS[cur];
+                return (
+                  <View key={`cur-${cur}`} style={styles.currencyBlock}>
+                    <View style={styles.currencyBlockHeader}>
+                      <View style={[styles.currencyBadge, { backgroundColor: `${accent}1A` }]}>
+                        <RNText style={[styles.currencyBadgeText, { color: accent }]}>
+                          {cur === 'PEN' ? 'S/' : '$'}
+                        </RNText>
+                      </View>
+                      <Title size="small">{CURRENCY_LABELS[cur]}</Title>
+                    </View>
 
-              {summaryByPeriodoFiltered.length ? (
-                <Card style={styles.blockCard}>
-                  <View style={styles.blockHeader}>
-                    <Ionicons name="bar-chart-outline" size={18} color={theme.color.text.body} />
-                    <Title size="small">Compras por período · {displayCurrency}</Title>
+                    <View style={styles.kpisGrid}>
+                      {renderKpi(
+                        'document-text-outline',
+                        'Comprobantes',
+                        formatInt(t.count),
+                        accent
+                      )}
+                      {renderKpi(
+                        'cash-outline',
+                        'Base imponible',
+                        formatCurrency(t.baseImponible, cur),
+                        '#10B981'
+                      )}
+                      {renderKpi(
+                        'calculator-outline',
+                        'IGV',
+                        formatCurrency(t.igv, cur),
+                        '#F59E0B'
+                      )}
+                      {renderKpi(
+                        'wallet-outline',
+                        'Importe total',
+                        formatCurrency(t.importeTotal, cur),
+                        '#8B5CF6',
+                        `ISC ${formatCurrency(t.isc, cur)} · Otros ${formatCurrency(t.otros, cur)}`
+                      )}
+                    </View>
+
+                    {rows.length ? (
+                      <Card style={styles.blockCard}>
+                        <View style={styles.blockHeader}>
+                          <Ionicons name="bar-chart-outline" size={18} color={accent} />
+                          <Title size="small">Compras por período · {cur}</Title>
+                        </View>
+                        <View style={{ gap: spacing[2] }}>
+                          {rows.map((r) => renderPeriodoRow(r, maxTotal, accent))}
+                        </View>
+                      </Card>
+                    ) : null}
                   </View>
-                  <View style={{ gap: spacing[2] }}>
-                    {summaryByPeriodoFiltered.map(renderPeriodoRow)}
-                  </View>
-                </Card>
-              ) : null}
+                );
+              })}
 
               {summary?.byTipoCpe?.length ? (
                 <Card style={styles.blockCard}>
@@ -717,19 +703,13 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             </>
           )}
 
-          {/* Gráfico anual mensual — SIEMPRE al final */}
-          {renderMonthlyChart()}
-
-          {/* Indicador si el backend aún así reporta otras monedas */}
-          {yearSummary && yearSummary.byCurrency.length > 1 ? (
-            <Caption color={theme.color.text.muted} style={{ textAlign: 'center' }}>
-              También hay operaciones en{' '}
-              {yearSummary.byCurrency
-                .filter((c) => c.moneda !== displayCurrency)
-                .map((c) => c.moneda)
-                .join(', ')}
-              . Cambia la moneda arriba para verlas.
-            </Caption>
+          {/* Gráficos anuales mensuales — uno por moneda con datos */}
+          {loadingYear ? (
+            <View style={styles.loadingBoxSmall}>
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
+            </View>
+          ) : visibleYearCurrencies.length ? (
+            visibleYearCurrencies.map((cur) => renderMonthlyChart(cur))
           ) : null}
         </ScrollView>
 
@@ -746,7 +726,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
               <View style={{ flex: 1 }}>
                 <Title size="small">Compras por proveedor</Title>
                 <Caption color={theme.color.text.muted}>
-                  {getFilterLabel(selectedFilter)} · {displayCurrency}
+                  {getFilterLabel(selectedFilter)} · Soles y Dólares
                 </Caption>
               </View>
               <TouchableOpacity onPress={closeProviderModal} style={styles.closeBtn}>
@@ -805,10 +785,10 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={{ gap: spacing[3] }}>
                   {filteredProviderItems.map((p, idx) => {
                     const rank = (providerPage - 1) * DEFAULT_PROVIDER_LIMIT + idx + 1;
-                    const block = p[moneda];
-                    const otherMoneda = moneda === 'PEN' ? 'USD' : 'PEN';
-                    const otherBlock = p[otherMoneda];
-                    const hasOther = otherBlock && otherBlock.count > 0;
+                    const blocks = CURRENCIES.map((cur) => ({ cur, block: p[cur] })).filter(
+                      (b) => b.block && b.block.count > 0
+                    );
+                    if (blocks.length === 0) return null;
                     return (
                       <Card key={p.rucProveedor} style={styles.providerCard}>
                         <View style={styles.providerHeader}>
@@ -824,29 +804,49 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                             </Caption>
                           </View>
                         </View>
-                        <View style={styles.providerRow}>
-                          <View style={styles.providerCol}>
-                            <Caption color={theme.color.text.muted}>Docs {moneda}</Caption>
-                            <Body style={{ fontWeight: '600' }}>{formatInt(block.count)}</Body>
-                          </View>
-                          <View style={styles.providerCol}>
-                            <Caption color={theme.color.text.muted}>Base + IGV</Caption>
-                            <Body>
-                              {formatCurrency(block.baseImponible, moneda)} +{' '}
-                              {formatCurrency(block.igv, moneda)}
-                            </Body>
-                          </View>
-                          <View style={styles.providerCol}>
-                            <Caption color={theme.color.text.muted}>Importe total</Caption>
-                            <Title size="small">{formatCurrency(block.importeTotal, moneda)}</Title>
-                          </View>
-                        </View>
-                        {hasOther ? (
-                          <Caption color={theme.color.text.muted}>
-                            También en {otherMoneda}: {formatInt(otherBlock.count)} docs ·{' '}
-                            {formatCurrency(otherBlock.importeTotal, otherMoneda)}
-                          </Caption>
-                        ) : null}
+                        {blocks.map(({ cur, block }) => {
+                          const accent = CURRENCY_ACCENTS[cur];
+                          return (
+                            <View key={cur} style={styles.providerCurrencyBlock}>
+                              <View style={styles.providerCurrencyHeader}>
+                                <View
+                                  style={[
+                                    styles.currencyBadge,
+                                    { backgroundColor: `${accent}1A` },
+                                  ]}
+                                >
+                                  <RNText style={[styles.currencyBadgeText, { color: accent }]}>
+                                    {cur === 'PEN' ? 'S/' : '$'}
+                                  </RNText>
+                                </View>
+                                <Caption color={theme.color.text.muted}>
+                                  {CURRENCY_LABELS[cur]}
+                                </Caption>
+                              </View>
+                              <View style={styles.providerRow}>
+                                <View style={styles.providerCol}>
+                                  <Caption color={theme.color.text.muted}>Docs</Caption>
+                                  <Body style={{ fontWeight: '600' }}>
+                                    {formatInt(block!.count)}
+                                  </Body>
+                                </View>
+                                <View style={styles.providerCol}>
+                                  <Caption color={theme.color.text.muted}>Base + IGV</Caption>
+                                  <Body>
+                                    {formatCurrency(block!.baseImponible, cur)} +{' '}
+                                    {formatCurrency(block!.igv, cur)}
+                                  </Body>
+                                </View>
+                                <View style={styles.providerCol}>
+                                  <Caption color={theme.color.text.muted}>Importe total</Caption>
+                                  <Title size="small">
+                                    {formatCurrency(block!.importeTotal, cur)}
+                                  </Title>
+                                </View>
+                              </View>
+                            </View>
+                          );
+                        })}
                       </Card>
                     );
                   })}
@@ -1001,14 +1001,12 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     </ScreenLayout>
   );
 };
-
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.color.brand.headerFrom,
     },
-    // ===== Header pattern (dashboard global) =====
     headerGradient: {
       paddingHorizontal: spacing[5],
       paddingTop: spacing[4],
@@ -1063,7 +1061,6 @@ const createStyles = (theme: Theme) =>
       color: theme.color.brand.onHeader,
       fontWeight: '600',
     },
-    // ===== Content =====
     scrollView: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
@@ -1073,7 +1070,6 @@ const createStyles = (theme: Theme) =>
       paddingBottom: spacing[8],
       gap: spacing[3],
     },
-    // ===== Filters =====
     filtersSection: {
       backgroundColor: theme.color.surface.base,
       borderRadius: borderRadius.xl,
@@ -1114,14 +1110,12 @@ const createStyles = (theme: Theme) =>
     currencyRow: {
       gap: spacing[1],
     },
-    // ===== Section header =====
     sectionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing[3],
       paddingTop: spacing[2],
     },
-    // ===== KPIs =====
     loadingBox: {
       padding: spacing[5],
       alignItems: 'center',
@@ -1134,6 +1128,38 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: spacing[3],
+    },
+    currencyBlock: {
+      gap: spacing[3],
+      marginTop: spacing[2],
+    },
+    currencyBlockHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+    },
+    currencyBadge: {
+      minWidth: 34,
+      height: 26,
+      paddingHorizontal: spacing[2],
+      borderRadius: borderRadius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    currencyBadgeText: {
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    providerCurrencyBlock: {
+      gap: spacing[1],
+      paddingTop: spacing[2],
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.color.border.default,
+    },
+    providerCurrencyHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
     },
     kpi: {
       flexGrow: 1,
@@ -1192,7 +1218,6 @@ const createStyles = (theme: Theme) =>
       gap: spacing[3],
       paddingVertical: spacing[1],
     },
-    // ===== Monthly chart =====
     chart: {
       flexDirection: 'row',
       alignItems: 'flex-end',
@@ -1248,7 +1273,6 @@ const createStyles = (theme: Theme) =>
     monthlyLabelCol: {
       flex: 1,
     },
-    // ===== Modal =====
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: theme.color.overlay.medium,
@@ -1292,7 +1316,6 @@ const createStyles = (theme: Theme) =>
       paddingBottom: spacing[5],
       gap: spacing[3],
     },
-    // ===== Sticky pagination =====
     paginationBar: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1330,7 +1353,6 @@ const createStyles = (theme: Theme) =>
       fontWeight: '700',
       color: theme.color.brand.accent,
     },
-    // ===== Page jump modal =====
     pageJumpCard: {
       position: 'absolute',
       top: '30%',
@@ -1363,7 +1385,6 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'flex-end',
       gap: spacing[2],
     },
-    // ===== Provider cards =====
     providerCard: {
       padding: spacing[3],
       gap: spacing[2],
