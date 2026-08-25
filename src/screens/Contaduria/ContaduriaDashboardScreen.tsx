@@ -683,14 +683,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 {getFilterLabel(selectedFilter)} · Soles y Dólares
               </RNText>
             </View>
-            <TouchableOpacity
-              style={styles.headerAction}
-              onPress={openProviderModal}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
-              <RNText style={styles.headerActionText}>Detalle por proveedor</RNText>
-            </TouchableOpacity>
           </View>
         </LinearGradient>
 
@@ -699,179 +691,200 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           contentContainerStyle={styles.contentContainer}
           refreshControl={<RefreshControl refreshing={fetchingSummary} onRefresh={handleRefresh} />}
         >
-          {/* Filtros globales */}
-          <View style={styles.filtersSection}>
-            <RNText style={styles.filtersLabel}>Filtros</RNText>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filtersContent}
-            >
-              {renderFilterButton('today', 'Hoy')}
-              {renderFilterButton('yesterday', 'Ayer')}
-              {renderFilterButton('week', 'Esta Semana')}
-              {renderFilterButton('month', 'Este Mes')}
-              {renderFilterButton('lastMonth', 'Mes Pasado')}
-              {renderFilterButton('year', 'Este Año')}
-              {renderFilterButton('custom', '📅 Personalizado')}
-            </ScrollView>
-          </View>
+          {/* ===== Sección Compras Mapeadas Sunat =====
+              Engloba: filtros de fecha + KPIs + facturas vs NC + por período +
+              por tipo de CPE + gráfico anual + detalle por proveedor */}
+          <View style={styles.sectionContainer}>
+            {/* Franja superior con branding + botón detalle por proveedor */}
+            <View style={styles.sectionBanner}>
+              <View style={styles.sectionHeaderIcon}>
+                <Ionicons name="shield-checkmark" size={22} color={theme.color.brand.onHeader} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Heading size="medium" style={styles.sectionTitleText}>
+                  Compras Mapeadas Sunat
+                </Heading>
+                <Caption style={styles.sectionSubtitleText}>
+                  Registro de compras (RCE) del período seleccionado
+                </Caption>
+              </View>
+              <TouchableOpacity
+                style={styles.sectionAction}
+                onPress={openProviderModal}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
+                <RNText style={styles.sectionActionText}>Detalle por proveedor</RNText>
+              </TouchableOpacity>
+            </View>
 
-          {/* Sección Compras Mapeadas Sunat — engloba KPIs, por período,
-              por tipo de CPE, gráfico anual y detalle por proveedor */}
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeaderIcon}>
-              <Ionicons name="shield-checkmark" size={22} color={theme.color.brand.onHeader} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Heading size="medium">Compras Mapeadas Sunat</Heading>
-              <Caption color={theme.color.text.muted}>
-                Registro de compras (RCE) del período seleccionado
-              </Caption>
-            </View>
-          </View>
+            {/* Contenido de la sección */}
+            <View style={styles.sectionBody}>
+              {/* Filtros de fecha */}
+              <View style={styles.filtersSection}>
+                <RNText style={styles.filtersLabel}>Filtros</RNText>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.filtersContent}
+                >
+                  {renderFilterButton('today', 'Hoy')}
+                  {renderFilterButton('yesterday', 'Ayer')}
+                  {renderFilterButton('week', 'Esta Semana')}
+                  {renderFilterButton('month', 'Este Mes')}
+                  {renderFilterButton('lastMonth', 'Mes Pasado')}
+                  {renderFilterButton('year', 'Este Año')}
+                  {renderFilterButton('custom', '📅 Personalizado')}
+                </ScrollView>
+              </View>
 
-          {loadingSummary ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color={theme.color.brand.accent} />
-            </View>
-          ) : summaryError ? (
-            <ErrorState
-              title="No se pudo cargar el resumen"
-              description={(summaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
-              onRetry={() => refetchSummary()}
-            />
-          ) : !hasSummaryData ? (
-            <EmptyState
-              icon="stats-chart-outline"
-              title="Sin compras"
-              description="No se registran compras en el período seleccionado."
-            />
-          ) : (
-            <>
-              {visibleCurrencies.map((cur) => {
-                const t = summary!.totals[cur];
-                const fac = summary!.facturas?.[cur];
-                const nc = summary!.notasCredito?.[cur];
-                const rows = summaryByPeriodoByMoneda[cur];
-                const maxTotal = rows.reduce(
-                  (max, p) => Math.max(max, Number(p.importeTotal) || 0),
-                  0
-                );
-                const accent = CURRENCY_ACCENTS[cur];
-                return (
-                  <View key={`cur-${cur}`} style={styles.currencyBlock}>
-                    <View style={styles.currencyBlockHeader}>
-                      <View style={[styles.currencyBadge, { backgroundColor: `${accent}1A` }]}>
-                        <RNText style={[styles.currencyBadgeText, { color: accent }]}>
-                          {cur === 'PEN' ? 'S/' : '$'}
-                        </RNText>
+              {loadingSummary ? (
+                <View style={styles.loadingBox}>
+                  <ActivityIndicator size="large" color={theme.color.brand.accent} />
+                </View>
+              ) : summaryError ? (
+                <ErrorState
+                  title="No se pudo cargar el resumen"
+                  description={(summaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
+                  onRetry={() => refetchSummary()}
+                />
+              ) : !hasSummaryData ? (
+                <EmptyState
+                  icon="stats-chart-outline"
+                  title="Sin compras"
+                  description="No se registran compras en el período seleccionado."
+                />
+              ) : (
+                <>
+                  {visibleCurrencies.map((cur) => {
+                    const t = summary!.totals[cur];
+                    const fac = summary!.facturas?.[cur];
+                    const nc = summary!.notasCredito?.[cur];
+                    const rows = summaryByPeriodoByMoneda[cur];
+                    const maxTotal = rows.reduce(
+                      (max, p) => Math.max(max, Number(p.importeTotal) || 0),
+                      0
+                    );
+                    const accent = CURRENCY_ACCENTS[cur];
+                    return (
+                      <View key={`cur-${cur}`} style={styles.currencyBlock}>
+                        <View style={styles.currencyBlockHeader}>
+                          <View style={[styles.currencyBadge, { backgroundColor: `${accent}1A` }]}>
+                            <RNText style={[styles.currencyBadgeText, { color: accent }]}>
+                              {cur === 'PEN' ? 'S/' : '$'}
+                            </RNText>
+                          </View>
+                          <Title size="small">{CURRENCY_LABELS[cur]}</Title>
+                        </View>
+
+                        <View style={styles.kpisGrid}>
+                          {renderKpi(
+                            'document-text-outline',
+                            'Comprobantes',
+                            formatInt(t.count),
+                            accent
+                          )}
+                          {renderKpi(
+                            'cash-outline',
+                            'Base imponible',
+                            formatCurrency(t.baseImponible, cur),
+                            '#10B981'
+                          )}
+                          {renderKpi(
+                            'calculator-outline',
+                            'IGV',
+                            formatCurrency(t.igv, cur),
+                            '#F59E0B'
+                          )}
+                          {renderKpi(
+                            'wallet-outline',
+                            'Importe neto',
+                            formatCurrency(t.importeTotal, cur),
+                            '#8B5CF6',
+                            fac && nc
+                              ? `Facturas ${formatCurrencyCompact(fac.importeTotal, cur)} − NC ${formatCurrencyCompact(nc.importeTotal, cur)}`
+                              : `ISC ${formatCurrency(t.isc, cur)} · Otros ${formatCurrency(t.otros, cur)}`
+                          )}
+                        </View>
+
+                        {fac || nc ? (
+                          <Card style={styles.blockCard}>
+                            <View style={styles.blockHeader}>
+                              <Ionicons name="swap-vertical-outline" size={18} color={accent} />
+                              <Title size="small">Facturas vs Notas de crédito · {cur}</Title>
+                            </View>
+                            <View style={styles.breakdownRow}>
+                              <View style={[styles.breakdownCell, { borderLeftColor: '#10B981' }]}>
+                                <View style={styles.breakdownHeader}>
+                                  <Ionicons name="receipt-outline" size={16} color="#10B981" />
+                                  <Caption color={theme.color.text.muted}>Facturas</Caption>
+                                </View>
+                                <Body style={{ fontWeight: '700' }}>
+                                  {formatCurrency(fac?.importeTotal ?? '0', cur)}
+                                </Body>
+                                <Caption color={theme.color.text.muted}>
+                                  {formatInt(fac?.count ?? 0)} docs · IGV{' '}
+                                  {formatCurrency(fac?.igv ?? '0', cur)}
+                                </Caption>
+                              </View>
+                              <View style={[styles.breakdownCell, { borderLeftColor: '#EF4444' }]}>
+                                <View style={styles.breakdownHeader}>
+                                  <Ionicons name="arrow-undo-outline" size={16} color="#EF4444" />
+                                  <Caption color={theme.color.text.muted}>Notas de crédito</Caption>
+                                </View>
+                                <Body style={{ fontWeight: '700', color: '#EF4444' }}>
+                                  − {formatCurrency(nc?.importeTotal ?? '0', cur)}
+                                </Body>
+                                <Caption color={theme.color.text.muted}>
+                                  {formatInt(nc?.count ?? 0)} docs · IGV{' '}
+                                  {formatCurrency(nc?.igv ?? '0', cur)}
+                                </Caption>
+                              </View>
+                            </View>
+                          </Card>
+                        ) : null}
+
+                        {rows.length ? (
+                          <Card style={styles.blockCard}>
+                            <View style={styles.blockHeader}>
+                              <Ionicons name="bar-chart-outline" size={18} color={accent} />
+                              <Title size="small">Compras por período · {cur}</Title>
+                            </View>
+                            <View style={{ gap: spacing[2] }}>
+                              {rows.map((r) => renderPeriodoRow(r, maxTotal, accent))}
+                            </View>
+                          </Card>
+                        ) : null}
                       </View>
-                      <Title size="small">{CURRENCY_LABELS[cur]}</Title>
-                    </View>
+                    );
+                  })}
 
-                    <View style={styles.kpisGrid}>
-                      {renderKpi(
-                        'document-text-outline',
-                        'Comprobantes',
-                        formatInt(t.count),
-                        accent
-                      )}
-                      {renderKpi(
-                        'cash-outline',
-                        'Base imponible',
-                        formatCurrency(t.baseImponible, cur),
-                        '#10B981'
-                      )}
-                      {renderKpi(
-                        'calculator-outline',
-                        'IGV',
-                        formatCurrency(t.igv, cur),
-                        '#F59E0B'
-                      )}
-                      {renderKpi(
-                        'wallet-outline',
-                        'Importe neto',
-                        formatCurrency(t.importeTotal, cur),
-                        '#8B5CF6',
-                        fac && nc
-                          ? `Facturas ${formatCurrencyCompact(fac.importeTotal, cur)} − NC ${formatCurrencyCompact(nc.importeTotal, cur)}`
-                          : `ISC ${formatCurrency(t.isc, cur)} · Otros ${formatCurrency(t.otros, cur)}`
-                      )}
-                    </View>
+                  {summary?.byTipoCpe?.length ? (
+                    <Card style={styles.blockCard}>
+                      <View style={styles.blockHeader}>
+                        <Ionicons
+                          name="pricetags-outline"
+                          size={18}
+                          color={theme.color.text.body}
+                        />
+                        <Title size="small">Por tipo de comprobante</Title>
+                      </View>
+                      <View style={{ gap: spacing[2] }}>{summary.byTipoCpe.map(renderCpeRow)}</View>
+                    </Card>
+                  ) : null}
+                </>
+              )}
 
-                    {fac || nc ? (
-                      <Card style={styles.blockCard}>
-                        <View style={styles.blockHeader}>
-                          <Ionicons name="swap-vertical-outline" size={18} color={accent} />
-                          <Title size="small">Facturas vs Notas de crédito · {cur}</Title>
-                        </View>
-                        <View style={styles.breakdownRow}>
-                          <View style={[styles.breakdownCell, { borderLeftColor: '#10B981' }]}>
-                            <View style={styles.breakdownHeader}>
-                              <Ionicons name="receipt-outline" size={16} color="#10B981" />
-                              <Caption color={theme.color.text.muted}>Facturas</Caption>
-                            </View>
-                            <Body style={{ fontWeight: '700' }}>
-                              {formatCurrency(fac?.importeTotal ?? '0', cur)}
-                            </Body>
-                            <Caption color={theme.color.text.muted}>
-                              {formatInt(fac?.count ?? 0)} docs · IGV{' '}
-                              {formatCurrency(fac?.igv ?? '0', cur)}
-                            </Caption>
-                          </View>
-                          <View style={[styles.breakdownCell, { borderLeftColor: '#EF4444' }]}>
-                            <View style={styles.breakdownHeader}>
-                              <Ionicons name="arrow-undo-outline" size={16} color="#EF4444" />
-                              <Caption color={theme.color.text.muted}>Notas de crédito</Caption>
-                            </View>
-                            <Body style={{ fontWeight: '700', color: '#EF4444' }}>
-                              − {formatCurrency(nc?.importeTotal ?? '0', cur)}
-                            </Body>
-                            <Caption color={theme.color.text.muted}>
-                              {formatInt(nc?.count ?? 0)} docs · IGV{' '}
-                              {formatCurrency(nc?.igv ?? '0', cur)}
-                            </Caption>
-                          </View>
-                        </View>
-                      </Card>
-                    ) : null}
-
-                    {rows.length ? (
-                      <Card style={styles.blockCard}>
-                        <View style={styles.blockHeader}>
-                          <Ionicons name="bar-chart-outline" size={18} color={accent} />
-                          <Title size="small">Compras por período · {cur}</Title>
-                        </View>
-                        <View style={{ gap: spacing[2] }}>
-                          {rows.map((r) => renderPeriodoRow(r, maxTotal, accent))}
-                        </View>
-                      </Card>
-                    ) : null}
-                  </View>
-                );
-              })}
-
-              {summary?.byTipoCpe?.length ? (
-                <Card style={styles.blockCard}>
-                  <View style={styles.blockHeader}>
-                    <Ionicons name="pricetags-outline" size={18} color={theme.color.text.body} />
-                    <Title size="small">Por tipo de comprobante</Title>
-                  </View>
-                  <View style={{ gap: spacing[2] }}>{summary.byTipoCpe.map(renderCpeRow)}</View>
-                </Card>
+              {/* Gráfico anual mensual unificado (PEN + USD) */}
+              {loadingYear ? (
+                <View style={styles.loadingBoxSmall}>
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                </View>
+              ) : visibleYearCurrencies.length ? (
+                renderUnifiedMonthlyChart()
               ) : null}
-            </>
-          )}
-
-          {/* Gráfico anual mensual unificado (PEN + USD) */}
-          {loadingYear ? (
-            <View style={styles.loadingBoxSmall}>
-              <ActivityIndicator size="small" color={theme.color.brand.accent} />
             </View>
-          ) : visibleYearCurrencies.length ? (
-            renderUnifiedMonthlyChart()
-          ) : null}
+          </View>
         </ScrollView>
 
         {/* ================= Provider modal ================= */}
@@ -1302,23 +1315,61 @@ const createStyles = (theme: Theme) =>
     currencyRow: {
       gap: spacing[1],
     },
-    sectionHeader: {
+    sectionContainer: {
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+      borderRadius: borderRadius.lg,
+      backgroundColor: theme.color.surface.base,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    sectionBanner: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing[3],
-      paddingTop: spacing[3],
-      paddingBottom: spacing[1],
-      borderBottomWidth: 2,
-      borderBottomColor: theme.color.brand.accent,
-      marginBottom: spacing[1],
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[3],
+      backgroundColor: theme.color.brand.accent,
+      flexWrap: 'wrap',
     },
     sectionHeaderIcon: {
       width: 40,
       height: 40,
       borderRadius: borderRadius.md,
-      backgroundColor: theme.color.brand.accent,
+      backgroundColor: 'rgba(255,255,255,0.18)',
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    sectionTitleText: {
+      color: theme.color.brand.onHeader,
+    },
+    sectionSubtitleText: {
+      color: theme.color.brand.onHeader,
+      opacity: 0.85,
+    },
+    sectionAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.3)',
+    },
+    sectionActionText: {
+      color: theme.color.brand.onHeader,
+      fontWeight: '600',
+      fontSize: 13,
+    },
+    sectionBody: {
+      padding: spacing[4],
+      gap: spacing[4],
     },
     loadingBox: {
       padding: spacing[5],
