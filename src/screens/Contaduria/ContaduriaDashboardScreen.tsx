@@ -209,19 +209,20 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     [selectedFilter, customStartDate, customEndDate]
   );
 
+  // No enviamos `moneda` a los endpoints: el backend siempre retorna PEN y USD
+  // en bloques separados. La moneda seleccionada solo se usa para el render.
   const summaryParams = useMemo<GetSireInvoicesSummaryParams>(
     () => ({
       fechaFrom: dateRange.fechaFrom,
       fechaTo: dateRange.fechaTo,
-      moneda,
     }),
-    [dateRange.fechaFrom, dateRange.fechaTo, moneda]
+    [dateRange.fechaFrom, dateRange.fechaTo]
   );
 
   const yearParams = useMemo<GetSireInvoicesSummaryParams>(() => {
     const y = yearRange();
-    return { fechaFrom: y.fechaFrom, fechaTo: y.fechaTo, moneda };
-  }, [moneda]);
+    return { fechaFrom: y.fechaFrom, fechaTo: y.fechaTo };
+  }, []);
 
   const {
     data: summary,
@@ -287,8 +288,12 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     );
   }, [providerItems, providerSearch]);
 
-  const totals = summary?.totals;
   const displayCurrency = moneda;
+  const totals = summary?.totals?.[moneda];
+  const summaryByPeriodoFiltered = useMemo(
+    () => (summary?.byPeriodo ?? []).filter((p) => p.moneda === moneda),
+    [summary?.byPeriodo, moneda]
+  );
 
   const handleRefresh = useCallback(() => {
     void refetchSummary();
@@ -374,9 +379,12 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
   // ============ Distribution row (period) ============
   const maxPeriodoTotal = useMemo(() => {
-    if (!summary?.byPeriodo?.length) return 0;
-    return summary.byPeriodo.reduce((max, p) => Math.max(max, Number(p.importeTotal) || 0), 0);
-  }, [summary?.byPeriodo]);
+    if (!summaryByPeriodoFiltered.length) return 0;
+    return summaryByPeriodoFiltered.reduce(
+      (max, p) => Math.max(max, Number(p.importeTotal) || 0),
+      0
+    );
+  }, [summaryByPeriodoFiltered]);
 
   const renderPeriodoRow = (item: SireSummaryByPeriodo) => {
     const total = Number(item.importeTotal) || 0;
@@ -425,13 +433,15 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const yearMonthly = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const map = new Map<string, { count: number; importeTotal: number }>();
-    (yearSummary?.byPeriodo ?? []).forEach((p) => {
-      if (!p.perTributario || p.perTributario.length !== 6) return;
-      map.set(p.perTributario, {
-        count: p.count,
-        importeTotal: Number(p.importeTotal) || 0,
+    (yearSummary?.byPeriodo ?? [])
+      .filter((p) => p.moneda === moneda)
+      .forEach((p) => {
+        if (!p.perTributario || p.perTributario.length !== 6) return;
+        map.set(p.perTributario, {
+          count: p.count,
+          importeTotal: Number(p.importeTotal) || 0,
+        });
       });
-    });
     return Array.from({ length: 12 }, (_, i) => {
       const key = `${currentYear}${String(i + 1).padStart(2, '0')}`;
       const found = map.get(key);
@@ -443,7 +453,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
         importeTotal: found?.importeTotal ?? 0,
       };
     });
-  }, [yearSummary?.byPeriodo]);
+  }, [yearSummary?.byPeriodo, moneda]);
 
   const maxMonthlyTotal = useMemo(
     () => yearMonthly.reduce((max, m) => Math.max(max, m.importeTotal), 0),
@@ -683,13 +693,15 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 )}
               </View>
 
-              {summary?.byPeriodo?.length ? (
+              {summaryByPeriodoFiltered.length ? (
                 <Card style={styles.blockCard}>
                   <View style={styles.blockHeader}>
                     <Ionicons name="bar-chart-outline" size={18} color={theme.color.text.body} />
-                    <Title size="small">Compras por período</Title>
+                    <Title size="small">Compras por período · {displayCurrency}</Title>
                   </View>
-                  <View style={{ gap: spacing[2] }}>{summary.byPeriodo.map(renderPeriodoRow)}</View>
+                  <View style={{ gap: spacing[2] }}>
+                    {summaryByPeriodoFiltered.map(renderPeriodoRow)}
+                  </View>
                 </Card>
               ) : null}
 
@@ -793,6 +805,10 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={{ gap: spacing[3] }}>
                   {filteredProviderItems.map((p, idx) => {
                     const rank = (providerPage - 1) * DEFAULT_PROVIDER_LIMIT + idx + 1;
+                    const block = p[moneda];
+                    const otherMoneda = moneda === 'PEN' ? 'USD' : 'PEN';
+                    const otherBlock = p[otherMoneda];
+                    const hasOther = otherBlock && otherBlock.count > 0;
                     return (
                       <Card key={p.rucProveedor} style={styles.providerCard}>
                         <View style={styles.providerHeader}>
@@ -803,28 +819,34 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                             <Body style={{ fontWeight: '600' }} numberOfLines={2}>
                               {p.razonSocialProveedor}
                             </Body>
-                            <Caption color={theme.color.text.muted}>RUC {p.rucProveedor}</Caption>
+                            <Caption color={theme.color.text.muted}>
+                              RUC {p.rucProveedor} · {formatInt(p.count)} docs en total
+                            </Caption>
                           </View>
                         </View>
                         <View style={styles.providerRow}>
                           <View style={styles.providerCol}>
-                            <Caption color={theme.color.text.muted}>Documentos</Caption>
-                            <Body style={{ fontWeight: '600' }}>{formatInt(p.count)}</Body>
+                            <Caption color={theme.color.text.muted}>Docs {moneda}</Caption>
+                            <Body style={{ fontWeight: '600' }}>{formatInt(block.count)}</Body>
                           </View>
                           <View style={styles.providerCol}>
                             <Caption color={theme.color.text.muted}>Base + IGV</Caption>
                             <Body>
-                              {formatCurrency(p.baseImponible, displayCurrency)} +{' '}
-                              {formatCurrency(p.igv, displayCurrency)}
+                              {formatCurrency(block.baseImponible, moneda)} +{' '}
+                              {formatCurrency(block.igv, moneda)}
                             </Body>
                           </View>
                           <View style={styles.providerCol}>
                             <Caption color={theme.color.text.muted}>Importe total</Caption>
-                            <Title size="small">
-                              {formatCurrency(p.importeTotal, displayCurrency)}
-                            </Title>
+                            <Title size="small">{formatCurrency(block.importeTotal, moneda)}</Title>
                           </View>
                         </View>
+                        {hasOther ? (
+                          <Caption color={theme.color.text.muted}>
+                            También en {otherMoneda}: {formatInt(otherBlock.count)} docs ·{' '}
+                            {formatCurrency(otherBlock.importeTotal, otherMoneda)}
+                          </Caption>
+                        ) : null}
                       </Card>
                     );
                   })}

@@ -188,7 +188,12 @@ export interface GetSireInvoicesSummaryParams {
   conciliation?: SireConciliation;
 }
 
-export interface SireSummaryTotals {
+/**
+ * Bloque de totales de una moneda (PEN o USD).
+ * Los importes vienen como string con 2 decimales.
+ * Si no hay operaciones en esa moneda, viene con count=0 e importes en "0.00".
+ */
+export interface SireSummaryTotalsAmount {
   count: number;
   baseImponible: string;
   igv: string;
@@ -196,6 +201,15 @@ export interface SireSummaryTotals {
   otros: string;
   valorNoGravado: string;
   importeTotal: string;
+}
+
+/**
+ * Totales del período, separados por moneda.
+ * Siempre presentes ambas monedas (PEN, USD).
+ */
+export interface SireSummaryTotals {
+  PEN: SireSummaryTotalsAmount;
+  USD: SireSummaryTotalsAmount;
 }
 
 export interface SireSummaryByCurrency {
@@ -206,8 +220,13 @@ export interface SireSummaryByCurrency {
   importeTotal: string;
 }
 
+/**
+ * Fila de desglose por período tributario y moneda.
+ * Puede haber dos filas para el mismo `perTributario` (una PEN y una USD).
+ */
 export interface SireSummaryByPeriodo {
   perTributario: string;
+  moneda: string;
   count: number;
   baseImponible: string;
   igv: string;
@@ -237,13 +256,17 @@ export interface GetSireInvoicesSummaryByProviderParams extends GetSireInvoicesS
   offset?: number;
 }
 
+/**
+ * Item de resumen por proveedor.
+ * `count` a nivel raíz es el total de facturas del proveedor sumando ambas monedas.
+ * Los totales por moneda vienen en los bloques `PEN` y `USD`.
+ */
 export interface SireProviderSummaryItem {
   rucProveedor: string;
   razonSocialProveedor: string;
   count: number;
-  baseImponible: string;
-  igv: string;
-  importeTotal: string;
+  PEN: SireSummaryTotalsAmount;
+  USD: SireSummaryTotalsAmount;
 }
 
 export interface SireInvoicesSummaryByProviderResponse {
