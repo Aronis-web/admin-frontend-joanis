@@ -7,14 +7,17 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Text as RNText,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { DateRangePicker } from '@/components/DateRangePicker';
 import {
   Body,
   Button,
@@ -45,6 +48,8 @@ import type {
 
 type Props = NativeStackScreenProps<any, 'ContaduriaDashboard'>;
 
+type DateFilter = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'year' | 'custom';
+
 const CPE_LABELS: Record<string, string> = {
   '01': 'Factura',
   '03': 'Boleta',
@@ -66,22 +71,6 @@ const SORT_OPTIONS: Array<{ label: string; value: SireProviderSortBy }> = [
 ];
 
 const DEFAULT_PROVIDER_LIMIT = 20;
-
-const currentYearMonth = (): string => {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  return `${y}${m}`;
-};
-
-const yearMonthMinus = (months: number): string => {
-  const now = new Date();
-  now.setDate(1);
-  now.setMonth(now.getMonth() - months);
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  return `${y}${m}`;
-};
 
 const formatCurrency = (amount?: string, currency = 'PEN') => {
   if (amount === undefined || amount === null || amount === '') return '-';
@@ -110,22 +99,107 @@ const formatPeriodo = (per?: string) => {
   return `${per.slice(0, 4)}-${per.slice(4, 6)}`;
 };
 
-export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _navigation }) => {
+const toISODate = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getDateRange = (
+  filter: DateFilter,
+  customStart: Date,
+  customEnd: Date
+): { fechaFrom: string; fechaTo: string } => {
+  const now = new Date();
+  let start: Date;
+  let end: Date;
+  switch (filter) {
+    case 'today':
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      break;
+    case 'yesterday': {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      start = new Date(y.getFullYear(), y.getMonth(), y.getDate());
+      end = new Date(y.getFullYear(), y.getMonth(), y.getDate());
+      break;
+    }
+    case 'week': {
+      const dayOfWeek = now.getDay();
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      start = new Date(now);
+      start.setDate(now.getDate() - diff);
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      break;
+    }
+    case 'month':
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      break;
+    case 'lastMonth':
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+      break;
+    case 'year':
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date(now.getFullYear(), 11, 31);
+      break;
+    case 'custom':
+      start = customStart;
+      end = customEnd;
+      break;
+    default:
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  }
+  return { fechaFrom: toISODate(start), fechaTo: toISODate(end) };
+};
+
+const yearRange = (): { fechaFrom: string; fechaTo: string } => {
+  const now = new Date();
+  return {
+    fechaFrom: toISODate(new Date(now.getFullYear(), 0, 1)),
+    fechaTo: toISODate(new Date(now.getFullYear(), 11, 31)),
+  };
+};
+
+export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
   // ============ Filtros globales ============
-  const [periodoFrom, setPeriodoFrom] = useState(yearMonthMinus(5));
-  const [periodoTo, setPeriodoTo] = useState(currentYearMonth());
+  const [selectedFilter, setSelectedFilter] = useState<DateFilter>('month');
+  const [customStartDate, setCustomStartDate] = useState<Date>(() => {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), 1);
+  });
+  const [customEndDate, setCustomEndDate] = useState<Date>(() => new Date());
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [moneda, setMoneda] = useState<string>('PEN');
 
+  const dateRange = useMemo(
+    () => getDateRange(selectedFilter, customStartDate, customEndDate),
+    [selectedFilter, customStartDate, customEndDate]
+  );
+
   const summaryParams = useMemo<GetSireInvoicesSummaryParams>(() => {
-    const p: GetSireInvoicesSummaryParams = {};
-    if (/^\d{6}$/.test(periodoFrom)) p.periodoFrom = periodoFrom;
-    if (/^\d{6}$/.test(periodoTo)) p.periodoTo = periodoTo;
+    const p: GetSireInvoicesSummaryParams = {
+      fechaFrom: dateRange.fechaFrom,
+      fechaTo: dateRange.fechaTo,
+    };
     if (moneda && moneda !== 'ALL') p.moneda = moneda;
     return p;
-  }, [moneda, periodoFrom, periodoTo]);
+  }, [dateRange.fechaFrom, dateRange.fechaTo, moneda]);
+
+  const yearParams = useMemo<GetSireInvoicesSummaryParams>(() => {
+    const y = yearRange();
+    const p: GetSireInvoicesSummaryParams = { fechaFrom: y.fechaFrom, fechaTo: y.fechaTo };
+    if (moneda && moneda !== 'ALL') p.moneda = moneda;
+    return p;
+  }, [moneda]);
 
   const {
     data: summary,
@@ -136,6 +210,12 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
     refetch: refetchSummary,
   } = useSireInvoicesSummary(summaryParams);
 
+  const {
+    data: yearSummary,
+    isLoading: loadingYear,
+    refetch: refetchYear,
+  } = useSireInvoicesSummary(yearParams);
+
   const displayCurrency = moneda !== 'ALL' ? moneda : 'PEN';
 
   // ============ Provider modal ============
@@ -144,15 +224,16 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
   const [providerSortBy, setProviderSortBy] = useState<SireProviderSortBy>('importeTotal');
   const [providerSearch, setProviderSearch] = useState('');
 
-  const providerParams = useMemo(() => {
-    return {
+  const providerParams = useMemo(
+    () => ({
       ...summaryParams,
       sortBy: providerSortBy,
       sortDir: 'DESC' as const,
       limit: DEFAULT_PROVIDER_LIMIT,
       offset: (providerPage - 1) * DEFAULT_PROVIDER_LIMIT,
-    };
-  }, [providerPage, providerSortBy, summaryParams]);
+    }),
+    [providerPage, providerSortBy, summaryParams]
+  );
 
   const {
     data: providersData,
@@ -166,7 +247,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
     setProviderPage(1);
     setProviderModalOpen(true);
   }, []);
-
   const closeProviderModal = useCallback(() => {
     setProviderModalOpen(false);
     setProviderSearch('');
@@ -189,7 +269,54 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
 
   const handleRefresh = useCallback(() => {
     void refetchSummary();
-  }, [refetchSummary]);
+    void refetchYear();
+  }, [refetchSummary, refetchYear]);
+
+  // ============ Date filter chip ============
+  const renderFilterButton = (filter: DateFilter, label: string) => (
+    <TouchableOpacity
+      key={filter}
+      style={[styles.filterButton, selectedFilter === filter && styles.filterButtonActive]}
+      onPress={() => {
+        if (filter === 'custom') {
+          setShowDateRangePicker(true);
+        } else {
+          setSelectedFilter(filter);
+        }
+      }}
+      activeOpacity={0.75}
+    >
+      <RNText
+        style={[
+          styles.filterButtonText,
+          selectedFilter === filter && styles.filterButtonTextActive,
+        ]}
+      >
+        {label}
+      </RNText>
+    </TouchableOpacity>
+  );
+
+  const getFilterLabel = (filter: DateFilter): string => {
+    switch (filter) {
+      case 'today':
+        return 'Hoy';
+      case 'yesterday':
+        return 'Ayer';
+      case 'week':
+        return 'Esta Semana';
+      case 'month':
+        return 'Este Mes';
+      case 'lastMonth':
+        return 'Mes Pasado';
+      case 'year':
+        return 'Este Año';
+      case 'custom':
+        return `${dateRange.fechaFrom} → ${dateRange.fechaTo}`;
+      default:
+        return 'Este Mes';
+    }
+  };
 
   // ============ KPI card ============
   const renderKpi = (
@@ -260,50 +387,69 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
     );
   };
 
+  const yearTotals = yearSummary?.totals;
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-      <ScreenLayout navigation={_navigation as any}>
-        <View style={styles.header}>
-          <Title>Dashboard Contaduría</Title>
-          <Caption color={theme.color.text.muted}>
-            Vista consolidada de compras declaradas por SUNAT (RCE)
-          </Caption>
-        </View>
+    <ScreenLayout navigation={navigation as any}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Header con gradiente (patrón global) */}
+        <LinearGradient
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="stats-chart" size={22} color={theme.color.brand.onHeader} />
+                </View>
+                <RNText style={styles.title}>Dashboard Contaduría</RNText>
+              </View>
+              <RNText style={styles.subtitle} numberOfLines={1}>
+                {getFilterLabel(selectedFilter)} · Moneda {displayCurrency}
+              </RNText>
+            </View>
+            <TouchableOpacity
+              onPress={openProviderModal}
+              style={styles.headerAction}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
+              <RNText style={styles.headerActionText}>Por proveedor</RNText>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
           refreshControl={
             <RefreshControl
               refreshing={fetchingSummary && !loadingSummary}
               onRefresh={handleRefresh}
+              colors={[theme.color.brand.accent]}
             />
           }
         >
-          {/* Filtros */}
-          <Card style={styles.filtersCard}>
-            <View style={styles.filtersRow}>
-              <View style={styles.field}>
-                <Input
-                  label="Período desde (AAAAMM)"
-                  placeholder="202601"
-                  keyboardType="numeric"
-                  maxLength={6}
-                  value={periodoFrom}
-                  onChangeText={(v) => setPeriodoFrom(v.replace(/\D/g, ''))}
-                />
-              </View>
-              <View style={styles.field}>
-                <Input
-                  label="Período hasta (AAAAMM)"
-                  placeholder="202608"
-                  keyboardType="numeric"
-                  maxLength={6}
-                  value={periodoTo}
-                  onChangeText={(v) => setPeriodoTo(v.replace(/\D/g, ''))}
-                />
-              </View>
-            </View>
-            <View style={styles.chipsSection}>
+          {/* Filtros globales — patrón dashboard general */}
+          <View style={styles.filtersSection}>
+            <RNText style={styles.filtersLabel}>📅 Período de Análisis</RNText>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersContent}
+            >
+              {renderFilterButton('today', 'Hoy')}
+              {renderFilterButton('yesterday', 'Ayer')}
+              {renderFilterButton('week', 'Esta Semana')}
+              {renderFilterButton('month', 'Este Mes')}
+              {renderFilterButton('lastMonth', 'Mes Pasado')}
+              {renderFilterButton('year', 'Este Año')}
+              {renderFilterButton('custom', '📅 Personalizado')}
+            </ScrollView>
+            <View style={styles.currencyRow}>
               <Caption color={theme.color.text.muted}>Moneda</Caption>
               <ChipGroup
                 options={MONEDA_OPTIONS}
@@ -313,15 +459,60 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
                 size="small"
               />
             </View>
+          </View>
+
+          {/* Resumen anual (siempre año en curso) */}
+          <Card style={styles.blockCard}>
+            <View style={styles.blockHeader}>
+              <Ionicons name="calendar-outline" size={18} color={theme.color.text.body} />
+              <View style={{ flex: 1 }}>
+                <Title size="small">Resumen del año {new Date().getFullYear()}</Title>
+                <Caption color={theme.color.text.muted}>
+                  Acumulado enero – diciembre en moneda {displayCurrency}
+                </Caption>
+              </View>
+            </View>
+            {loadingYear ? (
+              <View style={styles.loadingBoxSmall}>
+                <ActivityIndicator size="small" color={theme.color.brand.accent} />
+              </View>
+            ) : yearTotals ? (
+              <View style={styles.kpisGrid}>
+                {renderKpi(
+                  'document-text-outline',
+                  'Comprobantes',
+                  formatInt(yearTotals.count),
+                  '#3B82F6'
+                )}
+                {renderKpi(
+                  'cash-outline',
+                  'Base',
+                  formatCurrency(yearTotals.baseImponible, displayCurrency),
+                  '#10B981'
+                )}
+                {renderKpi(
+                  'calculator-outline',
+                  'IGV',
+                  formatCurrency(yearTotals.igv, displayCurrency),
+                  '#F59E0B'
+                )}
+                {renderKpi(
+                  'wallet-outline',
+                  'Importe total',
+                  formatCurrency(yearTotals.importeTotal, displayCurrency),
+                  '#8B5CF6'
+                )}
+              </View>
+            ) : (
+              <Caption color={theme.color.text.muted}>Sin datos en el año.</Caption>
+            )}
           </Card>
 
-          {/* Sección Compras */}
+          {/* Sección Compras — del período seleccionado */}
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
-              <Title size="small">Compras declaradas por SUNAT</Title>
-              <Caption color={theme.color.text.muted}>
-                Propuesta RCE del período seleccionado
-              </Caption>
+              <Title size="small">Compras del período</Title>
+              <Caption color={theme.color.text.muted}>{getFilterLabel(selectedFilter)}</Caption>
             </View>
             <Button
               title="Detalle por proveedor"
@@ -349,7 +540,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
             />
           ) : (
             <>
-              {/* KPIs */}
               <View style={styles.kpisGrid}>
                 {renderKpi(
                   'document-text-outline',
@@ -382,7 +572,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
                 )}
               </View>
 
-              {/* By periodo */}
               {summary?.byPeriodo?.length ? (
                 <Card style={styles.blockCard}>
                   <View style={styles.blockHeader}>
@@ -393,7 +582,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
                 </Card>
               ) : null}
 
-              {/* By tipoCpe */}
               {summary?.byTipoCpe?.length ? (
                 <Card style={styles.blockCard}>
                   <View style={styles.blockHeader}>
@@ -404,7 +592,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
                 </Card>
               ) : null}
 
-              {/* By currency (solo si hay más de una) */}
               {summary && summary.byCurrency.length > 1 ? (
                 <Card style={styles.blockCard}>
                   <View style={styles.blockHeader}>
@@ -450,9 +637,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
               <View style={{ flex: 1 }}>
                 <Title size="small">Compras por proveedor</Title>
                 <Caption color={theme.color.text.muted}>
-                  {periodoFrom && periodoTo
-                    ? `${formatPeriodo(periodoFrom)} → ${formatPeriodo(periodoTo)}`
-                    : 'Todos los períodos'}
+                  {getFilterLabel(selectedFilter)} · {displayCurrency}
                 </Caption>
               </View>
               <TouchableOpacity onPress={closeProviderModal} style={styles.closeBtn}>
@@ -468,7 +653,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
                 leftIcon="search-outline"
                 size="small"
               />
-              <View style={styles.chipsSection}>
+              <View style={styles.currencyRow}>
                 <Caption color={theme.color.text.muted}>Ordenar por</Caption>
                 <ChipGroup
                   options={SORT_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
@@ -560,50 +745,152 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation: _naviga
             </ScrollView>
           </View>
         </Modal>
-      </ScreenLayout>
-    </SafeAreaView>
+
+        {/* Custom date range picker */}
+        <DateRangePicker
+          visible={showDateRangePicker}
+          startDate={customStartDate}
+          endDate={customEndDate}
+          onConfirm={(s, e) => {
+            setCustomStartDate(s);
+            setCustomEndDate(e);
+            setSelectedFilter('custom');
+            setShowDateRangePicker(false);
+          }}
+          onCancel={() => setShowDateRangePicker(false)}
+          title="Seleccionar rango de fechas"
+        />
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    safeArea: {
+    container: {
       flex: 1,
-      backgroundColor: theme.color.background.canvas,
+      backgroundColor: theme.color.brand.headerFrom,
     },
-    header: {
-      paddingHorizontal: spacing[4],
-      paddingTop: spacing[3],
-      paddingBottom: spacing[2],
+    content: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
     },
-    scrollContent: {
+    // ===== Header pattern (dashboard global) =====
+    headerGradient: {
+      paddingHorizontal: spacing[5],
+      paddingTop: spacing[4],
+      paddingBottom: spacing[5],
+    },
+    headerTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    headerTitleContainer: {
+      flex: 1,
+    },
+    headerIconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing[1],
+    },
+    headerIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: spacing[3],
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: theme.color.brand.onHeader,
+      letterSpacing: 0.3,
+    },
+    subtitle: {
+      fontSize: 13,
+      color: theme.color.brand.onHeaderMuted,
+      fontWeight: '500',
+      marginLeft: 48,
+    },
+    headerAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      backgroundColor: theme.color.brand.headerBadge,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      marginLeft: spacing[3],
+    },
+    headerActionText: {
+      fontSize: 12,
+      color: theme.color.brand.onHeader,
+      fontWeight: '600',
+    },
+    // ===== Content =====
+    contentContainer: {
       padding: spacing[4],
       paddingBottom: spacing[8],
       gap: spacing[3],
     },
-    filtersCard: {
-      padding: spacing[3],
+    // ===== Filters =====
+    filtersSection: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.xl,
+      padding: spacing[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
       gap: spacing[3],
     },
-    filtersRow: {
-      flexDirection: 'row',
-      gap: spacing[2],
+    filtersLabel: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: theme.color.text.heading,
     },
-    field: {
-      flex: 1,
+    filtersContent: {
+      paddingRight: spacing[4],
+    },
+    filterButton: {
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[2],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1.5,
+      borderColor: theme.color.border.subtle,
+      marginRight: spacing[2],
+    },
+    filterButtonActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    filterButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    filterButtonTextActive: {
+      color: theme.color.text.onAction,
+    },
+    currencyRow: {
       gap: spacing[1],
     },
-    chipsSection: {
-      gap: spacing[1],
-    },
+    // ===== Section header =====
     sectionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing[3],
       paddingTop: spacing[2],
     },
+    // ===== KPIs =====
     loadingBox: {
       padding: spacing[5],
+      alignItems: 'center',
+    },
+    loadingBoxSmall: {
+      padding: spacing[3],
       alignItems: 'center',
     },
     kpisGrid: {
@@ -668,7 +955,7 @@ const createStyles = (theme: Theme) =>
       gap: spacing[3],
       paddingVertical: spacing[1],
     },
-    // Modal
+    // ===== Modal =====
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: theme.color.overlay.medium,

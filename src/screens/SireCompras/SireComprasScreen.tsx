@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
@@ -343,26 +344,46 @@ export const SireComprasScreen: React.FC<Props> = ({ navigation: _navigation }) 
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-      <ScreenLayout navigation={_navigation as any}>
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Title>Registro Compras · Conciliación</Title>
-            <Caption color={theme.color.text.muted}>
-              Propuesta SUNAT (RCE) para conciliar con tus compras internas
-            </Caption>
+    <ScreenLayout navigation={_navigation as any}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <LinearGradient
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="sync" size={22} color={theme.color.brand.onHeader} />
+                </View>
+                <Text style={styles.headerTitle}>Registro Compras · Conciliación</Text>
+              </View>
+              <Text style={styles.headerSubtitle} numberOfLines={1}>
+                Propuesta SUNAT (RCE) para conciliar con tus compras internas
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={handleSync}
+              style={styles.headerAction}
+              activeOpacity={0.8}
+              disabled={syncMutation.isPending}
+            >
+              <Ionicons
+                name={syncMutation.isPending ? 'time-outline' : 'sync-outline'}
+                size={16}
+                color={theme.color.brand.onHeader}
+              />
+              <Text style={styles.headerActionText}>
+                {syncMutation.isPending ? 'Sincronizando…' : 'Sincronizar'}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Button
-            title={syncMutation.isPending ? 'Sincronizando…' : 'Sincronizar'}
-            onPress={handleSync}
-            variant="primary"
-            size="small"
-            loading={syncMutation.isPending}
-            disabled={syncMutation.isPending}
-          />
-        </View>
+        </LinearGradient>
 
         <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl refreshing={isFetching && !isLoading} onRefresh={handleRefresh} />
@@ -630,8 +651,8 @@ export const SireComprasScreen: React.FC<Props> = ({ navigation: _navigation }) 
           }}
           title="Fecha hasta"
         />
-      </ScreenLayout>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
@@ -639,7 +660,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     safeArea: {
       flex: 1,
-      backgroundColor: theme.color.background.canvas,
+      backgroundColor: theme.color.brand.headerFrom,
     },
     header: {
       flexDirection: 'row',
@@ -648,6 +669,64 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing[4],
       paddingTop: spacing[3],
       paddingBottom: spacing[2],
+    },
+    headerGradient: {
+      paddingHorizontal: spacing[5],
+      paddingTop: spacing[4],
+      paddingBottom: spacing[5],
+    },
+    headerTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    headerTitleContainer: {
+      flex: 1,
+    },
+    headerIconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing[1],
+    },
+    headerIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: spacing[3],
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.brand.onHeader,
+      letterSpacing: 0.3,
+    },
+    headerSubtitle: {
+      fontSize: 13,
+      color: theme.color.brand.onHeaderMuted,
+      fontWeight: '500',
+      marginLeft: 48,
+    },
+    headerAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      backgroundColor: theme.color.brand.headerBadge,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      marginLeft: spacing[3],
+    },
+    headerActionText: {
+      fontSize: 12,
+      color: theme.color.brand.onHeader,
+      fontWeight: '600',
+    },
+    scrollView: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
     },
     scrollContent: {
       padding: spacing[4],
