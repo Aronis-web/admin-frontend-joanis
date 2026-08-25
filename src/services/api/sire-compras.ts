@@ -2,12 +2,16 @@ import { apiClient } from './client';
 import type {
   CreateSireLinkDto,
   GetSireInvoicesParams,
+  GetSireInvoicesSummaryByProviderParams,
+  GetSireInvoicesSummaryParams,
   SireActiveRunResponse,
   SireImportResponse,
   SireInvoiceAttachment,
   SireInvoiceDetail,
   SireInvoiceLink,
   SireInvoicesListResponse,
+  SireInvoicesSummaryByProviderResponse,
+  SireInvoicesSummaryResponse,
   SirePurchaseSuggestionsResponse,
   SireRun,
   SireRunsListResponse,
@@ -70,6 +74,27 @@ class SireComprasService {
 
   async getInvoice(id: string): Promise<SireInvoiceDetail> {
     return apiClient.get<SireInvoiceDetail>(`${this.basePath}/invoices/${id}`);
+  }
+
+  // ============================================
+  // Summary / dashboard
+  // ============================================
+
+  async getInvoicesSummary(
+    params?: GetSireInvoicesSummaryParams
+  ): Promise<SireInvoicesSummaryResponse> {
+    return apiClient.get<SireInvoicesSummaryResponse>(`${this.basePath}/invoices/summary`, {
+      params,
+    });
+  }
+
+  async getInvoicesSummaryByProvider(
+    params?: GetSireInvoicesSummaryByProviderParams
+  ): Promise<SireInvoicesSummaryByProviderResponse> {
+    return apiClient.get<SireInvoicesSummaryByProviderResponse>(
+      `${this.basePath}/invoices/summary/by-provider`,
+      { params }
+    );
   }
 
   // ============================================

@@ -538,6 +538,12 @@ const SireComprasScreen = lazyLoad(
   'Cargando Registro de Compras...'
 );
 
+// Contaduría · Dashboard - Lazy Loaded
+const ContaduriaDashboardScreen = lazyLoad(
+  () => import('@/screens/Contaduria').then((m) => ({ default: m.ContaduriaDashboardScreen })),
+  'Cargando Dashboard...'
+);
+
 // Drive Screens - Lazy Loaded
 const DriveHomeScreen = lazyLoad(
   () => import('@/screens/Drive').then((m) => ({ default: m.DriveHomeScreen })),
@@ -2037,6 +2043,20 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['admin.sire_compras.invoices.read']}>
             <SireComprasScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Contaduría · Dashboard */}
+      <MainStackNavigator.Screen
+        name="ContaduriaDashboard"
+        options={{
+          title: 'Dashboard Contaduría',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sire_compras.invoices.read']}>
+            <ContaduriaDashboardScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

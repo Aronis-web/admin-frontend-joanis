@@ -3,10 +3,14 @@ import { sireComprasApi } from '@/services/api';
 import type {
   CreateSireLinkDto,
   GetSireInvoicesParams,
+  GetSireInvoicesSummaryByProviderParams,
+  GetSireInvoicesSummaryParams,
   SireInvoiceAttachment,
   SireInvoiceDetail,
   SireInvoiceLink,
   SireInvoicesListResponse,
+  SireInvoicesSummaryByProviderResponse,
+  SireInvoicesSummaryResponse,
   SireRun,
   SireSyncBody,
 } from '@/types/sireCompras';
@@ -26,6 +30,10 @@ export const sireComprasKeys = {
   invoiceAttachments: (id: string) => [...sireComprasKeys.invoices(), 'attachments', id] as const,
   invoiceSuggestions: (id: string, search?: string) =>
     [...sireComprasKeys.invoices(), 'suggestions', id, search ?? ''] as const,
+  invoicesSummary: (params?: GetSireInvoicesSummaryParams) =>
+    [...sireComprasKeys.invoices(), 'summary', params] as const,
+  invoicesSummaryByProvider: (params?: GetSireInvoicesSummaryByProviderParams) =>
+    [...sireComprasKeys.invoices(), 'summary', 'by-provider', params] as const,
 
   // Runs
   runs: () => [...sireComprasKeys.all, 'runs'] as const,
@@ -80,6 +88,32 @@ export const useSireInvoiceSuggestions = (id: string | undefined, search?: strin
     queryKey: sireComprasKeys.invoiceSuggestions(id ?? '', search),
     queryFn: () => sireComprasApi.getInvoiceSuggestions(id as string, { search }),
     enabled: !!id,
+  });
+};
+
+export const useSireInvoicesSummary = (
+  params?: GetSireInvoicesSummaryParams,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery<SireInvoicesSummaryResponse>({
+    queryKey: sireComprasKeys.invoicesSummary(params),
+    queryFn: () => sireComprasApi.getInvoicesSummary(params),
+    staleTime: DEFAULT_STALE_TIME,
+    refetchOnWindowFocus: false,
+    enabled: options?.enabled ?? true,
+  });
+};
+
+export const useSireInvoicesSummaryByProvider = (
+  params?: GetSireInvoicesSummaryByProviderParams,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery<SireInvoicesSummaryByProviderResponse>({
+    queryKey: sireComprasKeys.invoicesSummaryByProvider(params),
+    queryFn: () => sireComprasApi.getInvoicesSummaryByProvider(params),
+    staleTime: DEFAULT_STALE_TIME,
+    refetchOnWindowFocus: false,
+    enabled: options?.enabled ?? true,
   });
 };
 

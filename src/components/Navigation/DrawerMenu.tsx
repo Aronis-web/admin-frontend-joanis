@@ -346,6 +346,13 @@ const menuCategories: MenuCategory[] = [
     icon: 'document-attach-outline',
     items: [
       {
+        id: 'contaduria-dashboard',
+        icon: 'stats-chart-outline',
+        label: 'Dashboard Contaduría',
+        route: MAIN_ROUTES.CONTADURIA_DASHBOARD,
+        requiredPermissions: ['admin.sire_compras.invoices.read'],
+      },
+      {
         id: 'tax-documents',
         icon: 'document-text-outline',
         label: 'Documentos Tributarios',

@@ -167,3 +167,88 @@ export interface SirePurchaseSuggestionsResponse {
   items: SirePurchaseSuggestion[];
   total: number;
 }
+
+// ============================================
+// Summary (dashboard) endpoints
+// ============================================
+
+/**
+ * Filtros comunes de /sire-compras/invoices/summary y /summary/by-provider.
+ * Todos son opcionales.
+ */
+export interface GetSireInvoicesSummaryParams {
+  fechaFrom?: string; // YYYY-MM-DD
+  fechaTo?: string;
+  periodoFrom?: string; // AAAAMM
+  periodoTo?: string;
+  rucProveedor?: string;
+  tipoCpe?: string;
+  estado?: string;
+  moneda?: string;
+  conciliation?: SireConciliation;
+}
+
+export interface SireSummaryTotals {
+  count: number;
+  baseImponible: string;
+  igv: string;
+  isc: string;
+  otros: string;
+  valorNoGravado: string;
+  importeTotal: string;
+}
+
+export interface SireSummaryByCurrency {
+  moneda: string;
+  count: number;
+  baseImponible: string;
+  igv: string;
+  importeTotal: string;
+}
+
+export interface SireSummaryByPeriodo {
+  perTributario: string;
+  count: number;
+  baseImponible: string;
+  igv: string;
+  importeTotal: string;
+}
+
+export interface SireSummaryByTipoCpe {
+  tipoCpe: string;
+  count: number;
+  importeTotal: string;
+}
+
+export interface SireInvoicesSummaryResponse {
+  filters: Record<string, string | number | boolean | undefined>;
+  totals: SireSummaryTotals;
+  byCurrency: SireSummaryByCurrency[];
+  byPeriodo: SireSummaryByPeriodo[];
+  byTipoCpe: SireSummaryByTipoCpe[];
+}
+
+export type SireProviderSortBy = 'importeTotal' | 'count' | 'razonSocialProveedor';
+
+export interface GetSireInvoicesSummaryByProviderParams extends GetSireInvoicesSummaryParams {
+  sortBy?: SireProviderSortBy;
+  sortDir?: SireSortDir;
+  limit?: number;
+  offset?: number;
+}
+
+export interface SireProviderSummaryItem {
+  rucProveedor: string;
+  razonSocialProveedor: string;
+  count: number;
+  baseImponible: string;
+  igv: string;
+  importeTotal: string;
+}
+
+export interface SireInvoicesSummaryByProviderResponse {
+  items: SireProviderSummaryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
