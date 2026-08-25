@@ -323,6 +323,9 @@ export type MainStackParamList = {
   // SIRE Compras (RCE)
   SireCompras: undefined;
 
+  // SIRE Ventas (RVIE)
+  SireVentas: undefined;
+
   // Contaduría · Dashboard
   ContaduriaDashboard: undefined;
 

@@ -366,6 +366,13 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.SIRE_COMPRAS,
         requiredPermissions: ['admin.sire_compras.invoices.read'],
       },
+      {
+        id: 'sire-ventas',
+        icon: 'sync-outline',
+        label: 'Registro Ventas · Conciliación',
+        route: MAIN_ROUTES.SIRE_VENTAS,
+        requiredPermissions: ['admin.sire_ventas.invoices.read'],
+      },
     ],
   },
   // Asistencia

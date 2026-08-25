@@ -15,6 +15,7 @@ export { filesApi } from './files';
 export { accessApi } from './access';
 export { transmisionesApi } from './transmisiones';
 export { sireComprasApi, sireComprasService } from './sire-compras';
+export { sireVentasApi, sireVentasService } from './sire-ventas';
 export { organizationApi } from './organization';
 
 // Re-export commonly used services

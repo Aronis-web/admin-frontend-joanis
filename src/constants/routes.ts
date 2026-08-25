@@ -154,6 +154,9 @@ export const MAIN_ROUTES = {
   // SIRE Compras (RCE) - Registro de Compras / Conciliación
   SIRE_COMPRAS: 'SireCompras',
 
+  // SIRE Ventas (RVIE) - Registro de Ventas / Conciliación
+  SIRE_VENTAS: 'SireVentas',
+
   // Contaduría · Dashboard
   CONTADURIA_DASHBOARD: 'ContaduriaDashboard',
 
@@ -383,6 +386,9 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // SIRE Compras (RCE)
   SIRE_COMPRAS: 'admin.sire_compras.invoices.read',
+
+  // SIRE Ventas (RVIE)
+  SIRE_VENTAS: 'admin.sire_ventas.invoices.read',
 
   // Contaduría · Dashboard
   CONTADURIA_DASHBOARD: 'admin.sire_compras.invoices.read',

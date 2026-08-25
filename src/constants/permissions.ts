@@ -477,6 +477,18 @@ export const PERMISSIONS = {
     },
   },
 
+  // ========== SIRE VENTAS (RVIE) ==========
+  SIRE_VENTAS: {
+    SYNC: 'admin.sire_ventas.sync',
+    RUNS: {
+      READ: 'admin.sire_ventas.runs.read',
+    },
+    INVOICES: {
+      READ: 'admin.sire_ventas.invoices.read',
+      LINK: 'admin.sire_ventas.invoices.link',
+    },
+  },
+
   // ========== CUENTAS POR PAGAR ==========
   ACCOUNTS_PAYABLE: {
     // Lectura

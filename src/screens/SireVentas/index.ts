@@ -1,0 +1,1 @@
+export { SireVentasScreen } from './SireVentasScreen';

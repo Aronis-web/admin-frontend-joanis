@@ -9,3 +9,4 @@ export * from './useExpenses';
 export * from './useRepartos';
 export * from './useReports';
 export * from './useSireCompras';
+export * from './useSireVentas';

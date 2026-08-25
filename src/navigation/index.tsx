@@ -538,6 +538,12 @@ const SireComprasScreen = lazyLoad(
   'Cargando Registro de Compras...'
 );
 
+// SIRE Ventas (RVIE) - Lazy Loaded
+const SireVentasScreen = lazyLoad(
+  () => import('@/screens/SireVentas').then((m) => ({ default: m.SireVentasScreen })),
+  'Cargando Registro de Ventas...'
+);
+
 // Contaduría · Dashboard - Lazy Loaded
 const ContaduriaDashboardScreen = lazyLoad(
   () => import('@/screens/Contaduria').then((m) => ({ default: m.ContaduriaDashboardScreen })),
@@ -2043,6 +2049,20 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['admin.sire_compras.invoices.read']}>
             <SireComprasScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* SIRE Ventas (RVIE) - Registro Ventas / Conciliación */}
+      <MainStackNavigator.Screen
+        name="SireVentas"
+        options={{
+          title: 'Registro Ventas · Conciliación',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sire_ventas.invoices.read']}>
+            <SireVentasScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
