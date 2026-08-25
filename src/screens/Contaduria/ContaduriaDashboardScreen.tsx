@@ -16,6 +16,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Line as SvgLine,
+  Path,
+  Stop,
+  Text as SvgText,
+} from 'react-native-svg';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DateRangePicker } from '@/components/DateRangePicker';
@@ -113,16 +122,6 @@ const formatCurrency = (amount?: string, currency = 'PEN') => {
   } catch {
     return `${currency} ${num.toFixed(2)}`;
   }
-};
-
-const formatCurrencyCompact = (amount?: string, currency = 'PEN') => {
-  const symbol = currency === 'USD' ? '$' : 'S/';
-  if (amount === undefined || amount === null || amount === '') return `${symbol} 0`;
-  const num = Number(amount);
-  if (Number.isNaN(num)) return `${symbol} ${amount}`;
-  if (Math.abs(num) >= 1_000_000) return `${symbol} ${(num / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(num) >= 1_000) return `${symbol} ${(num / 1_000).toFixed(1)}K`;
-  return `${symbol} ${num.toFixed(0)}`;
 };
 
 const formatInt = (n?: number | string) => {
@@ -277,6 +276,9 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   /** Colapsable: por defecto la sección arranca plegada. */
   const [sectionExpanded, setSectionExpanded] = useState(false);
 
+  /** Ancho del gráfico anual (medido dinámicamente para el SVG). */
+  const [chartLayoutWidth, setChartLayoutWidth] = useState<number | null>(null);
+
   const providerParams = useMemo(
     () => ({
       ...summaryParams,
@@ -343,13 +345,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const hasSummaryData = visibleCurrencies.length > 0;
 
   // Índice { moneda -> filas byPeriodo } del período seleccionado
-  const summaryByPeriodoByMoneda = useMemo(() => {
-    const acc: Record<'PEN' | 'USD', SireSummaryByPeriodo[]> = { PEN: [], USD: [] };
-    (summary?.byPeriodo ?? []).forEach((p) => {
-      if (p.moneda === 'PEN' || p.moneda === 'USD') acc[p.moneda].push(p);
-    });
-    return acc;
-  }, [summary?.byPeriodo]);
 
   const handleRefresh = useCallback(() => {
     void refetchSummary();
@@ -434,26 +429,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   // ============ Distribution row (period) ============
-  const renderPeriodoRow = (item: SireSummaryByPeriodo, maxTotal: number, accent: string) => {
-    const total = Number(item.importeTotal) || 0;
-    const ratio = maxTotal > 0 ? Math.max(0.04, total / maxTotal) : 0;
-    return (
-      <View key={`${item.perTributario}-${item.moneda}`} style={styles.periodRow}>
-        <View style={styles.periodLabelCol}>
-          <Body style={{ fontWeight: '600' }}>{formatPeriodo(item.perTributario)}</Body>
-          <Caption color={theme.color.text.muted}>{formatInt(item.count)} docs</Caption>
-        </View>
-        <View style={styles.periodBarCol}>
-          <View style={[styles.periodBar, { width: `${ratio * 100}%`, backgroundColor: accent }]} />
-        </View>
-        <View style={styles.periodValueCol}>
-          <Body style={{ fontWeight: '600' }}>
-            {formatCurrency(item.importeTotal, item.moneda)}
-          </Body>
-        </View>
-      </View>
-    );
-  };
 
   const renderCpeRow = (item: SireSummaryByTipoCpe) => {
     const label = CPE_LABELS[item.tipoCpe] || `Tipo ${item.tipoCpe}`;
@@ -782,28 +757,75 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const renderUnifiedMonthlyChart = () => {
-    const CHART_HEIGHT = 200;
+    const CHART_HEIGHT = 220;
+    const PAD_TOP = 18;
+    const PAD_BOTTOM = 28;
+    const PAD_LEFT = 12;
+    const PAD_RIGHT = 12;
     const { months, accPen, accUsd, totalDocsPen, totalDocsUsd } = yearMonthlyUnified;
     const penAccent = CURRENCY_ACCENTS.PEN;
     const usdAccent = CURRENCY_ACCENTS.USD;
     const showPen = currencyFilter.PEN;
     const showUsd = currencyFilter.USD;
 
-    // Máximo mensual en PEN-equivalente (1 USD ≈ USD_TO_PEN_RATE PEN)
-    const monthPenEqTotals = months.map((m) => {
-      const penTotal = showPen ? m.PEN.importeTotal : 0;
-      const usdTotal = showUsd ? m.USD.importeTotal : 0;
-      return {
-        m,
-        penEqTotal: penTotal + toPenEquivalent(usdTotal, 'USD'),
-        penPart: penTotal,
-        usdPart: usdTotal,
-      };
-    });
-    const maxPenEq = monthPenEqTotals.reduce((max, r) => Math.max(max, r.penEqTotal), 0);
+    // Máximos por moneda (cada línea se normaliza a su propio máximo para
+    // que ambas curvas se lean bien aunque tengan magnitudes muy distintas)
+    const maxPen = months.reduce((mx, m) => Math.max(mx, m.PEN.importeTotal), 0);
+    const maxUsd = months.reduce((mx, m) => Math.max(mx, m.USD.importeTotal), 0);
+
     const rows = months.filter(
       (m) => m.PEN.importeTotal > 0 || m.USD.importeTotal > 0 || m.PEN.count > 0 || m.USD.count > 0
     );
+
+    // Ancho del svg: usamos onLayout del contenedor para adaptarnos.
+    const chartWidth = chartLayoutWidth ?? 320;
+    const innerW = Math.max(1, chartWidth - PAD_LEFT - PAD_RIGHT);
+    const innerH = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM;
+    const stepX = months.length > 1 ? innerW / (months.length - 1) : 0;
+
+    const buildPoints = (getVal: (idx: number) => number, max: number) =>
+      months.map((m, i) => {
+        const v = getVal(i);
+        const ratio = max > 0 ? v / max : 0;
+        const x = PAD_LEFT + i * stepX;
+        const y = PAD_TOP + innerH * (1 - ratio);
+        return { x, y, v, idx: i, month: m.month };
+      });
+
+    const penPoints = buildPoints((i) => months[i].PEN.importeTotal, maxPen);
+    const usdPoints = buildPoints((i) => months[i].USD.importeTotal, maxUsd);
+
+    const toLinePath = (pts: { x: number; y: number }[]) => {
+      if (!pts.length) return '';
+      // Curva suave con Bezier cúbicas (Catmull-Rom → Bezier).
+      const parts: string[] = [`M ${pts[0].x} ${pts[0].y}`];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i === 0 ? i : i - 1];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+        const smooth = 0.18;
+        const c1x = p1.x + (p2.x - p0.x) * smooth;
+        const c1y = p1.y + (p2.y - p0.y) * smooth;
+        const c2x = p2.x - (p3.x - p1.x) * smooth;
+        const c2y = p2.y - (p3.y - p1.y) * smooth;
+        parts.push(`C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`);
+      }
+      return parts.join(' ');
+    };
+
+    const toAreaPath = (pts: { x: number; y: number }[]) => {
+      if (!pts.length) return '';
+      const line = toLinePath(pts);
+      const last = pts[pts.length - 1];
+      const first = pts[0];
+      const baseY = PAD_TOP + innerH;
+      return `${line} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`;
+    };
+
+    // Líneas de grilla horizontales (25%, 50%, 75%, 100%)
+    const gridYs = [0.25, 0.5, 0.75, 1].map((r) => PAD_TOP + innerH * (1 - r));
+
     return (
       <Card key="chart-unified" style={styles.blockCard}>
         <View style={styles.blockHeader}>
@@ -814,8 +836,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
               {showPen ? `Acumulado ${formatCurrency(String(accPen), 'PEN')}` : ''}
               {showPen && showUsd ? ' · ' : ''}
               {showUsd ? formatCurrency(String(accUsd), 'USD') : ''}
-              {' · '}
-              Proporciones a tasa 1 USD ≈ {USD_TO_PEN_RATE} PEN
             </Caption>
           </View>
         </View>
@@ -836,51 +856,121 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
         </View>
 
-        <View style={[styles.chart, { height: CHART_HEIGHT }]}>
-          {monthPenEqTotals.map(({ m, penEqTotal, penPart, usdPart }) => {
-            const ratio = maxPenEq > 0 ? Math.max(0, penEqTotal / maxPenEq) : 0;
-            const barHeight = Math.max(
-              penEqTotal > 0 ? 2 : 0,
-              Math.round(ratio * (CHART_HEIGHT - 44))
-            );
-            const penEqPart = penPart;
-            const usdEqPart = toPenEquivalent(usdPart, 'USD');
-            const penShare = penEqTotal > 0 ? penEqPart / penEqTotal : 0;
-            const usdShare = penEqTotal > 0 ? usdEqPart / penEqTotal : 0;
-            const isCurrent = m.month === currentMonthIdx;
-            return (
-              <View key={m.key} style={styles.chartCol}>
-                <View style={styles.chartBarTrackGrouped}>
-                  <View
-                    style={[
-                      styles.chartBarStacked,
-                      { height: barHeight, opacity: isCurrent ? 1 : 0.75 },
-                    ]}
-                  >
-                    {showPen && penShare > 0 ? (
-                      <View
-                        style={{
-                          flex: penShare,
-                          backgroundColor: penAccent,
-                        }}
-                      />
-                    ) : null}
-                    {showUsd && usdShare > 0 ? (
-                      <View
-                        style={{
-                          flex: usdShare,
-                          backgroundColor: usdAccent,
-                        }}
-                      />
-                    ) : null}
-                  </View>
-                </View>
-                <RNText style={[styles.chartBarLabel, isCurrent && styles.chartBarLabelActive]}>
+        <View
+          style={{ width: '100%' }}
+          onLayout={(e) => setChartLayoutWidth(e.nativeEvent.layout.width)}
+        >
+          <Svg width={chartWidth} height={CHART_HEIGHT}>
+            <Defs>
+              <SvgLinearGradient id="penGrad" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={penAccent} stopOpacity={0.35} />
+                <Stop offset="1" stopColor={penAccent} stopOpacity={0} />
+              </SvgLinearGradient>
+              <SvgLinearGradient id="usdGrad" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={usdAccent} stopOpacity={0.35} />
+                <Stop offset="1" stopColor={usdAccent} stopOpacity={0} />
+              </SvgLinearGradient>
+            </Defs>
+
+            {/* Grilla */}
+            {gridYs.map((y, i) => (
+              <SvgLine
+                key={`grid-${i}`}
+                x1={PAD_LEFT}
+                x2={chartWidth - PAD_RIGHT}
+                y1={y}
+                y2={y}
+                stroke={theme.color.border.default}
+                strokeWidth={1}
+                strokeDasharray="3,4"
+                opacity={0.6}
+              />
+            ))}
+
+            {/* Área PEN */}
+            {showPen && maxPen > 0 ? <Path d={toAreaPath(penPoints)} fill="url(#penGrad)" /> : null}
+            {/* Área USD */}
+            {showUsd && maxUsd > 0 ? <Path d={toAreaPath(usdPoints)} fill="url(#usdGrad)" /> : null}
+
+            {/* Línea PEN */}
+            {showPen && maxPen > 0 ? (
+              <Path
+                d={toLinePath(penPoints)}
+                stroke={penAccent}
+                strokeWidth={2.5}
+                fill="none"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ) : null}
+            {/* Línea USD */}
+            {showUsd && maxUsd > 0 ? (
+              <Path
+                d={toLinePath(usdPoints)}
+                stroke={usdAccent}
+                strokeWidth={2.5}
+                fill="none"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ) : null}
+
+            {/* Puntos + mes actual resaltado */}
+            {showPen && maxPen > 0
+              ? penPoints.map((p) => {
+                  const isCurrent = p.month === currentMonthIdx;
+                  const r = isCurrent ? 5 : 3;
+                  return p.v > 0 ? (
+                    <Circle
+                      key={`pen-dot-${p.idx}`}
+                      cx={p.x}
+                      cy={p.y}
+                      r={r}
+                      fill={theme.color.surface.base}
+                      stroke={penAccent}
+                      strokeWidth={isCurrent ? 3 : 2}
+                    />
+                  ) : null;
+                })
+              : null}
+            {showUsd && maxUsd > 0
+              ? usdPoints.map((p) => {
+                  const isCurrent = p.month === currentMonthIdx;
+                  const r = isCurrent ? 5 : 3;
+                  return p.v > 0 ? (
+                    <Circle
+                      key={`usd-dot-${p.idx}`}
+                      cx={p.x}
+                      cy={p.y}
+                      r={r}
+                      fill={theme.color.surface.base}
+                      stroke={usdAccent}
+                      strokeWidth={isCurrent ? 3 : 2}
+                    />
+                  ) : null;
+                })
+              : null}
+
+            {/* Etiquetas de meses en el eje X */}
+            {months.map((m, i) => {
+              const x = PAD_LEFT + i * stepX;
+              const y = CHART_HEIGHT - 8;
+              const isCurrent = m.month === currentMonthIdx;
+              return (
+                <SvgText
+                  key={`lbl-${m.key}`}
+                  x={x}
+                  y={y}
+                  fontSize={10}
+                  fill={isCurrent ? theme.color.brand.accent : theme.color.text.muted}
+                  fontWeight={isCurrent ? 'bold' : 'normal'}
+                  textAnchor="middle"
+                >
                   {m.label}
-                </RNText>
-              </View>
-            );
-          })}
+                </SvgText>
+              );
+            })}
+          </Svg>
         </View>
 
         {/* Tabla detalle mensual unificada */}
