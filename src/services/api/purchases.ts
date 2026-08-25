@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+import { dataUrlToBlob, blobUrlToBlobViaXhr } from '@/utils/imageFile';
 import {
   Purchase,
   PurchasesResponse,
@@ -30,6 +31,38 @@ import {
   MultiValidationResponse,
   ReversePurchaseProductEntryRequest,
 } from '@/types/purchases';
+
+/**
+ * Convierte un archivo del picker en File subible en web sin violar el CSP.
+ *
+ * - Si el picker ya expuso el `File` real, lo usamos tal cual (evita cualquier
+ *   fetch adicional).
+ * - `data:` URLs se decodifican en memoria (CSP bloquea `fetch('data:...')`).
+ * - `blob:` URLs se leen con `XMLHttpRequest` como fallback si `fetch` falla.
+ */
+const webFileToUpload = async (file: {
+  uri: string;
+  filename: string;
+  mimeType: string;
+  file?: File;
+}): Promise<File | Blob> => {
+  if (file.file) return file.file;
+
+  if (file.uri.startsWith('data:')) {
+    const blob = dataUrlToBlob(file.uri);
+    return new File([blob], file.filename, { type: blob.type || file.mimeType });
+  }
+
+  try {
+    const response = await fetch(file.uri);
+    const blob = await response.blob();
+    return new File([blob], file.filename, { type: file.mimeType });
+  } catch {
+    // Fallback para `blob:` URLs cuando el CSP bloquea `fetch`.
+    const blob = await blobUrlToBlobViaXhr(file.uri);
+    return new File([blob], file.filename, { type: file.mimeType });
+  }
+};
 
 /**
  * Purchases API Service
@@ -374,16 +407,7 @@ class PurchasesService {
     // Append all files
     for (const file of files) {
       if (isWeb) {
-        // Web: Use File object if available, or fetch from blob URL
-        let fileToUpload: File | Blob;
-        if (file.file) {
-          fileToUpload = file.file;
-        } else {
-          // Fetch blob from URI and create File
-          const response = await fetch(file.uri);
-          const blob = await response.blob();
-          fileToUpload = new File([blob], file.filename, { type: file.mimeType });
-        }
+        const fileToUpload = await webFileToUpload(file);
         formData.append('files', fileToUpload);
       } else {
         // Mobile: Use uri, type, name object
@@ -446,15 +470,7 @@ class PurchasesService {
         const formData = new FormData();
 
         if (isWeb) {
-          // Web: Use File object if available, or fetch from blob URL
-          let fileToUpload: File | Blob;
-          if (file.file) {
-            fileToUpload = file.file;
-          } else {
-            const response = await fetch(file.uri);
-            const blob = await response.blob();
-            fileToUpload = new File([blob], file.filename, { type: file.mimeType });
-          }
+          const fileToUpload = await webFileToUpload(file);
           formData.append('files', fileToUpload);
         } else {
           // Mobile: Use uri, type, name object

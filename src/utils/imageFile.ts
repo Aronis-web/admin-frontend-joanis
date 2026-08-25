@@ -22,6 +22,30 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
 };
 
 /**
+ * Lee un `blob:` URL como Blob usando `XMLHttpRequest`. Fallback para cuando
+ * un CSP estricto (`connect-src` sin `blob:`) bloquea `fetch('blob:...')`.
+ */
+export const blobUrlToBlobViaXhr = (url: string): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'blob';
+      xhr.onload = () => {
+        if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
+          resolve(xhr.response as Blob);
+        } else {
+          reject(new Error(`XHR falló con status ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error('XHR error leyendo blob URL'));
+      xhr.send();
+    } catch (e) {
+      reject(e as Error);
+    }
+  });
+
+/**
  * Decodifica un `data:` URL a Blob sin usar `fetch`. Necesario porque el CSP
  * (`connect-src`) bloquea `fetch('data:...')` en producción web.
  */

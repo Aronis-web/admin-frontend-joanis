@@ -2,14 +2,37 @@ import { Platform } from 'react-native';
 import { apiClient } from './client';
 import { config } from '@/utils/config';
 import * as FileSystem from 'expo-file-system/legacy';
+import { dataUrlToBlob, blobUrlToBlobViaXhr } from '@/utils/imageFile';
+import logger from '@/utils/logger';
 
 /**
  * Convierte un URI (data:, blob:, http:) en Blob real. Solo web/electron.
  * En React Native nativo no debe llamarse: se envia el objeto {uri, type, name}.
+ *
+ * Importante: el CSP en producción web declara `connect-src 'self' https: wss:`
+ * — sin `data:` ni `blob:`. Por eso `data:` URLs se decodifican en memoria y
+ * `blob:` URLs se leen con `XMLHttpRequest` como fallback si el `fetch` falla
+ * por CSP. Estas URIs son locales al documento, no hay riesgo de exfiltración.
  */
 const uriToBlob = async (uri: string): Promise<Blob> => {
+  // `data:` URLs: decodificar en memoria, sin fetch (CSP bloquea data: en connect-src).
+  if (uri.startsWith('data:')) {
+    return dataUrlToBlob(uri);
+  }
+
+  // `blob:` URLs: intentar fetch; si CSP lo bloquea, fallback a XHR.
+  if (uri.startsWith('blob:')) {
+    try {
+      const response = await fetch(uri);
+      return await response.blob();
+    } catch (e) {
+      logger.warn('uriToBlob: fetch de blob: falló, usando XHR como fallback', e);
+      return blobUrlToBlobViaXhr(uri);
+    }
+  }
+
   const response = await fetch(uri);
-  if (!response.ok && !uri.startsWith('data:') && !uri.startsWith('blob:')) {
+  if (!response.ok) {
     throw new Error(`No se pudo leer el archivo (${response.status})`);
   }
   return await response.blob();
