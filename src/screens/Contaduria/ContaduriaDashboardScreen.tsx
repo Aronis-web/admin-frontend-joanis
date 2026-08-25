@@ -27,7 +27,6 @@ import {
   ChipGroup,
   EmptyState,
   ErrorState,
-  Heading,
   Input,
   Text,
   Title,
@@ -93,6 +92,13 @@ const SORT_OPTIONS: Array<{ label: string; value: SireProviderSortBy }> = [
 ];
 
 const DEFAULT_PROVIDER_LIMIT = 20;
+
+/** Tasa de referencia USD → PEN usada solo para calcular proporciones visuales. */
+const USD_TO_PEN_RATE = 3.5;
+
+/** Convierte un importe en su moneda a PEN equivalente (solo para proporciones). */
+const toPenEquivalent = (amount: number, cur: 'PEN' | 'USD') =>
+  cur === 'USD' ? amount * USD_TO_PEN_RATE : amount;
 
 const formatCurrency = (amount?: string, currency = 'PEN') => {
   if (amount === undefined || amount === null || amount === '') return '-';
@@ -254,6 +260,23 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const [pageJumpOpen, setPageJumpOpen] = useState(false);
   const [pageJumpValue, setPageJumpValue] = useState('');
 
+  /** Filtro de moneda: por defecto ambas. */
+  const [currencyFilter, setCurrencyFilter] = useState<{ PEN: boolean; USD: boolean }>({
+    PEN: true,
+    USD: true,
+  });
+  const toggleCurrency = (cur: 'PEN' | 'USD') => {
+    setCurrencyFilter((prev) => {
+      const next = { ...prev, [cur]: !prev[cur] };
+      // Evitar quedar sin monedas seleccionadas: reactivar la otra.
+      if (!next.PEN && !next.USD) return { PEN: true, USD: true };
+      return next;
+    });
+  };
+
+  /** Colapsable: por defecto la sección arranca plegada. */
+  const [sectionExpanded, setSectionExpanded] = useState(false);
+
   const providerParams = useMemo(
     () => ({
       ...summaryParams,
@@ -295,24 +318,26 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     );
   }, [providerItems, providerSearch]);
 
-  // Monedas con datos en el período seleccionado
+  // Monedas con datos en el período seleccionado (respetando filtro de moneda)
   const visibleCurrencies = useMemo(
     () =>
       CURRENCIES.filter((c) => {
+        if (!currencyFilter[c]) return false;
         const t = summary?.totals?.[c];
         return t ? t.count > 0 : false;
       }),
-    [summary?.totals]
+    [summary?.totals, currencyFilter]
   );
 
-  // Monedas con datos en el año en curso
+  // Monedas con datos en el año en curso (respetando filtro de moneda)
   const visibleYearCurrencies = useMemo(
     () =>
       CURRENCIES.filter((c) => {
+        if (!currencyFilter[c]) return false;
         const t = yearSummary?.totals?.[c];
         return t ? t.count > 0 : false;
       }),
-    [yearSummary?.totals]
+    [yearSummary?.totals, currencyFilter]
   );
 
   const hasSummaryData = visibleCurrencies.length > 0;
@@ -496,12 +521,286 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     };
   }, [yearSummary?.byPeriodo, currentYear]);
 
+  // ============ Resumen unificado (KPIs + Facturas vs NC + Compras por período) ============
+  const renderUnifiedSummary = () => {
+    if (!summary) return null;
+    const curs = visibleCurrencies;
+    if (!curs.length) {
+      return (
+        <EmptyState
+          icon="stats-chart-outline"
+          title="Sin datos"
+          description="No hay comprobantes para las monedas seleccionadas."
+        />
+      );
+    }
+
+    // KPIs agregados
+    const totalDocs = curs.reduce((s, c) => s + (summary.totals[c]?.count ?? 0), 0);
+    const totalFacturasDocs = curs.reduce((s, c) => s + (summary.facturas?.[c]?.count ?? 0), 0);
+    const totalNCDocs = curs.reduce((s, c) => s + (summary.notasCredito?.[c]?.count ?? 0), 0);
+
+    // Filas de KPI por concepto (Base, IGV, Importe) mostrando por moneda visible
+    const renderCurrencyLines = (
+      getAmount: (cur: 'PEN' | 'USD') => string | undefined,
+      color?: string
+    ) =>
+      curs.map((cur) => {
+        const accent = CURRENCY_ACCENTS[cur];
+        return (
+          <View key={cur} style={styles.kpiCurrencyLine}>
+            <View style={[styles.kpiCurrencyDot, { backgroundColor: accent }]} />
+            <RNText style={[styles.kpiCurrencyText, color ? { color } : null]}>
+              {formatCurrency(getAmount(cur) ?? '0', cur)}
+            </RNText>
+          </View>
+        );
+      });
+
+    // Compras por período unificado: agrupar por perTributario
+    const periodMap = new Map<
+      string,
+      { perTributario: string; PEN?: SireSummaryByPeriodo; USD?: SireSummaryByPeriodo }
+    >();
+    (summary.byPeriodo ?? []).forEach((p) => {
+      if (p.moneda !== 'PEN' && p.moneda !== 'USD') return;
+      if (!curs.includes(p.moneda)) return;
+      const entry = periodMap.get(p.perTributario) ?? { perTributario: p.perTributario };
+      entry[p.moneda] = p;
+      periodMap.set(p.perTributario, entry);
+    });
+    const unifiedPeriods = Array.from(periodMap.values()).sort((a, b) =>
+      b.perTributario.localeCompare(a.perTributario)
+    );
+    // Máximo en PEN-equivalente para escalar barras
+    const maxPenEq = unifiedPeriods.reduce((max, row) => {
+      const pen = Number(row.PEN?.importeTotal ?? 0);
+      const usd = Number(row.USD?.importeTotal ?? 0);
+      return Math.max(max, toPenEquivalent(pen, 'PEN') + toPenEquivalent(usd, 'USD'));
+    }, 0);
+
+    return (
+      <>
+        {/* KPIs unificados */}
+        <Card style={styles.blockCard}>
+          <View style={styles.blockHeader}>
+            <Ionicons name="pulse-outline" size={18} color={theme.color.brand.accent} />
+            <Title size="small">Resumen del período</Title>
+          </View>
+          <View style={styles.kpisGrid}>
+            {renderKpi(
+              'document-text-outline',
+              'Comprobantes',
+              formatInt(totalDocs),
+              theme.color.brand.accent,
+              `${formatInt(totalFacturasDocs)} facturas · ${formatInt(totalNCDocs)} NC`
+            )}
+            <View style={styles.kpiMulti}>
+              <View style={styles.kpiHeader}>
+                <Ionicons name="cash-outline" size={16} color="#10B981" />
+                <Caption color={theme.color.text.muted}>Base imponible</Caption>
+              </View>
+              {renderCurrencyLines((cur) => summary.totals[cur]?.baseImponible)}
+            </View>
+            <View style={styles.kpiMulti}>
+              <View style={styles.kpiHeader}>
+                <Ionicons name="calculator-outline" size={16} color="#F59E0B" />
+                <Caption color={theme.color.text.muted}>IGV</Caption>
+              </View>
+              {renderCurrencyLines((cur) => summary.totals[cur]?.igv)}
+            </View>
+            <View style={styles.kpiMulti}>
+              <View style={styles.kpiHeader}>
+                <Ionicons name="wallet-outline" size={16} color="#8B5CF6" />
+                <Caption color={theme.color.text.muted}>Importe neto</Caption>
+              </View>
+              {renderCurrencyLines((cur) => summary.totals[cur]?.importeTotal)}
+            </View>
+          </View>
+        </Card>
+
+        {/* Facturas vs NC unificado */}
+        <Card style={styles.blockCard}>
+          <View style={styles.blockHeader}>
+            <Ionicons name="swap-vertical-outline" size={18} color={theme.color.brand.accent} />
+            <Title size="small">Facturas vs Notas de crédito</Title>
+          </View>
+          <View style={styles.breakdownRow}>
+            <View style={[styles.breakdownCell, { borderLeftColor: '#10B981' }]}>
+              <View style={styles.breakdownHeader}>
+                <Ionicons name="receipt-outline" size={16} color="#10B981" />
+                <Caption color={theme.color.text.muted}>
+                  Facturas · {formatInt(totalFacturasDocs)} docs
+                </Caption>
+              </View>
+              {curs.map((cur) => {
+                const b = summary.facturas?.[cur];
+                if (!b || b.count === 0) return null;
+                const accent = CURRENCY_ACCENTS[cur];
+                return (
+                  <View key={`f-${cur}`} style={styles.breakdownCurrencyRow}>
+                    <View style={[styles.kpiCurrencyDot, { backgroundColor: accent }]} />
+                    <View style={{ flex: 1 }}>
+                      <Body style={{ fontWeight: '700' }}>
+                        {formatCurrency(b.importeTotal, cur)}
+                      </Body>
+                      <Caption color={theme.color.text.muted}>
+                        {formatInt(b.count)} docs · IGV {formatCurrency(b.igv, cur)}
+                      </Caption>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+            <View style={[styles.breakdownCell, { borderLeftColor: '#EF4444' }]}>
+              <View style={styles.breakdownHeader}>
+                <Ionicons name="arrow-undo-outline" size={16} color="#EF4444" />
+                <Caption color={theme.color.text.muted}>
+                  Notas de crédito · {formatInt(totalNCDocs)} docs
+                </Caption>
+              </View>
+              {curs.map((cur) => {
+                const b = summary.notasCredito?.[cur];
+                if (!b || b.count === 0) return null;
+                const accent = CURRENCY_ACCENTS[cur];
+                return (
+                  <View key={`nc-${cur}`} style={styles.breakdownCurrencyRow}>
+                    <View style={[styles.kpiCurrencyDot, { backgroundColor: accent }]} />
+                    <View style={{ flex: 1 }}>
+                      <Body style={{ fontWeight: '700', color: '#EF4444' }}>
+                        − {formatCurrency(b.importeTotal, cur)}
+                      </Body>
+                      <Caption color={theme.color.text.muted}>
+                        {formatInt(b.count)} docs · IGV {formatCurrency(b.igv, cur)}
+                      </Caption>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        </Card>
+
+        {/* Compras por período unificado */}
+        {unifiedPeriods.length ? (
+          <Card style={styles.blockCard}>
+            <View style={styles.blockHeader}>
+              <Ionicons name="bar-chart-outline" size={18} color={theme.color.brand.accent} />
+              <View style={{ flex: 1 }}>
+                <Title size="small">Compras por período</Title>
+                <Caption color={theme.color.text.muted}>
+                  Proporciones a tasa referencial 1 USD ≈ {USD_TO_PEN_RATE} PEN
+                </Caption>
+              </View>
+            </View>
+            <View style={{ gap: spacing[3] }}>
+              {unifiedPeriods.map((row) => {
+                const pen = Number(row.PEN?.importeTotal ?? 0);
+                const usd = Number(row.USD?.importeTotal ?? 0);
+                const totalPenEq = toPenEquivalent(pen, 'PEN') + toPenEquivalent(usd, 'USD');
+                const ratio = maxPenEq > 0 ? Math.max(0, totalPenEq / maxPenEq) : 0;
+                const totalDocsPeriod = (row.PEN?.count ?? 0) + (row.USD?.count ?? 0);
+                const penRatio = totalPenEq > 0 ? toPenEquivalent(pen, 'PEN') / totalPenEq : 0;
+                return (
+                  <View key={row.perTributario} style={styles.unifiedPeriodRow}>
+                    <View style={styles.unifiedPeriodHeader}>
+                      <Body style={{ fontWeight: '600' }}>{formatPeriodo(row.perTributario)}</Body>
+                      <Caption color={theme.color.text.muted}>
+                        {formatInt(totalDocsPeriod)} docs
+                      </Caption>
+                    </View>
+                    <View style={styles.unifiedPeriodBar}>
+                      {curs.includes('PEN') && penRatio > 0 ? (
+                        <View
+                          style={{
+                            flex: penRatio,
+                            backgroundColor: CURRENCY_ACCENTS.PEN,
+                            height: '100%',
+                          }}
+                        />
+                      ) : null}
+                      {curs.includes('USD') && penRatio < 1 ? (
+                        <View
+                          style={{
+                            flex: 1 - penRatio,
+                            backgroundColor: CURRENCY_ACCENTS.USD,
+                            height: '100%',
+                          }}
+                        />
+                      ) : null}
+                      <View
+                        style={{ flex: Math.max(0.001, 1 - ratio), backgroundColor: 'transparent' }}
+                      />
+                    </View>
+                    <View style={styles.unifiedPeriodAmounts}>
+                      {curs.includes('PEN') ? (
+                        <View style={styles.unifiedAmountChip}>
+                          <View
+                            style={[
+                              styles.kpiCurrencyDot,
+                              { backgroundColor: CURRENCY_ACCENTS.PEN },
+                            ]}
+                          />
+                          <Caption color={theme.color.text.body}>
+                            {pen > 0 ? formatCurrency(String(pen), 'PEN') : '—'}
+                          </Caption>
+                        </View>
+                      ) : null}
+                      {curs.includes('USD') ? (
+                        <View style={styles.unifiedAmountChip}>
+                          <View
+                            style={[
+                              styles.kpiCurrencyDot,
+                              { backgroundColor: CURRENCY_ACCENTS.USD },
+                            ]}
+                          />
+                          <Caption color={theme.color.text.body}>
+                            {usd > 0 ? formatCurrency(String(usd), 'USD') : '—'}
+                          </Caption>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </Card>
+        ) : null}
+
+        {/* Por tipo de comprobante */}
+        {summary.byTipoCpe?.length ? (
+          <Card style={styles.blockCard}>
+            <View style={styles.blockHeader}>
+              <Ionicons name="pricetags-outline" size={18} color={theme.color.text.body} />
+              <Title size="small">Por tipo de comprobante</Title>
+            </View>
+            <View style={{ gap: spacing[2] }}>{summary.byTipoCpe.map(renderCpeRow)}</View>
+          </Card>
+        ) : null}
+      </>
+    );
+  };
+
   const renderUnifiedMonthlyChart = () => {
     const CHART_HEIGHT = 200;
-    const { months, maxPen, maxUsd, accPen, accUsd, totalDocsPen, totalDocsUsd } =
-      yearMonthlyUnified;
+    const { months, accPen, accUsd, totalDocsPen, totalDocsUsd } = yearMonthlyUnified;
     const penAccent = CURRENCY_ACCENTS.PEN;
     const usdAccent = CURRENCY_ACCENTS.USD;
+    const showPen = currencyFilter.PEN;
+    const showUsd = currencyFilter.USD;
+
+    // Máximo mensual en PEN-equivalente (1 USD ≈ USD_TO_PEN_RATE PEN)
+    const monthPenEqTotals = months.map((m) => {
+      const penTotal = showPen ? m.PEN.importeTotal : 0;
+      const usdTotal = showUsd ? m.USD.importeTotal : 0;
+      return {
+        m,
+        penEqTotal: penTotal + toPenEquivalent(usdTotal, 'USD'),
+        penPart: penTotal,
+        usdPart: usdTotal,
+      };
+    });
+    const maxPenEq = monthPenEqTotals.reduce((max, r) => Math.max(max, r.penEqTotal), 0);
     const rows = months.filter(
       (m) => m.PEN.importeTotal > 0 || m.USD.importeTotal > 0 || m.PEN.count > 0 || m.USD.count > 0
     );
@@ -512,59 +811,68 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           <View style={{ flex: 1 }}>
             <Title size="small">Compras por mes · {currentYear}</Title>
             <Caption color={theme.color.text.muted}>
-              Acumulado {formatCurrency(String(accPen), 'PEN')} ·{' '}
-              {formatCurrency(String(accUsd), 'USD')}
+              {showPen ? `Acumulado ${formatCurrency(String(accPen), 'PEN')}` : ''}
+              {showPen && showUsd ? ' · ' : ''}
+              {showUsd ? formatCurrency(String(accUsd), 'USD') : ''}
+              {' · '}
+              Proporciones a tasa 1 USD ≈ {USD_TO_PEN_RATE} PEN
             </Caption>
           </View>
         </View>
 
         {/* Leyenda */}
         <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: penAccent }]} />
-            <Caption color={theme.color.text.muted}>Soles (PEN)</Caption>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: usdAccent }]} />
-            <Caption color={theme.color.text.muted}>Dólares (USD)</Caption>
-          </View>
+          {showPen ? (
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: penAccent }]} />
+              <Caption color={theme.color.text.muted}>Soles (PEN)</Caption>
+            </View>
+          ) : null}
+          {showUsd ? (
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: usdAccent }]} />
+              <Caption color={theme.color.text.muted}>Dólares (USD)</Caption>
+            </View>
+          ) : null}
         </View>
 
         <View style={[styles.chart, { height: CHART_HEIGHT }]}>
-          {months.map((m) => {
-            const ratioPen = maxPen > 0 ? Math.max(0, m.PEN.importeTotal / maxPen) : 0;
-            const ratioUsd = maxUsd > 0 ? Math.max(0, m.USD.importeTotal / maxUsd) : 0;
-            const penHeight = Math.max(
-              m.PEN.importeTotal > 0 ? 2 : 0,
-              Math.round(ratioPen * (CHART_HEIGHT - 44))
+          {monthPenEqTotals.map(({ m, penEqTotal, penPart, usdPart }) => {
+            const ratio = maxPenEq > 0 ? Math.max(0, penEqTotal / maxPenEq) : 0;
+            const barHeight = Math.max(
+              penEqTotal > 0 ? 2 : 0,
+              Math.round(ratio * (CHART_HEIGHT - 44))
             );
-            const usdHeight = Math.max(
-              m.USD.importeTotal > 0 ? 2 : 0,
-              Math.round(ratioUsd * (CHART_HEIGHT - 44))
-            );
+            const penEqPart = penPart;
+            const usdEqPart = toPenEquivalent(usdPart, 'USD');
+            const penShare = penEqTotal > 0 ? penEqPart / penEqTotal : 0;
+            const usdShare = penEqTotal > 0 ? usdEqPart / penEqTotal : 0;
             const isCurrent = m.month === currentMonthIdx;
             return (
               <View key={m.key} style={styles.chartCol}>
                 <View style={styles.chartBarTrackGrouped}>
-                  <View style={styles.chartBarPair}>
-                    <View
-                      style={[
-                        styles.chartBarSmall,
-                        {
-                          height: penHeight,
-                          backgroundColor: isCurrent ? penAccent : `${penAccent}AA`,
-                        },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.chartBarSmall,
-                        {
-                          height: usdHeight,
-                          backgroundColor: isCurrent ? usdAccent : `${usdAccent}AA`,
-                        },
-                      ]}
-                    />
+                  <View
+                    style={[
+                      styles.chartBarStacked,
+                      { height: barHeight, opacity: isCurrent ? 1 : 0.75 },
+                    ]}
+                  >
+                    {showPen && penShare > 0 ? (
+                      <View
+                        style={{
+                          flex: penShare,
+                          backgroundColor: penAccent,
+                        }}
+                      />
+                    ) : null}
+                    {showUsd && usdShare > 0 ? (
+                      <View
+                        style={{
+                          flex: usdShare,
+                          backgroundColor: usdAccent,
+                        }}
+                      />
+                    ) : null}
                   </View>
                 </View>
                 <RNText style={[styles.chartBarLabel, isCurrent && styles.chartBarLabelActive]}>
@@ -581,12 +889,16 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.monthlyLabelCol}>
               <Caption color={theme.color.text.muted}>Mes</Caption>
             </View>
-            <View style={styles.monthlyAmountCol}>
-              <Caption color={theme.color.text.muted}>Soles</Caption>
-            </View>
-            <View style={styles.monthlyAmountCol}>
-              <Caption color={theme.color.text.muted}>Dólares</Caption>
-            </View>
+            {showPen ? (
+              <View style={styles.monthlyAmountCol}>
+                <Caption color={theme.color.text.muted}>Soles</Caption>
+              </View>
+            ) : null}
+            {showUsd ? (
+              <View style={styles.monthlyAmountCol}>
+                <Caption color={theme.color.text.muted}>Dólares</Caption>
+              </View>
+            ) : null}
           </View>
           {rows.length === 0 ? (
             <View style={{ paddingVertical: spacing[3] }}>
@@ -603,36 +915,44 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                     {formatInt(m.PEN.count + m.USD.count)} docs
                   </Caption>
                 </View>
-                <View style={styles.monthlyAmountCol}>
-                  <Body
-                    style={{
-                      fontWeight: '600',
-                      color: m.PEN.importeTotal > 0 ? penAccent : theme.color.text.muted,
-                    }}
-                  >
-                    {m.PEN.importeTotal > 0
-                      ? formatCurrency(String(m.PEN.importeTotal), 'PEN')
-                      : '—'}
-                  </Body>
-                  {m.PEN.count > 0 ? (
-                    <Caption color={theme.color.text.muted}>{formatInt(m.PEN.count)} docs</Caption>
-                  ) : null}
-                </View>
-                <View style={styles.monthlyAmountCol}>
-                  <Body
-                    style={{
-                      fontWeight: '600',
-                      color: m.USD.importeTotal > 0 ? usdAccent : theme.color.text.muted,
-                    }}
-                  >
-                    {m.USD.importeTotal > 0
-                      ? formatCurrency(String(m.USD.importeTotal), 'USD')
-                      : '—'}
-                  </Body>
-                  {m.USD.count > 0 ? (
-                    <Caption color={theme.color.text.muted}>{formatInt(m.USD.count)} docs</Caption>
-                  ) : null}
-                </View>
+                {showPen ? (
+                  <View style={styles.monthlyAmountCol}>
+                    <Body
+                      style={{
+                        fontWeight: '600',
+                        color: m.PEN.importeTotal > 0 ? penAccent : theme.color.text.muted,
+                      }}
+                    >
+                      {m.PEN.importeTotal > 0
+                        ? formatCurrency(String(m.PEN.importeTotal), 'PEN')
+                        : '—'}
+                    </Body>
+                    {m.PEN.count > 0 ? (
+                      <Caption color={theme.color.text.muted}>
+                        {formatInt(m.PEN.count)} docs
+                      </Caption>
+                    ) : null}
+                  </View>
+                ) : null}
+                {showUsd ? (
+                  <View style={styles.monthlyAmountCol}>
+                    <Body
+                      style={{
+                        fontWeight: '600',
+                        color: m.USD.importeTotal > 0 ? usdAccent : theme.color.text.muted,
+                      }}
+                    >
+                      {m.USD.importeTotal > 0
+                        ? formatCurrency(String(m.USD.importeTotal), 'USD')
+                        : '—'}
+                    </Body>
+                    {m.USD.count > 0 ? (
+                      <Caption color={theme.color.text.muted}>
+                        {formatInt(m.USD.count)} docs
+                      </Caption>
+                    ) : null}
+                  </View>
+                ) : null}
               </View>
             ))
           )}
@@ -641,19 +961,23 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.monthlyLabelCol}>
                 <Body style={{ fontWeight: '700' }}>Total {currentYear}</Body>
                 <Caption color={theme.color.text.muted}>
-                  {formatInt(totalDocsPen + totalDocsUsd)} docs
+                  {formatInt((showPen ? totalDocsPen : 0) + (showUsd ? totalDocsUsd : 0))} docs
                 </Caption>
               </View>
-              <View style={styles.monthlyAmountCol}>
-                <Body style={{ fontWeight: '700', color: penAccent }}>
-                  {formatCurrency(String(accPen), 'PEN')}
-                </Body>
-              </View>
-              <View style={styles.monthlyAmountCol}>
-                <Body style={{ fontWeight: '700', color: usdAccent }}>
-                  {formatCurrency(String(accUsd), 'USD')}
-                </Body>
-              </View>
+              {showPen ? (
+                <View style={styles.monthlyAmountCol}>
+                  <Body style={{ fontWeight: '700', color: penAccent }}>
+                    {formatCurrency(String(accPen), 'PEN')}
+                  </Body>
+                </View>
+              ) : null}
+              {showUsd ? (
+                <View style={styles.monthlyAmountCol}>
+                  <Body style={{ fontWeight: '700', color: usdAccent }}>
+                    {formatCurrency(String(accUsd), 'USD')}
+                  </Body>
+                </View>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -693,197 +1017,129 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
         >
           {/* ===== Sección Compras Mapeadas Sunat =====
               Engloba: filtros de fecha + KPIs + facturas vs NC + por período +
-              por tipo de CPE + gráfico anual + detalle por proveedor */}
+              por tipo de CPE + gráfico anual + detalle por proveedor.
+              Colapsable — por defecto plegada. */}
           <View style={styles.sectionContainer}>
-            {/* Franja superior con branding + botón detalle por proveedor */}
-            <View style={styles.sectionBanner}>
+            {/* Franja superior con branding + acciones + toggle */}
+            <TouchableOpacity
+              style={styles.sectionBanner}
+              onPress={() => setSectionExpanded((v) => !v)}
+              activeOpacity={0.9}
+            >
               <View style={styles.sectionHeaderIcon}>
-                <Ionicons name="shield-checkmark" size={22} color={theme.color.brand.onHeader} />
+                <Ionicons name="shield-checkmark" size={24} color={theme.color.brand.onHeader} />
               </View>
-              <View style={{ flex: 1 }}>
-                <Heading size="medium" style={styles.sectionTitleText}>
-                  Compras Mapeadas Sunat
-                </Heading>
-                <Caption style={styles.sectionSubtitleText}>
+              <View style={styles.sectionTitleColumn}>
+                <RNText style={styles.sectionEyebrow}>Contaduría · SUNAT</RNText>
+                <RNText style={styles.sectionTitleLarge}>Compras Mapeadas Sunat</RNText>
+                <RNText style={styles.sectionSubtitle}>
                   Registro de compras (RCE) del período seleccionado
-                </Caption>
+                </RNText>
               </View>
-              <TouchableOpacity
-                style={styles.sectionAction}
-                onPress={openProviderModal}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
-                <RNText style={styles.sectionActionText}>Detalle por proveedor</RNText>
-              </TouchableOpacity>
-            </View>
-
-            {/* Contenido de la sección */}
-            <View style={styles.sectionBody}>
-              {/* Filtros de fecha */}
-              <View style={styles.filtersSection}>
-                <RNText style={styles.filtersLabel}>Filtros</RNText>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.filtersContent}
+              <View style={styles.sectionActions}>
+                <TouchableOpacity
+                  style={styles.sectionAction}
+                  onPress={openProviderModal}
+                  activeOpacity={0.85}
                 >
-                  {renderFilterButton('today', 'Hoy')}
-                  {renderFilterButton('yesterday', 'Ayer')}
-                  {renderFilterButton('week', 'Esta Semana')}
-                  {renderFilterButton('month', 'Este Mes')}
-                  {renderFilterButton('lastMonth', 'Mes Pasado')}
-                  {renderFilterButton('year', 'Este Año')}
-                  {renderFilterButton('custom', '📅 Personalizado')}
-                </ScrollView>
+                  <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
+                  <RNText style={styles.sectionActionText}>Detalle por proveedor</RNText>
+                </TouchableOpacity>
+                <View style={styles.sectionChevron}>
+                  <Ionicons
+                    name={sectionExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={22}
+                    color={theme.color.brand.onHeader}
+                  />
+                </View>
               </View>
+            </TouchableOpacity>
 
-              {loadingSummary ? (
-                <View style={styles.loadingBox}>
-                  <ActivityIndicator size="large" color={theme.color.brand.accent} />
+            {sectionExpanded ? (
+              /* Contenido de la sección */
+              <View style={styles.sectionBody}>
+                {/* Filtro de moneda */}
+                <View style={styles.currencyFilterRow}>
+                  <RNText style={styles.filtersLabel}>Moneda</RNText>
+                  <View style={styles.currencyChips}>
+                    {(['PEN', 'USD'] as const).map((cur) => {
+                      const active = currencyFilter[cur];
+                      const accent = CURRENCY_ACCENTS[cur];
+                      return (
+                        <TouchableOpacity
+                          key={cur}
+                          style={[
+                            styles.currencyChip,
+                            active && { backgroundColor: `${accent}1A`, borderColor: accent },
+                          ]}
+                          onPress={() => toggleCurrency(cur)}
+                          activeOpacity={0.8}
+                        >
+                          <RNText
+                            style={[
+                              styles.currencyChipText,
+                              active && { color: accent, fontWeight: '700' },
+                            ]}
+                          >
+                            {cur === 'PEN' ? 'S/ Soles' : '$ Dólares'}
+                          </RNText>
+                          {active ? (
+                            <Ionicons name="checkmark-circle" size={14} color={accent} />
+                          ) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              ) : summaryError ? (
-                <ErrorState
-                  title="No se pudo cargar el resumen"
-                  description={(summaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
-                  onRetry={() => refetchSummary()}
-                />
-              ) : !hasSummaryData ? (
-                <EmptyState
-                  icon="stats-chart-outline"
-                  title="Sin compras"
-                  description="No se registran compras en el período seleccionado."
-                />
-              ) : (
-                <>
-                  {visibleCurrencies.map((cur) => {
-                    const t = summary!.totals[cur];
-                    const fac = summary!.facturas?.[cur];
-                    const nc = summary!.notasCredito?.[cur];
-                    const rows = summaryByPeriodoByMoneda[cur];
-                    const maxTotal = rows.reduce(
-                      (max, p) => Math.max(max, Number(p.importeTotal) || 0),
-                      0
-                    );
-                    const accent = CURRENCY_ACCENTS[cur];
-                    return (
-                      <View key={`cur-${cur}`} style={styles.currencyBlock}>
-                        <View style={styles.currencyBlockHeader}>
-                          <View style={[styles.currencyBadge, { backgroundColor: `${accent}1A` }]}>
-                            <RNText style={[styles.currencyBadgeText, { color: accent }]}>
-                              {cur === 'PEN' ? 'S/' : '$'}
-                            </RNText>
-                          </View>
-                          <Title size="small">{CURRENCY_LABELS[cur]}</Title>
-                        </View>
 
-                        <View style={styles.kpisGrid}>
-                          {renderKpi(
-                            'document-text-outline',
-                            'Comprobantes',
-                            formatInt(t.count),
-                            accent
-                          )}
-                          {renderKpi(
-                            'cash-outline',
-                            'Base imponible',
-                            formatCurrency(t.baseImponible, cur),
-                            '#10B981'
-                          )}
-                          {renderKpi(
-                            'calculator-outline',
-                            'IGV',
-                            formatCurrency(t.igv, cur),
-                            '#F59E0B'
-                          )}
-                          {renderKpi(
-                            'wallet-outline',
-                            'Importe neto',
-                            formatCurrency(t.importeTotal, cur),
-                            '#8B5CF6',
-                            fac && nc
-                              ? `Facturas ${formatCurrencyCompact(fac.importeTotal, cur)} − NC ${formatCurrencyCompact(nc.importeTotal, cur)}`
-                              : `ISC ${formatCurrency(t.isc, cur)} · Otros ${formatCurrency(t.otros, cur)}`
-                          )}
-                        </View>
-
-                        {fac || nc ? (
-                          <Card style={styles.blockCard}>
-                            <View style={styles.blockHeader}>
-                              <Ionicons name="swap-vertical-outline" size={18} color={accent} />
-                              <Title size="small">Facturas vs Notas de crédito · {cur}</Title>
-                            </View>
-                            <View style={styles.breakdownRow}>
-                              <View style={[styles.breakdownCell, { borderLeftColor: '#10B981' }]}>
-                                <View style={styles.breakdownHeader}>
-                                  <Ionicons name="receipt-outline" size={16} color="#10B981" />
-                                  <Caption color={theme.color.text.muted}>Facturas</Caption>
-                                </View>
-                                <Body style={{ fontWeight: '700' }}>
-                                  {formatCurrency(fac?.importeTotal ?? '0', cur)}
-                                </Body>
-                                <Caption color={theme.color.text.muted}>
-                                  {formatInt(fac?.count ?? 0)} docs · IGV{' '}
-                                  {formatCurrency(fac?.igv ?? '0', cur)}
-                                </Caption>
-                              </View>
-                              <View style={[styles.breakdownCell, { borderLeftColor: '#EF4444' }]}>
-                                <View style={styles.breakdownHeader}>
-                                  <Ionicons name="arrow-undo-outline" size={16} color="#EF4444" />
-                                  <Caption color={theme.color.text.muted}>Notas de crédito</Caption>
-                                </View>
-                                <Body style={{ fontWeight: '700', color: '#EF4444' }}>
-                                  − {formatCurrency(nc?.importeTotal ?? '0', cur)}
-                                </Body>
-                                <Caption color={theme.color.text.muted}>
-                                  {formatInt(nc?.count ?? 0)} docs · IGV{' '}
-                                  {formatCurrency(nc?.igv ?? '0', cur)}
-                                </Caption>
-                              </View>
-                            </View>
-                          </Card>
-                        ) : null}
-
-                        {rows.length ? (
-                          <Card style={styles.blockCard}>
-                            <View style={styles.blockHeader}>
-                              <Ionicons name="bar-chart-outline" size={18} color={accent} />
-                              <Title size="small">Compras por período · {cur}</Title>
-                            </View>
-                            <View style={{ gap: spacing[2] }}>
-                              {rows.map((r) => renderPeriodoRow(r, maxTotal, accent))}
-                            </View>
-                          </Card>
-                        ) : null}
-                      </View>
-                    );
-                  })}
-
-                  {summary?.byTipoCpe?.length ? (
-                    <Card style={styles.blockCard}>
-                      <View style={styles.blockHeader}>
-                        <Ionicons
-                          name="pricetags-outline"
-                          size={18}
-                          color={theme.color.text.body}
-                        />
-                        <Title size="small">Por tipo de comprobante</Title>
-                      </View>
-                      <View style={{ gap: spacing[2] }}>{summary.byTipoCpe.map(renderCpeRow)}</View>
-                    </Card>
-                  ) : null}
-                </>
-              )}
-
-              {/* Gráfico anual mensual unificado (PEN + USD) */}
-              {loadingYear ? (
-                <View style={styles.loadingBoxSmall}>
-                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                {/* Filtros de fecha */}
+                <View style={styles.filtersSection}>
+                  <RNText style={styles.filtersLabel}>Filtros</RNText>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.filtersContent}
+                  >
+                    {renderFilterButton('today', 'Hoy')}
+                    {renderFilterButton('yesterday', 'Ayer')}
+                    {renderFilterButton('week', 'Esta Semana')}
+                    {renderFilterButton('month', 'Este Mes')}
+                    {renderFilterButton('lastMonth', 'Mes Pasado')}
+                    {renderFilterButton('year', 'Este Año')}
+                    {renderFilterButton('custom', '📅 Personalizado')}
+                  </ScrollView>
                 </View>
-              ) : visibleYearCurrencies.length ? (
-                renderUnifiedMonthlyChart()
-              ) : null}
-            </View>
+
+                {loadingSummary ? (
+                  <View style={styles.loadingBox}>
+                    <ActivityIndicator size="large" color={theme.color.brand.accent} />
+                  </View>
+                ) : summaryError ? (
+                  <ErrorState
+                    title="No se pudo cargar el resumen"
+                    description={(summaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
+                    onRetry={() => refetchSummary()}
+                  />
+                ) : !hasSummaryData ? (
+                  <EmptyState
+                    icon="stats-chart-outline"
+                    title="Sin compras"
+                    description="No se registran compras en el período seleccionado."
+                  />
+                ) : (
+                  renderUnifiedSummary()
+                )}
+
+                {/* Gráfico anual mensual unificado (PEN + USD) */}
+                {loadingYear ? (
+                  <View style={styles.loadingBoxSmall}>
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                  </View>
+                ) : visibleYearCurrencies.length ? (
+                  renderUnifiedMonthlyChart()
+                ) : null}
+              </View>
+            ) : null}
           </View>
         </ScrollView>
 
@@ -1332,9 +1588,141 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       gap: spacing[3],
       paddingHorizontal: spacing[4],
-      paddingVertical: spacing[3],
+      paddingVertical: spacing[4],
       backgroundColor: theme.color.brand.accent,
       flexWrap: 'wrap',
+    },
+    sectionTitleColumn: {
+      flex: 1,
+      minWidth: 220,
+      gap: 2,
+    },
+    sectionEyebrow: {
+      color: theme.color.brand.onHeader,
+      opacity: 0.75,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
+    },
+    sectionTitleLarge: {
+      color: theme.color.brand.onHeader,
+      fontSize: 22,
+      fontWeight: '800',
+      lineHeight: 28,
+    },
+    sectionSubtitle: {
+      color: theme.color.brand.onHeader,
+      opacity: 0.85,
+      fontSize: 13,
+    },
+    sectionActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+    },
+    sectionChevron: {
+      width: 34,
+      height: 34,
+      borderRadius: borderRadius.md,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.3)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    currencyFilterRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[3],
+      flexWrap: 'wrap',
+    },
+    currencyChips: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      flexWrap: 'wrap',
+    },
+    currencyChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    currencyChipText: {
+      fontSize: 13,
+      color: theme.color.text.body,
+    },
+    kpiMulti: {
+      flex: 1,
+      minWidth: 160,
+      padding: spacing[3],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      gap: spacing[1],
+    },
+    kpiHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+    },
+    kpiCurrencyLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+    },
+    kpiCurrencyDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    kpiCurrencyText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.body,
+    },
+    breakdownCurrencyRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing[2],
+      paddingTop: spacing[1],
+    },
+    unifiedPeriodRow: {
+      gap: spacing[1],
+    },
+    unifiedPeriodHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    unifiedPeriodBar: {
+      height: 10,
+      borderRadius: 5,
+      overflow: 'hidden',
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.muted,
+    },
+    unifiedPeriodAmounts: {
+      flexDirection: 'row',
+      gap: spacing[3],
+      flexWrap: 'wrap',
+    },
+    unifiedAmountChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+    },
+    chartBarStacked: {
+      width: '78%',
+      borderRadius: 4,
+      overflow: 'hidden',
+      flexDirection: 'column-reverse',
     },
     sectionHeaderIcon: {
       width: 40,
