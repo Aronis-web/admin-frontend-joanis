@@ -136,7 +136,20 @@ const handlePopState = () => {
     // y NO hará history.back adicional.
     sentinelCount = Math.max(0, sentinelCount - 1);
     pendingBackDismissals += 1;
+    const snapshotOpen = openModalCount;
     dispatchEscape();
+    // Salvavidas: si el Modal top NO tiene onRequestClose (o es no-op), Escape
+    // no cierra nada. Después de un tick verificamos y, si el DOM sigue igual,
+    // restauramos el sentinel para que el próximo "atrás" no consuma una
+    // entrada real del historial de React Navigation.
+    window.setTimeout(() => {
+      const stillOpen = countOpenModals();
+      if (stillOpen >= snapshotOpen && pendingBackDismissals > 0) {
+        pendingBackDismissals -= 1;
+        pushSentinel();
+        logger.info('webBackHandler: modal sin onRequestClose, sentinel restaurado');
+      }
+    }, 120);
   }
   // Si no hay modales abiertos, dejamos que React Navigation maneje el
   // popstate normalmente (retroceso de ruta).
