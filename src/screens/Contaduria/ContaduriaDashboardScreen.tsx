@@ -448,7 +448,9 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const currentMonthIdx = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  const yearMonthlyByCurrency = useMemo(() => {
+  const yearMonthlyUnified = useMemo(() => {
+    // Un solo array de 12 meses con datos de PEN y USD juntos.
+    const empty = { count: 0, importeTotal: 0 };
     const build = (cur: 'PEN' | 'USD') => {
       const map = new Map<string, { count: number; importeTotal: number }>();
       (yearSummary?.byPeriodo ?? [])
@@ -460,62 +462,109 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             importeTotal: Number(p.importeTotal) || 0,
           });
         });
-      const months = Array.from({ length: 12 }, (_, i) => {
-        const key = `${currentYear}${String(i + 1).padStart(2, '0')}`;
-        const found = map.get(key);
-        return {
-          month: i,
-          key,
-          label: MONTH_LABELS[i],
-          count: found?.count ?? 0,
-          importeTotal: found?.importeTotal ?? 0,
-        };
-      });
-      const maxTotal = months.reduce((max, m) => Math.max(max, m.importeTotal), 0);
-      const accumulated = months.reduce((sum, m) => sum + m.importeTotal, 0);
-      return { months, maxTotal, accumulated };
+      return map;
     };
-    return { PEN: build('PEN'), USD: build('USD') } as const;
+    const penMap = build('PEN');
+    const usdMap = build('USD');
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const key = `${currentYear}${String(i + 1).padStart(2, '0')}`;
+      const pen = penMap.get(key) ?? empty;
+      const usd = usdMap.get(key) ?? empty;
+      return {
+        month: i,
+        key,
+        label: MONTH_LABELS[i],
+        PEN: pen,
+        USD: usd,
+      };
+    });
+    const maxPen = months.reduce((max, m) => Math.max(max, m.PEN.importeTotal), 0);
+    const maxUsd = months.reduce((max, m) => Math.max(max, m.USD.importeTotal), 0);
+    const accPen = months.reduce((sum, m) => sum + m.PEN.importeTotal, 0);
+    const accUsd = months.reduce((sum, m) => sum + m.USD.importeTotal, 0);
+    const totalDocsPen = months.reduce((sum, m) => sum + m.PEN.count, 0);
+    const totalDocsUsd = months.reduce((sum, m) => sum + m.USD.count, 0);
+    return {
+      months,
+      maxPen,
+      maxUsd,
+      accPen,
+      accUsd,
+      totalDocsPen,
+      totalDocsUsd,
+    };
   }, [yearSummary?.byPeriodo, currentYear]);
 
-  const renderMonthlyChart = (cur: 'PEN' | 'USD') => {
-    const CHART_HEIGHT = 180;
-    const { months, maxTotal, accumulated } = yearMonthlyByCurrency[cur];
-    const accent = CURRENCY_ACCENTS[cur];
+  const renderUnifiedMonthlyChart = () => {
+    const CHART_HEIGHT = 200;
+    const { months, maxPen, maxUsd, accPen, accUsd, totalDocsPen, totalDocsUsd } =
+      yearMonthlyUnified;
+    const penAccent = CURRENCY_ACCENTS.PEN;
+    const usdAccent = CURRENCY_ACCENTS.USD;
+    const rows = months.filter(
+      (m) => m.PEN.importeTotal > 0 || m.USD.importeTotal > 0 || m.PEN.count > 0 || m.USD.count > 0
+    );
     return (
-      <Card key={`chart-${cur}`} style={styles.blockCard}>
+      <Card key="chart-unified" style={styles.blockCard}>
         <View style={styles.blockHeader}>
-          <Ionicons name="stats-chart-outline" size={18} color={accent} />
+          <Ionicons name="stats-chart-outline" size={18} color={theme.color.brand.accent} />
           <View style={{ flex: 1 }}>
-            <Title size="small">
-              Compras por mes · {currentYear} · {CURRENCY_LABELS[cur]}
-            </Title>
+            <Title size="small">Compras por mes · {currentYear}</Title>
             <Caption color={theme.color.text.muted}>
-              Acumulado {formatCurrency(String(accumulated), cur)}
+              Acumulado {formatCurrency(String(accPen), 'PEN')} ·{' '}
+              {formatCurrency(String(accUsd), 'USD')}
             </Caption>
+          </View>
+        </View>
+
+        {/* Leyenda */}
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: penAccent }]} />
+            <Caption color={theme.color.text.muted}>Soles (PEN)</Caption>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: usdAccent }]} />
+            <Caption color={theme.color.text.muted}>Dólares (USD)</Caption>
           </View>
         </View>
 
         <View style={[styles.chart, { height: CHART_HEIGHT }]}>
           {months.map((m) => {
-            const ratio = maxTotal > 0 ? Math.max(0, m.importeTotal / maxTotal) : 0;
-            const barHeight = Math.max(2, Math.round(ratio * (CHART_HEIGHT - 32)));
+            const ratioPen = maxPen > 0 ? Math.max(0, m.PEN.importeTotal / maxPen) : 0;
+            const ratioUsd = maxUsd > 0 ? Math.max(0, m.USD.importeTotal / maxUsd) : 0;
+            const penHeight = Math.max(
+              m.PEN.importeTotal > 0 ? 2 : 0,
+              Math.round(ratioPen * (CHART_HEIGHT - 44))
+            );
+            const usdHeight = Math.max(
+              m.USD.importeTotal > 0 ? 2 : 0,
+              Math.round(ratioUsd * (CHART_HEIGHT - 44))
+            );
             const isCurrent = m.month === currentMonthIdx;
             return (
               <View key={m.key} style={styles.chartCol}>
-                <RNText style={styles.chartBarValue} numberOfLines={1}>
-                  {m.importeTotal > 0 ? formatCurrencyCompact(String(m.importeTotal), cur) : ''}
-                </RNText>
-                <View style={styles.chartBarTrack}>
-                  <View
-                    style={[
-                      styles.chartBar,
-                      {
-                        height: barHeight,
-                        backgroundColor: isCurrent ? accent : `${accent}AA`,
-                      },
-                    ]}
-                  />
+                <View style={styles.chartBarTrackGrouped}>
+                  <View style={styles.chartBarPair}>
+                    <View
+                      style={[
+                        styles.chartBarSmall,
+                        {
+                          height: penHeight,
+                          backgroundColor: isCurrent ? penAccent : `${penAccent}AA`,
+                        },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.chartBarSmall,
+                        {
+                          height: usdHeight,
+                          backgroundColor: isCurrent ? usdAccent : `${usdAccent}AA`,
+                        },
+                      ]}
+                    />
+                  </View>
                 </View>
                 <RNText style={[styles.chartBarLabel, isCurrent && styles.chartBarLabelActive]}>
                   {m.label}
@@ -525,23 +574,87 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           })}
         </View>
 
-        {/* Tabla detalle mensual */}
+        {/* Tabla detalle mensual unificada */}
         <View style={styles.monthlyTable}>
-          {months
-            .filter((m) => m.importeTotal > 0 || m.count > 0)
-            .map((m) => (
+          <View style={styles.monthlyHeaderRow}>
+            <View style={styles.monthlyLabelCol}>
+              <Caption color={theme.color.text.muted}>Mes</Caption>
+            </View>
+            <View style={styles.monthlyAmountCol}>
+              <Caption color={theme.color.text.muted}>Soles</Caption>
+            </View>
+            <View style={styles.monthlyAmountCol}>
+              <Caption color={theme.color.text.muted}>Dólares</Caption>
+            </View>
+          </View>
+          {rows.length === 0 ? (
+            <View style={{ paddingVertical: spacing[3] }}>
+              <Caption color={theme.color.text.muted}>Sin datos para {currentYear}</Caption>
+            </View>
+          ) : (
+            rows.map((m) => (
               <View key={`row-${m.key}`} style={styles.monthlyRow}>
                 <View style={styles.monthlyLabelCol}>
                   <Body style={{ fontWeight: '600' }}>
                     {m.label} {currentYear}
                   </Body>
-                  <Caption color={theme.color.text.muted}>{formatInt(m.count)} docs</Caption>
+                  <Caption color={theme.color.text.muted}>
+                    {formatInt(m.PEN.count + m.USD.count)} docs
+                  </Caption>
                 </View>
-                <Body style={{ fontWeight: '600' }}>
-                  {formatCurrency(String(m.importeTotal), cur)}
+                <View style={styles.monthlyAmountCol}>
+                  <Body
+                    style={{
+                      fontWeight: '600',
+                      color: m.PEN.importeTotal > 0 ? penAccent : theme.color.text.muted,
+                    }}
+                  >
+                    {m.PEN.importeTotal > 0
+                      ? formatCurrency(String(m.PEN.importeTotal), 'PEN')
+                      : '—'}
+                  </Body>
+                  {m.PEN.count > 0 ? (
+                    <Caption color={theme.color.text.muted}>{formatInt(m.PEN.count)} docs</Caption>
+                  ) : null}
+                </View>
+                <View style={styles.monthlyAmountCol}>
+                  <Body
+                    style={{
+                      fontWeight: '600',
+                      color: m.USD.importeTotal > 0 ? usdAccent : theme.color.text.muted,
+                    }}
+                  >
+                    {m.USD.importeTotal > 0
+                      ? formatCurrency(String(m.USD.importeTotal), 'USD')
+                      : '—'}
+                  </Body>
+                  {m.USD.count > 0 ? (
+                    <Caption color={theme.color.text.muted}>{formatInt(m.USD.count)} docs</Caption>
+                  ) : null}
+                </View>
+              </View>
+            ))
+          )}
+          {rows.length > 0 ? (
+            <View style={[styles.monthlyRow, styles.monthlyTotalRow]}>
+              <View style={styles.monthlyLabelCol}>
+                <Body style={{ fontWeight: '700' }}>Total {currentYear}</Body>
+                <Caption color={theme.color.text.muted}>
+                  {formatInt(totalDocsPen + totalDocsUsd)} docs
+                </Caption>
+              </View>
+              <View style={styles.monthlyAmountCol}>
+                <Body style={{ fontWeight: '700', color: penAccent }}>
+                  {formatCurrency(String(accPen), 'PEN')}
                 </Body>
               </View>
-            ))}
+              <View style={styles.monthlyAmountCol}>
+                <Body style={{ fontWeight: '700', color: usdAccent }}>
+                  {formatCurrency(String(accUsd), 'USD')}
+                </Body>
+              </View>
+            </View>
+          ) : null}
         </View>
       </Card>
     );
@@ -583,9 +696,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
-          refreshControl={
-            <RefreshControl refreshing={fetchingSummary} onRefresh={handleRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={fetchingSummary} onRefresh={handleRefresh} />}
         >
           {/* Filtros globales */}
           <View style={styles.filtersSection}>
@@ -744,13 +855,13 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             </>
           )}
 
-          {/* Gráficos anuales mensuales — uno por moneda con datos */}
+          {/* Gráfico anual mensual unificado (PEN + USD) */}
           {loadingYear ? (
             <View style={styles.loadingBoxSmall}>
               <ActivityIndicator size="small" color={theme.color.brand.accent} />
             </View>
           ) : visibleYearCurrencies.length ? (
-            visibleYearCurrencies.map((cur) => renderMonthlyChart(cur))
+            renderUnifiedMonthlyChart()
           ) : null}
         </ScrollView>
 
@@ -853,10 +964,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                             <View key={cur} style={styles.providerCurrencyBlock}>
                               <View style={styles.providerCurrencyHeader}>
                                 <View
-                                  style={[
-                                    styles.currencyBadge,
-                                    { backgroundColor: `${accent}1A` },
-                                  ]}
+                                  style={[styles.currencyBadge, { backgroundColor: `${accent}1A` }]}
                                 >
                                   <RNText style={[styles.currencyBadgeText, { color: accent }]}>
                                     {cur === 'PEN' ? 'S/' : '$'}
@@ -903,7 +1011,11 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                                   </View>
                                   <View style={styles.providerBreakdownCell}>
                                     <View style={styles.breakdownHeader}>
-                                      <Ionicons name="arrow-undo-outline" size={12} color="#EF4444" />
+                                      <Ionicons
+                                        name="arrow-undo-outline"
+                                        size={12}
+                                        color="#EF4444"
+                                      />
                                       <Caption color={theme.color.text.muted}>NC</Caption>
                                     </View>
                                     <Body style={{ fontWeight: '600', color: '#EF4444' }}>
@@ -1339,11 +1451,63 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'flex-end',
     },
+    chartBarTrackGrouped: {
+      flex: 1,
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    chartBarPair: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      gap: 2,
+      width: '100%',
+      height: '100%',
+    },
     chartBar: {
       width: '78%',
       borderTopLeftRadius: borderRadius.sm,
       borderTopRightRadius: borderRadius.sm,
       minHeight: 2,
+    },
+    chartBarSmall: {
+      width: 8,
+      borderTopLeftRadius: borderRadius.sm,
+      borderTopRightRadius: borderRadius.sm,
+    },
+    legendRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing[3],
+      paddingBottom: spacing[2],
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+    },
+    legendDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+    },
+    monthlyHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing[3],
+      paddingBottom: spacing[1],
+    },
+    monthlyAmountCol: {
+      flex: 1,
+      alignItems: 'flex-end',
+    },
+    monthlyTotalRow: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.color.border.default,
+      marginTop: spacing[1],
+      paddingTop: spacing[2],
     },
     chartBarValue: {
       fontSize: 9,
