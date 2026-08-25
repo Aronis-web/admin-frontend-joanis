@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text as RNText,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -27,7 +28,6 @@ import {
   EmptyState,
   ErrorState,
   Input,
-  Pagination,
   Text,
   Title,
   useTheme,
@@ -59,9 +59,23 @@ const CPE_LABELS: Record<string, string> = {
 };
 
 const MONEDA_OPTIONS = [
-  { label: 'PEN', value: 'PEN' },
-  { label: 'USD', value: 'USD' },
-  { label: 'Todas', value: 'ALL' },
+  { label: 'S/ Soles (PEN)', value: 'PEN' },
+  { label: '$ Dólares (USD)', value: 'USD' },
+];
+
+const MONTH_LABELS = [
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
 ];
 
 const SORT_OPTIONS: Array<{ label: string; value: SireProviderSortBy }> = [
@@ -85,6 +99,16 @@ const formatCurrency = (amount?: string, currency = 'PEN') => {
   } catch {
     return `${currency} ${num.toFixed(2)}`;
   }
+};
+
+const formatCurrencyCompact = (amount?: string, currency = 'PEN') => {
+  const symbol = currency === 'USD' ? '$' : 'S/';
+  if (amount === undefined || amount === null || amount === '') return `${symbol} 0`;
+  const num = Number(amount);
+  if (Number.isNaN(num)) return `${symbol} ${amount}`;
+  if (Math.abs(num) >= 1_000_000) return `${symbol} ${(num / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(num) >= 1_000) return `${symbol} ${(num / 1_000).toFixed(1)}K`;
+  return `${symbol} ${num.toFixed(0)}`;
 };
 
 const formatInt = (n?: number | string) => {
@@ -178,27 +202,25 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   });
   const [customEndDate, setCustomEndDate] = useState<Date>(() => new Date());
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
-  const [moneda, setMoneda] = useState<string>('PEN');
+  const [moneda, setMoneda] = useState<'PEN' | 'USD'>('PEN');
 
   const dateRange = useMemo(
     () => getDateRange(selectedFilter, customStartDate, customEndDate),
     [selectedFilter, customStartDate, customEndDate]
   );
 
-  const summaryParams = useMemo<GetSireInvoicesSummaryParams>(() => {
-    const p: GetSireInvoicesSummaryParams = {
+  const summaryParams = useMemo<GetSireInvoicesSummaryParams>(
+    () => ({
       fechaFrom: dateRange.fechaFrom,
       fechaTo: dateRange.fechaTo,
-    };
-    if (moneda && moneda !== 'ALL') p.moneda = moneda;
-    return p;
-  }, [dateRange.fechaFrom, dateRange.fechaTo, moneda]);
+      moneda,
+    }),
+    [dateRange.fechaFrom, dateRange.fechaTo, moneda]
+  );
 
   const yearParams = useMemo<GetSireInvoicesSummaryParams>(() => {
     const y = yearRange();
-    const p: GetSireInvoicesSummaryParams = { fechaFrom: y.fechaFrom, fechaTo: y.fechaTo };
-    if (moneda && moneda !== 'ALL') p.moneda = moneda;
-    return p;
+    return { fechaFrom: y.fechaFrom, fechaTo: y.fechaTo, moneda };
   }, [moneda]);
 
   const {
@@ -216,13 +238,13 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     refetch: refetchYear,
   } = useSireInvoicesSummary(yearParams);
 
-  const displayCurrency = moneda !== 'ALL' ? moneda : 'PEN';
-
   // ============ Provider modal ============
   const [providerModalOpen, setProviderModalOpen] = useState(false);
   const [providerPage, setProviderPage] = useState(1);
   const [providerSortBy, setProviderSortBy] = useState<SireProviderSortBy>('importeTotal');
   const [providerSearch, setProviderSearch] = useState('');
+  const [pageJumpOpen, setPageJumpOpen] = useState(false);
+  const [pageJumpValue, setPageJumpValue] = useState('');
 
   const providerParams = useMemo(
     () => ({
@@ -266,11 +288,23 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   }, [providerItems, providerSearch]);
 
   const totals = summary?.totals;
+  const displayCurrency = moneda;
 
   const handleRefresh = useCallback(() => {
     void refetchSummary();
     void refetchYear();
   }, [refetchSummary, refetchYear]);
+
+  const openPageJump = useCallback(() => {
+    setPageJumpValue(String(providerPage));
+    setPageJumpOpen(true);
+  }, [providerPage]);
+
+  const confirmPageJump = useCallback(() => {
+    const n = Math.max(1, Math.min(providerTotalPages, parseInt(pageJumpValue, 10) || 1));
+    setProviderPage(n);
+    setPageJumpOpen(false);
+  }, [pageJumpValue, providerTotalPages]);
 
   // ============ Date filter chip ============
   const renderFilterButton = (filter: DateFilter, label: string) => (
@@ -338,7 +372,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
-  // ============ Distribution row ============
+  // ============ Distribution row (period) ============
   const maxPeriodoTotal = useMemo(() => {
     if (!summary?.byPeriodo?.length) return 0;
     return summary.byPeriodo.reduce((max, p) => Math.max(max, Number(p.importeTotal) || 0), 0);
@@ -387,7 +421,126 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const yearTotals = yearSummary?.totals;
+  // ============ Yearly monthly bar chart ============
+  const yearMonthly = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const map = new Map<string, { count: number; importeTotal: number }>();
+    (yearSummary?.byPeriodo ?? []).forEach((p) => {
+      if (!p.perTributario || p.perTributario.length !== 6) return;
+      map.set(p.perTributario, {
+        count: p.count,
+        importeTotal: Number(p.importeTotal) || 0,
+      });
+    });
+    return Array.from({ length: 12 }, (_, i) => {
+      const key = `${currentYear}${String(i + 1).padStart(2, '0')}`;
+      const found = map.get(key);
+      return {
+        month: i,
+        key,
+        label: MONTH_LABELS[i],
+        count: found?.count ?? 0,
+        importeTotal: found?.importeTotal ?? 0,
+      };
+    });
+  }, [yearSummary?.byPeriodo]);
+
+  const maxMonthlyTotal = useMemo(
+    () => yearMonthly.reduce((max, m) => Math.max(max, m.importeTotal), 0),
+    [yearMonthly]
+  );
+
+  const yearAccumulated = useMemo(
+    () => yearMonthly.reduce((sum, m) => sum + m.importeTotal, 0),
+    [yearMonthly]
+  );
+
+  const currentMonthIdx = new Date().getMonth();
+
+  const renderMonthlyChart = () => {
+    const CHART_HEIGHT = 180;
+    return (
+      <Card style={styles.blockCard}>
+        <View style={styles.blockHeader}>
+          <Ionicons name="stats-chart-outline" size={18} color={theme.color.text.body} />
+          <View style={{ flex: 1 }}>
+            <Title size="small">Compras por mes · {new Date().getFullYear()}</Title>
+            <Caption color={theme.color.text.muted}>
+              Acumulado {formatCurrency(String(yearAccumulated), displayCurrency)} · Moneda{' '}
+              {displayCurrency}
+            </Caption>
+          </View>
+        </View>
+
+        {loadingYear ? (
+          <View style={styles.loadingBoxSmall}>
+            <ActivityIndicator size="small" color={theme.color.brand.accent} />
+          </View>
+        ) : yearAccumulated <= 0 ? (
+          <EmptyState
+            icon="bar-chart-outline"
+            title="Sin datos"
+            description={`No hay compras registradas en ${displayCurrency} este año.`}
+          />
+        ) : (
+          <>
+            <View style={[styles.chart, { height: CHART_HEIGHT }]}>
+              {yearMonthly.map((m) => {
+                const ratio =
+                  maxMonthlyTotal > 0 ? Math.max(0, m.importeTotal / maxMonthlyTotal) : 0;
+                const barHeight = Math.max(2, Math.round(ratio * (CHART_HEIGHT - 32)));
+                const isCurrent = m.month === currentMonthIdx;
+                return (
+                  <View key={m.key} style={styles.chartCol}>
+                    <RNText style={styles.chartBarValue} numberOfLines={1}>
+                      {m.importeTotal > 0
+                        ? formatCurrencyCompact(String(m.importeTotal), displayCurrency)
+                        : ''}
+                    </RNText>
+                    <View style={styles.chartBarTrack}>
+                      <View
+                        style={[
+                          styles.chartBar,
+                          {
+                            height: barHeight,
+                            backgroundColor: isCurrent
+                              ? theme.color.brand.accent
+                              : `${theme.color.brand.accent}AA`,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <RNText style={[styles.chartBarLabel, isCurrent && styles.chartBarLabelActive]}>
+                      {m.label}
+                    </RNText>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Tabla detalle mensual */}
+            <View style={styles.monthlyTable}>
+              {yearMonthly
+                .filter((m) => m.importeTotal > 0 || m.count > 0)
+                .map((m) => (
+                  <View key={`row-${m.key}`} style={styles.monthlyRow}>
+                    <View style={styles.monthlyLabelCol}>
+                      <Body style={{ fontWeight: '600' }}>
+                        {m.label} {new Date().getFullYear()}
+                      </Body>
+                      <Caption color={theme.color.text.muted}>{formatInt(m.count)} docs</Caption>
+                    </View>
+                    <Body style={{ fontWeight: '600' }}>
+                      {formatCurrency(String(m.importeTotal), displayCurrency)}
+                    </Body>
+                  </View>
+                ))}
+            </View>
+          </>
+        )}
+      </Card>
+    );
+  };
 
   return (
     <ScreenLayout navigation={navigation as any}>
@@ -423,7 +576,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
         </LinearGradient>
 
         <ScrollView
-          style={styles.content}
+          style={styles.scrollView}
           contentContainerStyle={styles.contentContainer}
           refreshControl={
             <RefreshControl
@@ -454,68 +607,26 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
               <ChipGroup
                 options={MONEDA_OPTIONS}
                 selected={[moneda]}
-                onChange={(sel) => setMoneda(sel[0] || 'PEN')}
+                onChange={(sel) => {
+                  const v = sel[0];
+                  if (v === 'PEN' || v === 'USD') setMoneda(v);
+                }}
                 variant="filled"
                 size="small"
               />
             </View>
           </View>
 
-          {/* Resumen anual (siempre año en curso) */}
-          <Card style={styles.blockCard}>
-            <View style={styles.blockHeader}>
-              <Ionicons name="calendar-outline" size={18} color={theme.color.text.body} />
-              <View style={{ flex: 1 }}>
-                <Title size="small">Resumen del año {new Date().getFullYear()}</Title>
-                <Caption color={theme.color.text.muted}>
-                  Acumulado enero – diciembre en moneda {displayCurrency}
-                </Caption>
-              </View>
-            </View>
-            {loadingYear ? (
-              <View style={styles.loadingBoxSmall}>
-                <ActivityIndicator size="small" color={theme.color.brand.accent} />
-              </View>
-            ) : yearTotals ? (
-              <View style={styles.kpisGrid}>
-                {renderKpi(
-                  'document-text-outline',
-                  'Comprobantes',
-                  formatInt(yearTotals.count),
-                  '#3B82F6'
-                )}
-                {renderKpi(
-                  'cash-outline',
-                  'Base',
-                  formatCurrency(yearTotals.baseImponible, displayCurrency),
-                  '#10B981'
-                )}
-                {renderKpi(
-                  'calculator-outline',
-                  'IGV',
-                  formatCurrency(yearTotals.igv, displayCurrency),
-                  '#F59E0B'
-                )}
-                {renderKpi(
-                  'wallet-outline',
-                  'Importe total',
-                  formatCurrency(yearTotals.importeTotal, displayCurrency),
-                  '#8B5CF6'
-                )}
-              </View>
-            ) : (
-              <Caption color={theme.color.text.muted}>Sin datos en el año.</Caption>
-            )}
-          </Card>
-
           {/* Sección Compras — del período seleccionado */}
           <View style={styles.sectionHeader}>
             <View style={{ flex: 1 }}>
               <Title size="small">Compras del período</Title>
-              <Caption color={theme.color.text.muted}>{getFilterLabel(selectedFilter)}</Caption>
+              <Caption color={theme.color.text.muted}>
+                {getFilterLabel(selectedFilter)} · {displayCurrency}
+              </Caption>
             </View>
             <Button
-              title="Detalle por proveedor"
+              title="Por proveedor"
               onPress={openProviderModal}
               variant="secondary"
               size="small"
@@ -532,11 +643,11 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
               description={(summaryErrorObj as Error)?.message || 'Intenta nuevamente'}
               onRetry={() => refetchSummary()}
             />
-          ) : !totals ? (
+          ) : !totals || totals.count === 0 ? (
             <EmptyState
               icon="cube-outline"
               title="Sin datos"
-              description="No hay comprobantes para los filtros seleccionados."
+              description={`No hay comprobantes en ${displayCurrency} para el período seleccionado.`}
             />
           ) : (
             <>
@@ -546,7 +657,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                   'Comprobantes',
                   formatInt(totals.count),
                   '#3B82F6',
-                  moneda !== 'ALL' ? `Moneda ${moneda}` : 'Todas las monedas'
+                  `Moneda ${displayCurrency}`
                 )}
                 {renderKpi(
                   'cash-outline',
@@ -591,37 +702,23 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                   <View style={{ gap: spacing[2] }}>{summary.byTipoCpe.map(renderCpeRow)}</View>
                 </Card>
               ) : null}
-
-              {summary && summary.byCurrency.length > 1 ? (
-                <Card style={styles.blockCard}>
-                  <View style={styles.blockHeader}>
-                    <Ionicons
-                      name="swap-horizontal-outline"
-                      size={18}
-                      color={theme.color.text.body}
-                    />
-                    <Title size="small">Por moneda</Title>
-                  </View>
-                  <View style={{ gap: spacing[2] }}>
-                    {summary.byCurrency.map((c) => (
-                      <View key={c.moneda} style={styles.cpeRow}>
-                        <View style={{ flex: 1 }}>
-                          <Body style={{ fontWeight: '600' }}>{c.moneda}</Body>
-                          <Caption color={theme.color.text.muted}>
-                            {formatInt(c.count)} docs · Base{' '}
-                            {formatCurrency(c.baseImponible, c.moneda)}
-                          </Caption>
-                        </View>
-                        <Body style={{ fontWeight: '600' }}>
-                          {formatCurrency(c.importeTotal, c.moneda)}
-                        </Body>
-                      </View>
-                    ))}
-                  </View>
-                </Card>
-              ) : null}
             </>
           )}
+
+          {/* Gráfico anual mensual — SIEMPRE al final */}
+          {renderMonthlyChart()}
+
+          {/* Indicador si el backend aún así reporta otras monedas */}
+          {yearSummary && yearSummary.byCurrency.length > 1 ? (
+            <Caption color={theme.color.text.muted} style={{ textAlign: 'center' }}>
+              También hay operaciones en{' '}
+              {yearSummary.byCurrency
+                .filter((c) => c.moneda !== displayCurrency)
+                .map((c) => c.moneda)
+                .join(', ')}
+              . Cambia la moneda arriba para verlas.
+            </Caption>
+          ) : null}
         </ScrollView>
 
         {/* ================= Provider modal ================= */}
@@ -668,7 +765,10 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalListContent}>
+            <ScrollView
+              contentContainerStyle={styles.modalListContent}
+              keyboardShouldPersistTaps="handled"
+            >
               {loadingProviders ? (
                 <View style={styles.loadingBox}>
                   <ActivityIndicator size="large" color={theme.color.brand.accent} />
@@ -730,19 +830,134 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                   })}
                 </View>
               )}
-
-              {providerTotal > DEFAULT_PROVIDER_LIMIT ? (
-                <Pagination
-                  currentPage={providerPage}
-                  totalPages={providerTotalPages}
-                  totalItems={providerTotal}
-                  itemsPerPage={DEFAULT_PROVIDER_LIMIT}
-                  onPageChange={(p) => setProviderPage(p)}
-                  loading={fetchingProviders}
-                  variant="compact"
-                />
-              ) : null}
             </ScrollView>
+
+            {/* Paginación fija en el pie */}
+            {providerTotal > 0 ? (
+              <View style={styles.paginationBar}>
+                <TouchableOpacity
+                  style={[styles.pagerBtn, providerPage <= 1 && styles.pagerBtnDisabled]}
+                  onPress={() => setProviderPage(1)}
+                  disabled={providerPage <= 1}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="play-skip-back"
+                    size={16}
+                    color={providerPage <= 1 ? theme.color.text.disabled : theme.color.text.body}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.pagerBtn, providerPage <= 1 && styles.pagerBtnDisabled]}
+                  onPress={() => setProviderPage((p) => Math.max(1, p - 1))}
+                  disabled={providerPage <= 1}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={16}
+                    color={providerPage <= 1 ? theme.color.text.disabled : theme.color.text.body}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.pageIndicator}
+                  onPress={openPageJump}
+                  activeOpacity={0.75}
+                >
+                  <RNText style={styles.pageIndicatorText}>
+                    Página {providerPage} de {providerTotalPages}
+                  </RNText>
+                  <Caption color={theme.color.text.muted}>
+                    {formatInt(providerTotal)} proveedores
+                  </Caption>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.pagerBtn,
+                    providerPage >= providerTotalPages && styles.pagerBtnDisabled,
+                  ]}
+                  onPress={() => setProviderPage((p) => Math.min(providerTotalPages, p + 1))}
+                  disabled={providerPage >= providerTotalPages}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={
+                      providerPage >= providerTotalPages
+                        ? theme.color.text.disabled
+                        : theme.color.text.body
+                    }
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.pagerBtn,
+                    providerPage >= providerTotalPages && styles.pagerBtnDisabled,
+                  ]}
+                  onPress={() => setProviderPage(providerTotalPages)}
+                  disabled={providerPage >= providerTotalPages}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="play-skip-forward"
+                    size={16}
+                    color={
+                      providerPage >= providerTotalPages
+                        ? theme.color.text.disabled
+                        : theme.color.text.body
+                    }
+                  />
+                </TouchableOpacity>
+
+                {fetchingProviders ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.color.brand.accent}
+                    style={{ marginLeft: spacing[2] }}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        </Modal>
+
+        {/* Modal salto de página */}
+        <Modal
+          visible={pageJumpOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPageJumpOpen(false)}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setPageJumpOpen(false)} />
+          <View style={styles.pageJumpCard}>
+            <Title size="small">Ir a la página</Title>
+            <Caption color={theme.color.text.muted}>
+              Ingresa un número entre 1 y {providerTotalPages}
+            </Caption>
+            <TextInput
+              value={pageJumpValue}
+              onChangeText={(v) => setPageJumpValue(v.replace(/\D/g, ''))}
+              keyboardType="numeric"
+              autoFocus
+              placeholder={String(providerPage)}
+              placeholderTextColor={theme.color.text.placeholder}
+              style={styles.pageJumpInput}
+              maxLength={String(providerTotalPages).length + 1}
+              onSubmitEditing={confirmPageJump}
+              returnKeyType="go"
+            />
+            <View style={styles.pageJumpActions}>
+              <Button
+                title="Cancelar"
+                variant="secondary"
+                size="small"
+                onPress={() => setPageJumpOpen(false)}
+              />
+              <Button title="Ir" variant="primary" size="small" onPress={confirmPageJump} />
+            </View>
           </View>
         </Modal>
 
@@ -770,10 +985,6 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.brand.headerFrom,
-    },
-    content: {
-      flex: 1,
-      backgroundColor: theme.color.background.subtle,
     },
     // ===== Header pattern (dashboard global) =====
     headerGradient: {
@@ -831,6 +1042,10 @@ const createStyles = (theme: Theme) =>
       fontWeight: '600',
     },
     // ===== Content =====
+    scrollView: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
     contentContainer: {
       padding: spacing[4],
       paddingBottom: spacing[8],
@@ -955,6 +1170,62 @@ const createStyles = (theme: Theme) =>
       gap: spacing[3],
       paddingVertical: spacing[1],
     },
+    // ===== Monthly chart =====
+    chart: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      gap: 4,
+      paddingHorizontal: spacing[1],
+    },
+    chartCol: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      gap: spacing[1],
+    },
+    chartBarTrack: {
+      flex: 1,
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    chartBar: {
+      width: '78%',
+      borderTopLeftRadius: borderRadius.sm,
+      borderTopRightRadius: borderRadius.sm,
+      minHeight: 2,
+    },
+    chartBarValue: {
+      fontSize: 9,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    chartBarLabel: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      fontWeight: '500',
+    },
+    chartBarLabelActive: {
+      color: theme.color.brand.accent,
+      fontWeight: '700',
+    },
+    monthlyTable: {
+      gap: spacing[1],
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.color.border.default,
+      paddingTop: spacing[3],
+    },
+    monthlyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing[1],
+      gap: spacing[3],
+    },
+    monthlyLabelCol: {
+      flex: 1,
+    },
     // ===== Modal =====
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
@@ -996,9 +1267,81 @@ const createStyles = (theme: Theme) =>
     },
     modalListContent: {
       padding: spacing[4],
-      paddingBottom: spacing[8],
+      paddingBottom: spacing[5],
       gap: spacing[3],
     },
+    // ===== Sticky pagination =====
+    paginationBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[3],
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    pagerBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.muted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pagerBtnDisabled: {
+      opacity: 0.4,
+    },
+    pageIndicator: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing[1],
+      paddingHorizontal: spacing[2],
+      borderRadius: borderRadius.md,
+      backgroundColor: `${theme.color.brand.accent}11`,
+      borderWidth: 1,
+      borderColor: `${theme.color.brand.accent}33`,
+    },
+    pageIndicatorText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+    },
+    // ===== Page jump modal =====
+    pageJumpCard: {
+      position: 'absolute',
+      top: '30%',
+      left: spacing[5],
+      right: spacing[5],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.xl,
+      padding: spacing[4],
+      gap: spacing[3],
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    pageJumpInput: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[3],
+      fontSize: 18,
+      fontWeight: '700',
+      textAlign: 'center',
+      color: theme.color.text.body,
+      backgroundColor: theme.color.surface.muted,
+    },
+    pageJumpActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: spacing[2],
+    },
+    // ===== Provider cards =====
     providerCard: {
       padding: spacing[3],
       gap: spacing[2],
