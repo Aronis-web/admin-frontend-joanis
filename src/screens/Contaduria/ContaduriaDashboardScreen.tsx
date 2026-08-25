@@ -631,6 +631,8 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             <>
               {visibleCurrencies.map((cur) => {
                 const t = summary!.totals[cur];
+                const fac = summary!.facturas?.[cur];
+                const nc = summary!.notasCredito?.[cur];
                 const rows = summaryByPeriodoByMoneda[cur];
                 const maxTotal = rows.reduce(
                   (max, p) => Math.max(max, Number(p.importeTotal) || 0),
@@ -669,12 +671,51 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                       )}
                       {renderKpi(
                         'wallet-outline',
-                        'Importe total',
+                        'Importe neto',
                         formatCurrency(t.importeTotal, cur),
                         '#8B5CF6',
-                        `ISC ${formatCurrency(t.isc, cur)} · Otros ${formatCurrency(t.otros, cur)}`
+                        fac && nc
+                          ? `Facturas ${formatCurrencyCompact(fac.importeTotal, cur)} − NC ${formatCurrencyCompact(nc.importeTotal, cur)}`
+                          : `ISC ${formatCurrency(t.isc, cur)} · Otros ${formatCurrency(t.otros, cur)}`
                       )}
                     </View>
+
+                    {fac || nc ? (
+                      <Card style={styles.blockCard}>
+                        <View style={styles.blockHeader}>
+                          <Ionicons name="swap-vertical-outline" size={18} color={accent} />
+                          <Title size="small">Facturas vs Notas de crédito · {cur}</Title>
+                        </View>
+                        <View style={styles.breakdownRow}>
+                          <View style={[styles.breakdownCell, { borderLeftColor: '#10B981' }]}>
+                            <View style={styles.breakdownHeader}>
+                              <Ionicons name="receipt-outline" size={16} color="#10B981" />
+                              <Caption color={theme.color.text.muted}>Facturas</Caption>
+                            </View>
+                            <Body style={{ fontWeight: '700' }}>
+                              {formatCurrency(fac?.importeTotal ?? '0', cur)}
+                            </Body>
+                            <Caption color={theme.color.text.muted}>
+                              {formatInt(fac?.count ?? 0)} docs · IGV{' '}
+                              {formatCurrency(fac?.igv ?? '0', cur)}
+                            </Caption>
+                          </View>
+                          <View style={[styles.breakdownCell, { borderLeftColor: '#EF4444' }]}>
+                            <View style={styles.breakdownHeader}>
+                              <Ionicons name="arrow-undo-outline" size={16} color="#EF4444" />
+                              <Caption color={theme.color.text.muted}>Notas de crédito</Caption>
+                            </View>
+                            <Body style={{ fontWeight: '700', color: '#EF4444' }}>
+                              − {formatCurrency(nc?.importeTotal ?? '0', cur)}
+                            </Body>
+                            <Caption color={theme.color.text.muted}>
+                              {formatInt(nc?.count ?? 0)} docs · IGV{' '}
+                              {formatCurrency(nc?.igv ?? '0', cur)}
+                            </Caption>
+                          </View>
+                        </View>
+                      </Card>
+                    ) : null}
 
                     {rows.length ? (
                       <Card style={styles.blockCard}>
@@ -806,6 +847,8 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                         </View>
                         {blocks.map(({ cur, block }) => {
                           const accent = CURRENCY_ACCENTS[cur];
+                          const facP = p.facturas?.[cur];
+                          const ncP = p.notasCredito?.[cur];
                           return (
                             <View key={cur} style={styles.providerCurrencyBlock}>
                               <View style={styles.providerCurrencyHeader}>
@@ -838,12 +881,40 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                                   </Body>
                                 </View>
                                 <View style={styles.providerCol}>
-                                  <Caption color={theme.color.text.muted}>Importe total</Caption>
+                                  <Caption color={theme.color.text.muted}>Importe neto</Caption>
                                   <Title size="small">
                                     {formatCurrency(block!.importeTotal, cur)}
                                   </Title>
                                 </View>
                               </View>
+                              {facP || ncP ? (
+                                <View style={styles.providerBreakdownRow}>
+                                  <View style={styles.providerBreakdownCell}>
+                                    <View style={styles.breakdownHeader}>
+                                      <Ionicons name="receipt-outline" size={12} color="#10B981" />
+                                      <Caption color={theme.color.text.muted}>Facturas</Caption>
+                                    </View>
+                                    <Body style={{ fontWeight: '600' }}>
+                                      {formatCurrency(facP?.importeTotal ?? '0', cur)}
+                                    </Body>
+                                    <Caption color={theme.color.text.muted}>
+                                      {formatInt(facP?.count ?? 0)} docs
+                                    </Caption>
+                                  </View>
+                                  <View style={styles.providerBreakdownCell}>
+                                    <View style={styles.breakdownHeader}>
+                                      <Ionicons name="arrow-undo-outline" size={12} color="#EF4444" />
+                                      <Caption color={theme.color.text.muted}>NC</Caption>
+                                    </View>
+                                    <Body style={{ fontWeight: '600', color: '#EF4444' }}>
+                                      − {formatCurrency(ncP?.importeTotal ?? '0', cur)}
+                                    </Body>
+                                    <Caption color={theme.color.text.muted}>
+                                      {formatInt(ncP?.count ?? 0)} docs
+                                    </Caption>
+                                  </View>
+                                </View>
+                              ) : null}
                             </View>
                           );
                         })}
@@ -1155,6 +1226,37 @@ const createStyles = (theme: Theme) =>
       paddingTop: spacing[2],
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.color.border.default,
+    },
+    breakdownRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing[2],
+    },
+    breakdownCell: {
+      flexGrow: 1,
+      flexBasis: Platform.OS === 'web' ? 200 : '46%',
+      padding: spacing[3],
+      borderLeftWidth: 4,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.muted,
+      gap: spacing[1],
+    },
+    breakdownHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+    },
+    providerBreakdownRow: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      paddingTop: spacing[1],
+    },
+    providerBreakdownCell: {
+      flex: 1,
+      padding: spacing[2],
+      borderRadius: borderRadius.sm,
+      backgroundColor: theme.color.surface.muted,
+      gap: spacing[1],
     },
     providerCurrencyHeader: {
       flexDirection: 'row',

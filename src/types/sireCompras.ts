@@ -241,7 +241,12 @@ export interface SireSummaryByTipoCpe {
 
 export interface SireInvoicesSummaryResponse {
   filters: Record<string, string | number | boolean | undefined>;
+  /** Neto = facturas − notasCredito (importes). `count` incluye facturas + NC. */
   totals: SireSummaryTotals;
+  /** Solo comprobantes con tipoCpe distinto de '07'. */
+  facturas: SireSummaryTotals;
+  /** Solo tipoCpe = '07', en positivo para lectura. */
+  notasCredito: SireSummaryTotals;
   byCurrency: SireSummaryByCurrency[];
   byPeriodo: SireSummaryByPeriodo[];
   byTipoCpe: SireSummaryByTipoCpe[];
@@ -265,8 +270,13 @@ export interface SireProviderSummaryItem {
   rucProveedor: string;
   razonSocialProveedor: string;
   count: number;
+  /** Neto por moneda (facturas − NC). */
   PEN: SireSummaryTotalsAmount;
   USD: SireSummaryTotalsAmount;
+  /** Solo facturas (tipoCpe distinto de '07'), por moneda. */
+  facturas: SireSummaryTotals;
+  /** Solo notas de crédito (tipoCpe = '07'), en positivo, por moneda. */
+  notasCredito: SireSummaryTotals;
 }
 
 export interface SireInvoicesSummaryByProviderResponse {
