@@ -27,6 +27,7 @@ import {
   ChipGroup,
   EmptyState,
   ErrorState,
+  Heading,
   Input,
   Text,
   Title,
@@ -716,10 +717,18 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             </ScrollView>
           </View>
 
-          {/* Sección Compras — del período seleccionado */}
+          {/* Sección Compras Mapeadas Sunat — engloba KPIs, por período,
+              por tipo de CPE, gráfico anual y detalle por proveedor */}
           <View style={styles.sectionHeader}>
-            <Ionicons name="wallet-outline" size={20} color={theme.color.brand.accent} />
-            <Title size="small">Compras del período</Title>
+            <View style={styles.sectionHeaderIcon}>
+              <Ionicons name="shield-checkmark" size={22} color={theme.color.brand.onHeader} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Heading size="medium">Compras Mapeadas Sunat</Heading>
+              <Caption color={theme.color.text.muted}>
+                Registro de compras (RCE) del período seleccionado
+              </Caption>
+            </View>
           </View>
 
           {loadingSummary ? (
@@ -1297,7 +1306,19 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing[3],
-      paddingTop: spacing[2],
+      paddingTop: spacing[3],
+      paddingBottom: spacing[1],
+      borderBottomWidth: 2,
+      borderBottomColor: theme.color.brand.accent,
+      marginBottom: spacing[1],
+    },
+    sectionHeaderIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     loadingBox: {
       padding: spacing[5],
