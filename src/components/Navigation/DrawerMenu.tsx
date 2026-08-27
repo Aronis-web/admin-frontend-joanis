@@ -402,6 +402,49 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // RRHH (Recursos Humanos)
+  {
+    id: 'rrhh',
+    title: 'RRHH',
+    icon: 'people-circle-outline',
+    requiredPermissions: [
+      'organization.positions.company.read',
+      'organization.positions.site.read',
+    ],
+    items: [
+      {
+        id: 'rrhh-organigrama',
+        icon: 'git-network-outline',
+        label: 'Organigrama',
+        requiredPermissions: [
+          'organization.positions.company.read',
+          'organization.positions.site.read',
+        ],
+        subItems: [
+          {
+            id: 'rrhh-organigrama-lista',
+            icon: 'list-outline',
+            label: 'Lista',
+            route: MAIN_ROUTES.ORGANIZATION_CHART_LIST,
+            requiredPermissions: [
+              'organization.positions.company.read',
+              'organization.positions.site.read',
+            ],
+          },
+          {
+            id: 'rrhh-organigrama-visual',
+            icon: 'git-network-outline',
+            label: 'Visual',
+            route: MAIN_ROUTES.ORGANIZATION_CHART,
+            requiredPermissions: [
+              'organization.positions.company.read',
+              'organization.positions.site.read',
+            ],
+          },
+        ],
+      },
+    ],
+  },
   // Nota: el Correo se movió del menú a un acceso rápido en el footer,
   // junto al botón de cerrar sesión (ver render abajo).
   // Configuración
@@ -501,16 +544,6 @@ const menuCategories: MenuCategory[] = [
             label: 'Usuarios',
             route: MAIN_ROUTES.USERS,
             requiredPermissions: ['users.read', 'users.create', 'users.update'],
-          },
-          {
-            id: 'organization-chart',
-            icon: 'git-network-outline',
-            label: 'Organigrama',
-            route: MAIN_ROUTES.ORGANIZATION_CHART,
-            requiredPermissions: [
-              'organization.positions.company.read',
-              'organization.positions.site.read',
-            ],
           },
           {
             id: 'roles',

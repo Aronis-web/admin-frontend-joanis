@@ -30,6 +30,39 @@ export const PERMISSIONS = {
     DELETE: 'users.delete',
   },
 
+  // ========== RRHH / ORGANIGRAMA ==========
+  ORGANIZATION: {
+    // Puestos a nivel SEDE
+    POSITIONS_SITE_CREATE: 'organization.positions.site.create',
+    POSITIONS_SITE_READ: 'organization.positions.site.read',
+    POSITIONS_SITE_UPDATE: 'organization.positions.site.update',
+    POSITIONS_SITE_DELETE: 'organization.positions.site.delete',
+    // Puestos a nivel EMPRESA
+    POSITIONS_COMPANY_CREATE: 'organization.positions.company.create',
+    POSITIONS_COMPANY_READ: 'organization.positions.company.read',
+    POSITIONS_COMPANY_UPDATE: 'organization.positions.company.update',
+    POSITIONS_COMPANY_DELETE: 'organization.positions.company.delete',
+    // Alcance de sedes
+    SITE_SCOPE_READ: 'organization.positions.site_scope.read',
+    SITE_SCOPE_MANAGE: 'organization.positions.site_scope.manage',
+    // Asignaciones
+    ASSIGNMENTS_CREATE: 'organization.assignments.create',
+    ASSIGNMENTS_READ: 'organization.assignments.read',
+    ASSIGNMENTS_UPDATE: 'organization.assignments.update',
+    ASSIGNMENTS_DELETE: 'organization.assignments.delete',
+    // Presupuesto
+    BUDGET_CREATE: 'organization.budget.create',
+    BUDGET_READ: 'organization.budget.read',
+    BUDGET_UPDATE: 'organization.budget.update',
+    BUDGET_DELETE: 'organization.budget.delete',
+    BUDGET_APPROVE: 'organization.budget.approve',
+    // Salarios
+    SALARY_CREATE: 'organization.salary.create',
+    SALARY_READ: 'organization.salary.read',
+    SALARY_UPDATE: 'organization.salary.update',
+    SALARY_DELETE: 'organization.salary.delete',
+  },
+
   // ========== PRODUCTOS ==========
   PRODUCTS: {
     CREATE: 'products.create',

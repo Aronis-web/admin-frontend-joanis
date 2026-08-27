@@ -373,6 +373,7 @@ export type MainStackParamList = {
 
   // Organization
   OrganizationChart: undefined;
+  OrganizationChartList: undefined;
 
   // Treasury
   TreasuryUploadFiles: undefined;

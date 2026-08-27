@@ -181,6 +181,7 @@ export const MAIN_ROUTES = {
 
   // Organization
   ORGANIZATION_CHART: 'OrganizationChart',
+  ORGANIZATION_CHART_LIST: 'OrganizationChartList',
 
   // Treasury
   TREASURY_UPLOAD_FILES: 'TreasuryUploadFiles',
@@ -414,6 +415,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Organization
   ORGANIZATION_CHART: 'organization.positions.company.read',
+  ORGANIZATION_CHART_LIST: 'organization.positions.company.read',
 
   // Treasury
   TREASURY_UPLOAD_FILES: 'treasury.transactions.upload',

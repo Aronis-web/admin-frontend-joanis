@@ -371,6 +371,10 @@ const OrganizationChartScreen = lazyLoad(
   () => import('@/screens/Organization').then((m) => ({ default: m.OrganizationChartScreen })),
   'Cargando organigrama...'
 );
+const OrganizationChartListScreen = lazyLoad(
+  () => import('@/screens/Organization').then((m) => ({ default: m.OrganizationChartListScreen })),
+  'Cargando organigrama...'
+);
 
 // Treasury Screens - Lazy Loaded
 const TreasuryUploadFilesScreen = lazyLoad(
@@ -1593,6 +1597,24 @@ const MainStack = React.memo(() => {
             requireAll={false}
           >
             <OrganizationChartScreen />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.ORGANIZATION_CHART_LIST}
+        options={{
+          title: 'Organigrama · Lista',
+        }}
+      >
+        {() => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'organization.positions.company.read',
+              'organization.positions.site.read',
+            ]}
+            requireAll={false}
+          >
+            <OrganizationChartListScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
