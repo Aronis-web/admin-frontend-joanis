@@ -20,6 +20,7 @@ import { CreatePositionModal } from '@/components/Organization';
 import { EditPositionModal } from '@/components/Organization';
 import { PositionDetailModal } from '@/components/Organization';
 import { buildPositionTree } from '@/components/Organization';
+import { ScopeInfoBanner } from '@/components/Organization';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
@@ -228,6 +229,9 @@ export const OrganizationChartScreen: React.FC = () => {
         {renderScopeChip('COMPANY', 'Empresa', counts.COMPANY)}
         {renderScopeChip('SITE', 'Sede', counts.SITE)}
       </View>
+
+      {/* Explicación de alcance */}
+      <ScopeInfoBanner />
 
       {/* Display Mode Selector */}
       <View style={styles.displayModeContainer}>

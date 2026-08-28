@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  SectionList,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
@@ -14,14 +14,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
+import { usePermissions } from '@/hooks/usePermissions';
 import { organizationApi } from '@/services/api/organization';
 import { OrganizationPosition, PositionTreeNode, ScopeLevel } from '@/types/organization';
 import {
   CreatePositionModal,
   EditPositionModal,
   PositionDetailModal,
+  ScopeInfoBanner,
 } from '@/components/Organization';
-import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
@@ -29,14 +30,22 @@ import { logger } from '@/utils/logger';
 
 type ScopeFilter = 'all' | 'COMPANY' | 'SITE';
 
+interface PositionSection {
+  key: string;
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  scope: ScopeLevel;
+  siteId?: string;
+  data: OrganizationPosition[];
+}
+
 /**
- * Organigrama - Vista Lista
+ * Organigrama - Vista Lista.
  *
- * Gestion de puestos organizacionales a nivel de lista plana.
- * La lista de empresa (`GET /organization/companies/:id/positions`) ya devuelve
- * TODOS los puestos (COMPANY + SITE), por lo que se usa como fuente unica y el
- * scope se filtra en el cliente con chips (Todos / Empresa / Sede). Esto evita
- * el antiguo toggle Empresa/Sede que mostraba subconjuntos redundantes.
+ * Los puestos se agrupan en secciones: una de "Empresa" (COMPANY) y una por
+ * cada Sede (SITE). Cada encabezado tiene un boton "+" contextual que crea un
+ * puesto exactamente en ese alcance/sede, eliminando la ambiguedad del antiguo
+ * toggle Empresa/Sede. Los chips superiores permiten filtrar rapido.
  */
 export const OrganizationChartListScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -44,6 +53,7 @@ export const OrganizationChartListScreen: React.FC = () => {
   const isTablet = width >= 768;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const { hasPermission } = usePermissions();
 
   const { currentCompany, currentSite } = useAuthStore();
   const { selectedCompany, selectedSite } = useTenantStore();
@@ -56,13 +66,18 @@ export const OrganizationChartListScreen: React.FC = () => {
 
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [createScope, setCreateScope] = useState<ScopeLevel>('COMPANY');
+  const [createSiteId, setCreateSiteId] = useState<string | undefined>(undefined);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<OrganizationPosition | null>(null);
 
   const companyId = selectedCompany?.id || currentCompany?.id;
-  const siteId = selectedSite?.id || currentSite?.id;
+  const tenantSiteId = selectedSite?.id || currentSite?.id;
+  const tenantSiteName = selectedSite?.name || currentSite?.name;
   const companyName = selectedCompany?.name || currentCompany?.name || 'Empresa';
+
+  const canCreateCompany = hasPermission('organization.positions.company.create');
+  const canCreateSite = hasPermission('organization.positions.site.create');
 
   // Fuente unica: la lista de empresa trae puestos COMPANY + SITE.
   const loadPositions = useCallback(async () => {
@@ -103,22 +118,81 @@ export const OrganizationChartListScreen: React.FC = () => {
     [positions]
   );
 
-  const filteredPositions = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const byScope =
-      scopeFilter === 'all' ? positions : positions.filter((p) => p.scopeLevel === scopeFilter);
-    const sorted = [...byScope].sort((a, b) => {
+  const sortPositions = (arr: OrganizationPosition[]) =>
+    [...arr].sort((a, b) => {
       if (a.level !== b.level) return a.level - b.level;
       return (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
     });
-    if (!term) return sorted;
-    return sorted.filter(
-      (p) =>
-        p.name.toLowerCase().includes(term) ||
-        p.code.toLowerCase().includes(term) ||
-        (p.description ?? '').toLowerCase().includes(term)
-    );
-  }, [positions, search, scopeFilter]);
+
+  const sections = useMemo<PositionSection[]>(() => {
+    const term = search.trim().toLowerCase();
+    const matches = (p: OrganizationPosition) =>
+      !term ||
+      p.name.toLowerCase().includes(term) ||
+      p.code.toLowerCase().includes(term) ||
+      (p.description ?? '').toLowerCase().includes(term);
+
+    const result: PositionSection[] = [];
+
+    // Seccion Empresa (siempre presente para permitir crear).
+    if (scopeFilter !== 'SITE') {
+      const companyData = sortPositions(
+        positions.filter((p) => p.scopeLevel === 'COMPANY' && matches(p))
+      );
+      result.push({
+        key: 'company',
+        title: 'Empresa',
+        icon: 'business-outline',
+        scope: 'COMPANY',
+        data: companyData,
+      });
+    }
+
+    // Secciones por Sede.
+    if (scopeFilter !== 'COMPANY') {
+      const siteGroups = new Map<string, PositionSection>();
+      positions
+        .filter((p) => p.scopeLevel === 'SITE' && matches(p))
+        .forEach((p) => {
+          const sid = p.siteId || 'sin-sede';
+          if (!siteGroups.has(sid)) {
+            siteGroups.set(sid, {
+              key: `site-${sid}`,
+              title: p.site?.name || 'Sede',
+              icon: 'storefront-outline',
+              scope: 'SITE',
+              siteId: p.siteId || undefined,
+              data: [],
+            });
+          }
+          siteGroups.get(sid)!.data.push(p);
+        });
+
+      // Asegurar que la sede del contexto aparezca aunque no tenga puestos.
+      if (tenantSiteId && !siteGroups.has(tenantSiteId) && !term) {
+        siteGroups.set(tenantSiteId, {
+          key: `site-${tenantSiteId}`,
+          title: tenantSiteName || 'Sede',
+          icon: 'storefront-outline',
+          scope: 'SITE',
+          siteId: tenantSiteId,
+          data: [],
+        });
+      }
+
+      siteGroups.forEach((section) => {
+        section.data = sortPositions(section.data);
+        result.push(section);
+      });
+    }
+
+    return result;
+  }, [positions, search, scopeFilter, tenantSiteId, tenantSiteName]);
+
+  const totalVisible = useMemo(
+    () => sections.reduce((acc, s) => acc + s.data.length, 0),
+    [sections]
+  );
 
   // Mapear puesto plano al shape que esperan los modales.
   const asTreeNode = (p: OrganizationPosition): PositionTreeNode => ({
@@ -170,8 +244,9 @@ export const OrganizationChartListScreen: React.FC = () => {
     );
   };
 
-  const handleCreate = (scope: ScopeLevel) => {
+  const handleCreate = (scope: ScopeLevel, siteId?: string) => {
     setCreateScope(scope);
+    setCreateSiteId(scope === 'SITE' ? siteId : undefined);
     setSelectedPosition(null);
     setCreateModalVisible(true);
   };
@@ -201,13 +276,41 @@ export const OrganizationChartListScreen: React.FC = () => {
     );
   };
 
+  const renderSectionHeader = ({ section }: { section: PositionSection }) => {
+    const canAdd = section.scope === 'COMPANY' ? canCreateCompany : canCreateSite;
+    return (
+      <View style={styles.sectionHeader}>
+        <Ionicons name={section.icon} size={16} color={theme.color.text.muted} />
+        <Text style={styles.sectionTitle} numberOfLines={1}>
+          {section.title}
+        </Text>
+        <Text style={styles.sectionCount}>{section.data.length}</Text>
+        <View style={styles.sectionHeaderSpacer} />
+        {canAdd && (
+          <TouchableOpacity
+            style={styles.sectionAddBtn}
+            onPress={() => handleCreate(section.scope, section.siteId)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="add" size={16} color={theme.color.text.onAction} />
+            <Text style={styles.sectionAddText}>Nuevo</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  const renderSectionFooter = ({ section }: { section: PositionSection }) =>
+    section.data.length === 0 ? (
+      <Text style={styles.sectionEmpty}>Sin puestos en esta sección</Text>
+    ) : null;
+
   const renderItem = ({ item }: { item: OrganizationPosition }) => {
     const isActive = item.isActive !== false;
     const occupantsLabel =
       item.maxOccupants != null
         ? `${item.minOccupants ?? 0}–${item.maxOccupants} cupos`
         : `Mín. ${item.minOccupants ?? 0} · ilimitado`;
-    const siteName = item.scopeLevel === 'SITE' ? item.site?.name : null;
 
     return (
       <TouchableOpacity
@@ -220,26 +323,13 @@ export const OrganizationChartListScreen: React.FC = () => {
         </View>
 
         <View style={styles.rowContent}>
-          <View style={styles.rowTitleLine}>
-            <Text style={styles.rowName} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <View
-              style={[
-                styles.scopeChip,
-                item.scopeLevel === 'COMPANY' ? styles.scopeChipCompany : styles.scopeChipSite,
-              ]}
-            >
-              <Text style={styles.scopeChipText}>
-                {item.scopeLevel === 'COMPANY' ? 'Empresa' : 'Sede'}
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.rowName} numberOfLines={1}>
+            {item.name}
+          </Text>
           <Text style={styles.rowCode} numberOfLines={1}>
             {item.code}
           </Text>
           <Text style={styles.rowMeta} numberOfLines={1}>
-            {siteName ? `📍 ${siteName} · ` : ''}
             {occupantsLabel}
             {!isActive ? ' · Inactivo' : ''}
           </Text>
@@ -280,25 +370,6 @@ export const OrganizationChartListScreen: React.FC = () => {
     );
   }
 
-  const fabActions = [
-    {
-      icon: 'business-outline' as const,
-      label: 'Puesto de Empresa',
-      onPress: () => handleCreate('COMPANY'),
-      requiredPermissions: ['organization.positions.company.create'],
-    },
-    ...(siteId
-      ? [
-          {
-            icon: 'storefront-outline' as const,
-            label: 'Puesto de Sede',
-            onPress: () => handleCreate('SITE'),
-            requiredPermissions: ['organization.positions.site.create'],
-          },
-        ]
-      : []),
-  ];
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -313,6 +384,9 @@ export const OrganizationChartListScreen: React.FC = () => {
         {renderScopeChip('COMPANY', 'Empresa', counts.COMPANY)}
         {renderScopeChip('SITE', 'Sede', counts.SITE)}
       </View>
+
+      {/* Explicación de alcance */}
+      <ScopeInfoBanner />
 
       {/* Search */}
       <View style={styles.searchContainer}>
@@ -334,11 +408,14 @@ export const OrganizationChartListScreen: React.FC = () => {
         )}
       </View>
 
-      {/* List */}
-      <FlatList
-        data={filteredPositions}
+      {/* Sectioned list */}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        renderSectionFooter={renderSectionFooter}
+        stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl
@@ -351,23 +428,16 @@ export const OrganizationChartListScreen: React.FC = () => {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>📋</Text>
             <Text style={styles.emptyText}>
-              {search || scopeFilter !== 'all' ? 'Sin resultados' : 'No hay puestos registrados'}
+              {search ? 'Sin resultados' : 'No hay puestos registrados'}
             </Text>
             <Text style={styles.emptySubtext}>
-              {search || scopeFilter !== 'all'
-                ? 'Prueba con otro filtro o término de búsqueda'
-                : 'Crea el primer puesto para comenzar'}
+              {search
+                ? 'Prueba con otro término de búsqueda'
+                : 'Usa el botón "Nuevo" de cada sección para crear un puesto'}
             </Text>
           </View>
         }
-      />
-
-      <ProtectedFAB
-        requiredPermissions={[
-          'organization.positions.company.create',
-          'organization.positions.site.create',
-        ]}
-        actions={fabActions}
+        ListFooterComponent={totalVisible > 0 ? <View style={styles.listFooterSpace} /> : null}
       />
 
       {/* Modals */}
@@ -378,7 +448,7 @@ export const OrganizationChartListScreen: React.FC = () => {
         parentPosition={null}
         scopeLevel={createScope}
         companyId={companyId}
-        siteId={createScope === 'SITE' ? siteId : undefined}
+        siteId={createSiteId}
       />
 
       {selectedPosition && (
@@ -502,7 +572,54 @@ const createStyles = (theme: Theme) =>
     },
     listContent: {
       padding: 20,
-      paddingBottom: 120,
+      paddingBottom: 40,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      flexShrink: 1,
+    },
+    sectionCount: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+      overflow: 'hidden',
+    },
+    sectionHeaderSpacer: {
+      flex: 1,
+    },
+    sectionAddBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 16,
+    },
+    sectionAddText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    sectionEmpty: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      fontStyle: 'italic',
+      paddingVertical: 8,
+      paddingHorizontal: 4,
     },
     row: {
       flexDirection: 'row',
@@ -534,33 +651,11 @@ const createStyles = (theme: Theme) =>
     rowContent: {
       flex: 1,
     },
-    rowTitleLine: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 2,
-    },
     rowName: {
-      flexShrink: 1,
       fontSize: 15,
       fontWeight: '700',
       color: theme.color.text.heading,
-    },
-    scopeChip: {
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 10,
-    },
-    scopeChipCompany: {
-      backgroundColor: theme.color.brand.primarySoft,
-    },
-    scopeChipSite: {
-      backgroundColor: theme.color.surface.muted,
-    },
-    scopeChipText: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: theme.color.text.muted,
+      marginBottom: 2,
     },
     rowCode: {
       fontSize: 12,
@@ -603,6 +698,9 @@ const createStyles = (theme: Theme) =>
       fontSize: 14,
       color: theme.color.text.muted,
       textAlign: 'center',
+    },
+    listFooterSpace: {
+      height: 24,
     },
   });
 
