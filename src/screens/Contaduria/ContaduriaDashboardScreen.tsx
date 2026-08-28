@@ -64,9 +64,6 @@ import type {
   SireVentasClientSortBy,
   SireVentasInvoicesSummaryResponse,
 } from '@/types/sireVentas';
-import { usePermissions } from '@/hooks/usePermissions';
-import { PERMISSIONS } from '@/constants/permissions';
-
 type Props = NativeStackScreenProps<any, 'ContaduriaDashboard'>;
 
 type Currency = 'PEN' | 'USD';
@@ -426,9 +423,6 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   } = useSireInvoicesSummary(yearParams);
 
   // ============ Ventas (RVIE) ============
-  const { hasPermission } = usePermissions();
-  const canReadSales = hasPermission(PERMISSIONS.SIRE_VENTAS.INVOICES.READ);
-
   const salesSummaryParams = useMemo<GetSireVentasInvoicesSummaryParams>(
     () => ({ fechaFrom: dateRange.fechaFrom, fechaTo: dateRange.fechaTo }),
     [dateRange.fechaFrom, dateRange.fechaTo]
@@ -444,13 +438,13 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     isError: salesSummaryError,
     error: salesSummaryErrorObj,
     refetch: refetchSalesSummary,
-  } = useSireVentasInvoicesSummary(salesSummaryParams, { enabled: canReadSales });
+  } = useSireVentasInvoicesSummary(salesSummaryParams);
 
   const {
     data: salesYearSummary,
     isLoading: loadingSalesYear,
     refetch: refetchSalesYear,
-  } = useSireVentasInvoicesSummary(salesYearParams, { enabled: canReadSales });
+  } = useSireVentasInvoicesSummary(salesYearParams);
 
   // ============ Provider modal ============
   const [providerModalOpen, setProviderModalOpen] = useState(false);
@@ -550,7 +544,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     isError: clientError,
     refetch: refetchClients,
   } = useSireVentasInvoicesSummaryByClient(clientParams, {
-    enabled: clientModalOpen && canReadSales,
+    enabled: clientModalOpen,
   });
 
   const openClientModal = useCallback(() => {
@@ -644,11 +638,9 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const handleRefresh = useCallback(() => {
     void refetchSummary();
     void refetchYear();
-    if (canReadSales) {
-      void refetchSalesSummary();
-      void refetchSalesYear();
-    }
-  }, [refetchSummary, refetchYear, refetchSalesSummary, refetchSalesYear, canReadSales]);
+    void refetchSalesSummary();
+    void refetchSalesYear();
+  }, [refetchSummary, refetchYear, refetchSalesSummary, refetchSalesYear]);
 
   const openPageJump = useCallback(() => {
     setPageJumpValue(String(providerPage));
@@ -1502,131 +1494,129 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           {/* ===== Sección Ventas Mapeadas por SUNAT (RVIE) ===== */}
-          {canReadSales ? (
-            <View style={styles.sectionContainer}>
-              <TouchableOpacity
-                style={[styles.sectionBanner, styles.sectionBannerSales]}
-                onPress={() => setSalesSectionExpanded((v) => !v)}
-                activeOpacity={0.9}
-              >
-                <View style={styles.sectionHeaderIcon}>
-                  <Ionicons name="trending-up" size={24} color={theme.color.brand.onHeader} />
+          <View style={styles.sectionContainer}>
+            <TouchableOpacity
+              style={[styles.sectionBanner, styles.sectionBannerSales]}
+              onPress={() => setSalesSectionExpanded((v) => !v)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.sectionHeaderIcon}>
+                <Ionicons name="trending-up" size={24} color={theme.color.brand.onHeader} />
+              </View>
+              <View style={styles.sectionTitleColumn}>
+                <RNText style={styles.sectionEyebrow}>Contaduría · SUNAT</RNText>
+                <RNText style={styles.sectionTitleLarge}>Ventas Mapeadas por SUNAT</RNText>
+                <RNText style={styles.sectionSubtitle}>
+                  Registro de ventas (RVIE) del período seleccionado
+                </RNText>
+              </View>
+              <View style={styles.sectionActions}>
+                <TouchableOpacity
+                  style={styles.sectionAction}
+                  onPress={openClientModal}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
+                  <RNText style={styles.sectionActionText}>Detalle por cliente</RNText>
+                </TouchableOpacity>
+                <View style={styles.sectionChevron}>
+                  <Ionicons
+                    name={salesSectionExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={22}
+                    color={theme.color.brand.onHeader}
+                  />
                 </View>
-                <View style={styles.sectionTitleColumn}>
-                  <RNText style={styles.sectionEyebrow}>Contaduría · SUNAT</RNText>
-                  <RNText style={styles.sectionTitleLarge}>Ventas Mapeadas por SUNAT</RNText>
-                  <RNText style={styles.sectionSubtitle}>
-                    Registro de ventas (RVIE) del período seleccionado
-                  </RNText>
-                </View>
-                <View style={styles.sectionActions}>
-                  <TouchableOpacity
-                    style={styles.sectionAction}
-                    onPress={openClientModal}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
-                    <RNText style={styles.sectionActionText}>Detalle por cliente</RNText>
-                  </TouchableOpacity>
-                  <View style={styles.sectionChevron}>
-                    <Ionicons
-                      name={salesSectionExpanded ? 'chevron-up' : 'chevron-down'}
-                      size={22}
-                      color={theme.color.brand.onHeader}
-                    />
-                  </View>
-                </View>
-              </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
 
-              {salesSectionExpanded ? (
-                <View style={styles.sectionBody}>
-                  <View style={styles.currencyFilterRow}>
-                    <RNText style={styles.filtersLabel}>Moneda</RNText>
-                    <View style={styles.currencyChips}>
-                      {CURRENCY_KEYS.map((cur) => {
-                        const active = currencyFilter[cur];
-                        const accent = CURRENCY_ACCENTS[cur];
-                        const label = `${CURRENCY_SYMBOLS[cur]} ${cur === 'PEN' ? 'Soles' : 'Dólares'}`;
-                        return (
-                          <TouchableOpacity
-                            key={`sales-${cur}`}
+            {salesSectionExpanded ? (
+              <View style={styles.sectionBody}>
+                <View style={styles.currencyFilterRow}>
+                  <RNText style={styles.filtersLabel}>Moneda</RNText>
+                  <View style={styles.currencyChips}>
+                    {CURRENCY_KEYS.map((cur) => {
+                      const active = currencyFilter[cur];
+                      const accent = CURRENCY_ACCENTS[cur];
+                      const label = `${CURRENCY_SYMBOLS[cur]} ${cur === 'PEN' ? 'Soles' : 'Dólares'}`;
+                      return (
+                        <TouchableOpacity
+                          key={`sales-${cur}`}
+                          style={[
+                            styles.currencyChip,
+                            active && { backgroundColor: `${accent}1A`, borderColor: accent },
+                          ]}
+                          onPress={() => toggleCurrency(cur)}
+                          activeOpacity={0.8}
+                        >
+                          <RNText
                             style={[
-                              styles.currencyChip,
-                              active && { backgroundColor: `${accent}1A`, borderColor: accent },
+                              styles.currencyChipText,
+                              active && { color: accent, fontWeight: '700' },
                             ]}
-                            onPress={() => toggleCurrency(cur)}
-                            activeOpacity={0.8}
                           >
-                            <RNText
-                              style={[
-                                styles.currencyChipText,
-                                active && { color: accent, fontWeight: '700' },
-                              ]}
-                            >
-                              {label}
-                            </RNText>
-                            {active ? (
-                              <Ionicons name="checkmark-circle" size={14} color={accent} />
-                            ) : null}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                            {label}
+                          </RNText>
+                          {active ? (
+                            <Ionicons name="checkmark-circle" size={14} color={accent} />
+                          ) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
-
-                  <View style={styles.filtersSection}>
-                    <RNText style={styles.filtersLabel}>Filtros</RNText>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.filtersContent}
-                    >
-                      {renderFilterButton('today', 'Hoy')}
-                      {renderFilterButton('yesterday', 'Ayer')}
-                      {renderFilterButton('week', 'Esta Semana')}
-                      {renderFilterButton('month', 'Este Mes')}
-                      {renderFilterButton('lastMonth', 'Mes Pasado')}
-                      {renderFilterButton('year', 'Este Año')}
-                      {renderFilterButton('custom', '📅 Personalizado')}
-                    </ScrollView>
-                  </View>
-
-                  {loadingSalesSummary ? (
-                    <View style={styles.loadingBox}>
-                      <ActivityIndicator size="large" color={theme.color.brand.accent} />
-                    </View>
-                  ) : salesSummaryError ? (
-                    <ErrorState
-                      title="No se pudo cargar el resumen"
-                      description={(salesSummaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
-                      onRetry={() => refetchSalesSummary()}
-                    />
-                  ) : !hasSalesData || !normalizedVentas ? (
-                    <EmptyState
-                      icon="stats-chart-outline"
-                      title="Sin ventas"
-                      description="No se registran ventas en el período seleccionado."
-                    />
-                  ) : (
-                    renderUnifiedSummary(normalizedVentas, salesVisibleCurrencies, 'Ventas')
-                  )}
-
-                  {loadingSalesYear ? (
-                    <View style={styles.loadingBoxSmall}>
-                      <ActivityIndicator size="small" color={theme.color.brand.accent} />
-                    </View>
-                  ) : salesVisibleYearCurrencies.length ? (
-                    renderUnifiedMonthlyChart(
-                      salesYearMonthlyUnified,
-                      salesChartLayoutWidth,
-                      setSalesChartLayoutWidth,
-                      'Ventas'
-                    )
-                  ) : null}
                 </View>
-              ) : null}
-            </View>
-          ) : null}
+
+                <View style={styles.filtersSection}>
+                  <RNText style={styles.filtersLabel}>Filtros</RNText>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.filtersContent}
+                  >
+                    {renderFilterButton('today', 'Hoy')}
+                    {renderFilterButton('yesterday', 'Ayer')}
+                    {renderFilterButton('week', 'Esta Semana')}
+                    {renderFilterButton('month', 'Este Mes')}
+                    {renderFilterButton('lastMonth', 'Mes Pasado')}
+                    {renderFilterButton('year', 'Este Año')}
+                    {renderFilterButton('custom', '📅 Personalizado')}
+                  </ScrollView>
+                </View>
+
+                {loadingSalesSummary ? (
+                  <View style={styles.loadingBox}>
+                    <ActivityIndicator size="large" color={theme.color.brand.accent} />
+                  </View>
+                ) : salesSummaryError ? (
+                  <ErrorState
+                    title="No se pudo cargar el resumen"
+                    description={(salesSummaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
+                    onRetry={() => refetchSalesSummary()}
+                  />
+                ) : !hasSalesData || !normalizedVentas ? (
+                  <EmptyState
+                    icon="stats-chart-outline"
+                    title="Sin ventas"
+                    description="No se registran ventas en el período seleccionado."
+                  />
+                ) : (
+                  renderUnifiedSummary(normalizedVentas, salesVisibleCurrencies, 'Ventas')
+                )}
+
+                {loadingSalesYear ? (
+                  <View style={styles.loadingBoxSmall}>
+                    <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                  </View>
+                ) : salesVisibleYearCurrencies.length ? (
+                  renderUnifiedMonthlyChart(
+                    salesYearMonthlyUnified,
+                    salesChartLayoutWidth,
+                    setSalesChartLayoutWidth,
+                    'Ventas'
+                  )
+                ) : null}
+              </View>
+            ) : null}
+          </View>
         </ScrollView>
 
         {/* ================= Provider modal ================= */}
