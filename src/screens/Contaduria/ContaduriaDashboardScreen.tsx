@@ -48,14 +48,56 @@ import {
   useSireInvoicesSummary,
   useSireInvoicesSummaryByProvider,
 } from '@/hooks/api/useSireCompras';
+import {
+  useSireVentasInvoicesSummary,
+  useSireVentasInvoicesSummaryByClient,
+} from '@/hooks/api/useSireVentas';
 import type {
   GetSireInvoicesSummaryParams,
+  SireInvoicesSummaryResponse,
   SireProviderSortBy,
   SireSummaryByPeriodo,
   SireSummaryByTipoCpe,
 } from '@/types/sireCompras';
+import type {
+  GetSireVentasInvoicesSummaryParams,
+  SireVentasClientSortBy,
+  SireVentasInvoicesSummaryResponse,
+} from '@/types/sireVentas';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/constants/permissions';
 
 type Props = NativeStackScreenProps<any, 'ContaduriaDashboard'>;
+
+type Currency = 'PEN' | 'USD';
+
+/** Bloque de montos normalizado, común a compras y ventas. */
+interface NormBlock {
+  count: number;
+  baseImponible: string;
+  igv: string;
+  importeTotal: string;
+}
+
+/**
+ * Estructura de resumen normalizada para reutilizar los mismos componentes de
+ * render entre Compras (RCE) y Ventas (RVIE).
+ * `facturas` y `notasCredito` siempre en positivo (magnitud).
+ */
+interface NormalizedSummary {
+  totals: Record<Currency, NormBlock>;
+  facturas: Record<Currency, NormBlock>;
+  notasCredito: Record<Currency, NormBlock>;
+  byPeriodo: Array<{
+    perTributario: string;
+    moneda: string;
+    count: number;
+    baseImponible: string;
+    igv: string;
+    importeTotal: string;
+  }>;
+  byTipoCpe: Array<{ tipoCpe: string; count: number; importeTotal: string }>;
+}
 
 type DateFilter = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'year' | 'custom';
 
@@ -100,7 +142,139 @@ const SORT_OPTIONS: Array<{ label: string; value: SireProviderSortBy }> = [
   { label: 'Proveedor', value: 'razonSocialProveedor' },
 ];
 
+const CLIENT_SORT_OPTIONS: Array<{ label: string; value: SireVentasClientSortBy }> = [
+  { label: 'Importe', value: 'importeTotal' },
+  { label: 'N.º docs', value: 'count' },
+  { label: 'Cliente', value: 'razonSocialCliente' },
+];
+
+/** Símbolo corto por moneda (USD via \u0024 para evitar el literal directo). */
+const CURRENCY_SYMBOLS: Record<Currency, string> = { PEN: 'S/', USD: '\u0024' };
+
 const DEFAULT_PROVIDER_LIMIT = 20;
+const DEFAULT_CLIENT_LIMIT = 20;
+
+const CURRENCY_KEYS: Currency[] = ['PEN', 'USD'];
+
+const absStr = (v?: string) => String(Math.abs(Number(v ?? 0) || 0));
+const subStr = (a?: string, b?: string) => String((Number(a ?? 0) || 0) - (Number(b ?? 0) || 0));
+
+/** Normaliza el resumen de Compras (RCE) al formato común. */
+const normalizeComprasSummary = (s: SireInvoicesSummaryResponse): NormalizedSummary => {
+  const block = (b: {
+    count: number;
+    baseImponible: string;
+    igv: string;
+    importeTotal: string;
+  }): NormBlock => ({
+    count: b.count,
+    baseImponible: b.baseImponible,
+    igv: b.igv,
+    importeTotal: b.importeTotal,
+  });
+  return {
+    totals: { PEN: block(s.totals.PEN), USD: block(s.totals.USD) },
+    facturas: { PEN: block(s.facturas.PEN), USD: block(s.facturas.USD) },
+    notasCredito: { PEN: block(s.notasCredito.PEN), USD: block(s.notasCredito.USD) },
+    byPeriodo: s.byPeriodo,
+    byTipoCpe: s.byTipoCpe,
+  };
+};
+
+/**
+ * Normaliza el resumen de Ventas (RVIE) al formato común.
+ * En ventas `totals` ya es neto (facturas − NC) y las NC vienen en negativo,
+ * por lo que se derivan `facturas` (totals − NC) y NC en positivo.
+ */
+const normalizeVentasSummary = (s: SireVentasInvoicesSummaryResponse): NormalizedSummary => {
+  const totalsBlock = (cur: Currency): NormBlock => ({
+    count: s.totals[cur].count,
+    baseImponible: s.totals[cur].baseImponible,
+    igv: s.totals[cur].igv,
+    importeTotal: s.totals[cur].importeTotal,
+  });
+  const facturasBlock = (cur: Currency): NormBlock => ({
+    count: s.totals[cur].count - s.notasCredito[cur].count,
+    baseImponible: subStr(s.totals[cur].baseImponible, s.notasCredito[cur].baseImponible),
+    igv: subStr(s.totals[cur].igv, s.notasCredito[cur].igv),
+    importeTotal: subStr(s.totals[cur].importeTotal, s.notasCredito[cur].importeTotal),
+  });
+  const ncBlock = (cur: Currency): NormBlock => ({
+    count: s.notasCredito[cur].count,
+    baseImponible: absStr(s.notasCredito[cur].baseImponible),
+    igv: absStr(s.notasCredito[cur].igv),
+    importeTotal: absStr(s.notasCredito[cur].importeTotal),
+  });
+  return {
+    totals: { PEN: totalsBlock('PEN'), USD: totalsBlock('USD') },
+    facturas: { PEN: facturasBlock('PEN'), USD: facturasBlock('USD') },
+    notasCredito: { PEN: ncBlock('PEN'), USD: ncBlock('USD') },
+    byPeriodo: s.byPeriodo,
+    byTipoCpe: s.byTipoCpe,
+  };
+};
+
+interface YearMonthlyPoint {
+  count: number;
+  importeTotal: number;
+}
+interface YearMonthlyData {
+  months: Array<{
+    month: number;
+    key: string;
+    label: string;
+    PEN: YearMonthlyPoint;
+    USD: YearMonthlyPoint;
+  }>;
+  maxPen: number;
+  maxUsd: number;
+  accPen: number;
+  accUsd: number;
+  totalDocsPen: number;
+  totalDocsUsd: number;
+}
+
+/** Construye la serie mensual (12 meses) por moneda a partir de byPeriodo. */
+const buildYearMonthly = (
+  byPeriodo: Array<{ perTributario: string; moneda: string; count: number; importeTotal: string }>,
+  year: number
+): YearMonthlyData => {
+  const empty: YearMonthlyPoint = { count: 0, importeTotal: 0 };
+  const build = (cur: Currency) => {
+    const map = new Map<string, YearMonthlyPoint>();
+    byPeriodo
+      .filter((p) => p.moneda === cur)
+      .forEach((p) => {
+        if (!p.perTributario || p.perTributario.length !== 6) return;
+        map.set(p.perTributario, {
+          count: p.count,
+          importeTotal: Number(p.importeTotal) || 0,
+        });
+      });
+    return map;
+  };
+  const penMap = build('PEN');
+  const usdMap = build('USD');
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const key = `${year}${String(i + 1).padStart(2, '0')}`;
+    return {
+      month: i,
+      key,
+      label: MONTH_LABELS[i],
+      PEN: penMap.get(key) ?? empty,
+      USD: usdMap.get(key) ?? empty,
+    };
+  });
+  return {
+    months,
+    maxPen: months.reduce((max, m) => Math.max(max, m.PEN.importeTotal), 0),
+    maxUsd: months.reduce((max, m) => Math.max(max, m.USD.importeTotal), 0),
+    accPen: months.reduce((sum, m) => sum + m.PEN.importeTotal, 0),
+    accUsd: months.reduce((sum, m) => sum + m.USD.importeTotal, 0),
+    totalDocsPen: months.reduce((sum, m) => sum + m.PEN.count, 0),
+    totalDocsUsd: months.reduce((sum, m) => sum + m.USD.count, 0),
+  };
+};
 
 /** Tasa de referencia USD → PEN usada solo para calcular proporciones visuales. */
 const USD_TO_PEN_RATE = 3.5;
@@ -251,6 +425,33 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     refetch: refetchYear,
   } = useSireInvoicesSummary(yearParams);
 
+  // ============ Ventas (RVIE) ============
+  const { hasPermission } = usePermissions();
+  const canReadSales = hasPermission(PERMISSIONS.SIRE_VENTAS.INVOICES.READ);
+
+  const salesSummaryParams = useMemo<GetSireVentasInvoicesSummaryParams>(
+    () => ({ fechaFrom: dateRange.fechaFrom, fechaTo: dateRange.fechaTo }),
+    [dateRange.fechaFrom, dateRange.fechaTo]
+  );
+  const salesYearParams = useMemo<GetSireVentasInvoicesSummaryParams>(() => {
+    const y = yearRange();
+    return { fechaFrom: y.fechaFrom, fechaTo: y.fechaTo };
+  }, []);
+
+  const {
+    data: salesSummary,
+    isLoading: loadingSalesSummary,
+    isError: salesSummaryError,
+    error: salesSummaryErrorObj,
+    refetch: refetchSalesSummary,
+  } = useSireVentasInvoicesSummary(salesSummaryParams, { enabled: canReadSales });
+
+  const {
+    data: salesYearSummary,
+    isLoading: loadingSalesYear,
+    refetch: refetchSalesYear,
+  } = useSireVentasInvoicesSummary(salesYearParams, { enabled: canReadSales });
+
   // ============ Provider modal ============
   const [providerModalOpen, setProviderModalOpen] = useState(false);
   const [providerPage, setProviderPage] = useState(1);
@@ -273,11 +474,21 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     });
   };
 
-  /** Colapsable: por defecto la sección arranca plegada. */
+  /** Colapsable: por defecto las secciones arrancan plegadas. */
   const [sectionExpanded, setSectionExpanded] = useState(false);
+  const [salesSectionExpanded, setSalesSectionExpanded] = useState(false);
 
   /** Ancho del gráfico anual (medido dinámicamente para el SVG). */
   const [chartLayoutWidth, setChartLayoutWidth] = useState<number | null>(null);
+  const [salesChartLayoutWidth, setSalesChartLayoutWidth] = useState<number | null>(null);
+
+  // ============ Client modal (ventas) ============
+  const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [clientPage, setClientPage] = useState(1);
+  const [clientSortBy, setClientSortBy] = useState<SireVentasClientSortBy>('importeTotal');
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientPageJumpOpen, setClientPageJumpOpen] = useState(false);
+  const [clientPageJumpValue, setClientPageJumpValue] = useState('');
 
   const providerParams = useMemo(
     () => ({
@@ -320,6 +531,60 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     );
   }, [providerItems, providerSearch]);
 
+  // ============ Client modal query (ventas) ============
+  const clientParams = useMemo(
+    () => ({
+      ...salesSummaryParams,
+      sortBy: clientSortBy,
+      sortDir: 'DESC' as const,
+      limit: DEFAULT_CLIENT_LIMIT,
+      offset: (clientPage - 1) * DEFAULT_CLIENT_LIMIT,
+    }),
+    [clientPage, clientSortBy, salesSummaryParams]
+  );
+
+  const {
+    data: clientsData,
+    isLoading: loadingClients,
+    isFetching: fetchingClients,
+    isError: clientError,
+    refetch: refetchClients,
+  } = useSireVentasInvoicesSummaryByClient(clientParams, {
+    enabled: clientModalOpen && canReadSales,
+  });
+
+  const openClientModal = useCallback(() => {
+    setClientPage(1);
+    setClientModalOpen(true);
+  }, []);
+  const closeClientModal = useCallback(() => {
+    setClientModalOpen(false);
+    setClientSearch('');
+  }, []);
+
+  const clientItems = clientsData?.items ?? [];
+  const clientTotal = clientsData?.total ?? 0;
+  const clientTotalPages = Math.max(1, Math.ceil(clientTotal / DEFAULT_CLIENT_LIMIT));
+
+  const filteredClientItems = useMemo(() => {
+    if (!clientSearch.trim()) return clientItems;
+    const q = clientSearch.trim().toLowerCase();
+    return clientItems.filter(
+      (i) =>
+        i.razonSocialCliente.toLowerCase().includes(q) || i.numDocCliente.toLowerCase().includes(q)
+    );
+  }, [clientItems, clientSearch]);
+
+  const openClientPageJump = useCallback(() => {
+    setClientPageJumpValue(String(clientPage));
+    setClientPageJumpOpen(true);
+  }, [clientPage]);
+  const confirmClientPageJump = useCallback(() => {
+    const n = Math.max(1, Math.min(clientTotalPages, parseInt(clientPageJumpValue, 10) || 1));
+    setClientPage(n);
+    setClientPageJumpOpen(false);
+  }, [clientPageJumpValue, clientTotalPages]);
+
   // Monedas con datos en el período seleccionado (respetando filtro de moneda)
   const visibleCurrencies = useMemo(
     () =>
@@ -344,12 +609,46 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
   const hasSummaryData = visibleCurrencies.length > 0;
 
-  // Índice { moneda -> filas byPeriodo } del período seleccionado
+  // ============ Normalización + monedas visibles (ventas) ============
+  const normalizedCompras = useMemo(
+    () => (summary ? normalizeComprasSummary(summary) : null),
+    [summary]
+  );
+  const normalizedVentas = useMemo(
+    () => (salesSummary ? normalizeVentasSummary(salesSummary) : null),
+    [salesSummary]
+  );
+
+  const salesVisibleCurrencies = useMemo(
+    () =>
+      CURRENCIES.filter((c) => {
+        if (!currencyFilter[c]) return false;
+        const t = salesSummary?.totals?.[c];
+        return t ? t.count > 0 : false;
+      }),
+    [salesSummary?.totals, currencyFilter]
+  );
+
+  const salesVisibleYearCurrencies = useMemo(
+    () =>
+      CURRENCIES.filter((c) => {
+        if (!currencyFilter[c]) return false;
+        const t = salesYearSummary?.totals?.[c];
+        return t ? t.count > 0 : false;
+      }),
+    [salesYearSummary?.totals, currencyFilter]
+  );
+
+  const hasSalesData = salesVisibleCurrencies.length > 0;
 
   const handleRefresh = useCallback(() => {
     void refetchSummary();
     void refetchYear();
-  }, [refetchSummary, refetchYear]);
+    if (canReadSales) {
+      void refetchSalesSummary();
+      void refetchSalesYear();
+    }
+  }, [refetchSummary, refetchYear, refetchSalesSummary, refetchSalesYear, canReadSales]);
 
   const openPageJump = useCallback(() => {
     setPageJumpValue(String(providerPage));
@@ -449,57 +748,18 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const currentMonthIdx = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  const yearMonthlyUnified = useMemo(() => {
-    // Un solo array de 12 meses con datos de PEN y USD juntos.
-    const empty = { count: 0, importeTotal: 0 };
-    const build = (cur: 'PEN' | 'USD') => {
-      const map = new Map<string, { count: number; importeTotal: number }>();
-      (yearSummary?.byPeriodo ?? [])
-        .filter((p) => p.moneda === cur)
-        .forEach((p) => {
-          if (!p.perTributario || p.perTributario.length !== 6) return;
-          map.set(p.perTributario, {
-            count: p.count,
-            importeTotal: Number(p.importeTotal) || 0,
-          });
-        });
-      return map;
-    };
-    const penMap = build('PEN');
-    const usdMap = build('USD');
-    const months = Array.from({ length: 12 }, (_, i) => {
-      const key = `${currentYear}${String(i + 1).padStart(2, '0')}`;
-      const pen = penMap.get(key) ?? empty;
-      const usd = usdMap.get(key) ?? empty;
-      return {
-        month: i,
-        key,
-        label: MONTH_LABELS[i],
-        PEN: pen,
-        USD: usd,
-      };
-    });
-    const maxPen = months.reduce((max, m) => Math.max(max, m.PEN.importeTotal), 0);
-    const maxUsd = months.reduce((max, m) => Math.max(max, m.USD.importeTotal), 0);
-    const accPen = months.reduce((sum, m) => sum + m.PEN.importeTotal, 0);
-    const accUsd = months.reduce((sum, m) => sum + m.USD.importeTotal, 0);
-    const totalDocsPen = months.reduce((sum, m) => sum + m.PEN.count, 0);
-    const totalDocsUsd = months.reduce((sum, m) => sum + m.USD.count, 0);
-    return {
-      months,
-      maxPen,
-      maxUsd,
-      accPen,
-      accUsd,
-      totalDocsPen,
-      totalDocsUsd,
-    };
-  }, [yearSummary?.byPeriodo, currentYear]);
+  const yearMonthlyUnified = useMemo(
+    () => buildYearMonthly(yearSummary?.byPeriodo ?? [], currentYear),
+    [yearSummary?.byPeriodo, currentYear]
+  );
 
-  // ============ Resumen unificado (KPIs + Facturas vs NC + Compras por período) ============
-  const renderUnifiedSummary = () => {
-    if (!summary) return null;
-    const curs = visibleCurrencies;
+  const salesYearMonthlyUnified = useMemo(
+    () => buildYearMonthly(salesYearSummary?.byPeriodo ?? [], currentYear),
+    [salesYearSummary?.byPeriodo, currentYear]
+  );
+
+  // ============ Resumen unificado (KPIs + Facturas vs NC + X por período) ============
+  const renderUnifiedSummary = (data: NormalizedSummary, curs: Currency[], noun: string) => {
     if (!curs.length) {
       return (
         <EmptyState
@@ -511,9 +771,9 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     // KPIs agregados
-    const totalDocs = curs.reduce((s, c) => s + (summary.totals[c]?.count ?? 0), 0);
-    const totalFacturasDocs = curs.reduce((s, c) => s + (summary.facturas?.[c]?.count ?? 0), 0);
-    const totalNCDocs = curs.reduce((s, c) => s + (summary.notasCredito?.[c]?.count ?? 0), 0);
+    const totalDocs = curs.reduce((s, c) => s + (data.totals[c]?.count ?? 0), 0);
+    const totalFacturasDocs = curs.reduce((s, c) => s + (data.facturas?.[c]?.count ?? 0), 0);
+    const totalNCDocs = curs.reduce((s, c) => s + (data.notasCredito?.[c]?.count ?? 0), 0);
 
     // Filas de KPI por concepto (Base, IGV, Importe) mostrando por moneda visible
     const renderCurrencyLines = (
@@ -537,7 +797,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
       string,
       { perTributario: string; PEN?: SireSummaryByPeriodo; USD?: SireSummaryByPeriodo }
     >();
-    (summary.byPeriodo ?? []).forEach((p) => {
+    (data.byPeriodo ?? []).forEach((p) => {
       if (p.moneda !== 'PEN' && p.moneda !== 'USD') return;
       if (!curs.includes(p.moneda)) return;
       const entry = periodMap.get(p.perTributario) ?? { perTributario: p.perTributario };
@@ -575,21 +835,21 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons name="cash-outline" size={16} color="#10B981" />
                 <Caption color={theme.color.text.muted}>Base imponible</Caption>
               </View>
-              {renderCurrencyLines((cur) => summary.totals[cur]?.baseImponible)}
+              {renderCurrencyLines((cur) => data.totals[cur]?.baseImponible)}
             </View>
             <View style={styles.kpiMulti}>
               <View style={styles.kpiHeader}>
                 <Ionicons name="calculator-outline" size={16} color="#F59E0B" />
                 <Caption color={theme.color.text.muted}>IGV</Caption>
               </View>
-              {renderCurrencyLines((cur) => summary.totals[cur]?.igv)}
+              {renderCurrencyLines((cur) => data.totals[cur]?.igv)}
             </View>
             <View style={styles.kpiMulti}>
               <View style={styles.kpiHeader}>
                 <Ionicons name="wallet-outline" size={16} color="#8B5CF6" />
                 <Caption color={theme.color.text.muted}>Importe neto</Caption>
               </View>
-              {renderCurrencyLines((cur) => summary.totals[cur]?.importeTotal)}
+              {renderCurrencyLines((cur) => data.totals[cur]?.importeTotal)}
             </View>
           </View>
         </Card>
@@ -609,7 +869,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 </Caption>
               </View>
               {curs.map((cur) => {
-                const b = summary.facturas?.[cur];
+                const b = data.facturas?.[cur];
                 if (!b || b.count === 0) return null;
                 const accent = CURRENCY_ACCENTS[cur];
                 return (
@@ -635,7 +895,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 </Caption>
               </View>
               {curs.map((cur) => {
-                const b = summary.notasCredito?.[cur];
+                const b = data.notasCredito?.[cur];
                 if (!b || b.count === 0) return null;
                 const accent = CURRENCY_ACCENTS[cur];
                 return (
@@ -662,7 +922,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.blockHeader}>
               <Ionicons name="bar-chart-outline" size={18} color={theme.color.brand.accent} />
               <View style={{ flex: 1 }}>
-                <Title size="small">Compras por período</Title>
+                <Title size="small">{noun} por período</Title>
                 <Caption color={theme.color.text.muted}>
                   Proporciones a tasa referencial 1 USD ≈ {USD_TO_PEN_RATE} PEN
                 </Caption>
@@ -743,26 +1003,31 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
 
         {/* Por tipo de comprobante */}
-        {summary.byTipoCpe?.length ? (
+        {data.byTipoCpe?.length ? (
           <Card style={styles.blockCard}>
             <View style={styles.blockHeader}>
               <Ionicons name="pricetags-outline" size={18} color={theme.color.text.body} />
               <Title size="small">Por tipo de comprobante</Title>
             </View>
-            <View style={{ gap: spacing[2] }}>{summary.byTipoCpe.map(renderCpeRow)}</View>
+            <View style={{ gap: spacing[2] }}>{data.byTipoCpe.map(renderCpeRow)}</View>
           </Card>
         ) : null}
       </>
     );
   };
 
-  const renderUnifiedMonthlyChart = () => {
+  const renderUnifiedMonthlyChart = (
+    monthly: YearMonthlyData,
+    layoutWidth: number | null,
+    onLayoutWidth: (w: number) => void,
+    noun: string
+  ) => {
     const CHART_HEIGHT = 220;
     const PAD_TOP = 18;
     const PAD_BOTTOM = 28;
     const PAD_LEFT = 12;
     const PAD_RIGHT = 12;
-    const { months, accPen, accUsd, totalDocsPen, totalDocsUsd } = yearMonthlyUnified;
+    const { months, accPen, accUsd, totalDocsPen, totalDocsUsd } = monthly;
     const penAccent = CURRENCY_ACCENTS.PEN;
     const usdAccent = CURRENCY_ACCENTS.USD;
     const showPen = currencyFilter.PEN;
@@ -778,7 +1043,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
     );
 
     // Ancho del svg: usamos onLayout del contenedor para adaptarnos.
-    const chartWidth = chartLayoutWidth ?? 320;
+    const chartWidth = layoutWidth ?? 320;
     const innerW = Math.max(1, chartWidth - PAD_LEFT - PAD_RIGHT);
     const innerH = CHART_HEIGHT - PAD_TOP - PAD_BOTTOM;
     const stepX = months.length > 1 ? innerW / (months.length - 1) : 0;
@@ -831,7 +1096,9 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.blockHeader}>
           <Ionicons name="stats-chart-outline" size={18} color={theme.color.brand.accent} />
           <View style={{ flex: 1 }}>
-            <Title size="small">Compras por mes · {currentYear}</Title>
+            <Title size="small">
+              {noun} por mes · {currentYear}
+            </Title>
             <Caption color={theme.color.text.muted}>
               {showPen ? `Acumulado ${formatCurrency(String(accPen), 'PEN')}` : ''}
               {showPen && showUsd ? ' · ' : ''}
@@ -856,10 +1123,7 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
         </View>
 
-        <View
-          style={{ width: '100%' }}
-          onLayout={(e) => setChartLayoutWidth(e.nativeEvent.layout.width)}
-        >
+        <View style={{ width: '100%' }} onLayout={(e) => onLayoutWidth(e.nativeEvent.layout.width)}>
           <Svg width={chartWidth} height={CHART_HEIGHT}>
             <Defs>
               <SvgLinearGradient id="penGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1210,14 +1474,14 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                     description={(summaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
                     onRetry={() => refetchSummary()}
                   />
-                ) : !hasSummaryData ? (
+                ) : !hasSummaryData || !normalizedCompras ? (
                   <EmptyState
                     icon="stats-chart-outline"
                     title="Sin compras"
                     description="No se registran compras en el período seleccionado."
                   />
                 ) : (
-                  renderUnifiedSummary()
+                  renderUnifiedSummary(normalizedCompras, visibleCurrencies, 'Compras')
                 )}
 
                 {/* Gráfico anual mensual unificado (PEN + USD) */}
@@ -1226,11 +1490,143 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
                     <ActivityIndicator size="small" color={theme.color.brand.accent} />
                   </View>
                 ) : visibleYearCurrencies.length ? (
-                  renderUnifiedMonthlyChart()
+                  renderUnifiedMonthlyChart(
+                    yearMonthlyUnified,
+                    chartLayoutWidth,
+                    setChartLayoutWidth,
+                    'Compras'
+                  )
                 ) : null}
               </View>
             ) : null}
           </View>
+
+          {/* ===== Sección Ventas Mapeadas por SUNAT (RVIE) ===== */}
+          {canReadSales ? (
+            <View style={styles.sectionContainer}>
+              <TouchableOpacity
+                style={[styles.sectionBanner, styles.sectionBannerSales]}
+                onPress={() => setSalesSectionExpanded((v) => !v)}
+                activeOpacity={0.9}
+              >
+                <View style={styles.sectionHeaderIcon}>
+                  <Ionicons name="trending-up" size={24} color={theme.color.brand.onHeader} />
+                </View>
+                <View style={styles.sectionTitleColumn}>
+                  <RNText style={styles.sectionEyebrow}>Contaduría · SUNAT</RNText>
+                  <RNText style={styles.sectionTitleLarge}>Ventas Mapeadas por SUNAT</RNText>
+                  <RNText style={styles.sectionSubtitle}>
+                    Registro de ventas (RVIE) del período seleccionado
+                  </RNText>
+                </View>
+                <View style={styles.sectionActions}>
+                  <TouchableOpacity
+                    style={styles.sectionAction}
+                    onPress={openClientModal}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="people-outline" size={16} color={theme.color.brand.onHeader} />
+                    <RNText style={styles.sectionActionText}>Detalle por cliente</RNText>
+                  </TouchableOpacity>
+                  <View style={styles.sectionChevron}>
+                    <Ionicons
+                      name={salesSectionExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={22}
+                      color={theme.color.brand.onHeader}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {salesSectionExpanded ? (
+                <View style={styles.sectionBody}>
+                  <View style={styles.currencyFilterRow}>
+                    <RNText style={styles.filtersLabel}>Moneda</RNText>
+                    <View style={styles.currencyChips}>
+                      {CURRENCY_KEYS.map((cur) => {
+                        const active = currencyFilter[cur];
+                        const accent = CURRENCY_ACCENTS[cur];
+                        const label = `${CURRENCY_SYMBOLS[cur]} ${cur === 'PEN' ? 'Soles' : 'Dólares'}`;
+                        return (
+                          <TouchableOpacity
+                            key={`sales-${cur}`}
+                            style={[
+                              styles.currencyChip,
+                              active && { backgroundColor: `${accent}1A`, borderColor: accent },
+                            ]}
+                            onPress={() => toggleCurrency(cur)}
+                            activeOpacity={0.8}
+                          >
+                            <RNText
+                              style={[
+                                styles.currencyChipText,
+                                active && { color: accent, fontWeight: '700' },
+                              ]}
+                            >
+                              {label}
+                            </RNText>
+                            {active ? (
+                              <Ionicons name="checkmark-circle" size={14} color={accent} />
+                            ) : null}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  <View style={styles.filtersSection}>
+                    <RNText style={styles.filtersLabel}>Filtros</RNText>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.filtersContent}
+                    >
+                      {renderFilterButton('today', 'Hoy')}
+                      {renderFilterButton('yesterday', 'Ayer')}
+                      {renderFilterButton('week', 'Esta Semana')}
+                      {renderFilterButton('month', 'Este Mes')}
+                      {renderFilterButton('lastMonth', 'Mes Pasado')}
+                      {renderFilterButton('year', 'Este Año')}
+                      {renderFilterButton('custom', '📅 Personalizado')}
+                    </ScrollView>
+                  </View>
+
+                  {loadingSalesSummary ? (
+                    <View style={styles.loadingBox}>
+                      <ActivityIndicator size="large" color={theme.color.brand.accent} />
+                    </View>
+                  ) : salesSummaryError ? (
+                    <ErrorState
+                      title="No se pudo cargar el resumen"
+                      description={(salesSummaryErrorObj as Error)?.message ?? 'Intenta nuevamente'}
+                      onRetry={() => refetchSalesSummary()}
+                    />
+                  ) : !hasSalesData || !normalizedVentas ? (
+                    <EmptyState
+                      icon="stats-chart-outline"
+                      title="Sin ventas"
+                      description="No se registran ventas en el período seleccionado."
+                    />
+                  ) : (
+                    renderUnifiedSummary(normalizedVentas, salesVisibleCurrencies, 'Ventas')
+                  )}
+
+                  {loadingSalesYear ? (
+                    <View style={styles.loadingBoxSmall}>
+                      <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                    </View>
+                  ) : salesVisibleYearCurrencies.length ? (
+                    renderUnifiedMonthlyChart(
+                      salesYearMonthlyUnified,
+                      salesChartLayoutWidth,
+                      setSalesChartLayoutWidth,
+                      'Ventas'
+                    )
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
         </ScrollView>
 
         {/* ================= Provider modal ================= */}
@@ -1534,6 +1930,272 @@ export const ContaduriaDashboardScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </Modal>
 
+        {/* ================= Client modal (ventas) ================= */}
+        <Modal
+          visible={clientModalOpen}
+          animationType="slide"
+          transparent
+          onRequestClose={closeClientModal}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={closeClientModal} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Title size="small">Ventas por cliente</Title>
+                <Caption color={theme.color.text.muted}>
+                  {getFilterLabel(selectedFilter)} · Soles y Dólares
+                </Caption>
+              </View>
+              <TouchableOpacity onPress={closeClientModal} style={styles.closeBtn}>
+                <Ionicons name="close" size={22} color={theme.color.text.body} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalControls}>
+              <Input
+                placeholder="Filtrar por cliente o documento (en esta página)"
+                value={clientSearch}
+                onChangeText={setClientSearch}
+                leftIcon="search-outline"
+                size="small"
+              />
+              <View style={styles.currencyRow}>
+                <Caption color={theme.color.text.muted}>Ordenar por</Caption>
+                <ChipGroup
+                  options={CLIENT_SORT_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
+                  selected={[clientSortBy]}
+                  onChange={(sel) => {
+                    setClientSortBy((sel[0] as SireVentasClientSortBy) || 'importeTotal');
+                    setClientPage(1);
+                  }}
+                  variant="filled"
+                  size="small"
+                />
+              </View>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={styles.modalListContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              {loadingClients ? (
+                <View style={styles.loadingBox}>
+                  <ActivityIndicator size="large" color={theme.color.brand.accent} />
+                </View>
+              ) : clientError ? (
+                <ErrorState
+                  title="No se pudo cargar el detalle"
+                  description="Intenta nuevamente"
+                  onRetry={() => refetchClients()}
+                />
+              ) : filteredClientItems.length === 0 ? (
+                <EmptyState
+                  icon="people-outline"
+                  title="Sin clientes"
+                  description={
+                    clientSearch
+                      ? 'Sin coincidencias en esta página. Prueba otra página o limpia el filtro.'
+                      : 'No hay ventas registradas para los filtros aplicados.'
+                  }
+                />
+              ) : (
+                <View style={{ gap: spacing[3] }}>
+                  {filteredClientItems.map((c, idx) => {
+                    const rank = (clientPage - 1) * DEFAULT_CLIENT_LIMIT + idx + 1;
+                    const blocks = CURRENCY_KEYS.map((cur) => ({ cur, block: c[cur] })).filter(
+                      (b) => b.block && b.block.count > 0
+                    );
+                    if (blocks.length === 0) return null;
+                    return (
+                      <Card key={c.numDocCliente} style={styles.providerCard}>
+                        <View style={styles.providerHeader}>
+                          <View style={styles.rankBadge}>
+                            <Text style={styles.rankText}>#{rank}</Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Body style={{ fontWeight: '600' }} numberOfLines={2}>
+                              {c.razonSocialCliente}
+                            </Body>
+                            <Caption color={theme.color.text.muted}>
+                              Doc. {c.numDocCliente} · {formatInt(c.count)} docs en total
+                            </Caption>
+                          </View>
+                        </View>
+                        {blocks.map(({ cur, block }) => {
+                          const accent = CURRENCY_ACCENTS[cur];
+                          return (
+                            <View key={cur} style={styles.providerCurrencyBlock}>
+                              <View style={styles.providerCurrencyHeader}>
+                                <View
+                                  style={[styles.currencyBadge, { backgroundColor: `${accent}1A` }]}
+                                >
+                                  <RNText style={[styles.currencyBadgeText, { color: accent }]}>
+                                    {CURRENCY_SYMBOLS[cur]}
+                                  </RNText>
+                                </View>
+                                <Caption color={theme.color.text.muted}>
+                                  {CURRENCY_LABELS[cur]}
+                                </Caption>
+                              </View>
+                              <View style={styles.providerRow}>
+                                <View style={styles.providerCol}>
+                                  <Caption color={theme.color.text.muted}>Docs</Caption>
+                                  <Body style={{ fontWeight: '600' }}>
+                                    {formatInt(block!.count)}
+                                  </Body>
+                                </View>
+                                <View style={styles.providerCol}>
+                                  <Caption color={theme.color.text.muted}>Base + IGV</Caption>
+                                  <Body>
+                                    {formatCurrency(block!.baseImponible, cur)} +{' '}
+                                    {formatCurrency(block!.igv, cur)}
+                                  </Body>
+                                </View>
+                                <View style={styles.providerCol}>
+                                  <Caption color={theme.color.text.muted}>Importe neto</Caption>
+                                  <Title size="small">
+                                    {formatCurrency(block!.importeTotal, cur)}
+                                  </Title>
+                                </View>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </Card>
+                    );
+                  })}
+                </View>
+              )}
+            </ScrollView>
+
+            {clientTotal > 0 ? (
+              <View style={styles.paginationBar}>
+                <TouchableOpacity
+                  style={[styles.pagerBtn, clientPage <= 1 && styles.pagerBtnDisabled]}
+                  onPress={() => setClientPage(1)}
+                  disabled={clientPage <= 1}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="play-skip-back"
+                    size={16}
+                    color={clientPage <= 1 ? theme.color.text.disabled : theme.color.text.body}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.pagerBtn, clientPage <= 1 && styles.pagerBtnDisabled]}
+                  onPress={() => setClientPage((p) => Math.max(1, p - 1))}
+                  disabled={clientPage <= 1}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={16}
+                    color={clientPage <= 1 ? theme.color.text.disabled : theme.color.text.body}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.pageIndicator}
+                  onPress={openClientPageJump}
+                  activeOpacity={0.75}
+                >
+                  <RNText style={styles.pageIndicatorText}>
+                    Página {clientPage} de {clientTotalPages}
+                  </RNText>
+                  <Caption color={theme.color.text.muted}>
+                    {formatInt(clientTotal)} clientes
+                  </Caption>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.pagerBtn,
+                    clientPage >= clientTotalPages && styles.pagerBtnDisabled,
+                  ]}
+                  onPress={() => setClientPage((p) => Math.min(clientTotalPages, p + 1))}
+                  disabled={clientPage >= clientTotalPages}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={
+                      clientPage >= clientTotalPages
+                        ? theme.color.text.disabled
+                        : theme.color.text.body
+                    }
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.pagerBtn,
+                    clientPage >= clientTotalPages && styles.pagerBtnDisabled,
+                  ]}
+                  onPress={() => setClientPage(clientTotalPages)}
+                  disabled={clientPage >= clientTotalPages}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="play-skip-forward"
+                    size={16}
+                    color={
+                      clientPage >= clientTotalPages
+                        ? theme.color.text.disabled
+                        : theme.color.text.body
+                    }
+                  />
+                </TouchableOpacity>
+
+                {fetchingClients ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={theme.color.brand.accent}
+                    style={{ marginLeft: spacing[2] }}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        </Modal>
+
+        {/* Modal salto de página (clientes) */}
+        <Modal
+          visible={clientPageJumpOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setClientPageJumpOpen(false)}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setClientPageJumpOpen(false)} />
+          <View style={styles.pageJumpCard}>
+            <Title size="small">Ir a la página</Title>
+            <Caption color={theme.color.text.muted}>
+              Ingresa un número entre 1 y {clientTotalPages}
+            </Caption>
+            <TextInput
+              value={clientPageJumpValue}
+              onChangeText={(v) => setClientPageJumpValue(v.replace(/\D/g, ''))}
+              keyboardType="numeric"
+              autoFocus
+              placeholder={String(clientPage)}
+              placeholderTextColor={theme.color.text.placeholder}
+              style={styles.pageJumpInput}
+              maxLength={String(clientTotalPages).length + 1}
+              onSubmitEditing={confirmClientPageJump}
+              returnKeyType="go"
+            />
+            <View style={styles.pageJumpActions}>
+              <Button
+                title="Cancelar"
+                variant="secondary"
+                size="small"
+                onPress={() => setClientPageJumpOpen(false)}
+              />
+              <Button title="Ir" variant="primary" size="small" onPress={confirmClientPageJump} />
+            </View>
+          </View>
+        </Modal>
+
         {/* Custom date range picker */}
         <DateRangePicker
           visible={showDateRangePicker}
@@ -1681,6 +2343,9 @@ const createStyles = (theme: Theme) =>
       paddingVertical: spacing[4],
       backgroundColor: theme.color.brand.accent,
       flexWrap: 'wrap',
+    },
+    sectionBannerSales: {
+      backgroundColor: theme.color.action.success.background,
     },
     sectionTitleColumn: {
       flex: 1,
