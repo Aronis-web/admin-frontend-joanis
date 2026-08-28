@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { organizationApi } from '@/services/api/organization';
-import { OrganizationPosition, PositionTreeNode } from '@/types/organization';
+import { OrganizationPosition, PositionTreeNode, ScopeLevel } from '@/types/organization';
 import {
   CreatePositionModal,
   EditPositionModal,
@@ -27,10 +27,16 @@ import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 
+type ScopeFilter = 'all' | 'COMPANY' | 'SITE';
+
 /**
  * Organigrama - Vista Lista
- * Gestion de puestos organizacionales a nivel de lista plana:
- * buscar, crear, editar, ver detalle y eliminar.
+ *
+ * Gestion de puestos organizacionales a nivel de lista plana.
+ * La lista de empresa (`GET /organization/companies/:id/positions`) ya devuelve
+ * TODOS los puestos (COMPANY + SITE), por lo que se usa como fuente unica y el
+ * scope se filtra en el cliente con chips (Todos / Empresa / Sede). Esto evita
+ * el antiguo toggle Empresa/Sede que mostraba subconjuntos redundantes.
  */
 export const OrganizationChartListScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -45,18 +51,20 @@ export const OrganizationChartListScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [positions, setPositions] = useState<OrganizationPosition[]>([]);
-  const [viewMode, setViewMode] = useState<'company' | 'site'>('company');
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
   const [search, setSearch] = useState('');
 
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [createScope, setCreateScope] = useState<ScopeLevel>('COMPANY');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<OrganizationPosition | null>(null);
 
   const companyId = selectedCompany?.id || currentCompany?.id;
   const siteId = selectedSite?.id || currentSite?.id;
+  const companyName = selectedCompany?.name || currentCompany?.name || 'Empresa';
 
-  // Load flat positions list
+  // Fuente unica: la lista de empresa trae puestos COMPANY + SITE.
   const loadPositions = useCallback(async () => {
     if (!companyId) {
       Alert.alert('Error', 'No hay empresa seleccionada');
@@ -66,19 +74,7 @@ export const OrganizationChartListScreen: React.FC = () => {
 
     try {
       setLoading(true);
-      let data: OrganizationPosition[];
-
-      if (viewMode === 'company') {
-        data = await organizationApi.getCompanyPositions(companyId);
-      } else {
-        if (!siteId) {
-          Alert.alert('Error', 'No hay sede seleccionada para ver los puestos de sede');
-          setLoading(false);
-          return;
-        }
-        data = await organizationApi.getSitePositions(siteId);
-      }
-
+      const data = await organizationApi.getCompanyPositions(companyId);
       setPositions(data);
     } catch (error: any) {
       logger.error('Error loading positions list', error);
@@ -86,7 +82,7 @@ export const OrganizationChartListScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [companyId, siteId, viewMode]);
+  }, [companyId]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -95,13 +91,23 @@ export const OrganizationChartListScreen: React.FC = () => {
   }, [loadPositions]);
 
   useEffect(() => {
-    loadPositions();
+    void loadPositions();
   }, [loadPositions]);
 
-  // Positions ordered by level/displayOrder and filtered by search
+  const counts = useMemo(
+    () => ({
+      all: positions.length,
+      COMPANY: positions.filter((p) => p.scopeLevel === 'COMPANY').length,
+      SITE: positions.filter((p) => p.scopeLevel === 'SITE').length,
+    }),
+    [positions]
+  );
+
   const filteredPositions = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const sorted = [...positions].sort((a, b) => {
+    const byScope =
+      scopeFilter === 'all' ? positions : positions.filter((p) => p.scopeLevel === scopeFilter);
+    const sorted = [...byScope].sort((a, b) => {
       if (a.level !== b.level) return a.level - b.level;
       return (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
     });
@@ -112,9 +118,9 @@ export const OrganizationChartListScreen: React.FC = () => {
         p.code.toLowerCase().includes(term) ||
         (p.description ?? '').toLowerCase().includes(term)
     );
-  }, [positions, search]);
+  }, [positions, search, scopeFilter]);
 
-  // Map plain position to the shape the modals expect
+  // Mapear puesto plano al shape que esperan los modales.
   const asTreeNode = (p: OrganizationPosition): PositionTreeNode => ({
     id: p.id,
     code: p.code,
@@ -127,6 +133,8 @@ export const OrganizationChartListScreen: React.FC = () => {
     minOccupants: p.minOccupants,
     isActive: p.isActive,
     displayOrder: p.displayOrder,
+    siteId: p.siteId,
+    site: p.site,
   });
 
   const handlePositionPress = (position: OrganizationPosition) => {
@@ -152,7 +160,7 @@ export const OrganizationChartListScreen: React.FC = () => {
             try {
               await organizationApi.deletePosition(position.id);
               Alert.alert('Éxito', 'Puesto eliminado correctamente');
-              loadPositions();
+              void loadPositions();
             } catch (error: any) {
               Alert.alert('Error', error?.response?.data?.message || 'Error al eliminar el puesto');
             }
@@ -162,20 +170,35 @@ export const OrganizationChartListScreen: React.FC = () => {
     );
   };
 
-  const handleCreate = () => {
+  const handleCreate = (scope: ScopeLevel) => {
+    setCreateScope(scope);
     setSelectedPosition(null);
     setCreateModalVisible(true);
   };
 
   const handlePositionCreated = () => {
     setCreateModalVisible(false);
-    loadPositions();
+    void loadPositions();
   };
 
   const handlePositionUpdated = () => {
     setEditModalVisible(false);
     setSelectedPosition(null);
-    loadPositions();
+    void loadPositions();
+  };
+
+  const renderScopeChip = (value: ScopeFilter, label: string, count: number) => {
+    const active = scopeFilter === value;
+    return (
+      <TouchableOpacity
+        style={[styles.chip, active && styles.chipActive]}
+        onPress={() => setScopeFilter(value)}
+      >
+        <Text style={[styles.chipText, active && styles.chipTextActive]}>
+          {label} ({count})
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
   const renderItem = ({ item }: { item: OrganizationPosition }) => {
@@ -184,6 +207,7 @@ export const OrganizationChartListScreen: React.FC = () => {
       item.maxOccupants != null
         ? `${item.minOccupants ?? 0}–${item.maxOccupants} cupos`
         : `Mín. ${item.minOccupants ?? 0} · ilimitado`;
+    const siteName = item.scopeLevel === 'SITE' ? item.site?.name : null;
 
     return (
       <TouchableOpacity
@@ -215,6 +239,7 @@ export const OrganizationChartListScreen: React.FC = () => {
             {item.code}
           </Text>
           <Text style={styles.rowMeta} numberOfLines={1}>
+            {siteName ? `📍 ${siteName} · ` : ''}
             {occupantsLabel}
             {!isActive ? ' · Inactivo' : ''}
           </Text>
@@ -255,48 +280,38 @@ export const OrganizationChartListScreen: React.FC = () => {
     );
   }
 
+  const fabActions = [
+    {
+      icon: 'business-outline' as const,
+      label: 'Puesto de Empresa',
+      onPress: () => handleCreate('COMPANY'),
+      requiredPermissions: ['organization.positions.company.create'],
+    },
+    ...(siteId
+      ? [
+          {
+            icon: 'storefront-outline' as const,
+            label: 'Puesto de Sede',
+            onPress: () => handleCreate('SITE'),
+            requiredPermissions: ['organization.positions.site.create'],
+          },
+        ]
+      : []),
+  ];
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, isTablet && styles.titleTablet]}>Organigrama · Lista</Text>
-        <Text style={styles.subtitle}>
-          {viewMode === 'company'
-            ? selectedCompany?.name || currentCompany?.name || 'Empresa'
-            : selectedSite?.name || currentSite?.name || 'Sede'}
-        </Text>
+        <Text style={styles.subtitle}>{companyName}</Text>
       </View>
 
-      {/* View Mode Selector */}
-      <View style={styles.viewModeContainer}>
-        <TouchableOpacity
-          style={[styles.viewModeButton, viewMode === 'company' && styles.viewModeButtonActive]}
-          onPress={() => setViewMode('company')}
-        >
-          <Text
-            style={[
-              styles.viewModeButtonText,
-              viewMode === 'company' && styles.viewModeButtonTextActive,
-            ]}
-          >
-            🏢 Empresa
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.viewModeButton, viewMode === 'site' && styles.viewModeButtonActive]}
-          onPress={() => setViewMode('site')}
-          disabled={!siteId}
-        >
-          <Text
-            style={[
-              styles.viewModeButtonText,
-              viewMode === 'site' && styles.viewModeButtonTextActive,
-              !siteId && styles.viewModeButtonTextDisabled,
-            ]}
-          >
-            🏪 Sede
-          </Text>
-        </TouchableOpacity>
+      {/* Scope filter chips */}
+      <View style={styles.chipsContainer}>
+        {renderScopeChip('all', 'Todos', counts.all)}
+        {renderScopeChip('COMPANY', 'Empresa', counts.COMPANY)}
+        {renderScopeChip('SITE', 'Sede', counts.SITE)}
       </View>
 
       {/* Search */}
@@ -336,11 +351,11 @@ export const OrganizationChartListScreen: React.FC = () => {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>📋</Text>
             <Text style={styles.emptyText}>
-              {search ? 'Sin resultados' : 'No hay puestos registrados'}
+              {search || scopeFilter !== 'all' ? 'Sin resultados' : 'No hay puestos registrados'}
             </Text>
             <Text style={styles.emptySubtext}>
-              {search
-                ? 'Prueba con otro término de búsqueda'
+              {search || scopeFilter !== 'all'
+                ? 'Prueba con otro filtro o término de búsqueda'
                 : 'Crea el primer puesto para comenzar'}
             </Text>
           </View>
@@ -352,13 +367,7 @@ export const OrganizationChartListScreen: React.FC = () => {
           'organization.positions.company.create',
           'organization.positions.site.create',
         ]}
-        actions={[
-          {
-            icon: 'add-circle-outline',
-            label: 'Crear Puesto',
-            onPress: handleCreate,
-          },
-        ]}
+        actions={fabActions}
       />
 
       {/* Modals */}
@@ -367,9 +376,9 @@ export const OrganizationChartListScreen: React.FC = () => {
         onClose={() => setCreateModalVisible(false)}
         onSuccess={handlePositionCreated}
         parentPosition={null}
-        scopeLevel={viewMode === 'company' ? 'COMPANY' : 'SITE'}
+        scopeLevel={createScope}
         companyId={companyId}
-        siteId={viewMode === 'site' ? siteId : undefined}
+        siteId={createScope === 'SITE' ? siteId : undefined}
       />
 
       {selectedPosition && (
@@ -443,36 +452,34 @@ const createStyles = (theme: Theme) =>
       fontSize: 14,
       color: theme.color.text.muted,
     },
-    viewModeContainer: {
+    chipsContainer: {
       flexDirection: 'row',
       backgroundColor: theme.color.surface.base,
       paddingHorizontal: 20,
       paddingVertical: 12,
-      gap: 12,
+      gap: 8,
       borderBottomWidth: 1,
       borderBottomColor: theme.color.border.subtle,
     },
-    viewModeButton: {
-      flex: 1,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 8,
+    chip: {
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 20,
       backgroundColor: theme.color.surface.muted,
-      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
     },
-    viewModeButtonActive: {
+    chipActive: {
       backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
     },
-    viewModeButtonText: {
-      fontSize: 14,
+    chipText: {
+      fontSize: 13,
       fontWeight: '600',
       color: theme.color.text.muted,
     },
-    viewModeButtonTextActive: {
+    chipTextActive: {
       color: theme.color.text.onAction,
-    },
-    viewModeButtonTextDisabled: {
-      color: theme.color.border.default,
     },
     searchContainer: {
       flexDirection: 'row',

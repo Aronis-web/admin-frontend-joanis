@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,17 +13,31 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { organizationApi } from '@/services/api/organization';
-import { PositionTreeNode, ScopeLevel } from '@/types/organization';
+import { OrganizationPosition, PositionTreeNode, ScopeLevel } from '@/types/organization';
 import { OrganizationTreeView } from '@/components/Organization';
 import { OrganizationInteractiveTree } from '@/components/Organization';
 import { CreatePositionModal } from '@/components/Organization';
 import { EditPositionModal } from '@/components/Organization';
 import { PositionDetailModal } from '@/components/Organization';
+import { buildPositionTree } from '@/components/Organization';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { logger } from '@/utils/logger';
 
+type ScopeFilter = 'all' | 'COMPANY' | 'SITE';
+
+/**
+ * Organigrama - Vista Visual (árbol invertido).
+ *
+ * Fuente unica: la lista de empresa (`GET /organization/companies/:id/positions`)
+ * que ya devuelve TODOS los puestos (COMPANY + SITE). El arbol se construye en
+ * el cliente con `buildPositionTree` para evitar el truncado a 3 niveles del
+ * endpoint `.../tree` del backend. El scope se filtra con chips (Todos / Empresa
+ * / Sede) en lugar del antiguo toggle Empresa/Sede que mostraba subconjuntos
+ * redundantes.
+ */
 export const OrganizationChartScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -36,10 +50,12 @@ export const OrganizationChartScreen: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [treeData, setTreeData] = useState<PositionTreeNode[]>([]);
-  const [viewMode, setViewMode] = useState<'company' | 'site'>('company');
-  const [displayMode, setDisplayMode] = useState<'cards' | 'tree'>('cards');
+  const [positions, setPositions] = useState<OrganizationPosition[]>([]);
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
+  const [displayMode, setDisplayMode] = useState<'cards' | 'tree'>('tree');
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [createScope, setCreateScope] = useState<ScopeLevel>('COMPANY');
+  const [createSiteId, setCreateSiteId] = useState<string | undefined>(undefined);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<PositionTreeNode | null>(null);
@@ -47,9 +63,10 @@ export const OrganizationChartScreen: React.FC = () => {
 
   const companyId = selectedCompany?.id || currentCompany?.id;
   const siteId = selectedSite?.id || currentSite?.id;
+  const companyName = selectedCompany?.name || currentCompany?.name || 'Empresa';
 
-  // Load organization tree
-  const loadOrganizationTree = useCallback(async () => {
+  // Cargar lista plana (fuente unica).
+  const loadPositions = useCallback(async () => {
     if (!companyId) {
       Alert.alert('Error', 'No hay empresa seleccionada');
       setLoading(false);
@@ -58,57 +75,53 @@ export const OrganizationChartScreen: React.FC = () => {
 
     try {
       setLoading(true);
-      let data: PositionTreeNode[];
-
-      if (viewMode === 'company') {
-        data = await organizationApi.getCompanyPositionsTree(companyId);
-      } else {
-        if (!siteId) {
-          Alert.alert('Error', 'No hay sede seleccionada para ver el organigrama de sede');
-          setLoading(false);
-          return;
-        }
-        data = await organizationApi.getSitePositionsTree(siteId);
-      }
-
-      setTreeData(data);
+      const data = await organizationApi.getCompanyPositions(companyId);
+      setPositions(data);
     } catch (error: any) {
-      console.error('Error loading organization tree:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Error al cargar el organigrama'
-      );
+      logger.error('Error loading organization positions', error);
+      Alert.alert('Error', error?.response?.data?.message || 'Error al cargar el organigrama');
     } finally {
       setLoading(false);
     }
-  }, [companyId, siteId, viewMode]);
+  }, [companyId]);
 
-  // Refresh handler
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadOrganizationTree();
+    await loadPositions();
     setRefreshing(false);
-  }, [loadOrganizationTree]);
+  }, [loadPositions]);
 
-  // Load on mount and when view mode changes
   useEffect(() => {
-    loadOrganizationTree();
-  }, [loadOrganizationTree]);
+    void loadPositions();
+  }, [loadPositions]);
 
-  // Handle position click
+  const counts = useMemo(
+    () => ({
+      all: positions.length,
+      COMPANY: positions.filter((p) => p.scopeLevel === 'COMPANY').length,
+      SITE: positions.filter((p) => p.scopeLevel === 'SITE').length,
+    }),
+    [positions]
+  );
+
+  // Construir el arbol en el cliente a partir de la lista (filtrada por scope).
+  const treeData = useMemo(() => {
+    const filtered =
+      scopeFilter === 'all' ? positions : positions.filter((p) => p.scopeLevel === scopeFilter);
+    return buildPositionTree(filtered);
+  }, [positions, scopeFilter]);
+
   const handlePositionPress = (position: PositionTreeNode) => {
     setSelectedPosition(position);
     setDetailModalVisible(true);
   };
 
-  // Handle edit position
   const handleEditPosition = (position: PositionTreeNode) => {
     setSelectedPosition(position);
     setEditModalVisible(true);
   };
 
-  // Handle delete position
-  const handleDeletePosition = async (position: PositionTreeNode) => {
+  const handleDeletePosition = (position: PositionTreeNode) => {
     Alert.alert(
       'Confirmar eliminación',
       `¿Estás seguro de eliminar el puesto "${position.name}"?`,
@@ -121,12 +134,9 @@ export const OrganizationChartScreen: React.FC = () => {
             try {
               await organizationApi.deletePosition(position.id);
               Alert.alert('Éxito', 'Puesto eliminado correctamente');
-              loadOrganizationTree();
+              void loadPositions();
             } catch (error: any) {
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'Error al eliminar el puesto'
-              );
+              Alert.alert('Error', error?.response?.data?.message || 'Error al eliminar el puesto');
             }
           },
         },
@@ -134,30 +144,46 @@ export const OrganizationChartScreen: React.FC = () => {
     );
   };
 
-  // Handle create child position
+  // Crear hijo: hereda scope y sede del padre.
   const handleCreateChild = (parent: PositionTreeNode) => {
     setParentPosition(parent);
+    setCreateScope(parent.scopeLevel);
+    setCreateSiteId(parent.scopeLevel === 'SITE' ? (parent.siteId ?? undefined) : undefined);
     setCreateModalVisible(true);
   };
 
-  // Handle create root position
-  const handleCreateRoot = () => {
+  // Crear raíz: puesto de empresa por defecto.
+  const handleCreateRoot = (scope: ScopeLevel) => {
     setParentPosition(null);
+    setCreateScope(scope);
+    setCreateSiteId(scope === 'SITE' ? siteId : undefined);
     setCreateModalVisible(true);
   };
 
-  // Handle position created
   const handlePositionCreated = () => {
     setCreateModalVisible(false);
     setParentPosition(null);
-    loadOrganizationTree();
+    void loadPositions();
   };
 
-  // Handle position updated
   const handlePositionUpdated = () => {
     setEditModalVisible(false);
     setSelectedPosition(null);
-    loadOrganizationTree();
+    void loadPositions();
+  };
+
+  const renderScopeChip = (value: ScopeFilter, label: string, count: number) => {
+    const active = scopeFilter === value;
+    return (
+      <TouchableOpacity
+        style={[styles.chip, active && styles.chipActive]}
+        onPress={() => setScopeFilter(value)}
+      >
+        <Text style={[styles.chipText, active && styles.chipTextActive]}>
+          {label} ({count})
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
   if (loading && !refreshing) {
@@ -169,68 +195,48 @@ export const OrganizationChartScreen: React.FC = () => {
     );
   }
 
+  const fabActions = [
+    {
+      icon: 'business-outline' as const,
+      label: 'Puesto de Empresa',
+      onPress: () => handleCreateRoot('COMPANY'),
+      requiredPermissions: ['organization.positions.company.create'],
+    },
+    ...(siteId
+      ? [
+          {
+            icon: 'storefront-outline' as const,
+            label: 'Puesto de Sede',
+            onPress: () => handleCreateRoot('SITE'),
+            requiredPermissions: ['organization.positions.site.create'],
+          },
+        ]
+      : []),
+  ];
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, isTablet && styles.titleTablet]}>Organigrama</Text>
-        <Text style={styles.subtitle}>
-          {viewMode === 'company'
-            ? selectedCompany?.name || currentCompany?.name || 'Empresa'
-            : selectedSite?.name || currentSite?.name || 'Sede'}
-        </Text>
+        <Text style={[styles.title, isTablet && styles.titleTablet]}>Organigrama · Visual</Text>
+        <Text style={styles.subtitle}>{companyName}</Text>
       </View>
 
-      {/* View Mode Selector */}
-      <View style={styles.viewModeContainer}>
-        <TouchableOpacity
-          style={[styles.viewModeButton, viewMode === 'company' && styles.viewModeButtonActive]}
-          onPress={() => setViewMode('company')}
-        >
-          <Text
-            style={[
-              styles.viewModeButtonText,
-              viewMode === 'company' && styles.viewModeButtonTextActive,
-            ]}
-          >
-            🏢 Empresa
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.viewModeButton, viewMode === 'site' && styles.viewModeButtonActive]}
-          onPress={() => setViewMode('site')}
-          disabled={!siteId}
-        >
-          <Text
-            style={[
-              styles.viewModeButtonText,
-              viewMode === 'site' && styles.viewModeButtonTextActive,
-              !siteId && styles.viewModeButtonTextDisabled,
-            ]}
-          >
-            🏪 Sede
-          </Text>
-        </TouchableOpacity>
+      {/* Scope filter chips */}
+      <View style={styles.chipsContainer}>
+        {renderScopeChip('all', 'Todos', counts.all)}
+        {renderScopeChip('COMPANY', 'Empresa', counts.COMPANY)}
+        {renderScopeChip('SITE', 'Sede', counts.SITE)}
       </View>
 
       {/* Display Mode Selector */}
       <View style={styles.displayModeContainer}>
         <Text style={styles.displayModeLabel}>Vista:</Text>
         <TouchableOpacity
-          style={[styles.displayModeButton, displayMode === 'cards' && styles.displayModeButtonActive]}
-          onPress={() => setDisplayMode('cards')}
-        >
-          <Text
-            style={[
-              styles.displayModeButtonText,
-              displayMode === 'cards' && styles.displayModeButtonTextActive,
-            ]}
-          >
-            📋 Tarjetas
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.displayModeButton, displayMode === 'tree' && styles.displayModeButtonActive]}
+          style={[
+            styles.displayModeButton,
+            displayMode === 'tree' && styles.displayModeButtonActive,
+          ]}
           onPress={() => setDisplayMode('tree')}
         >
           <Text
@@ -242,6 +248,22 @@ export const OrganizationChartScreen: React.FC = () => {
             🌳 Árbol
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.displayModeButton,
+            displayMode === 'cards' && styles.displayModeButtonActive,
+          ]}
+          onPress={() => setDisplayMode('cards')}
+        >
+          <Text
+            style={[
+              styles.displayModeButtonText,
+              displayMode === 'cards' && styles.displayModeButtonTextActive,
+            ]}
+          >
+            📋 Tarjetas
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Organization Tree */}
@@ -249,7 +271,11 @@ export const OrganizationChartScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[theme.color.brand.accent]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[theme.color.brand.accent]}
+          />
         }
       >
         {treeData.length === 0 ? (
@@ -278,13 +304,11 @@ export const OrganizationChartScreen: React.FC = () => {
       </ScrollView>
 
       <ProtectedFAB
-        actions={[
-          {
-            icon: 'add-circle-outline',
-            label: 'Crear Posici\u00f3n Ra\u00edz',
-            onPress: handleCreateRoot,
-          },
+        requiredPermissions={[
+          'organization.positions.company.create',
+          'organization.positions.site.create',
         ]}
+        actions={fabActions}
       />
 
       {/* Modals */}
@@ -296,9 +320,9 @@ export const OrganizationChartScreen: React.FC = () => {
         }}
         onSuccess={handlePositionCreated}
         parentPosition={parentPosition}
-        scopeLevel={viewMode === 'company' ? 'COMPANY' : 'SITE'}
+        scopeLevel={createScope}
         companyId={companyId}
-        siteId={viewMode === 'site' ? siteId : undefined}
+        siteId={createSiteId}
       />
 
       {selectedPosition && (
@@ -335,154 +359,133 @@ export const OrganizationChartScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.surface.muted,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.muted,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: theme.color.text.muted,
-  },
-  header: {
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-    marginBottom: 4,
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-  },
-  viewModeContainer: {
-    flexDirection: 'row',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  viewModeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: theme.color.surface.muted,
-    alignItems: 'center',
-  },
-  viewModeButtonActive: {
-    backgroundColor: theme.color.brand.accent,
-  },
-  viewModeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-  },
-  viewModeButtonTextActive: {
-    color: theme.color.text.onAction,
-  },
-  viewModeButtonTextDisabled: {
-    color: theme.color.border.default,
-  },
-  displayModeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  displayModeLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.body,
-    marginRight: 4,
-  },
-  displayModeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: theme.color.surface.muted,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  displayModeButtonActive: {
-    backgroundColor: theme.color.brand.primarySoft,
-    borderColor: theme.color.brand.accent,
-  },
-  displayModeButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-  },
-  displayModeButtonTextActive: {
-    color: theme.color.brand.accent,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.color.text.body,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 100,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.color.brand.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: theme.color.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  fabIcon: {
-    fontSize: 24,
-    color: theme.color.text.onAction,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.surface.muted,
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.muted,
+    },
+    loadingText: {
+      marginTop: 16,
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    header: {
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    titleTablet: {
+      fontSize: 32,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    chipsContainer: {
+      flexDirection: 'row',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      gap: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    chip: {
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    chipActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    chipText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    chipTextActive: {
+      color: theme.color.text.onAction,
+    },
+    displayModeContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.surface.base,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      gap: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    displayModeLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginRight: 4,
+    },
+    displayModeButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      backgroundColor: theme.color.surface.muted,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    displayModeButtonActive: {
+      backgroundColor: theme.color.brand.primarySoft,
+      borderColor: theme.color.brand.accent,
+    },
+    displayModeButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    displayModeButtonTextActive: {
+      color: theme.color.brand.accent,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 20,
+    },
+    emptyContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 60,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+  });
 
 export default OrganizationChartScreen;

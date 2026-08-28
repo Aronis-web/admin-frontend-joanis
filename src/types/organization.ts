@@ -53,9 +53,13 @@ export interface PositionTreeNode {
   isActive?: boolean;
   displayOrder?: number;
   children?: PositionTreeNode[];
+  siteId?: string | null;
+  site?: any;
   // Additional fields for UI
   assignments?: PositionAssignment[];
   currentOccupants?: number;
+  /** true cuando el nodo no pudo enlazarse a su superior (huérfano) */
+  isOrphan?: boolean;
 }
 
 /**

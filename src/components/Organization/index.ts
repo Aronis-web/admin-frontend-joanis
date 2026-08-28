@@ -4,3 +4,4 @@ export { OrganizationInteractiveTree } from './OrganizationInteractiveTree';
 export { CreatePositionModal } from './CreatePositionModal';
 export { EditPositionModal } from './EditPositionModal';
 export { PositionDetailModal } from './PositionDetailModal';
+export { buildPositionTree } from './buildPositionTree';
