@@ -10,6 +10,9 @@ export * from './performance';
 export * from './dateHelpers';
 export * from './dateFilters';
 
+// Text normalization (búsquedas tolerantes a símbolos/acentos)
+export * from './normalizeText';
+
 // Existing utilities
 export { logger } from './logger';
 export { config } from './config';

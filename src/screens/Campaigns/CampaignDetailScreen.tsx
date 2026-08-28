@@ -30,6 +30,7 @@ import { sitesApi } from '@/services/api/sites';
 import { productsApi, priceProfilesApi, photoCampaignsApi } from '@/services/api';
 import { inventoryApi, StockItem } from '@/services/api/inventory';
 import logger from '@/utils/logger';
+import { normalizeSearchText } from '@/utils/normalizeText';
 import {
   Campaign,
   CampaignStatus,
@@ -2561,27 +2562,31 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     }
 
     // Apply search filter (usa primero los datos del endpoint compacto)
+    // Normalizamos el texto para tolerar guiones, puntos, comas, espacios y
+    // acentos, de forma que "AB-12.3" coincida con "ab123", etc.
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((product) => {
-        const detail = productsDetailMap[product.id];
-        const productDetails = product.product || products[product.productId];
-        const title = (detail?.title || productDetails?.title || '').toLowerCase();
-        const sku = (detail?.sku || productDetails?.sku || '').toLowerCase();
-        const barcode = (detail?.barcode || (productDetails as any)?.barcode || '').toLowerCase();
-        const supplierName = (detail?.supplier?.name || '').toLowerCase();
-        const supplierCode = (detail?.supplier?.purchaseCode || '').toLowerCase();
-        const quantity = product.totalQuantityBase.toString();
+      const query = normalizeSearchText(searchQuery);
+      if (query) {
+        filtered = filtered.filter((product) => {
+          const detail = productsDetailMap[product.id];
+          const productDetails = product.product || products[product.productId];
+          const title = normalizeSearchText(detail?.title || productDetails?.title);
+          const sku = normalizeSearchText(detail?.sku || productDetails?.sku);
+          const barcode = normalizeSearchText(detail?.barcode || (productDetails as any)?.barcode);
+          const supplierName = normalizeSearchText(detail?.supplier?.name);
+          const supplierCode = normalizeSearchText(detail?.supplier?.purchaseCode);
+          const quantity = normalizeSearchText(product.totalQuantityBase);
 
-        return (
-          title.includes(query) ||
-          sku.includes(query) ||
-          barcode.includes(query) ||
-          supplierName.includes(query) ||
-          supplierCode.includes(query) ||
-          quantity.includes(query)
-        );
-      });
+          return (
+            title.includes(query) ||
+            sku.includes(query) ||
+            barcode.includes(query) ||
+            supplierName.includes(query) ||
+            supplierCode.includes(query) ||
+            quantity.includes(query)
+          );
+        });
+      }
     }
 
     return filtered;
