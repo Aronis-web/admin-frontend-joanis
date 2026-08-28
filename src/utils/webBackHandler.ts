@@ -82,17 +82,38 @@ const consumeSentinelViaBack = () => {
   }
 };
 
+const makeEscapeEvent = () =>
+  new KeyboardEvent('keydown', {
+    key: 'Escape',
+    code: 'Escape',
+    keyCode: 27,
+    which: 27,
+    bubbles: true,
+    cancelable: true,
+  });
+
 const dispatchEscape = () => {
   try {
-    const evt = new KeyboardEvent('keydown', {
-      key: 'Escape',
-      code: 'Escape',
-      keyCode: 27,
-      which: 27,
-      bubbles: true,
-      cancelable: true,
-    });
-    document.dispatchEvent(evt);
+    // IMPORTANTE: react-native-web engancha el handler de Escape (que llama a
+    // `onRequestClose`) sobre el PROPIO elemento del modal (`[role="dialog"]`),
+    // no sobre `document`. Un `keydown` despachado en `document` NO desciende
+    // hasta ese elemento, así que el modal no se cierra y el "atrás" termina
+    // consumiendo una entrada real del historial (te saca de la pantalla).
+    //
+    // Solución: despachar el Escape sobre el modal superior (o sobre el
+    // elemento enfocado dentro de él). Con `bubbles: true` el evento también
+    // alcanza cualquier listener global en `document`/`window`, así que cubre
+    // ambas estrategias de RNW.
+    const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"], [aria-modal="true"]');
+    const topModal = dialogs.length > 0 ? dialogs[dialogs.length - 1] : null;
+
+    if (topModal) {
+      const active = document.activeElement as HTMLElement | null;
+      const target = active && topModal.contains(active) ? active : topModal;
+      target.dispatchEvent(makeEscapeEvent());
+    } else {
+      document.dispatchEvent(makeEscapeEvent());
+    }
   } catch (e) {
     logger.warn('webBackHandler: dispatch escape failed', e);
   }
