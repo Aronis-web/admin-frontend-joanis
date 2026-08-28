@@ -51,12 +51,13 @@ export function buildPositionTree(positions: OrganizationPosition[]): PositionTr
     }
   });
 
-  // 3. Ordenar hijos y raíces por level y displayOrder de forma estable.
+  // 3. Ordenar hermanos alfabéticamente (izquierda → derecha) por nombre.
+  //    Se usa localeCompare 'es' insensible a mayúsculas/acentos, con orden
+  //    numérico para nombres tipo "Sede 2" / "Sede 10".
   const sortNodes = (nodes: PositionTreeNode[]) => {
-    nodes.sort((a, b) => {
-      if (a.level !== b.level) return a.level - b.level;
-      return (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
-    });
+    nodes.sort((a, b) =>
+      (a.name ?? '').localeCompare(b.name ?? '', 'es', { sensitivity: 'base', numeric: true })
+    );
     nodes.forEach((n) => n.children && n.children.length > 0 && sortNodes(n.children));
   };
   sortNodes(roots);
