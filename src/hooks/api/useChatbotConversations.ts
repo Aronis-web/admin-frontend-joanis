@@ -1,11 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotConversationsApi } from '@/services/api';
 import type {
   ChatConversation,
-  ChatMessage,
   GetChatMessagesParams,
   GetConversationsParams,
   HandoffBody,
+  PagedMessages,
   SendReplyBody,
 } from '@/types/chatbot';
 
@@ -39,14 +39,28 @@ export const useConversationsList = (
   });
 };
 
+/**
+ * Mensajes paginados por cursor (`before` = ISO del más antiguo).
+ *
+ * - La primera página trae los más recientes.
+ * - `fetchNextPage()` carga mensajes MÁS ANTIGUOS (scroll hacia arriba).
+ * - `refetch()` refresca la página más reciente para nuevos mensajes.
+ */
 export const useConversationMessages = (
   conversationId: string | undefined,
-  params?: GetChatMessagesParams,
+  params?: Omit<GetChatMessagesParams, 'before'>,
   options?: { refetchIntervalMs?: number }
 ) => {
-  return useQuery<ChatMessage[]>({
-    queryKey: chatbotConversationsKeys.messages(conversationId ?? '', params),
-    queryFn: () => chatbotConversationsApi.getMessages(conversationId as string, params),
+  const limit = params?.limit ?? 50;
+  return useInfiniteQuery<PagedMessages, Error>({
+    queryKey: chatbotConversationsKeys.messages(conversationId ?? '', { limit }),
+    queryFn: ({ pageParam }) =>
+      chatbotConversationsApi.getMessages(conversationId as string, {
+        limit,
+        before: (pageParam as string) || undefined,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
     enabled: !!conversationId,
     staleTime: 0,
     refetchOnWindowFocus: false,

@@ -11,6 +11,9 @@
 export type WaStatus = 'DISCONNECTED' | 'CONNECTING' | 'QR' | 'CONNECTED';
 export type ConversationStatus = 'ACTIVE' | 'HUMAN' | 'CLOSED';
 export type ChatbotMessageRole = 'user' | 'assistant' | 'tool' | 'system';
+export type ChatbotMessageDirection = 'in' | 'out';
+export type ChatbotMessageMediaType = 'image' | null;
+export type BotEmojiLevel = 'none' | 'low' | 'high';
 export type ChatbotOrderStatus =
   | 'PENDING_PAYMENT'
   | 'VALIDATED'
@@ -65,12 +68,23 @@ export interface ChatConversation {
 
 export interface ChatMessage {
   id: string;
-  conversationId: string;
+  /** No siempre viene del API paginado. Se propaga al hidratar. */
+  conversationId?: string;
   role: ChatbotMessageRole;
-  content: string | null;
+  direction: ChatbotMessageDirection;
+  /** El API paginado usa `text`; se conserva `content` por compatibilidad legacy. */
+  text: string | null;
+  content?: string | null;
   mediaUrl: string | null;
-  tokens: number | null;
+  mediaType: ChatbotMessageMediaType;
+  tokens?: number | null;
   createdAt: string;
+}
+
+export interface PagedMessages {
+  items: ChatMessage[];
+  hasMore: boolean;
+  nextCursor: string | null;
 }
 
 export interface GetConversationsParams {
@@ -79,6 +93,8 @@ export interface GetConversationsParams {
 
 export interface GetChatMessagesParams {
   limit?: number;
+  /** ISO date; devuelve mensajes anteriores a esa fecha (cursor). */
+  before?: string;
 }
 
 export interface HandoffBody {
@@ -165,3 +181,30 @@ export interface CreateSellableProductBody {
 }
 
 export type UpdateSellableProductBody = Partial<CreateSellableProductBody>;
+
+// ============================================
+// Configuración del bot (personalidad + FAQ)
+// ============================================
+export interface BotFaqRule {
+  keywords: string[];
+  reply: string;
+}
+
+export interface BotSettings {
+  id?: string;
+  companyOwnerId?: string;
+  botName: string | null;
+  persona: string | null;
+  tone: string | null;
+  customInstructions: string | null;
+  emojiLevel: BotEmojiLevel;
+  maxLines: number;
+  faqKeywords: BotFaqRule[];
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type UpdateBotSettingsBody = Partial<
+  Omit<BotSettings, 'id' | 'companyOwnerId' | 'createdAt' | 'updatedAt'>
+>;

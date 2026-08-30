@@ -23,6 +23,7 @@ export { chatbotSessionApi } from './chatbot-session';
 export { chatbotConversationsApi } from './chatbot-conversations';
 export { chatbotOrdersApi } from './chatbot-orders';
 export { chatbotCatalogApi } from './chatbot-catalog';
+export { chatbotSettingsApi } from './chatbot-settings';
 
 // Re-export commonly used services
 export * from './products';

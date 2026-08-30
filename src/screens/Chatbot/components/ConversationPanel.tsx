@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -31,38 +31,62 @@ import {
 import type { ChatConversation, ChatMessage } from '@/types/chatbot';
 import { formatTime } from '../utils';
 import Alert from '@/utils/alert';
+import { AuthedImage } from './AuthedImage';
 
 interface Props {
   conversation: ChatConversation | null;
   onBack?: () => void;
 }
 
+/** Une los items de todas las páginas (más recientes al final, ascendente). */
+const flattenPages = (pages: { items: ChatMessage[] }[] | undefined): ChatMessage[] => {
+  if (!pages || pages.length === 0) return [];
+  // La primera página es la más reciente; las siguientes son más antiguas.
+  // Ordenamos por createdAt ascendente después de concatenar.
+  const all = pages.flatMap((p) => p.items);
+  return all.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+};
+
 export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
-  const {
-    data: messages,
-    isLoading,
-    isError,
-    refetch,
-  } = useConversationMessages(conversation?.id, { limit: 100 }, { refetchIntervalMs: 5000 });
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useConversationMessages(conversation?.id, { limit: 50 }, { refetchIntervalMs: 5000 });
 
   const handoffMutation = useHandoffConversation();
   const replyMutation = useReplyConversation();
 
   const [text, setText] = useState('');
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  const prevCountRef = useRef(0);
 
-  const items = useMemo(() => messages ?? [], [messages]);
+  const items = useMemo(() => flattenPages(data?.pages), [data]);
 
+  // Auto-scroll al fondo solo cuando LLEGAN mensajes nuevos (no al cargar
+  // páginas antiguas hacia arriba).
   useEffect(() => {
-    if (items.length > 0) {
+    if (items.length === 0) {
+      prevCountRef.current = 0;
+      return;
+    }
+    const prev = prevCountRef.current;
+    const last = items[items.length - 1];
+    const lastPrev = prev > 0 ? items[prev - 1] : undefined;
+    const grewAtEnd = items.length > prev && last?.id !== lastPrev?.id;
+    if (grewAtEnd && !isFetchingNextPage) {
       requestAnimationFrame(() => {
-        listRef.current?.scrollToEnd({ animated: true });
+        listRef.current?.scrollToEnd({ animated: prev > 0 });
       });
     }
-  }, [items.length]);
+    prevCountRef.current = items.length;
+  }, [items, isFetchingNextPage]);
+
+  const handleLoadOlder = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (!conversation) {
     return (
@@ -166,8 +190,38 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
           data={items}
           keyExtractor={(m) => m.id}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => <MessageBubble message={item} theme={theme} />}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+          renderItem={({ item }) => (
+            <MessageBubble message={item} theme={theme} conversationId={conversation.id} />
+          )}
+          onContentSizeChange={() => {
+            if (prevCountRef.current === items.length) {
+              // primer paint
+              listRef.current?.scrollToEnd({ animated: false });
+            }
+          }}
+          onEndReachedThreshold={0.1}
+          // FlatList "invertida": el usuario nota que scrollear hacia ARRIBA
+          // en el chat (mensajes más antiguos) hace fetchNextPage. Como el
+          // orden es ascendente, el "inicio" de la lista visualmente son los
+          // mensajes viejos → usamos `onScroll` para detectar el tope.
+          onScroll={({ nativeEvent }) => {
+            if (nativeEvent.contentOffset.y <= 40) handleLoadOlder();
+          }}
+          scrollEventThrottle={200}
+          ListHeaderComponent={
+            hasNextPage ? (
+              <View style={styles.loadOlderWrap}>
+                {isFetchingNextPage ? (
+                  <ActivityIndicator size="small" color={theme.color.text.muted} />
+                ) : (
+                  <Pressable onPress={handleLoadOlder} style={styles.loadOlderBtn}>
+                    <Ionicons name="arrow-up" size={14} color={theme.color.text.muted} />
+                    <Caption color={theme.color.text.muted}>Cargar mensajes anteriores</Caption>
+                  </Pressable>
+                )}
+              </View>
+            ) : null
+          }
         />
       )}
 
@@ -200,31 +254,43 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
   );
 };
 
-const MessageBubble: React.FC<{ message: ChatMessage; theme: Theme }> = ({ message, theme }) => {
+interface BubbleProps {
+  message: ChatMessage;
+  theme: Theme;
+  conversationId: string;
+}
+
+const MessageBubble: React.FC<BubbleProps> = ({ message, theme, conversationId }) => {
   const styles = useThemedStyles(createStyles);
-  const isUser = message.role === 'user';
+  // Alinear por `direction` según guía del backend: in=cliente (izq), out=bot/asesor (der).
+  // Fallback: si el shape viene sin `direction` (legacy), usamos role === 'user' como cliente.
+  const isIncoming = message.direction ? message.direction === 'in' : message.role === 'user';
   const isSystem = message.role === 'system' || message.role === 'tool';
+  const text = message.text ?? message.content ?? null;
 
   if (isSystem) {
     return (
       <View style={styles.systemWrap}>
-        <Caption color={theme.color.text.muted}>{message.content}</Caption>
+        <Caption color={theme.color.text.muted}>{text}</Caption>
       </View>
     );
   }
 
+  const isImage = message.mediaType === 'image' || !!message.mediaUrl;
+
   return (
-    <View style={[styles.bubbleWrap, isUser ? styles.bubbleLeft : styles.bubbleRight]}>
-      <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
-        {message.content ? (
-          <Body style={isUser ? undefined : { color: '#fff' }}>{message.content}</Body>
+    <View style={[styles.bubbleWrap, isIncoming ? styles.bubbleLeft : styles.bubbleRight]}>
+      <View style={[styles.bubble, isIncoming ? styles.bubbleUser : styles.bubbleAssistant]}>
+        {isImage ? (
+          <AuthedImage
+            conversationId={conversationId}
+            messageId={message.id}
+            width={220}
+            height={220}
+          />
         ) : null}
-        {message.mediaUrl ? (
-          <Caption color={isUser ? theme.color.text.muted : '#fff'}>
-            [Adjunto: {message.mediaUrl}]
-          </Caption>
-        ) : null}
-        <Caption color={isUser ? theme.color.text.muted : '#ffffffb0'} style={styles.timeText}>
+        {text ? <Body style={isIncoming ? undefined : { color: '#fff' }}>{text}</Body> : null}
+        <Caption color={isIncoming ? theme.color.text.muted : '#ffffffb0'} style={styles.timeText}>
           {formatTime(message.createdAt)}
         </Caption>
       </View>
@@ -283,6 +349,19 @@ const createStyles = (theme: Theme) =>
       padding: spacing[3],
       gap: spacing[2],
     },
+    loadOlderWrap: {
+      alignItems: 'center',
+      paddingVertical: spacing[2],
+    },
+    loadOlderBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[1],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.background.subtle,
+    },
     bubbleWrap: {
       width: '100%',
       flexDirection: 'row',
@@ -299,7 +378,7 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing[3],
       paddingVertical: spacing[2],
       borderRadius: borderRadius.lg,
-      gap: 2,
+      gap: 4,
     },
     bubbleUser: {
       backgroundColor: theme.color.background.subtle,
