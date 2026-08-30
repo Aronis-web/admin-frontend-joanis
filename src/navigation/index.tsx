@@ -548,6 +548,42 @@ const SireVentasScreen = lazyLoad(
   'Cargando Registro de Ventas...'
 );
 
+// SIRE Compras Declaradas (RCE) - Lazy Loaded
+const SireComprasDeclaredScreen = lazyLoad(
+  () =>
+    import('@/screens/SireComprasDeclared').then((m) => ({
+      default: m.SireComprasDeclaredScreen,
+    })),
+  'Cargando Compras Declaradas...'
+);
+
+// SIRE Ventas Declaradas (RVIE) - Lazy Loaded
+const SireVentasDeclaredScreen = lazyLoad(
+  () =>
+    import('@/screens/SireVentasDeclared').then((m) => ({
+      default: m.SireVentasDeclaredScreen,
+    })),
+  'Cargando Ventas Declaradas...'
+);
+
+// Chatbot Ventas WhatsApp - Lazy Loaded
+const ChatbotChatsScreen = lazyLoad(
+  () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotChatsScreen })),
+  'Cargando Chats...'
+);
+const ChatbotChatDetailScreen = lazyLoad(
+  () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotChatDetailScreen })),
+  'Cargando Chat...'
+);
+const ChatbotOrdersScreen = lazyLoad(
+  () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotOrdersScreen })),
+  'Cargando Pedidos...'
+);
+const ChatbotCatalogScreen = lazyLoad(
+  () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotCatalogScreen })),
+  'Cargando Catálogo...'
+);
+
 // Contaduría · Dashboard - Lazy Loaded
 const ContaduriaDashboardScreen = lazyLoad(
   () => import('@/screens/Contaduria').then((m) => ({ default: m.ContaduriaDashboardScreen })),
@@ -2085,6 +2121,64 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['admin.sire_ventas.invoices.read']}>
             <SireVentasScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* SIRE Compras Declaradas (RCE) - Compras declaradas a SUNAT */}
+      <MainStackNavigator.Screen
+        name="SireComprasDeclared"
+        options={{
+          title: 'Compras declaradas a SUNAT',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sire_compras.declared.read']}>
+            <SireComprasDeclaredScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* SIRE Ventas Declaradas (RVIE) - Ventas declaradas a SUNAT */}
+      <MainStackNavigator.Screen
+        name="SireVentasDeclared"
+        options={{
+          title: 'Ventas declaradas a SUNAT',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sire_ventas.declared.read']}>
+            <SireVentasDeclaredScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Chatbot Ventas WhatsApp */}
+      <MainStackNavigator.Screen name="ChatbotChats" options={{ title: 'Chats WhatsApp' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.chats.manage']}>
+            <ChatbotChatsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotChatDetail" options={{ title: 'Chat' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.chats.manage']}>
+            <ChatbotChatDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotOrders" options={{ title: 'Pedidos WhatsApp' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.orders.validate']}>
+            <ChatbotOrdersScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotCatalog" options={{ title: 'Catálogo WhatsApp' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
+            <ChatbotCatalogScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

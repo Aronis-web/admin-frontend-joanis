@@ -373,6 +373,54 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.SIRE_VENTAS,
         requiredPermissions: ['admin.sire_ventas.invoices.read'],
       },
+      {
+        id: 'sire-compras-declared',
+        icon: 'cloud-done-outline',
+        label: 'Compras declaradas a SUNAT',
+        route: MAIN_ROUTES.SIRE_COMPRAS_DECLARED,
+        requiredPermissions: ['admin.sire_compras.declared.read'],
+      },
+      {
+        id: 'sire-ventas-declared',
+        icon: 'cloud-done-outline',
+        label: 'Ventas declaradas a SUNAT',
+        route: MAIN_ROUTES.SIRE_VENTAS_DECLARED,
+        requiredPermissions: ['admin.sire_ventas.declared.read'],
+      },
+    ],
+  },
+  // Ventas WhatsApp (Chatbot)
+  {
+    id: 'ventas-whatsapp',
+    title: 'Ventas WhatsApp',
+    icon: 'logo-whatsapp',
+    requiredPermissions: [
+      'chatbot.chats.manage',
+      'chatbot.orders.validate',
+      'chatbot.catalog.manage',
+    ],
+    items: [
+      {
+        id: 'chatbot-chats',
+        icon: 'chatbubbles-outline',
+        label: 'Chats',
+        route: MAIN_ROUTES.CHATBOT_CHATS,
+        requiredPermissions: ['chatbot.chats.manage'],
+      },
+      {
+        id: 'chatbot-orders',
+        icon: 'cart-outline',
+        label: 'Pedidos',
+        route: MAIN_ROUTES.CHATBOT_ORDERS,
+        requiredPermissions: ['chatbot.orders.validate'],
+      },
+      {
+        id: 'chatbot-catalog',
+        icon: 'pricetags-outline',
+        label: 'Catálogo',
+        route: MAIN_ROUTES.CHATBOT_CATALOG,
+        requiredPermissions: ['chatbot.catalog.manage'],
+      },
     ],
   },
   // Asistencia

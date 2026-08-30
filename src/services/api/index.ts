@@ -16,7 +16,13 @@ export { accessApi } from './access';
 export { transmisionesApi } from './transmisiones';
 export { sireComprasApi, sireComprasService } from './sire-compras';
 export { sireVentasApi, sireVentasService } from './sire-ventas';
+export { sireComprasDeclaredApi, sireComprasDeclaredService } from './sire-compras-declared';
+export { sireVentasDeclaredApi, sireVentasDeclaredService } from './sire-ventas-declared';
 export { organizationApi } from './organization';
+export { chatbotSessionApi } from './chatbot-session';
+export { chatbotConversationsApi } from './chatbot-conversations';
+export { chatbotOrdersApi } from './chatbot-orders';
+export { chatbotCatalogApi } from './chatbot-catalog';
 
 // Re-export commonly used services
 export * from './products';

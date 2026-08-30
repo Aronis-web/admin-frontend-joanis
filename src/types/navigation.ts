@@ -326,6 +326,18 @@ export type MainStackParamList = {
   // SIRE Ventas (RVIE)
   SireVentas: undefined;
 
+  // SIRE Compras Declaradas (RCE)
+  SireComprasDeclared: undefined;
+
+  // SIRE Ventas Declaradas (RVIE)
+  SireVentasDeclared: undefined;
+
+  // Chatbot Ventas WhatsApp
+  ChatbotChats: undefined;
+  ChatbotChatDetail: { conversationId: string };
+  ChatbotOrders: undefined;
+  ChatbotCatalog: undefined;
+
   // Contaduría · Dashboard
   ContaduriaDashboard: undefined;
 

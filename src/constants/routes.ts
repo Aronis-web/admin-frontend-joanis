@@ -157,6 +157,12 @@ export const MAIN_ROUTES = {
   // SIRE Ventas (RVIE) - Registro de Ventas / Conciliación
   SIRE_VENTAS: 'SireVentas',
 
+  // SIRE Compras Declaradas (RCE) - Compras declaradas a SUNAT
+  SIRE_COMPRAS_DECLARED: 'SireComprasDeclared',
+
+  // SIRE Ventas Declaradas (RVIE) - Ventas declaradas a SUNAT
+  SIRE_VENTAS_DECLARED: 'SireVentasDeclared',
+
   // Contaduría · Dashboard
   CONTADURIA_DASHBOARD: 'ContaduriaDashboard',
 
@@ -211,6 +217,12 @@ export const MAIN_ROUTES = {
 
   // Drive / Gestor de archivos
   DRIVE_HOME: 'DriveHome',
+
+  // Chatbot Ventas WhatsApp
+  CHATBOT_CHATS: 'ChatbotChats',
+  CHATBOT_CHAT_DETAIL: 'ChatbotChatDetail',
+  CHATBOT_ORDERS: 'ChatbotOrders',
+  CHATBOT_CATALOG: 'ChatbotCatalog',
 } as const;
 
 /**
@@ -391,6 +403,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // SIRE Ventas (RVIE)
   SIRE_VENTAS: 'admin.sire_ventas.invoices.read',
 
+  // SIRE Compras Declaradas (RCE)
+  SIRE_COMPRAS_DECLARED: 'admin.sire_compras.declared.read',
+
+  // SIRE Ventas Declaradas (RVIE)
+  SIRE_VENTAS_DECLARED: 'admin.sire_ventas.declared.read',
+
   // Contaduría · Dashboard
   CONTADURIA_DASHBOARD: 'admin.sire_compras.invoices.read',
 
@@ -444,6 +462,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Drive
   DRIVE_HOME: 'drive.read',
+
+  // Chatbot Ventas WhatsApp
+  CHATBOT_CHATS: 'chatbot.chats.manage',
+  CHATBOT_CHAT_DETAIL: 'chatbot.chats.manage',
+  CHATBOT_ORDERS: 'chatbot.orders.validate',
+  CHATBOT_CATALOG: 'chatbot.catalog.manage',
 };
 
 /**

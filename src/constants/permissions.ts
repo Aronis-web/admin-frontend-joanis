@@ -522,6 +522,26 @@ export const PERMISSIONS = {
     },
   },
 
+  // ========== SIRE COMPRAS DECLARADAS (RCE) ==========
+  SIRE_COMPRAS_DECLARED: {
+    SYNC: 'admin.sire_compras.declared.sync',
+    READ: 'admin.sire_compras.declared.read',
+  },
+
+  // ========== SIRE VENTAS DECLARADAS (RVIE) ==========
+  SIRE_VENTAS_DECLARED: {
+    SYNC: 'admin.sire_ventas.declared.sync',
+    READ: 'admin.sire_ventas.declared.read',
+  },
+
+  // ========== CHATBOT WHATSAPP ==========
+  CHATBOT: {
+    SESSION_MANAGE: 'chatbot.session.manage',
+    CHATS_MANAGE: 'chatbot.chats.manage',
+    ORDERS_VALIDATE: 'chatbot.orders.validate',
+    CATALOG_MANAGE: 'chatbot.catalog.manage',
+  },
+
   // ========== CUENTAS POR PAGAR ==========
   ACCOUNTS_PAYABLE: {
     // Lectura

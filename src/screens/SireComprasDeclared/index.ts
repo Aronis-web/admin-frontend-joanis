@@ -1,0 +1,1 @@
+export { SireComprasDeclaredScreen } from './SireComprasDeclaredScreen';
