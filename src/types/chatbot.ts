@@ -118,6 +118,8 @@ export interface SellableProduct {
   productId: string;
   variantId: string | null;
   warehouseId: string;
+  /** Área del almacén (bin/estante) de la cual se toma el stock vendible. */
+  areaId?: string | null;
   presentationId: string;
   maxSellableQty: string;
   priceProfileId: string | null;
@@ -135,6 +137,8 @@ export interface CreateSellableProductBody {
   productId: string;
   variantId?: string | null;
   warehouseId: string;
+  /** Área del almacén (opcional). Si no se envía, aplica al almacén completo. */
+  areaId?: string | null;
   presentationId: string;
   maxSellableQty: number;
   priceProfileId?: string | null;

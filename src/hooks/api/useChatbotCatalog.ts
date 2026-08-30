@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotCatalogApi } from '@/services/api';
 import { productsApi } from '@/services/api/products';
 import type { Product } from '@/services/api/products';
+import { warehousesApi } from '@/services/api/warehouses';
+import type { Warehouse } from '@/types/warehouses';
 import type {
   CreateSellableProductBody,
   SellableProduct,
@@ -16,6 +18,8 @@ export const chatbotCatalogKeys = {
   list: () => [...chatbotCatalogKeys.all, 'list'] as const,
   productsBatch: (ids: string[]) =>
     [...chatbotCatalogKeys.all, 'products-batch', [...ids].sort()] as const,
+  siteWarehouses: (companyId: string | null, siteId: string | null) =>
+    [...chatbotCatalogKeys.all, 'site-warehouses', companyId, siteId] as const,
 };
 
 const CATALOG_STALE_TIME = 5 * 60 * 1000; // 5 min
@@ -39,6 +43,21 @@ export const useSellableProductsList = () => {
  * fotos, stock por sede, precios, etc. Se usa para enriquecer el catálogo
  * del chatbot y el formulario de whitelist al seleccionar un producto.
  */
+/**
+ * Warehouses (con sus áreas) de la sede seleccionada del tenant.
+ * Se usa para filtrar el stock del producto por la sede activa y para saber
+ * exactamente de qué warehouse+area se toma el stock vendible del chatbot.
+ */
+export const useSiteWarehouses = (companyId: string | null, siteId: string | null) => {
+  return useQuery<Warehouse[]>({
+    queryKey: chatbotCatalogKeys.siteWarehouses(companyId, siteId),
+    queryFn: () => warehousesApi.getWarehouses(companyId ?? undefined, siteId ?? undefined),
+    enabled: !!companyId && !!siteId,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
 export const useProductsByIdsBatch = (ids: string[], includePhotos = true) => {
   const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
   return useQuery<Map<string, Product>>({

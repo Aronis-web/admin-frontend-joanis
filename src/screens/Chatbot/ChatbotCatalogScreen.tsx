@@ -40,10 +40,13 @@ import {
   useDeleteSellableProduct,
   useProductsByIdsBatch,
   useSellableProductsList,
+  useSiteWarehouses,
   useUpdateSellableProduct,
 } from '@/hooks/api/useChatbotCatalog';
 import type { Product, ProductAutocompleteItem } from '@/services/api/products';
 import { productsApi } from '@/services/api/products';
+import { useTenantStore } from '@/store/tenant';
+import type { Warehouse } from '@/types/warehouses';
 import type {
   CreateSellableProductBody,
   SellableProduct,
@@ -57,6 +60,7 @@ interface FormState {
   productId: string;
   variantId: string;
   warehouseId: string;
+  areaId: string;
   presentationId: string;
   maxSellableQty: string;
   priceProfileId: string;
@@ -70,6 +74,7 @@ const emptyForm: FormState = {
   productId: '',
   variantId: '',
   warehouseId: '',
+  areaId: '',
   presentationId: '',
   maxSellableQty: '',
   priceProfileId: '',
@@ -83,6 +88,7 @@ const toForm = (item: SellableProduct): FormState => ({
   productId: item.productId,
   variantId: item.variantId ?? '',
   warehouseId: item.warehouseId,
+  areaId: item.areaId ?? '',
   presentationId: item.presentationId,
   maxSellableQty: item.maxSellableQty ?? '',
   priceProfileId: item.priceProfileId ?? '',
@@ -96,6 +102,7 @@ const buildBody = (form: FormState): CreateSellableProductBody => ({
   productId: form.productId.trim(),
   variantId: form.variantId.trim() || null,
   warehouseId: form.warehouseId.trim(),
+  areaId: form.areaId.trim() || null,
   presentationId: form.presentationId.trim(),
   maxSellableQty: Number(form.maxSellableQty || '0'),
   priceProfileId: form.priceProfileId.trim() || null,
@@ -105,35 +112,69 @@ const buildBody = (form: FormState): CreateSellableProductBody => ({
   isActive: form.isActive,
 });
 
-/** Deriva stock disponible por almacén a partir de stockItems. */
-const stockByWarehouse = (product: Product | null | undefined) => {
-  if (!product?.stockItems?.length)
-    return [] as Array<{
-      warehouseId: string;
-      warehouseName: string;
-      available: number;
-    }>;
-  const map = new Map<string, { warehouseId: string; warehouseName: string; available: number }>();
+/**
+ * Fila de stock por (warehouse, area) dentro de la sede activa.
+ * areaId puede ser null (stock a nivel de warehouse sin área específica).
+ */
+interface StockRow {
+  warehouseId: string;
+  warehouseName: string;
+  areaId: string | null;
+  areaName: string;
+  available: number;
+}
+
+/**
+ * Deriva el stock disponible del producto en la sede indicada, agrupado por
+ * warehouse+area. Filtra los `stockItems` para incluir sólo las bodegas del
+ * site actual. Usa el mapa de warehouses de la sede para resolver siteId,
+ * nombres y áreas.
+ */
+const computeStockRowsForSite = (
+  product: Product | null | undefined,
+  siteWarehouses: Warehouse[] | undefined
+): StockRow[] => {
+  if (!product?.stockItems?.length || !siteWarehouses?.length) return [];
+  const whMap = new Map<string, Warehouse>();
+  siteWarehouses.forEach((w) => whMap.set(w.id, w));
+
+  const rows = new Map<string, StockRow>();
   product.stockItems.forEach((si) => {
-    const key = si.warehouseId;
-    const prev = map.get(key);
+    const wh = whMap.get(si.warehouseId);
+    if (!wh) return; // Fuera de la sede activa: ignorar.
+    const key = `${si.warehouseId}::${si.areaId ?? 'none'}`;
+    const areaName =
+      si.area?.name ??
+      wh.areas?.find((a) => a.id === si.areaId)?.name ??
+      (si.areaId ? si.areaId.slice(0, 6) : 'Sin área');
     const available = Number(si.availableQuantityBase ?? si.quantityBase ?? 0);
+    const prev = rows.get(key);
     if (prev) {
       prev.available += available;
     } else {
-      map.set(key, {
-        warehouseId: key,
-        warehouseName: si.warehouse?.name ?? key.slice(0, 8),
+      rows.set(key, {
+        warehouseId: si.warehouseId,
+        warehouseName: wh.name,
+        areaId: si.areaId,
+        areaName,
         available,
       });
     }
   });
-  return Array.from(map.values());
+  return Array.from(rows.values()).sort((a, b) => b.available - a.available);
 };
 
 export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+
+  // Tenant activo (sede del login) para filtrar stock y bodegas.
+  const selectedCompany = useTenantStore((s) => s.selectedCompany);
+  const selectedSite = useTenantStore((s) => s.selectedSite);
+  const { data: siteWarehouses } = useSiteWarehouses(
+    selectedCompany?.id ?? null,
+    selectedSite?.id ?? null
+  );
 
   const { data, isLoading, isFetching, isError, refetch } = useSellableProductsList();
   const items = useMemo(() => data ?? [], [data]);
@@ -172,8 +213,8 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     // Hidrata el producto asociado para poder mostrar selects de presentación/almacén.
     setLoadingProduct(true);
     productsApi
-      .getProductsByIds([item.productId], true)
-      .then((res) => setSelectedProduct(res.products[0] ?? null))
+      .getProductById(item.productId)
+      .then((p) => setSelectedProduct(p ?? null))
       .catch(() => setSelectedProduct(null))
       .finally(() => setLoadingProduct(false));
   };
@@ -196,16 +237,18 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     setSearchQuery(`#${item.correlativeNumber} ${item.sku} — ${item.title}`);
     setLoadingProduct(true);
     try {
-      const res = await productsApi.getProductsByIds([item.id], true);
-      const full = res.products[0] ?? null;
-      setSelectedProduct(full);
+      // getProductById devuelve la entidad admin con presentaciones + stockItems
+      // completos (más rico que el endpoint de batch v2).
+      const full = await productsApi.getProductById(item.id);
+      setSelectedProduct(full ?? null);
 
       // Presentación por defecto: la base o la primera.
       const defaultPresentation =
         full?.presentations?.find((p) => p.isBase) ?? full?.presentations?.[0] ?? null;
-      // Almacén por defecto: el primero de los stockItems agrupados.
-      const warehouses = stockByWarehouse(full);
-      const defaultWarehouse = warehouses[0];
+      // Stock disponible filtrado por la sede activa; se toma la fila con
+      // mayor stock disponible como default (warehouse + area).
+      const rows = computeStockRowsForSite(full, siteWarehouses);
+      const defaultRow = rows[0];
       // Precio sugerido (perfil por defecto de la lista de precios).
       const defaultProfile = item.priceProfiles?.[0];
       const defaultPrice = defaultProfile?.prices?.[0]?.priceCents;
@@ -215,11 +258,12 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
         productId: item.id,
         variantId: '',
         presentationId: defaultPresentation?.presentationId ?? '',
-        warehouseId: defaultWarehouse?.warehouseId ?? '',
+        warehouseId: defaultRow?.warehouseId ?? '',
+        areaId: defaultRow?.areaId ?? '',
         label: item.title,
         priceProfileId: defaultProfile?.profileId ?? '',
         priceOverrideCents: typeof defaultPrice === 'number' ? String(defaultPrice) : '',
-        maxSellableQty: defaultWarehouse ? String(Math.max(0, defaultWarehouse.available)) : '',
+        maxSellableQty: defaultRow ? String(Math.max(0, defaultRow.available)) : '',
       }));
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'No se pudo cargar el producto');
@@ -273,6 +317,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
       variantId: '',
       presentationId: '',
       warehouseId: '',
+      areaId: '',
       label: '',
       priceOverrideCents: '',
       priceProfileId: '',
@@ -288,8 +333,18 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     if (!isFormOpen) setSearchFocused(false);
   }, [isFormOpen]);
 
-  const warehouses = useMemo(() => stockByWarehouse(selectedProduct), [selectedProduct]);
+  const stockRows = useMemo(
+    () => computeStockRowsForSite(selectedProduct, siteWarehouses),
+    [selectedProduct, siteWarehouses]
+  );
+  const siteTotalAvailable = useMemo(
+    () => stockRows.reduce((acc, r) => acc + r.available, 0),
+    [stockRows]
+  );
   const presentations = selectedProduct?.presentations ?? [];
+  const selectedStockRow = stockRows.find(
+    (r) => r.warehouseId === form.warehouseId && (r.areaId ?? '') === form.areaId
+  );
 
   return (
     <ScreenLayout navigation={navigation as any}>
@@ -339,6 +394,11 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
               {items.map((item) => {
                 const product = productsById?.get(item.productId);
                 const thumb = product?.photos?.[0] ?? product?.imageUrl;
+                const wh = siteWarehouses?.find((w) => w.id === item.warehouseId);
+                const area = item.areaId ? wh?.areas?.find((a) => a.id === item.areaId) : null;
+                const sourceLabel = wh
+                  ? `${wh.name}${area?.name ? ` · ${area.name}` : ''}`
+                  : `Bodega ${item.warehouseId.slice(0, 6)}…`;
                 return (
                   <Card key={item.id} style={styles.itemCard}>
                     <View style={styles.itemHeader}>
@@ -365,6 +425,9 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                       />
                     </View>
                     <View style={styles.itemMeta}>
+                      <Caption color={theme.color.text.muted}>
+                        Vendible desde: {sourceLabel}
+                      </Caption>
                       <Caption color={theme.color.text.muted}>
                         Máx: {item.maxSellableQty} · Orden: {item.sortOrder}
                       </Caption>
@@ -510,39 +573,56 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                   </View>
                 )}
 
-                {selectedProduct && warehouses.length > 0 && (
+                {selectedProduct && (
                   <View>
-                    <Caption color={theme.color.text.muted} style={styles.groupLabel}>
-                      Almacén
-                    </Caption>
-                    <View style={styles.chipRow}>
-                      {warehouses.map((w) => {
-                        const active = form.warehouseId === w.warehouseId;
-                        return (
-                          <TouchableOpacity
-                            key={w.warehouseId}
-                            style={[styles.chip, active && styles.chipActive]}
-                            onPress={() =>
-                              setForm((f) => ({
-                                ...f,
-                                warehouseId: w.warehouseId,
-                                maxSellableQty:
-                                  f.maxSellableQty && Number(f.maxSellableQty) > 0
-                                    ? f.maxSellableQty
-                                    : String(Math.max(0, w.available)),
-                              }))
-                            }
-                          >
-                            <Text
-                              style={[styles.chipText, active && styles.chipTextActive]}
-                              numberOfLines={1}
-                            >
-                              {w.warehouseName} · {w.available}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                    <View style={styles.stockHeader}>
+                      <Caption color={theme.color.text.muted} style={styles.groupLabel}>
+                        Stock disponible en {selectedSite?.name ?? 'sede activa'}
+                      </Caption>
+                      <Caption color={theme.color.text.muted}>Total: {siteTotalAvailable}</Caption>
                     </View>
+                    {stockRows.length === 0 ? (
+                      <Caption color={theme.color.text.muted}>
+                        Sin stock en las bodegas de esta sede.
+                      </Caption>
+                    ) : (
+                      <View style={styles.chipRow}>
+                        {stockRows.map((r) => {
+                          const active =
+                            form.warehouseId === r.warehouseId && (r.areaId ?? '') === form.areaId;
+                          return (
+                            <TouchableOpacity
+                              key={`${r.warehouseId}-${r.areaId ?? 'none'}`}
+                              style={[styles.chip, active && styles.chipActive]}
+                              onPress={() =>
+                                setForm((f) => ({
+                                  ...f,
+                                  warehouseId: r.warehouseId,
+                                  areaId: r.areaId ?? '',
+                                  maxSellableQty:
+                                    f.maxSellableQty && Number(f.maxSellableQty) > 0
+                                      ? f.maxSellableQty
+                                      : String(Math.max(0, r.available)),
+                                }))
+                              }
+                            >
+                              <Text
+                                style={[styles.chipText, active && styles.chipTextActive]}
+                                numberOfLines={1}
+                              >
+                                {r.warehouseName} · {r.areaName} · {r.available}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                    {selectedStockRow && (
+                      <Caption color={theme.color.text.muted} style={styles.stockPickedHint}>
+                        Vendible desde: {selectedStockRow.warehouseName} ·{' '}
+                        {selectedStockRow.areaName} (disp. {selectedStockRow.available})
+                      </Caption>
+                    )}
                   </View>
                 )}
 
@@ -740,6 +820,14 @@ const createStyles = (theme: Theme) =>
     },
     groupLabel: {
       marginBottom: spacing[2],
+    },
+    stockHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    stockPickedHint: {
+      marginTop: spacing[2],
     },
     chipRow: {
       flexDirection: 'row',
