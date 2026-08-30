@@ -48,6 +48,12 @@ interface ProductSearchAutocompleteProps {
   maxHeight?: number;
   /** Estilos extra para el contenedor. */
   style?: any;
+  /**
+   * Slot opcional a la derecha de cada sugerencia. Si se provee, reemplaza
+   * el precio por defecto. Útil para mostrar stock disponible por sede,
+   * badge de estado, etc. sin acoplar el componente a un dominio específico.
+   */
+  renderRight?: (item: ProductAutocompleteItem) => React.ReactNode;
 }
 
 export const ProductSearchAutocomplete: React.FC<ProductSearchAutocompleteProps> = ({
@@ -58,6 +64,7 @@ export const ProductSearchAutocomplete: React.FC<ProductSearchAutocompleteProps>
   visible = true,
   maxHeight = 320,
   style,
+  renderRight,
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -138,11 +145,13 @@ export const ProductSearchAutocomplete: React.FC<ProductSearchAutocompleteProps>
                   </Caption>
                 </View>
 
-                {typeof priceCents === 'number' && (
+                {renderRight ? (
+                  renderRight(item)
+                ) : typeof priceCents === 'number' ? (
                   <Text variant="labelMedium" color={theme.color.brand.accent}>
                     {currency} {(priceCents / 100).toFixed(2)}
                   </Text>
-                )}
+                ) : null}
               </TouchableOpacity>
             );
           })}

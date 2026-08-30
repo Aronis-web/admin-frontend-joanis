@@ -40,13 +40,14 @@ import {
   useDeleteSellableProduct,
   useProductsByIdsBatch,
   useSellableProductsList,
+  useSiteStock,
   useSiteWarehouses,
   useUpdateSellableProduct,
 } from '@/hooks/api/useChatbotCatalog';
 import type { Product, ProductAutocompleteItem } from '@/services/api/products';
 import { productsApi } from '@/services/api/products';
+import type { StockItemResponse } from '@/services/api/inventory';
 import { useTenantStore } from '@/store/tenant';
-import type { Warehouse } from '@/types/warehouses';
 import type {
   CreateSellableProductBody,
   SellableProduct,
@@ -125,36 +126,30 @@ interface StockRow {
 }
 
 /**
- * Deriva el stock disponible del producto en la sede indicada, agrupado por
- * warehouse+area. Filtra los `stockItems` para incluir sólo las bodegas del
- * site actual. Usa el mapa de warehouses de la sede para resolver siteId,
- * nombres y áreas.
+ * Deriva las filas de stock disponible para un producto dentro de la sede
+ * activa, agrupadas por (warehouse, area). La fuente de verdad es la lista
+ * global de stock items de la sede (`inventoryApi.getAllStock`), el mismo
+ * patrón que usa Campañas → `AddProductScreen`.
  */
-const computeStockRowsForSite = (
-  product: Product | null | undefined,
-  siteWarehouses: Warehouse[] | undefined
+const computeStockRowsForProduct = (
+  productId: string | null | undefined,
+  siteStock: StockItemResponse[] | undefined
 ): StockRow[] => {
-  if (!product?.stockItems?.length || !siteWarehouses?.length) return [];
-  const whMap = new Map<string, Warehouse>();
-  siteWarehouses.forEach((w) => whMap.set(w.id, w));
-
+  if (!productId || !siteStock?.length) return [];
   const rows = new Map<string, StockRow>();
-  product.stockItems.forEach((si) => {
-    const wh = whMap.get(si.warehouseId);
-    if (!wh) return; // Fuera de la sede activa: ignorar.
+  siteStock.forEach((si) => {
+    if (si.productId !== productId) return;
     const key = `${si.warehouseId}::${si.areaId ?? 'none'}`;
-    const areaName =
-      si.area?.name ??
-      wh.areas?.find((a) => a.id === si.areaId)?.name ??
-      (si.areaId ? si.areaId.slice(0, 6) : 'Sin área');
     const available = Number(si.availableQuantityBase ?? si.quantityBase ?? 0);
+    const warehouseName = si.warehouse?.name ?? si.warehouseId.slice(0, 6);
+    const areaName = si.area?.name ?? (si.areaId ? si.areaId.slice(0, 6) : 'Sin área');
     const prev = rows.get(key);
     if (prev) {
       prev.available += available;
     } else {
       rows.set(key, {
         warehouseId: si.warehouseId,
-        warehouseName: wh.name,
+        warehouseName,
         areaId: si.areaId,
         areaName,
         available,
@@ -175,6 +170,19 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     selectedCompany?.id ?? null,
     selectedSite?.id ?? null
   );
+  // Stock global de la sede activa (source of truth para computar chips y
+  // el preview de stock en el buscador). Un único fetch cacheado 2 min.
+  const { data: siteStock } = useSiteStock(selectedSite?.id ?? null);
+
+  // Índice productId → total disponible en la sede (para el dropdown).
+  const stockTotalsByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    (siteStock ?? []).forEach((si) => {
+      const available = Number(si.availableQuantityBase ?? si.quantityBase ?? 0);
+      map.set(si.productId, (map.get(si.productId) ?? 0) + available);
+    });
+    return map;
+  }, [siteStock]);
 
   const { data, isLoading, isFetching, isError, refetch } = useSellableProductsList();
   const items = useMemo(() => data ?? [], [data]);
@@ -247,7 +255,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
         full?.presentations?.find((p) => p.isBase) ?? full?.presentations?.[0] ?? null;
       // Stock disponible filtrado por la sede activa; se toma la fila con
       // mayor stock disponible como default (warehouse + area).
-      const rows = computeStockRowsForSite(full, siteWarehouses);
+      const rows = computeStockRowsForProduct(item.id, siteStock);
       const defaultRow = rows[0];
       // Precio sugerido (perfil por defecto de la lista de precios).
       const defaultProfile = item.priceProfiles?.[0];
@@ -334,8 +342,8 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   }, [isFormOpen]);
 
   const stockRows = useMemo(
-    () => computeStockRowsForSite(selectedProduct, siteWarehouses),
-    [selectedProduct, siteWarehouses]
+    () => computeStockRowsForProduct(selectedProduct?.id ?? null, siteStock),
+    [selectedProduct, siteStock]
   );
   const siteTotalAvailable = useMemo(
     () => stockRows.reduce((acc, r) => acc + r.available, 0),
@@ -495,6 +503,15 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                       visible={searchFocused && !selectedProduct}
                       onSelect={handleSelectProduct}
                       style={styles.autocomplete}
+                      renderRight={(it) => {
+                        const total = stockTotalsByProduct.get(it.id) ?? 0;
+                        const color = total > 0 ? theme.color.brand.accent : theme.color.text.muted;
+                        return (
+                          <Text variant="labelMedium" color={color}>
+                            Stock: {total}
+                          </Text>
+                        );
+                      }}
                     />
                   </View>
                 )}

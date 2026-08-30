@@ -4,6 +4,8 @@ import { productsApi } from '@/services/api/products';
 import type { Product } from '@/services/api/products';
 import { warehousesApi } from '@/services/api/warehouses';
 import type { Warehouse } from '@/types/warehouses';
+import { inventoryApi } from '@/services/api/inventory';
+import type { StockItemResponse } from '@/services/api/inventory';
 import type {
   CreateSellableProductBody,
   SellableProduct,
@@ -20,6 +22,7 @@ export const chatbotCatalogKeys = {
     [...chatbotCatalogKeys.all, 'products-batch', [...ids].sort()] as const,
   siteWarehouses: (companyId: string | null, siteId: string | null) =>
     [...chatbotCatalogKeys.all, 'site-warehouses', companyId, siteId] as const,
+  siteStock: (siteId: string | null) => [...chatbotCatalogKeys.all, 'site-stock', siteId] as const,
 };
 
 const CATALOG_STALE_TIME = 5 * 60 * 1000; // 5 min
@@ -54,6 +57,25 @@ export const useSiteWarehouses = (companyId: string | null, siteId: string | nul
     queryFn: () => warehousesApi.getWarehouses(companyId ?? undefined, siteId ?? undefined),
     enabled: !!companyId && !!siteId,
     staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+/**
+ * Stock detallado (por warehouse + area) de la sede activa.
+ * Sigue el patrón de Campañas → `AddProductScreen` que carga todo el stock
+ * una vez y lo usa como fuente de verdad para computar disponibilidad por
+ * producto, dado que `Product.stockItems` del endpoint de productos puede
+ * venir vacío según el shape del backend.
+ *
+ * `GET /inventory/stock?siteId=...` devuelve StockItemResponse[].
+ */
+export const useSiteStock = (siteId: string | null) => {
+  return useQuery<StockItemResponse[]>({
+    queryKey: chatbotCatalogKeys.siteStock(siteId),
+    queryFn: () => inventoryApi.getAllStock(siteId ? { siteId } : {}),
+    enabled: !!siteId,
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };
