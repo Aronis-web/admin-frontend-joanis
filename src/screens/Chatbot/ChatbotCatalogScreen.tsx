@@ -39,6 +39,7 @@ import {
   useCreateSellableProduct,
   useDeleteSellableProduct,
   useProductsByIdsBatch,
+  useProductStockByAreas,
   useSellableProductsList,
   useSiteStock,
   useSiteWarehouses,
@@ -176,9 +177,14 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     selectedCompany?.id ?? null,
     selectedSite?.id ?? null
   );
-  // Stock global de la sede activa (source of truth para computar chips y
-  // el preview de stock en el buscador). Un único fetch cacheado 2 min.
+  // Stock global de la sede activa (source of truth para el preview de stock
+  // en el dropdown del buscador). Un único fetch cacheado 2 min.
   const { data: siteStock } = useSiteStock(selectedSite?.id ?? null);
+
+  // Stock del producto seleccionado (endpoint dedicado, más confiable que
+  // depender del listado global cuando el backend ignora filtros).
+  const [pendingProductId, setPendingProductId] = useState<string | null>(null);
+  const { data: productStock } = useProductStockByAreas(pendingProductId);
 
   // Set de IDs de warehouses de la sede activa para filtrar client-side el
   // stock global. Si aún no cargaron, no filtramos (evita mostrar "sin stock"
@@ -234,6 +240,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     setEditing(item);
     setCreating(false);
     setSearchQuery('');
+    setPendingProductId(item.productId);
     // Hidrata el producto asociado para poder mostrar selects de presentación/almacén.
     setLoadingProduct(true);
     productsApi
@@ -260,6 +267,8 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     setSearchFocused(false);
     setSearchQuery(`#${item.correlativeNumber} ${item.sku} — ${item.title}`);
     setLoadingProduct(true);
+    // Dispara la query de stock específica del producto.
+    setPendingProductId(item.id);
     try {
       // getProductById devuelve la entidad admin con presentaciones + stockItems
       // completos (más rico que el endpoint de batch v2).
@@ -269,9 +278,14 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
       // Presentación por defecto: la base o la primera.
       const defaultPresentation =
         full?.presentations?.find((p) => p.isBase) ?? full?.presentations?.[0] ?? null;
-      // Stock disponible filtrado por la sede activa; se toma la fila con
-      // mayor stock disponible como default (warehouse + area).
-      const rows = computeStockRowsForProduct(item.id, siteStock, siteWarehouseIds);
+      // Stock disponible: intentamos con el endpoint específico del producto,
+      // filtrando por warehouses de la sede si están disponibles. Fallback al
+      // stock global si el específico aún no llegó.
+      const productRows = computeStockRowsForProduct(item.id, productStock, siteWarehouseIds);
+      const rows =
+        productRows.length > 0
+          ? productRows
+          : computeStockRowsForProduct(item.id, siteStock, siteWarehouseIds);
       const defaultRow = rows[0];
       // Precio sugerido (perfil por defecto de la lista de precios).
       const defaultProfile = item.priceProfiles?.[0];
@@ -334,6 +348,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
 
   const clearSelection = () => {
     setSelectedProduct(null);
+    setPendingProductId(null);
     setSearchQuery('');
     setForm((f) => ({
       ...f,
@@ -357,10 +372,19 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     if (!isFormOpen) setSearchFocused(false);
   }, [isFormOpen]);
 
-  const stockRows = useMemo(
-    () => computeStockRowsForProduct(selectedProduct?.id ?? null, siteStock, siteWarehouseIds),
-    [selectedProduct, siteStock, siteWarehouseIds]
-  );
+  const stockRows = useMemo(() => {
+    const id = selectedProduct?.id ?? null;
+    // Fuente preferida: endpoint específico del producto. Fallback: stock global.
+    // Intento 1: filtrado por warehouses de la sede activa.
+    let rows = computeStockRowsForProduct(id, productStock, siteWarehouseIds);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, siteWarehouseIds);
+    // Intento 2: sin filtro por sede (defensivo si getWarehouses devolvió vacío
+    // o si el stock del producto vive en otra sede — mostramos todo para que
+    // el usuario al menos vea que hay stock disponible).
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, productStock, null);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, null);
+    return rows;
+  }, [selectedProduct, productStock, siteStock, siteWarehouseIds]);
   const siteTotalAvailable = useMemo(
     () => stockRows.reduce((acc, r) => acc + r.available, 0),
     [stockRows]

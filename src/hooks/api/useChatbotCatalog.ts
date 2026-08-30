@@ -23,6 +23,8 @@ export const chatbotCatalogKeys = {
   siteWarehouses: (companyId: string | null, siteId: string | null) =>
     [...chatbotCatalogKeys.all, 'site-warehouses', companyId, siteId] as const,
   siteStock: (siteId: string | null) => [...chatbotCatalogKeys.all, 'site-stock', siteId] as const,
+  productStock: (productId: string | null) =>
+    [...chatbotCatalogKeys.all, 'product-stock', productId] as const,
 };
 
 const CATALOG_STALE_TIME = 5 * 60 * 1000; // 5 min
@@ -105,6 +107,39 @@ export const useSiteStock = (siteId: string | null) => {
     // al cambiar de sede.
     enabled: true,
     staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+/**
+ * Stock detallado (por warehouse + area) de UN producto específico.
+ * Endpoint: GET /inventory/stock/product/:productId
+ *
+ * Devuelve un array de StockItemResponse con relaciones (warehouse.name,
+ * area.name). Se dispara sólo cuando hay un `productId` seleccionado, lo cual
+ * evita traer todo el stock del tenant como hace Campañas.
+ */
+export const useProductStockByAreas = (productId: string | null | undefined) => {
+  return useQuery<StockItemResponse[]>({
+    queryKey: chatbotCatalogKeys.productStock(productId ?? null),
+    queryFn: async () => {
+      if (!productId) return [];
+      const res: unknown = await inventoryApi.getStockByProductWithAreas(productId);
+      const arr: StockItemResponse[] = Array.isArray(res)
+        ? (res as StockItemResponse[])
+        : res && typeof res === 'object' && Array.isArray((res as any).data)
+          ? ((res as any).data as StockItemResponse[])
+          : [];
+      // eslint-disable-next-line no-console
+      console.log('📦 [chatbot] productStock loaded', {
+        productId,
+        total: arr.length,
+        sample: arr.slice(0, 3),
+      });
+      return arr;
+    },
+    enabled: !!productId,
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };
