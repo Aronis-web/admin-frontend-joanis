@@ -540,6 +540,7 @@ export const PERMISSIONS = {
     CHATS_MANAGE: 'chatbot.chats.manage',
     ORDERS_VALIDATE: 'chatbot.orders.validate',
     CATALOG_MANAGE: 'chatbot.catalog.manage',
+    TRAINING_MANAGE: 'chatbot.training.manage',
   },
 
   // ========== CUENTAS POR PAGAR ==========

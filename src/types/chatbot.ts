@@ -208,3 +208,82 @@ export interface BotSettings {
 export type UpdateBotSettingsBody = Partial<
   Omit<BotSettings, 'id' | 'companyOwnerId' | 'createdAt' | 'updatedAt'>
 >;
+
+// ============================================
+// Entrenamiento (casos + base de conocimiento)
+// ============================================
+export type TrainingCaseStatus = 'PENDING' | 'TAUGHT' | 'ESCALATED' | 'DISMISSED';
+export type TrainingCategory =
+  | 'QUEJA'
+  | 'RECLAMO'
+  | 'CONSULTA_PRODUCTO'
+  | 'FUERA_DE_TEMA'
+  | 'NO_SE'
+  | 'OTRO';
+
+export interface TrainingCase {
+  id: string;
+  conversationId: string;
+  messageId: string;
+  customerId: string | null;
+  phone: string;
+  category: TrainingCategory;
+  summary: string | null;
+  customerText: string | null;
+  status: TrainingCaseStatus;
+  resolutionNote: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  companyOwnerId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetTrainingCasesParams {
+  status?: TrainingCaseStatus;
+}
+
+export interface TeachCaseBody {
+  topic: string;
+  triggerKeywords: string[];
+  answer: string;
+  category?: TrainingCategory | null;
+  replyNow?: boolean;
+}
+
+export interface EscalateCaseBody {
+  note?: string;
+}
+
+export interface TeachCaseResponse {
+  status: 'TAUGHT';
+  knowledgeId: string;
+}
+
+export interface TrainingKnowledge {
+  id: string;
+  companyOwnerId: string;
+  topic: string;
+  triggerKeywords: string[];
+  answer: string;
+  category: TrainingCategory | null;
+  isActive: boolean;
+  sourceEscalationId: string | null;
+  hits: number;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetTrainingKnowledgeParams {
+  includeInactive?: boolean;
+}
+
+export interface CreateKnowledgeBody {
+  topic: string;
+  triggerKeywords: string[];
+  answer: string;
+  category?: TrainingCategory | null;
+}
+
+export type UpdateKnowledgeBody = Partial<CreateKnowledgeBody & { isActive: boolean }>;

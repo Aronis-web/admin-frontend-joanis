@@ -398,6 +398,7 @@ const menuCategories: MenuCategory[] = [
       'chatbot.chats.manage',
       'chatbot.orders.validate',
       'chatbot.catalog.manage',
+      'chatbot.training.manage',
     ],
     items: [
       {
@@ -420,6 +421,13 @@ const menuCategories: MenuCategory[] = [
         label: 'Catálogo',
         route: MAIN_ROUTES.CHATBOT_CATALOG,
         requiredPermissions: ['chatbot.catalog.manage'],
+      },
+      {
+        id: 'chatbot-training',
+        icon: 'school-outline',
+        label: 'Entrenamiento',
+        route: MAIN_ROUTES.CHATBOT_TRAINING,
+        requiredPermissions: ['chatbot.training.manage'],
       },
     ],
   },

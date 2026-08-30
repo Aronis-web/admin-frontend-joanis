@@ -17,3 +17,4 @@ export * from './useChatbotConversations';
 export * from './useChatbotOrders';
 export * from './useChatbotCatalog';
 export * from './useChatbotSettings';
+export * from './useChatbotTraining';

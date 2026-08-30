@@ -583,6 +583,10 @@ const ChatbotCatalogScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotCatalogScreen })),
   'Cargando Catálogo...'
 );
+const ChatbotTrainingScreen = lazyLoad(
+  () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotTrainingScreen })),
+  'Cargando Entrenamiento...'
+);
 
 // Contaduría · Dashboard - Lazy Loaded
 const ContaduriaDashboardScreen = lazyLoad(
@@ -2179,6 +2183,16 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
             <ChatbotCatalogScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="ChatbotTraining"
+        options={{ title: 'Entrenamiento WhatsApp' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.training.manage']}>
+            <ChatbotTrainingScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
