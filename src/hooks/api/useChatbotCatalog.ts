@@ -84,16 +84,26 @@ export const useSiteStock = (siteId: string | null) => {
   return useQuery<StockItemResponse[]>({
     queryKey: chatbotCatalogKeys.siteStock(siteId),
     queryFn: async () => {
-      const res: unknown = await inventoryApi.getAllStock(siteId ? { siteId } : {});
-      // El endpoint puede devolver un array o { data: [...] } (paginado);
-      // normalizamos aquí, como hace `AddProductScreen` de Campañas.
-      if (Array.isArray(res)) return res as StockItemResponse[];
-      if (res && typeof res === 'object' && Array.isArray((res as any).data)) {
-        return (res as any).data as StockItemResponse[];
-      }
-      return [];
+      // NOTE: Campañas → AddProductScreen llama getAllStock({}) SIN siteId
+      // porque el filtro server-side por siteId no está soportado y devuelve
+      // vacío/paginado. El filtro por sede se hace en cliente usando la lista
+      // de warehouses de la sede activa.
+      const res: unknown = await inventoryApi.getAllStock({});
+      const arr: StockItemResponse[] = Array.isArray(res)
+        ? (res as StockItemResponse[])
+        : res && typeof res === 'object' && Array.isArray((res as any).data)
+          ? ((res as any).data as StockItemResponse[])
+          : [];
+      // eslint-disable-next-line no-console
+      console.log('📦 [chatbot] siteStock loaded', {
+        total: arr.length,
+        sample: arr.slice(0, 2),
+      });
+      return arr;
     },
-    enabled: !!siteId,
+    // Siempre habilitado; el siteId solo se usa como cache key para invalidar
+    // al cambiar de sede.
+    enabled: true,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
