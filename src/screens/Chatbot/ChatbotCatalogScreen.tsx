@@ -135,9 +135,11 @@ const computeStockRowsForProduct = (
   productId: string | null | undefined,
   siteStock: StockItemResponse[] | undefined
 ): StockRow[] => {
-  if (!productId || !siteStock?.length) return [];
+  if (!productId) return [];
+  const list = Array.isArray(siteStock) ? siteStock : [];
+  if (list.length === 0) return [];
   const rows = new Map<string, StockRow>();
-  siteStock.forEach((si) => {
+  list.forEach((si) => {
     if (si.productId !== productId) return;
     const key = `${si.warehouseId}::${si.areaId ?? 'none'}`;
     const available = Number(si.availableQuantityBase ?? si.quantityBase ?? 0);
@@ -177,7 +179,8 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   // Índice productId → total disponible en la sede (para el dropdown).
   const stockTotalsByProduct = useMemo(() => {
     const map = new Map<string, number>();
-    (siteStock ?? []).forEach((si) => {
+    const list = Array.isArray(siteStock) ? siteStock : [];
+    list.forEach((si) => {
       const available = Number(si.availableQuantityBase ?? si.quantityBase ?? 0);
       map.set(si.productId, (map.get(si.productId) ?? 0) + available);
     });
@@ -402,7 +405,8 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
               {items.map((item) => {
                 const product = productsById?.get(item.productId);
                 const thumb = product?.photos?.[0] ?? product?.imageUrl;
-                const wh = siteWarehouses?.find((w) => w.id === item.warehouseId);
+                const whList = Array.isArray(siteWarehouses) ? siteWarehouses : [];
+                const wh = whList.find((w) => w.id === item.warehouseId);
                 const area = item.areaId ? wh?.areas?.find((a) => a.id === item.areaId) : null;
                 const sourceLabel = wh
                   ? `${wh.name}${area?.name ? ` · ${area.name}` : ''}`

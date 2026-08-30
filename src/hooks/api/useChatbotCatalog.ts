@@ -54,7 +54,17 @@ export const useSellableProductsList = () => {
 export const useSiteWarehouses = (companyId: string | null, siteId: string | null) => {
   return useQuery<Warehouse[]>({
     queryKey: chatbotCatalogKeys.siteWarehouses(companyId, siteId),
-    queryFn: () => warehousesApi.getWarehouses(companyId ?? undefined, siteId ?? undefined),
+    queryFn: async () => {
+      const res: unknown = await warehousesApi.getWarehouses(
+        companyId ?? undefined,
+        siteId ?? undefined
+      );
+      if (Array.isArray(res)) return res as Warehouse[];
+      if (res && typeof res === 'object' && Array.isArray((res as any).data)) {
+        return (res as any).data as Warehouse[];
+      }
+      return [];
+    },
     enabled: !!companyId && !!siteId,
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -73,7 +83,16 @@ export const useSiteWarehouses = (companyId: string | null, siteId: string | nul
 export const useSiteStock = (siteId: string | null) => {
   return useQuery<StockItemResponse[]>({
     queryKey: chatbotCatalogKeys.siteStock(siteId),
-    queryFn: () => inventoryApi.getAllStock(siteId ? { siteId } : {}),
+    queryFn: async () => {
+      const res: unknown = await inventoryApi.getAllStock(siteId ? { siteId } : {});
+      // El endpoint puede devolver un array o { data: [...] } (paginado);
+      // normalizamos aquí, como hace `AddProductScreen` de Campañas.
+      if (Array.isArray(res)) return res as StockItemResponse[];
+      if (res && typeof res === 'object' && Array.isArray((res as any).data)) {
+        return (res as any).data as StockItemResponse[];
+      }
+      return [];
+    },
     enabled: !!siteId,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
