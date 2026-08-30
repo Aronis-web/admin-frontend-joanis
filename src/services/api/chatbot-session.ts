@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { WaQrResponse, WaSessionStatus } from '@/types/chatbot';
+import type { BotStatus, WaQrResponse, WaSessionStatus } from '@/types/chatbot';
 
 /**
  * Chatbot · Sesión WhatsApp API Service
@@ -23,6 +23,26 @@ class ChatbotSessionService {
 
   async logout(): Promise<WaSessionStatus> {
     return apiClient.post<WaSessionStatus>(`${this.basePath}/logout`, {});
+  }
+
+  // ============================================
+  // Bot on/off (respuesta automática del asistente)
+  // Base path: /chatbot/bot
+  // ============================================
+  async getBotStatus(): Promise<BotStatus> {
+    return apiClient.get<BotStatus>('/chatbot/bot/status');
+  }
+
+  async enableBot(): Promise<{ active: true }> {
+    return apiClient.post<{ active: true }>('/chatbot/bot/enable', {});
+  }
+
+  async disableBot(): Promise<{ active: false }> {
+    return apiClient.post<{ active: false }>('/chatbot/bot/disable', {});
+  }
+
+  async toggleBot(active: boolean): Promise<{ active: boolean }> {
+    return apiClient.post<{ active: boolean }>('/chatbot/bot/toggle', { active });
   }
 }
 

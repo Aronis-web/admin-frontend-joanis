@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotSessionApi } from '@/services/api';
-import type { WaQrResponse, WaSessionStatus } from '@/types/chatbot';
+import type { BotStatus, WaQrResponse, WaSessionStatus } from '@/types/chatbot';
 
 // ============================================
 // Query Keys Factory
@@ -9,6 +9,7 @@ export const chatbotSessionKeys = {
   all: ['chatbot-session'] as const,
   status: () => [...chatbotSessionKeys.all, 'status'] as const,
   qr: () => [...chatbotSessionKeys.all, 'qr'] as const,
+  botStatus: () => [...chatbotSessionKeys.all, 'bot-status'] as const,
 };
 
 // ============================================
@@ -69,6 +70,55 @@ export const useLogoutWaSession = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: chatbotSessionKeys.status() });
       queryClient.invalidateQueries({ queryKey: chatbotSessionKeys.qr() });
+    },
+  });
+};
+
+// ============================================
+// Bot on/off
+// ============================================
+
+/**
+ * Estado del bot (`active`, `scanning`, `whatsapp.status`).
+ * Refresca cada 5s mientras el modal esté abierto.
+ */
+export const useBotStatus = (options?: { enabled?: boolean; polling?: boolean }) => {
+  return useQuery<BotStatus>({
+    queryKey: chatbotSessionKeys.botStatus(),
+    queryFn: () => chatbotSessionApi.getBotStatus(),
+    refetchInterval: options?.polling === false ? false : 5000,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+    enabled: options?.enabled ?? true,
+  });
+};
+
+export const useToggleBot = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ active: boolean }, Error, boolean>({
+    mutationFn: (active) => chatbotSessionApi.toggleBot(active),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatbotSessionKeys.botStatus() });
+    },
+  });
+};
+
+export const useEnableBot = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ active: true }, Error, void>({
+    mutationFn: () => chatbotSessionApi.enableBot(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatbotSessionKeys.botStatus() });
+    },
+  });
+};
+
+export const useDisableBot = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ active: false }, Error, void>({
+    mutationFn: () => chatbotSessionApi.disableBot(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatbotSessionKeys.botStatus() });
     },
   });
 };

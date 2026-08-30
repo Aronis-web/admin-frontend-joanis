@@ -31,6 +31,22 @@ export interface WaQrResponse {
 }
 
 // ============================================
+// Bot on/off (respuesta automática)
+// ============================================
+export interface BotStatus {
+  active: boolean;
+  scanning: boolean;
+  whatsapp: {
+    status: WaStatus;
+    me: string | null;
+  };
+}
+
+export interface BotToggleBody {
+  active: boolean;
+}
+
+// ============================================
 // Conversaciones
 // ============================================
 export interface ChatConversation {

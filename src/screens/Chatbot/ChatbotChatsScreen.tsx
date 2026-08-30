@@ -20,6 +20,7 @@ import type { ChatConversation } from '@/types/chatbot';
 import { ConversationList } from './components/ConversationList';
 import { ConversationPanel } from './components/ConversationPanel';
 import { WaSessionModal } from './components/WaSessionModal';
+import { BotControlModal } from './components/BotControlModal';
 
 type Props = NativeStackScreenProps<any, 'ChatbotChats'>;
 
@@ -32,6 +33,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const isSplit = width >= SPLIT_BREAKPOINT;
 
   const [sessionOpen, setSessionOpen] = useState(false);
+  const [botOpen, setBotOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
 
   const { data, isLoading, isError, refetch } = useConversationsList(
@@ -74,14 +76,24 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
                 Bandeja de conversaciones del chatbot de ventas
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => setSessionOpen(true)}
-              style={styles.headerAction}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="qr-code-outline" size={16} color={theme.color.brand.onHeader} />
-              <Text style={styles.headerActionText}>Sesión</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActionsRow}>
+              <TouchableOpacity
+                onPress={() => setBotOpen(true)}
+                style={styles.headerAction}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="sparkles" size={16} color={theme.color.brand.onHeader} />
+                <Text style={styles.headerActionText}>Bot</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSessionOpen(true)}
+                style={styles.headerAction}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="qr-code-outline" size={16} color={theme.color.brand.onHeader} />
+                <Text style={styles.headerActionText}>Sesión</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </LinearGradient>
 
@@ -123,6 +135,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <WaSessionModal visible={sessionOpen} onClose={() => setSessionOpen(false)} />
+        <BotControlModal visible={botOpen} onClose={() => setBotOpen(false)} />
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -172,6 +185,11 @@ const createStyles = (theme: Theme) =>
       color: theme.color.brand.onHeaderMuted,
       fontWeight: '500',
       marginLeft: 48,
+    },
+    headerActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
     },
     headerAction: {
       flexDirection: 'row',
