@@ -1,12 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { ProductSearchAutocomplete } from '@/components/Products/ProductSearchAutocomplete';
 import {
   Badge,
   Body,
@@ -35,9 +38,12 @@ import { spacing, borderRadius } from '@/design-system/tokens';
 import {
   useCreateSellableProduct,
   useDeleteSellableProduct,
+  useProductsByIdsBatch,
   useSellableProductsList,
   useUpdateSellableProduct,
 } from '@/hooks/api/useChatbotCatalog';
+import type { Product, ProductAutocompleteItem } from '@/services/api/products';
+import { productsApi } from '@/services/api/products';
 import type {
   CreateSellableProductBody,
   SellableProduct,
@@ -99,12 +105,42 @@ const buildBody = (form: FormState): CreateSellableProductBody => ({
   isActive: form.isActive,
 });
 
+/** Deriva stock disponible por almacén a partir de stockItems. */
+const stockByWarehouse = (product: Product | null | undefined) => {
+  if (!product?.stockItems?.length)
+    return [] as Array<{
+      warehouseId: string;
+      warehouseName: string;
+      available: number;
+    }>;
+  const map = new Map<string, { warehouseId: string; warehouseName: string; available: number }>();
+  product.stockItems.forEach((si) => {
+    const key = si.warehouseId;
+    const prev = map.get(key);
+    const available = Number(si.availableQuantityBase ?? si.quantityBase ?? 0);
+    if (prev) {
+      prev.available += available;
+    } else {
+      map.set(key, {
+        warehouseId: key,
+        warehouseName: si.warehouse?.name ?? key.slice(0, 8),
+        available,
+      });
+    }
+  });
+  return Array.from(map.values());
+};
+
 export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
   const { data, isLoading, isFetching, isError, refetch } = useSellableProductsList();
   const items = useMemo(() => data ?? [], [data]);
+
+  // Batch de productos para hidratar la lista con nombre / foto / SKU.
+  const listProductIds = useMemo(() => items.map((it) => it.productId), [items]);
+  const { data: productsById } = useProductsByIdsBatch(listProductIds);
 
   const createMutation = useCreateSellableProduct();
   const updateMutation = useUpdateSellableProduct();
@@ -114,9 +150,17 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
 
+  // Estado del buscador dentro del formulario.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [loadingProduct, setLoadingProduct] = useState(false);
+
   const openCreate = () => {
     setForm(emptyForm);
     setEditing(null);
+    setSearchQuery('');
+    setSelectedProduct(null);
     setCreating(true);
   };
 
@@ -124,12 +168,64 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     setForm(toForm(item));
     setEditing(item);
     setCreating(false);
+    setSearchQuery('');
+    // Hidrata el producto asociado para poder mostrar selects de presentación/almacén.
+    setLoadingProduct(true);
+    productsApi
+      .getProductsByIds([item.productId], true)
+      .then((res) => setSelectedProduct(res.products[0] ?? null))
+      .catch(() => setSelectedProduct(null))
+      .finally(() => setLoadingProduct(false));
   };
 
   const closeForm = () => {
     setCreating(false);
     setEditing(null);
     setForm(emptyForm);
+    setSearchQuery('');
+    setSelectedProduct(null);
+  };
+
+  /**
+   * Cuando se elige un item del autocomplete: llama al batch para traer
+   * el producto completo (presentaciones, stockItems por sede, salePrices)
+   * y pre-completa el formulario con valores sensatos.
+   */
+  const handleSelectProduct = async (item: ProductAutocompleteItem) => {
+    setSearchFocused(false);
+    setSearchQuery(`#${item.correlativeNumber} ${item.sku} — ${item.title}`);
+    setLoadingProduct(true);
+    try {
+      const res = await productsApi.getProductsByIds([item.id], true);
+      const full = res.products[0] ?? null;
+      setSelectedProduct(full);
+
+      // Presentación por defecto: la base o la primera.
+      const defaultPresentation =
+        full?.presentations?.find((p) => p.isBase) ?? full?.presentations?.[0] ?? null;
+      // Almacén por defecto: el primero de los stockItems agrupados.
+      const warehouses = stockByWarehouse(full);
+      const defaultWarehouse = warehouses[0];
+      // Precio sugerido (perfil por defecto de la lista de precios).
+      const defaultProfile = item.priceProfiles?.[0];
+      const defaultPrice = defaultProfile?.prices?.[0]?.priceCents;
+
+      setForm((f) => ({
+        ...f,
+        productId: item.id,
+        variantId: '',
+        presentationId: defaultPresentation?.presentationId ?? '',
+        warehouseId: defaultWarehouse?.warehouseId ?? '',
+        label: item.title,
+        priceProfileId: defaultProfile?.profileId ?? '',
+        priceOverrideCents: typeof defaultPrice === 'number' ? String(defaultPrice) : '',
+        maxSellableQty: defaultWarehouse ? String(Math.max(0, defaultWarehouse.available)) : '',
+      }));
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'No se pudo cargar el producto');
+    } finally {
+      setLoadingProduct(false);
+    }
   };
 
   const handleSave = () => {
@@ -168,8 +264,32 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     ]);
   };
 
+  const clearSelection = () => {
+    setSelectedProduct(null);
+    setSearchQuery('');
+    setForm((f) => ({
+      ...f,
+      productId: '',
+      variantId: '',
+      presentationId: '',
+      warehouseId: '',
+      label: '',
+      priceOverrideCents: '',
+      priceProfileId: '',
+      maxSellableQty: '',
+    }));
+  };
+
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const isFormOpen = creating || !!editing;
+
+  // Reset del focus del buscador cuando el modal se cierra.
+  useEffect(() => {
+    if (!isFormOpen) setSearchFocused(false);
+  }, [isFormOpen]);
+
+  const warehouses = useMemo(() => stockByWarehouse(selectedProduct), [selectedProduct]);
+  const presentations = selectedProduct?.presentations ?? [];
 
   return (
     <ScreenLayout navigation={navigation as any}>
@@ -216,46 +336,61 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
             />
           ) : (
             <View style={styles.list}>
-              {items.map((item) => (
-                <Card key={item.id} style={styles.itemCard}>
-                  <View style={styles.itemHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Title>{item.label ?? '(sin etiqueta)'}</Title>
-                      <Caption color={theme.color.text.muted}>
-                        Producto: {item.productId.slice(0, 8)}…
-                      </Caption>
+              {items.map((item) => {
+                const product = productsById?.get(item.productId);
+                const thumb = product?.photos?.[0] ?? product?.imageUrl;
+                return (
+                  <Card key={item.id} style={styles.itemCard}>
+                    <View style={styles.itemHeader}>
+                      {thumb ? (
+                        <Image source={{ uri: thumb }} style={styles.thumb} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.thumbPlaceholder}>
+                          <Ionicons name="cube-outline" size={22} color={theme.color.icon.subtle} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Title numberOfLines={1}>
+                          {item.label ?? product?.title ?? '(sin etiqueta)'}
+                        </Title>
+                        <Caption color={theme.color.text.muted} numberOfLines={1}>
+                          {product
+                            ? `#${product.correlativeNumber} · SKU ${product.sku}`
+                            : `Producto: ${item.productId.slice(0, 8)}…`}
+                        </Caption>
+                      </View>
+                      <Badge
+                        variant={item.isActive ? 'success' : 'default'}
+                        label={item.isActive ? 'Activo' : 'Inactivo'}
+                      />
                     </View>
-                    <Badge
-                      variant={item.isActive ? 'success' : 'default'}
-                      label={item.isActive ? 'Activo' : 'Inactivo'}
-                    />
-                  </View>
-                  <View style={styles.itemMeta}>
-                    <Caption color={theme.color.text.muted}>
-                      Máx: {item.maxSellableQty} · Orden: {item.sortOrder}
-                    </Caption>
-                    {item.priceOverrideCents ? (
+                    <View style={styles.itemMeta}>
                       <Caption color={theme.color.text.muted}>
-                        Precio override: S/ {(Number(item.priceOverrideCents) / 100).toFixed(2)}
+                        Máx: {item.maxSellableQty} · Orden: {item.sortOrder}
                       </Caption>
-                    ) : null}
-                  </View>
-                  <View style={styles.itemActions}>
-                    <Button
-                      title="Eliminar"
-                      variant="ghost"
-                      leftIcon="trash-outline"
-                      onPress={() => handleDelete(item)}
-                    />
-                    <Button
-                      title="Editar"
-                      variant="outline"
-                      leftIcon="create-outline"
-                      onPress={() => openEdit(item)}
-                    />
-                  </View>
-                </Card>
-              ))}
+                      {item.priceOverrideCents ? (
+                        <Caption color={theme.color.text.muted}>
+                          Precio override: S/ {(Number(item.priceOverrideCents) / 100).toFixed(2)}
+                        </Caption>
+                      ) : null}
+                    </View>
+                    <View style={styles.itemActions}>
+                      <Button
+                        title="Eliminar"
+                        variant="ghost"
+                        leftIcon="trash-outline"
+                        onPress={() => handleDelete(item)}
+                      />
+                      <Button
+                        title="Editar"
+                        variant="outline"
+                        leftIcon="create-outline"
+                        onPress={() => openEdit(item)}
+                      />
+                    </View>
+                  </Card>
+                );
+              })}
             </View>
           )}
         </ScrollView>
@@ -266,43 +401,177 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
         <Modal visible={isFormOpen} transparent animationType="fade" onRequestClose={closeForm}>
           <Pressable style={styles.backdrop} onPress={closeForm}>
             <Pressable style={styles.formCard} onPress={(e) => e.stopPropagation()}>
-              <ScrollView contentContainerStyle={styles.formContent}>
+              <ScrollView
+                contentContainerStyle={styles.formContent}
+                keyboardShouldPersistTaps="handled"
+              >
                 <Title>{editing ? 'Editar entrada' : 'Nueva entrada'}</Title>
                 <Caption color={theme.color.text.muted}>
-                  Ingresa los UUIDs de producto, almacén y presentación.
+                  Busca un producto y ajusta presentación, almacén y precio.
                 </Caption>
 
-                <Input
-                  label="Producto (UUID)"
-                  value={form.productId}
-                  onChangeText={(v) => setForm((f) => ({ ...f, productId: v }))}
-                  placeholder="uuid del producto"
-                />
-                <Input
-                  label="Variante (UUID, opcional)"
-                  value={form.variantId}
-                  onChangeText={(v) => setForm((f) => ({ ...f, variantId: v }))}
-                />
-                <Input
-                  label="Almacén (UUID)"
-                  value={form.warehouseId}
-                  onChangeText={(v) => setForm((f) => ({ ...f, warehouseId: v }))}
-                />
-                <Input
-                  label="Presentación (UUID)"
-                  value={form.presentationId}
-                  onChangeText={(v) => setForm((f) => ({ ...f, presentationId: v }))}
-                />
+                {/* Buscador inteligente */}
+                {!editing && (
+                  <View>
+                    <Input
+                      label="Buscar producto"
+                      value={searchQuery}
+                      onChangeText={(v) => {
+                        setSearchQuery(v);
+                        setSearchFocused(true);
+                        if (selectedProduct) {
+                          // Editar el texto invalida la selección previa.
+                          clearSelection();
+                        }
+                      }}
+                      onFocus={() => setSearchFocused(true)}
+                      placeholder="Nombre, SKU, correlativo o código de barras…"
+                    />
+                    <ProductSearchAutocomplete
+                      query={searchQuery}
+                      visible={searchFocused && !selectedProduct}
+                      onSelect={handleSelectProduct}
+                      style={styles.autocomplete}
+                    />
+                  </View>
+                )}
+
+                {loadingProduct && (
+                  <View style={styles.centerBox}>
+                    <ActivityIndicator color={theme.color.brand.accent} />
+                  </View>
+                )}
+
+                {/* Ficha del producto seleccionado */}
+                {selectedProduct && (
+                  <Card style={styles.productCard}>
+                    <View style={styles.productHeader}>
+                      {selectedProduct.photos?.[0] || selectedProduct.imageUrl ? (
+                        <Image
+                          source={{
+                            uri: selectedProduct.photos?.[0] ?? selectedProduct.imageUrl,
+                          }}
+                          style={styles.thumb}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.thumbPlaceholder}>
+                          <Ionicons name="cube-outline" size={22} color={theme.color.icon.subtle} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Body numberOfLines={1}>{selectedProduct.title}</Body>
+                        <Caption color={theme.color.text.muted} numberOfLines={1}>
+                          #{selectedProduct.correlativeNumber} · SKU {selectedProduct.sku}
+                        </Caption>
+                        {selectedProduct.stock && (
+                          <Caption color={theme.color.text.muted}>
+                            Stock total: {selectedProduct.stock.available}
+                          </Caption>
+                        )}
+                      </View>
+                      {!editing && (
+                        <TouchableOpacity onPress={clearSelection}>
+                          <Ionicons name="close" size={20} color={theme.color.icon.subtle} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </Card>
+                )}
+
+                {/* Selectores derivados del producto */}
+                {selectedProduct && presentations.length > 0 && (
+                  <View>
+                    <Caption color={theme.color.text.muted} style={styles.groupLabel}>
+                      Presentación
+                    </Caption>
+                    <View style={styles.chipRow}>
+                      {presentations.map((p) => {
+                        const active = form.presentationId === p.presentationId;
+                        return (
+                          <TouchableOpacity
+                            key={p.presentationId}
+                            style={[styles.chip, active && styles.chipActive]}
+                            onPress={() =>
+                              setForm((f) => ({ ...f, presentationId: p.presentationId }))
+                            }
+                          >
+                            <Text
+                              style={[styles.chipText, active && styles.chipTextActive]}
+                              numberOfLines={1}
+                            >
+                              {p.presentation?.name ?? p.presentationId.slice(0, 6)}
+                              {p.isBase ? ' · base' : ''}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {selectedProduct && warehouses.length > 0 && (
+                  <View>
+                    <Caption color={theme.color.text.muted} style={styles.groupLabel}>
+                      Almacén
+                    </Caption>
+                    <View style={styles.chipRow}>
+                      {warehouses.map((w) => {
+                        const active = form.warehouseId === w.warehouseId;
+                        return (
+                          <TouchableOpacity
+                            key={w.warehouseId}
+                            style={[styles.chip, active && styles.chipActive]}
+                            onPress={() =>
+                              setForm((f) => ({
+                                ...f,
+                                warehouseId: w.warehouseId,
+                                maxSellableQty:
+                                  f.maxSellableQty && Number(f.maxSellableQty) > 0
+                                    ? f.maxSellableQty
+                                    : String(Math.max(0, w.available)),
+                              }))
+                            }
+                          >
+                            <Text
+                              style={[styles.chipText, active && styles.chipTextActive]}
+                              numberOfLines={1}
+                            >
+                              {w.warehouseName} · {w.available}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {/* Fallback si no hay producto (modo edición sin batch resuelto) */}
+                {!selectedProduct && editing && (
+                  <>
+                    <Input
+                      label="Producto (UUID)"
+                      value={form.productId}
+                      onChangeText={(v) => setForm((f) => ({ ...f, productId: v }))}
+                    />
+                    <Input
+                      label="Almacén (UUID)"
+                      value={form.warehouseId}
+                      onChangeText={(v) => setForm((f) => ({ ...f, warehouseId: v }))}
+                    />
+                    <Input
+                      label="Presentación (UUID)"
+                      value={form.presentationId}
+                      onChangeText={(v) => setForm((f) => ({ ...f, presentationId: v }))}
+                    />
+                  </>
+                )}
+
                 <Input
                   label="Máximo vendible"
                   value={form.maxSellableQty}
                   onChangeText={(v) => setForm((f) => ({ ...f, maxSellableQty: v }))}
                   keyboardType="numeric"
-                />
-                <Input
-                  label="Perfil de precio (UUID, opcional)"
-                  value={form.priceProfileId}
-                  onChangeText={(v) => setForm((f) => ({ ...f, priceProfileId: v }))}
                 />
                 <Input
                   label="Precio override (centavos, opcional)"
@@ -415,8 +684,8 @@ const createStyles = (theme: Theme) =>
     },
     itemHeader: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing[2],
+      alignItems: 'center',
+      gap: spacing[3],
     },
     itemMeta: {
       gap: 2,
@@ -425,6 +694,20 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       justifyContent: 'flex-end',
       gap: spacing[2],
+    },
+    thumb: {
+      width: 44,
+      height: 44,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    thumbPlaceholder: {
+      width: 44,
+      height: 44,
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.surface.subtle,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     backdrop: {
       flex: 1,
@@ -443,6 +726,45 @@ const createStyles = (theme: Theme) =>
     formContent: {
       padding: spacing[5],
       gap: spacing[3],
+    },
+    autocomplete: {
+      marginTop: spacing[2],
+    },
+    productCard: {
+      padding: spacing[3],
+    },
+    productHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[3],
+    },
+    groupLabel: {
+      marginBottom: spacing[2],
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing[2],
+    },
+    chip: {
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    chipActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    chipText: {
+      fontSize: 13,
+      color: theme.color.text.body,
+    },
+    chipTextActive: {
+      color: theme.color.brand.accent,
+      fontWeight: '600',
     },
     switchRow: {
       flexDirection: 'row',

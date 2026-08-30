@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotCatalogApi } from '@/services/api';
+import { productsApi } from '@/services/api/products';
+import type { Product } from '@/services/api/products';
 import type {
   CreateSellableProductBody,
   SellableProduct,
@@ -12,6 +14,8 @@ import type {
 export const chatbotCatalogKeys = {
   all: ['chatbot-catalog'] as const,
   list: () => [...chatbotCatalogKeys.all, 'list'] as const,
+  productsBatch: (ids: string[]) =>
+    [...chatbotCatalogKeys.all, 'products-batch', [...ids].sort()] as const,
 };
 
 const CATALOG_STALE_TIME = 5 * 60 * 1000; // 5 min
@@ -25,6 +29,29 @@ export const useSellableProductsList = () => {
     queryKey: chatbotCatalogKeys.list(),
     queryFn: () => chatbotCatalogApi.list(),
     staleTime: CATALOG_STALE_TIME,
+    refetchOnWindowFocus: false,
+  });
+};
+
+/**
+ * Batch de productos por IDs (POST /admin/products/v2/batch).
+ * Devuelve un Map<productId, Product> para hidratar con presentaciones,
+ * fotos, stock por sede, precios, etc. Se usa para enriquecer el catálogo
+ * del chatbot y el formulario de whitelist al seleccionar un producto.
+ */
+export const useProductsByIdsBatch = (ids: string[], includePhotos = true) => {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  return useQuery<Map<string, Product>>({
+    queryKey: chatbotCatalogKeys.productsBatch(uniqueIds),
+    queryFn: async () => {
+      if (uniqueIds.length === 0) return new Map();
+      const res = await productsApi.getProductsByIds(uniqueIds, includePhotos);
+      const map = new Map<string, Product>();
+      res.products.forEach((p) => map.set(p.id, p));
+      return map;
+    },
+    enabled: uniqueIds.length > 0,
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };
