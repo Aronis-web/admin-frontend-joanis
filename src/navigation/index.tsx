@@ -2191,7 +2191,13 @@ const MainStack = React.memo(() => {
         options={{ title: 'Entrenamiento WhatsApp' }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.training.manage']}>
+          <ProtectedRoute
+            requiredPermissions={[
+              'chatbot.training.manage',
+              'chatbot.catalog.manage',
+              'chatbot.chats.manage',
+            ]}
+          >
             <ChatbotTrainingScreen {...props} />
           </ProtectedRoute>
         )}

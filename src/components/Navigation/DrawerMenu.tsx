@@ -427,7 +427,14 @@ const menuCategories: MenuCategory[] = [
         icon: 'school-outline',
         label: 'Entrenamiento',
         route: MAIN_ROUTES.CHATBOT_TRAINING,
-        requiredPermissions: ['chatbot.training.manage'],
+        // Se acepta cualquier permiso del módulo Chatbot; el permiso propio
+        // `chatbot.training.manage` puede no estar aún registrado en el backend
+        // para roles existentes, así que usamos `some(...)` con fallbacks.
+        requiredPermissions: [
+          'chatbot.training.manage',
+          'chatbot.catalog.manage',
+          'chatbot.chats.manage',
+        ],
       },
     ],
   },
