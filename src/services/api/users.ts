@@ -279,6 +279,75 @@ export const usersApi = {
       `/users/${id}/effective-permissions`
     );
   },
+
+  // ============================================
+  // Bulk operations (xlsx)
+  // ============================================
+
+  /**
+   * Descarga la plantilla xlsx de creación masiva.
+   * GET /users/bulk/template/create
+   */
+  async downloadBulkCreateTemplate(): Promise<Blob> {
+    return apiClient.get<Blob>('/users/bulk/template/create', {
+      responseType: 'blob',
+    });
+  },
+
+  /**
+   * Descarga la plantilla xlsx de edición masiva
+   * (precargada con los usuarios existentes, sin contraseñas).
+   * GET /users/bulk/template/update
+   */
+  async downloadBulkUpdateTemplate(): Promise<Blob> {
+    return apiClient.get<Blob>('/users/bulk/template/update', {
+      responseType: 'blob',
+    });
+  },
+
+  /**
+   * Sube el xlsx lleno y crea usuarios en lote.
+   * POST /users/bulk/create (multipart, campo `file`)
+   */
+  async bulkCreateUsers(file: File | Blob): Promise<BulkUsersResult> {
+    const formData = new FormData();
+    formData.append('file', file as any);
+    return apiClient.post<BulkUsersResult>('/users/bulk/create', formData);
+  },
+
+  /**
+   * Sube el xlsx lleno y edita usuarios en lote por id.
+   * POST /users/bulk/update (multipart, campo `file`)
+   */
+  async bulkUpdateUsers(file: File | Blob): Promise<BulkUsersResult> {
+    const formData = new FormData();
+    formData.append('file', file as any);
+    return apiClient.post<BulkUsersResult>('/users/bulk/update', formData);
+  },
 };
+
+// ============================================
+// Bulk types
+// ============================================
+
+export type BulkMailboxStatus = 'provisioned' | 'skipped' | 'failed';
+
+export interface BulkUserRowResult {
+  row: number;
+  status: 'ok' | 'failed';
+  userId?: string;
+  email?: string;
+  username?: string;
+  mailbox?: BulkMailboxStatus;
+  error?: string;
+  message?: string;
+}
+
+export interface BulkUsersResult {
+  total: number;
+  ok: number;
+  failed: number;
+  results: BulkUserRowResult[];
+}
 
 export default usersApi;

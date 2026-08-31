@@ -19,6 +19,7 @@ import { usersApi, User, GetUsersParams } from '@/services/api';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
 import { UserDetailModal } from '@/components/users/UserDetailModal';
 import { EditUserModal } from '@/components/users/EditUserModal';
+import { UsersBulkModal, UsersBulkMode } from '@/components/users/UsersBulkModal';
 import { Pagination } from '@/design-system';
 import { MAIN_ROUTES } from '@/constants/routes';
 import Alert from '@/utils/alert';
@@ -42,6 +43,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [bulkMode, setBulkMode] = useState<UsersBulkMode | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -59,6 +61,28 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   useEffect(() => {
     loadUsers();
   }, [pagination.page, appliedSearch]);
+
+  // Autocompletado: dispara la búsqueda automáticamente cuando el usuario
+  // escribe más de dos letras (>=3). Se limpia al vaciar o quedar con <=2.
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length === 0) {
+      if (appliedSearch !== '') {
+        setAppliedSearch('');
+        setPagination((prev) => ({ ...prev, page: 1 }));
+      }
+      return;
+    }
+    if (trimmed.length < 3) return;
+    if (trimmed === appliedSearch) return;
+
+    const handle = setTimeout(() => {
+      setAppliedSearch(trimmed);
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    }, 350);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -83,7 +107,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
         console.log('UsersScreen - First user has_biometric:', usersData[0]?.has_biometric);
       }
       setUsers(usersData);
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
         total: response.pagination.total,
         totalPages: response.pagination.totalPages,
@@ -101,26 +125,26 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   // Handle search submit
   const handleSearch = useCallback(() => {
     setAppliedSearch(searchQuery);
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   }, [searchQuery]);
 
   // Handle clear search
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
     setAppliedSearch('');
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   }, []);
 
   // Pagination handlers
   const handlePreviousPage = useCallback(() => {
     if (pagination.page > 1) {
-      setPagination(prev => ({ ...prev, page: prev.page - 1 }));
+      setPagination((prev) => ({ ...prev, page: prev.page - 1 }));
     }
   }, [pagination.page]);
 
   const handleNextPage = useCallback(() => {
     if (pagination.page < pagination.totalPages) {
-      setPagination(prev => ({ ...prev, page: prev.page + 1 }));
+      setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
     }
   }, [pagination.page, pagination.totalPages]);
 
@@ -189,30 +213,39 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   };
 
   // Biometric action handlers
-  const handleRegisterBiometric = useCallback((user: User) => {
-    setShowDetailModal(false);
-    navigation.navigate(MAIN_ROUTES.REGISTER_FACE, {
-      userId: user.id,
-      userName: user.username || user.first_name || user.email,
-    });
-  }, [navigation]);
+  const handleRegisterBiometric = useCallback(
+    (user: User) => {
+      setShowDetailModal(false);
+      navigation.navigate(MAIN_ROUTES.REGISTER_FACE, {
+        userId: user.id,
+        userName: user.username || user.first_name || user.email,
+      });
+    },
+    [navigation]
+  );
 
-  const handleUpdateBiometric = useCallback((user: User) => {
-    setShowDetailModal(false);
-    navigation.navigate(MAIN_ROUTES.REGISTER_FACE, {
-      userId: user.id,
-      userName: user.username || user.first_name || user.email,
-      mode: 'update',
-    });
-  }, [navigation]);
+  const handleUpdateBiometric = useCallback(
+    (user: User) => {
+      setShowDetailModal(false);
+      navigation.navigate(MAIN_ROUTES.REGISTER_FACE, {
+        userId: user.id,
+        userName: user.username || user.first_name || user.email,
+        mode: 'update',
+      });
+    },
+    [navigation]
+  );
 
-  const handleVerifyBiometric = useCallback((user: User) => {
-    setShowDetailModal(false);
-    navigation.navigate(MAIN_ROUTES.VERIFY_FACE, {
-      userId: user.id,
-      userName: user.username || user.first_name || user.email,
-    });
-  }, [navigation]);
+  const handleVerifyBiometric = useCallback(
+    (user: User) => {
+      setShowDetailModal(false);
+      navigation.navigate(MAIN_ROUTES.VERIFY_FACE, {
+        userId: user.id,
+        userName: user.username || user.first_name || user.email,
+      });
+    },
+    [navigation]
+  );
 
   const handleMenuToggle = () => {
     setIsMenuVisible(!isMenuVisible);
@@ -254,9 +287,10 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   const renderUserItem = (user: User) => {
     // Determine status from either status field or is_active field
     const userStatus = user.status || (user.is_active ? 'active' : 'inactive');
-    const displayName = user.first_name && user.last_name
-      ? `${user.first_name} ${user.last_name}`
-      : user.username || user.name || user.email;
+    const displayName =
+      user.first_name && user.last_name
+        ? `${user.first_name} ${user.last_name}`
+        : user.username || user.name || user.email;
 
     return (
       <TouchableOpacity
@@ -267,9 +301,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
       >
         <View style={styles.userInfo}>
           <View style={styles.userAvatar}>
-            <Text style={styles.avatarText}>
-              {(displayName || 'U').charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarText}>{(displayName || 'U').charAt(0).toUpperCase()}</Text>
           </View>
           <View style={styles.userDetails}>
             <View style={styles.userNameRow}>
@@ -351,9 +383,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
       {/* Applied search indicator */}
       {appliedSearch && (
         <View style={styles.searchIndicator}>
-          <Text style={styles.searchIndicatorText}>
-            Búsqueda: "{appliedSearch}"
-          </Text>
+          <Text style={styles.searchIndicatorText}>Búsqueda: "{appliedSearch}"</Text>
           <TouchableOpacity onPress={handleClearSearch}>
             <Text style={styles.searchIndicatorClear}>Limpiar</Text>
           </TouchableOpacity>
@@ -388,7 +418,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
           totalPages={pagination.totalPages}
           totalItems={pagination.total}
           itemsPerPage={pagination.limit}
-          onPageChange={(p) => setPagination(prev => ({ ...prev, page: p }))}
+          onPageChange={(p) => setPagination((prev) => ({ ...prev, page: p }))}
         />
       )}
 
@@ -418,6 +448,14 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
         onUserUpdated={handleUserUpdated}
       />
 
+      {/* Bulk Users Modal (creación / actualización masiva) */}
+      <UsersBulkModal
+        visible={bulkMode !== null}
+        mode={bulkMode ?? 'create'}
+        onClose={() => setBulkMode(null)}
+        onSuccess={loadUsers}
+      />
+
       {/* Add Button */}
       <ProtectedFAB
         actions={[
@@ -427,223 +465,236 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
             onPress: handleCreateUser,
             requiredPermissions: ['users.create'],
           },
+          {
+            icon: 'cloud-upload-outline',
+            label: 'Creación masiva',
+            onPress: () => setBulkMode('create'),
+            requiredPermissions: ['users.create'],
+          },
+          {
+            icon: 'sync-outline',
+            label: 'Actualización masiva',
+            onPress: () => setBulkMode('update'),
+            requiredPermissions: ['users.update'],
+          },
         ]}
       />
     </SafeAreaView>
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: theme.color.text.muted,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: theme.color.text.muted,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    gap: theme.space[3],
-  },
-  searchInputWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.background.subtle,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    borderRadius: theme.radii.xl,
-    paddingHorizontal: theme.space[4],
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: theme.space[3],
-    fontSize: 16,
-    color: theme.color.text.heading,
-  },
-  clearButton: {
-    padding: theme.space[2],
-  },
-  clearButtonText: {
-    fontSize: 16,
-    color: theme.color.text.placeholder,
-  },
-  searchButton: {
-    backgroundColor: theme.color.brand.accent,
-    borderRadius: theme.radii.xl,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchButtonText: {
-    fontSize: 18,
-  },
-  searchIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[2],
-    backgroundColor: theme.color.brand.accentSoft,
-  },
-  searchIndicatorText: {
-    fontSize: 13,
-    color: theme.color.brand.accent,
-  },
-  searchIndicatorClear: {
-    fontSize: 13,
-    color: theme.color.brand.accent,
-    fontWeight: '600',
-  },
-  loadingOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: theme.space[10],
-  },
-  usersList: {
-    flex: 1,
-    paddingHorizontal: theme.space[5],
-    paddingBottom: 100,
-  },
-  usersListLandscape: {
-    paddingBottom: 70,
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: theme.color.surface.base,
-    borderRadius: theme.radii.xl,
-    padding: theme.space[4],
-    marginBottom: theme.space[3],
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    shadowColor: theme.color.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.color.brand.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.space[3],
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.color.text.onAction,
-  },
-  userDetails: {
-    flex: 1,
-  },
-  userNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.space[2],
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.color.text.heading,
-    marginBottom: 2,
-  },
-  biometricBadge: {
-    backgroundColor: theme.color.state.success.background,
-    paddingHorizontal: theme.space[1.5],
-    paddingVertical: 2,
-    borderRadius: theme.radii.md,
-  },
-  biometricBadgeText: {
-    fontSize: 12,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginBottom: 2,
-  },
-  userRoles: {
-    fontSize: 12,
-    color: theme.color.brand.accent,
-    fontWeight: '500',
-  },
-  userStatus: {
-    alignItems: 'center',
-  },
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: theme.color.text.muted,
-    textAlign: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.muted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    backButtonText: {
+      fontSize: 20,
+      color: theme.color.text.muted,
+      fontWeight: '600',
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    headerSpacer: {
+      width: 40,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[4],
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+      gap: theme.space[3],
+    },
+    searchInputWrapper: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[4],
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: theme.space[3],
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    clearButton: {
+      padding: theme.space[2],
+    },
+    clearButtonText: {
+      fontSize: 16,
+      color: theme.color.text.placeholder,
+    },
+    searchButton: {
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    searchButtonText: {
+      fontSize: 18,
+    },
+    searchIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: theme.space[5],
+      paddingVertical: theme.space[2],
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    searchIndicatorText: {
+      fontSize: 13,
+      color: theme.color.brand.accent,
+    },
+    searchIndicatorClear: {
+      fontSize: 13,
+      color: theme.color.brand.accent,
+      fontWeight: '600',
+    },
+    loadingOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: theme.space[10],
+    },
+    usersList: {
+      flex: 1,
+      paddingHorizontal: theme.space[5],
+      paddingBottom: 100,
+    },
+    usersListLandscape: {
+      paddingBottom: 70,
+    },
+    userItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      marginBottom: theme.space[3],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    userInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    userAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.color.brand.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
+    avatarText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.onAction,
+    },
+    userDetails: {
+      flex: 1,
+    },
+    userNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    userName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 2,
+    },
+    biometricBadge: {
+      backgroundColor: theme.color.state.success.background,
+      paddingHorizontal: theme.space[1.5],
+      paddingVertical: 2,
+      borderRadius: theme.radii.md,
+    },
+    biometricBadgeText: {
+      fontSize: 12,
+    },
+    userEmail: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 2,
+    },
+    userRoles: {
+      fontSize: 12,
+      color: theme.color.brand.accent,
+      fontWeight: '500',
+    },
+    userStatus: {
+      alignItems: 'center',
+    },
+    statusIndicator: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginBottom: 4,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    emptyText: {
+      fontSize: 16,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+  });
 
 export default UsersScreen;
