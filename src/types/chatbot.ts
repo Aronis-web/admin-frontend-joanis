@@ -10,6 +10,20 @@
 // ============================================
 export type WaStatus = 'DISCONNECTED' | 'CONNECTING' | 'QR' | 'CONNECTED';
 export type ConversationStatus = 'ACTIVE' | 'HUMAN' | 'CLOSED';
+/**
+ * Estado del embudo de compra que el bot asigna turno a turno.
+ * Sirve para triage de la bandeja y recuperación de carritos.
+ */
+export type PurchaseStage =
+  | 'NUEVO'
+  | 'EXPLORANDO'
+  | 'NEGOCIANDO'
+  | 'POR_PAGAR'
+  | 'EN_VALIDACION'
+  | 'COMPRADO'
+  | 'POSTVENTA'
+  | 'SOPORTE'
+  | 'PERDIDO';
 export type ChatbotMessageRole = 'user' | 'assistant' | 'tool' | 'system';
 export type ChatbotMessageDirection = 'in' | 'out';
 export type ChatbotMessageMediaType = 'image' | null;
@@ -55,15 +69,43 @@ export interface BotToggleBody {
 export interface ChatConversation {
   id: string;
   customerId: string | null;
+  /** Nombre del cliente (confirmado o resuelto por documento). */
+  customerName?: string | null;
   phone: string;
   waJid: string | null;
   status: ConversationStatus;
   botEnabled: boolean;
-  summary: string | null;
+  /** Ya no viene en la lista paginada, solo en detalle/mensajes. */
+  summary?: string | null;
   lastMessageAt: string | null;
-  companyOwnerId: string;
-  createdAt: string;
-  updatedAt: string;
+  /** Estado del embudo de compra asignado por el bot. */
+  purchaseStage?: PurchaseStage;
+  companyOwnerId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Item devuelto por el buscador con autocompletado
+ * (`GET /chatbot/conversations/search`).
+ */
+export interface ConversationSearchItem {
+  id: string;
+  customerName: string | null;
+  phone: string;
+  purchaseStage: PurchaseStage;
+  lastMessageAt: string | null;
+}
+
+/**
+ * Bandeja paginada por keyset (`GET /chatbot/conversations`).
+ * `nextCursor` es el `lastMessageAt` del último item; reenviarlo en `before`
+ * para pedir la página siguiente.
+ */
+export interface PagedConversations {
+  items: ChatConversation[];
+  hasMore: boolean;
+  nextCursor: string | null;
 }
 
 export interface ChatMessage {
@@ -88,6 +130,20 @@ export interface PagedMessages {
 }
 
 export interface GetConversationsParams {
+  /** Máximo de chats por página (tope 100). Default 30. */
+  limit?: number;
+  /** Cursor ISO: devuelve chats con `lastMessageAt` anterior a esa fecha. */
+  before?: string;
+  /** Filtra por estado de compra (`NUEVO`, `NEGOCIANDO`, ...). */
+  stage?: PurchaseStage;
+  /** Filtra por estado de chat. */
+  status?: ConversationStatus;
+}
+
+export interface SearchConversationsParams {
+  /** Texto a buscar (nombre o teléfono). Si es vacío, backend devuelve `[]`. */
+  q: string;
+  /** Máximo de resultados (tope 25). Default 10. */
   limit?: number;
 }
 
