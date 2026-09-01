@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -94,11 +93,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const renderStageFilters = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.filtersRow}
-    >
+    <View style={styles.filtersRow}>
       <Pressable
         onPress={() => setStageFilter(undefined)}
         style={[styles.filterChip, !stageFilter && styles.filterChipActive]}
@@ -121,7 +116,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 
   const renderSearchResults = () => {
@@ -408,13 +403,15 @@ const createStyles = (theme: Theme) =>
     filtersRow: {
       paddingHorizontal: spacing[3],
       paddingBottom: spacing[2],
-      gap: spacing[2],
+      gap: spacing[1],
+      rowGap: spacing[1],
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'center',
     },
     filterChip: {
-      paddingHorizontal: spacing[3],
-      paddingVertical: 6,
+      paddingHorizontal: spacing[2],
+      paddingVertical: 4,
       borderRadius: borderRadius.full,
       backgroundColor: theme.color.background.subtle,
       borderWidth: StyleSheet.hairlineWidth,
