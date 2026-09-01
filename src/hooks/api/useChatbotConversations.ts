@@ -1,11 +1,13 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotConversationsApi } from '@/services/api';
 import type {
-  ChatConversation,
+  ConversationSearchItem,
   GetChatMessagesParams,
   GetConversationsParams,
   HandoffBody,
+  PagedConversations,
   PagedMessages,
+  SearchConversationsParams,
   SendReplyBody,
 } from '@/types/chatbot';
 
@@ -15,27 +17,65 @@ import type {
 export const chatbotConversationsKeys = {
   all: ['chatbot-conversations'] as const,
   lists: () => [...chatbotConversationsKeys.all, 'list'] as const,
-  list: (params?: GetConversationsParams) => [...chatbotConversationsKeys.lists(), params] as const,
+  list: (params?: Omit<GetConversationsParams, 'before'>) =>
+    [...chatbotConversationsKeys.lists(), params] as const,
+  search: (params: SearchConversationsParams) =>
+    [...chatbotConversationsKeys.all, 'search', params] as const,
   messages: (conversationId: string, params?: GetChatMessagesParams) =>
     [...chatbotConversationsKeys.all, 'messages', conversationId, params] as const,
 };
 
 const CONVERSATIONS_STALE_TIME = 15 * 1000; // 15s (chat activo)
+const SEARCH_STALE_TIME = 30 * 1000; // 30s (autocompletado)
 
 // ============================================
 // Queries
 // ============================================
 
+/**
+ * Bandeja paginada (scroll infinito) por cursor `before` = ISO del último
+ * `lastMessageAt`. Soporta filtros por estado de compra y estado de chat.
+ *
+ * - Primera página: los chats con último mensaje más reciente.
+ * - `fetchNextPage()` carga chats más antiguos.
+ * - `refetchIntervalMs`: refresca la primera página para nuevos mensajes.
+ */
 export const useConversationsList = (
-  params?: GetConversationsParams,
+  params?: Omit<GetConversationsParams, 'before'>,
   options?: { refetchIntervalMs?: number }
 ) => {
-  return useQuery<ChatConversation[]>({
-    queryKey: chatbotConversationsKeys.list(params),
-    queryFn: () => chatbotConversationsApi.list(params),
+  const limit = params?.limit ?? 30;
+  return useInfiniteQuery<PagedConversations, Error>({
+    queryKey: chatbotConversationsKeys.list({ ...params, limit }),
+    queryFn: ({ pageParam }) =>
+      chatbotConversationsApi.list({
+        ...params,
+        limit,
+        before: (pageParam as string) || undefined,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
     staleTime: CONVERSATIONS_STALE_TIME,
     refetchOnWindowFocus: false,
     refetchInterval: options?.refetchIntervalMs ?? false,
+  });
+};
+
+/**
+ * Buscador con autocompletado (por nombre o teléfono). Deshabilitado si `q`
+ * está vacío. Pensado para debouncing en el input del caller.
+ */
+export const useConversationsSearch = (
+  params: SearchConversationsParams,
+  options?: { enabled?: boolean }
+) => {
+  const trimmed = params.q?.trim() ?? '';
+  return useQuery<ConversationSearchItem[]>({
+    queryKey: chatbotConversationsKeys.search({ ...params, q: trimmed }),
+    queryFn: () => chatbotConversationsApi.search({ ...params, q: trimmed }),
+    enabled: (options?.enabled ?? true) && trimmed.length > 0,
+    staleTime: SEARCH_STALE_TIME,
+    refetchOnWindowFocus: false,
   });
 };
 

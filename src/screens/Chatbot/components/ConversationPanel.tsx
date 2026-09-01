@@ -29,7 +29,7 @@ import {
   useReplyConversation,
 } from '@/hooks/api/useChatbotConversations';
 import type { ChatConversation, ChatMessage } from '@/types/chatbot';
-import { formatTime } from '../utils';
+import { formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 import Alert from '@/utils/alert';
 import { AuthedImage } from './AuthedImage';
 
@@ -151,16 +151,27 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
           <Ionicons name="person" size={20} color={theme.color.text.muted} />
         </View>
         <View style={{ flex: 1 }}>
-          <Title numberOfLines={1}>{conversation.phone}</Title>
+          <Title numberOfLines={1}>{conversation.customerName?.trim() || conversation.phone}</Title>
           <Caption color={theme.color.text.muted} numberOfLines={1}>
-            {conversation.summary ?? 'Sin resumen'}
+            {conversation.customerName
+              ? conversation.phone
+              : (conversation.summary ?? 'Sin resumen')}
           </Caption>
         </View>
-        {!conversation.botEnabled ? (
-          <Badge variant="warning" label="HUMANO" size="small" />
-        ) : (
-          <Badge variant="success" label="BOT" size="small" />
-        )}
+        <View style={styles.headerBadges}>
+          {conversation.purchaseStage ? (
+            <Badge
+              size="small"
+              variant={PURCHASE_STAGE_VARIANT[conversation.purchaseStage]}
+              label={PURCHASE_STAGE_LABEL[conversation.purchaseStage]}
+            />
+          ) : null}
+          {!conversation.botEnabled ? (
+            <Badge variant="warning" label="HUMANO" size="small" />
+          ) : (
+            <Badge variant="success" label="BOT" size="small" />
+          )}
+        </View>
       </View>
 
       <View style={styles.handoffRow}>
@@ -317,6 +328,11 @@ const createStyles = (theme: Theme) =>
       padding: spacing[3],
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.color.border.default,
+    },
+    headerBadges: {
+      flexDirection: 'column',
+      alignItems: 'flex-end',
+      gap: spacing[1],
     },
     backBtn: {
       width: 32,

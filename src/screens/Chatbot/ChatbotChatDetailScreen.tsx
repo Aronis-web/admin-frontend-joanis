@@ -16,12 +16,12 @@ export const ChatbotChatDetailScreen: React.FC<Props> = ({ navigation, route }) 
 
   const conversationId = (route.params as { conversationId?: string } | undefined)?.conversationId;
 
-  const { data } = useConversationsList({ limit: 100 });
+  const { data } = useConversationsList({ limit: 30 });
 
-  const conversation = useMemo(
-    () => (data ?? []).find((c) => c.id === conversationId) ?? null,
-    [data, conversationId]
-  );
+  const conversation = useMemo(() => {
+    const items = data?.pages.flatMap((p) => p.items) ?? [];
+    return items.find((c) => c.id === conversationId) ?? null;
+  }, [data, conversationId]);
 
   return (
     <ScreenLayout navigation={navigation as any}>

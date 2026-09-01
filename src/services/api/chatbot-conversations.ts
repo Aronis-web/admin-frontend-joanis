@@ -4,10 +4,13 @@ import { downloadWithAuth } from '@/utils/downloadWithAuth';
 import type {
   ChatConversation,
   ChatMessage,
+  ConversationSearchItem,
   GetChatMessagesParams,
   GetConversationsParams,
   HandoffBody,
+  PagedConversations,
   PagedMessages,
+  SearchConversationsParams,
   SendReplyBody,
 } from '@/types/chatbot';
 
@@ -19,8 +22,29 @@ import type {
 class ChatbotConversationsService {
   private readonly basePath = '/chatbot/conversations';
 
-  async list(params?: GetConversationsParams): Promise<ChatConversation[]> {
-    return apiClient.get<ChatConversation[]>(this.basePath, { params });
+  /**
+   * Bandeja paginada por keyset (ordenada por `lastMessageAt` desc).
+   *
+   * El backend retorna `{ items, hasMore, nextCursor }`. Se acepta también el
+   * shape legacy `ChatConversation[]` por compatibilidad con builds antiguos.
+   */
+  async list(params?: GetConversationsParams): Promise<PagedConversations> {
+    const res = await apiClient.get<PagedConversations | ChatConversation[]>(this.basePath, {
+      params,
+    });
+    if (Array.isArray(res)) {
+      return { items: res, hasMore: false, nextCursor: null };
+    }
+    return res;
+  }
+
+  /**
+   * Búsqueda con autocompletado por nombre del cliente o teléfono.
+   * Ordena por `lastMessageAt` desc. Con `q` vacío el backend devuelve `[]`.
+   */
+  async search(params: SearchConversationsParams): Promise<ConversationSearchItem[]> {
+    if (!params.q || !params.q.trim()) return [];
+    return apiClient.get<ConversationSearchItem[]>(`${this.basePath}/search`, { params });
   }
 
   /**

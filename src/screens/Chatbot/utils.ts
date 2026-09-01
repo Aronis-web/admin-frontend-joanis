@@ -1,6 +1,47 @@
 /**
  * Helpers compartidos del módulo Chatbot.
  */
+import type { BadgeVariant } from '@/design-system';
+import type { PurchaseStage } from '@/types/chatbot';
+
+/** Etiqueta legible del estado de compra (embudo). */
+export const PURCHASE_STAGE_LABEL: Record<PurchaseStage, string> = {
+  NUEVO: 'Nuevo',
+  EXPLORANDO: 'Explorando',
+  NEGOCIANDO: 'Negociando',
+  POR_PAGAR: 'Por pagar',
+  EN_VALIDACION: 'En validación',
+  COMPRADO: 'Comprado',
+  POSTVENTA: 'Postventa',
+  SOPORTE: 'Soporte',
+  PERDIDO: 'Perdido',
+};
+
+/** Variante de Badge para cada estado de compra. */
+export const PURCHASE_STAGE_VARIANT: Record<PurchaseStage, BadgeVariant> = {
+  NUEVO: 'info',
+  EXPLORANDO: 'default',
+  NEGOCIANDO: 'primary',
+  POR_PAGAR: 'warning',
+  EN_VALIDACION: 'pending',
+  COMPRADO: 'success',
+  POSTVENTA: 'active',
+  SOPORTE: 'danger',
+  PERDIDO: 'cancelled',
+};
+
+/** Lista ordenada de estados para renderizar filtros. */
+export const PURCHASE_STAGES: PurchaseStage[] = [
+  'NUEVO',
+  'EXPLORANDO',
+  'NEGOCIANDO',
+  'POR_PAGAR',
+  'EN_VALIDACION',
+  'COMPRADO',
+  'POSTVENTA',
+  'SOPORTE',
+  'PERDIDO',
+];
 
 /** Convierte totalCents (bigint como string) a un string con formato de soles. */
 export const formatSolesFromCents = (cents: string | null | undefined): string => {

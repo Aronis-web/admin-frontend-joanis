@@ -1,17 +1,21 @@
 import React from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge, Body, Caption, EmptyState, useTheme, useThemedStyles } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
 import type { ChatConversation } from '@/types/chatbot';
-import { formatRelative } from '../utils';
+import { formatRelative, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 
 interface Props {
   conversations: ChatConversation[];
   selectedId?: string;
   onSelect: (c: ChatConversation) => void;
   isLoading?: boolean;
+  /** Se dispara al llegar al final de la lista (scroll infinito). */
+  onEndReached?: () => void;
+  /** Muestra loader al final cuando se está cargando la siguiente página. */
+  isFetchingNextPage?: boolean;
 }
 
 export const ConversationList: React.FC<Props> = ({
@@ -19,6 +23,8 @@ export const ConversationList: React.FC<Props> = ({
   selectedId,
   onSelect,
   isLoading,
+  onEndReached,
+  isFetchingNextPage,
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -39,8 +45,19 @@ export const ConversationList: React.FC<Props> = ({
       keyExtractor={(c) => c.id}
       contentContainerStyle={styles.list}
       ItemSeparatorComponent={() => <View style={styles.sep} />}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.4}
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <View style={styles.footerLoader}>
+            <ActivityIndicator size="small" color={theme.color.text.muted} />
+          </View>
+        ) : null
+      }
       renderItem={({ item }) => {
         const isSelected = item.id === selectedId;
+        const displayName = item.customerName?.trim() || item.phone;
+        const stage = item.purchaseStage;
         return (
           <TouchableOpacity
             onPress={() => onSelect(item)}
@@ -52,17 +69,26 @@ export const ConversationList: React.FC<Props> = ({
             </View>
             <View style={styles.rowContent}>
               <View style={styles.rowTop}>
-                <Body numberOfLines={1} style={styles.phone}>
-                  {item.phone}
+                <Body numberOfLines={1} style={styles.name}>
+                  {displayName}
                 </Body>
                 <Caption color={theme.color.text.muted}>
                   {formatRelative(item.lastMessageAt)}
                 </Caption>
               </View>
-              <View style={styles.rowBottom}>
-                <Caption color={theme.color.text.muted} numberOfLines={1} style={{ flex: 1 }}>
-                  {item.summary ?? 'Sin resumen'}
+              {item.customerName ? (
+                <Caption color={theme.color.text.muted} numberOfLines={1}>
+                  {item.phone}
                 </Caption>
+              ) : null}
+              <View style={styles.rowBottom}>
+                {stage ? (
+                  <Badge
+                    size="small"
+                    variant={PURCHASE_STAGE_VARIANT[stage]}
+                    label={PURCHASE_STAGE_LABEL[stage]}
+                  />
+                ) : null}
                 {!item.botEnabled ? <Badge variant="warning" size="small" label="HUMANO" /> : null}
               </View>
             </View>
@@ -115,10 +141,15 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing[2],
+      flexWrap: 'wrap',
     },
-    phone: {
+    name: {
       fontWeight: '600',
       flex: 1,
+    },
+    footerLoader: {
+      paddingVertical: spacing[3],
+      alignItems: 'center',
     },
     _unused: {
       borderRadius: borderRadius.md,
