@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Pressable,
   StyleSheet,
   TextInput,
@@ -46,6 +47,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const [botOpen, setBotOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [stageFilter, setStageFilter] = useState<PurchaseStage | undefined>(undefined);
+  const [stagePickerOpen, setStagePickerOpen] = useState(false);
 
   // Buscador con debounce
   const [searchInput, setSearchInput] = useState('');
@@ -92,31 +94,92 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const renderStageFilters = () => (
-    <View style={styles.filtersRow}>
-      <Pressable
-        onPress={() => setStageFilter(undefined)}
-        style={[styles.filterChip, !stageFilter && styles.filterChipActive]}
-      >
-        <Caption color={!stageFilter ? theme.color.brand.onHeader : theme.color.text.body}>
-          Todos
-        </Caption>
+  const renderStageFilter = () => {
+    const label = stageFilter ? PURCHASE_STAGE_LABEL[stageFilter] : 'Todos los estados';
+    return (
+      <View style={styles.filtersRow}>
+        <Pressable
+          onPress={() => setStagePickerOpen(true)}
+          style={styles.stageTrigger}
+          accessibilityRole="button"
+          accessibilityLabel="Filtrar por estado de compra"
+        >
+          <Ionicons name="filter" size={14} color={theme.color.text.muted} />
+          <Body numberOfLines={1} style={styles.stageTriggerText}>
+            {label}
+          </Body>
+          {stageFilter ? (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation();
+                setStageFilter(undefined);
+              }}
+              hitSlop={8}
+              style={styles.stageClear}
+            >
+              <Ionicons name="close" size={14} color={theme.color.text.muted} />
+            </Pressable>
+          ) : null}
+          <Ionicons name="chevron-down" size={14} color={theme.color.text.muted} />
+        </Pressable>
+      </View>
+    );
+  };
+
+  const renderStagePickerModal = () => (
+    <Modal
+      visible={stagePickerOpen}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setStagePickerOpen(false)}
+    >
+      <Pressable style={styles.modalBackdrop} onPress={() => setStagePickerOpen(false)}>
+        <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.modalHeader}>
+            <Body style={styles.modalTitle}>Filtrar por estado</Body>
+            <Pressable onPress={() => setStagePickerOpen(false)} hitSlop={8}>
+              <Ionicons name="close" size={20} color={theme.color.text.muted} />
+            </Pressable>
+          </View>
+          <View style={styles.optionsList}>
+            <Pressable
+              style={[styles.option, !stageFilter && styles.optionActive]}
+              onPress={() => {
+                setStageFilter(undefined);
+                setStagePickerOpen(false);
+              }}
+            >
+              <Body>Todos los estados</Body>
+              {!stageFilter ? (
+                <Ionicons name="checkmark" size={18} color={theme.color.brand.accent} />
+              ) : null}
+            </Pressable>
+            {PURCHASE_STAGES.map((s) => {
+              const active = stageFilter === s;
+              return (
+                <Pressable
+                  key={s}
+                  style={[styles.option, active && styles.optionActive]}
+                  onPress={() => {
+                    setStageFilter(s);
+                    setStagePickerOpen(false);
+                  }}
+                >
+                  <Badge
+                    size="small"
+                    variant={PURCHASE_STAGE_VARIANT[s]}
+                    label={PURCHASE_STAGE_LABEL[s]}
+                  />
+                  {active ? (
+                    <Ionicons name="checkmark" size={18} color={theme.color.brand.accent} />
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Pressable>
       </Pressable>
-      {PURCHASE_STAGES.map((s) => {
-        const active = stageFilter === s;
-        return (
-          <Pressable
-            key={s}
-            onPress={() => setStageFilter(active ? undefined : s)}
-            style={[styles.filterChip, active && styles.filterChipActive]}
-          >
-            <Caption color={active ? theme.color.brand.onHeader : theme.color.text.body}>
-              {PURCHASE_STAGE_LABEL[s]}
-            </Caption>
-          </Pressable>
-        );
-      })}
-    </View>
+    </Modal>
   );
 
   const renderSearchResults = () => {
@@ -199,7 +262,8 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
         </View>
       </View>
-      {!isSearching ? renderStageFilters() : null}
+      {!isSearching ? renderStageFilter() : null}
+      {renderStagePickerModal()}
       <View style={{ flex: 1 }}>
         {isSearching ? (
           renderSearchResults()
@@ -403,23 +467,63 @@ const createStyles = (theme: Theme) =>
     filtersRow: {
       paddingHorizontal: spacing[3],
       paddingBottom: spacing[2],
-      gap: spacing[1],
-      rowGap: spacing[1],
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
     },
-    filterChip: {
-      paddingHorizontal: spacing[2],
-      paddingVertical: 4,
-      borderRadius: borderRadius.full,
+    stageTrigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      borderRadius: borderRadius.lg,
       backgroundColor: theme.color.background.subtle,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.color.border.default,
     },
-    filterChipActive: {
-      backgroundColor: theme.color.brand.accent,
-      borderColor: theme.color.brand.accent,
+    stageTriggerText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '500',
+    },
+    stageClear: {
+      padding: 2,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing[4],
+    },
+    modalCard: {
+      width: '100%',
+      maxWidth: 360,
+      maxHeight: '80%',
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+      gap: spacing[3],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    modalTitle: {
+      fontWeight: '700',
+    },
+    optionsList: {
+      gap: spacing[1],
+    },
+    option: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing[2],
+      paddingHorizontal: spacing[3],
+      borderRadius: borderRadius.md,
+    },
+    optionActive: {
+      backgroundColor: `${theme.color.brand.accent}12`,
     },
     searchRow: {
       flexDirection: 'row',
