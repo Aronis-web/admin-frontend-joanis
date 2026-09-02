@@ -4,6 +4,7 @@ import {
   Image,
   Linking,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ResizeMode, Video } from 'expo-av';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
@@ -107,6 +109,124 @@ const formatDate = (iso?: string): string => {
   } catch {
     return iso;
   }
+};
+
+type SectionMediaKind = 'clip' | 'voice';
+
+/**
+ * Reproductor inline por sección: permite ver el clip crudo (.mp4 de Kling) y
+ * escuchar la voz en off (.mp3) de cada sección sin salir del modal.
+ *
+ * - Web/desktop: renderiza un `<video>` / `<audio>` HTML nativo apuntando a la
+ *   URL de stream (soporta Range/206).
+ * - Nativo: usa `expo-av` `<Video>` (reproduce tanto mp4 como mp3 con controles
+ *   nativos).
+ */
+const SectionMediaPlayer: React.FC<{
+  clipUrl?: string | null;
+  voiceUrl?: string | null;
+  aspectRatio: CampaignVideoAspectRatio;
+}> = ({ clipUrl, voiceUrl, aspectRatio }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const [active, setActive] = useState<SectionMediaKind | null>(null);
+
+  const hasClip = !!clipUrl;
+  const hasVoice = !!voiceUrl;
+
+  if (!hasClip && !hasVoice) {
+    return null;
+  }
+
+  const toggle = (kind: SectionMediaKind) => {
+    setActive((prev) => (prev === kind ? null : kind));
+  };
+
+  const activeUrl = active === 'clip' ? clipUrl : active === 'voice' ? voiceUrl : null;
+
+  const ratioValue = (() => {
+    const [w, h] = aspectRatio.split(':').map((n) => Number(n));
+    return w > 0 && h > 0 ? w / h : 9 / 16;
+  })();
+
+  return (
+    <View style={styles.mediaWrap}>
+      <View style={styles.mediaButtons}>
+        {hasClip && (
+          <TouchableOpacity
+            style={[styles.mediaButton, active === 'clip' && styles.mediaButtonActive]}
+            onPress={() => toggle('clip')}
+          >
+            <Ionicons
+              name={active === 'clip' ? 'close' : 'film-outline'}
+              size={14}
+              color={theme.color.brand.accent}
+            />
+            <Text style={styles.mediaButtonText}>
+              {active === 'clip' ? 'Ocultar clip' : 'Ver clip'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {hasVoice && (
+          <TouchableOpacity
+            style={[styles.mediaButton, active === 'voice' && styles.mediaButtonActive]}
+            onPress={() => toggle('voice')}
+          >
+            <Ionicons
+              name={active === 'voice' ? 'close' : 'volume-high-outline'}
+              size={14}
+              color={theme.color.brand.accent}
+            />
+            <Text style={styles.mediaButtonText}>
+              {active === 'voice' ? 'Ocultar voz' : 'Escuchar voz'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {!!activeUrl && (
+        <View style={styles.mediaPlayer}>
+          {Platform.OS === 'web' ? (
+            active === 'clip' ? (
+              React.createElement('video' as any, {
+                src: activeUrl,
+                controls: true,
+                autoPlay: true,
+                playsInline: true,
+                style: {
+                  width: '100%',
+                  maxHeight: 360,
+                  aspectRatio: ratioValue,
+                  backgroundColor: '#000',
+                  borderRadius: 8,
+                },
+              })
+            ) : (
+              React.createElement('audio' as any, {
+                src: activeUrl,
+                controls: true,
+                autoPlay: true,
+                style: { width: '100%' },
+              })
+            )
+          ) : (
+            <Video
+              source={{ uri: activeUrl }}
+              style={
+                active === 'clip'
+                  ? [styles.nativeVideo, { aspectRatio: ratioValue }]
+                  : styles.nativeAudio
+              }
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay
+              isLooping={false}
+            />
+          )}
+        </View>
+      )}
+    </View>
+  );
 };
 
 /**
@@ -471,6 +591,12 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
                 )}
 
                 {!!section.error && <Text style={styles.errorText}>{section.error}</Text>}
+
+                <SectionMediaPlayer
+                  clipUrl={section.clipUrl}
+                  voiceUrl={section.voiceUrl}
+                  aspectRatio={video.aspectRatio}
+                />
 
                 {canGenerate && (
                   <TouchableOpacity
@@ -1054,6 +1180,48 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.body,
       fontStyle: 'italic',
       marginTop: theme.space[1.5],
+    },
+    // ----- Reproductor de sección -----
+    mediaWrap: {
+      marginTop: theme.space[2],
+    },
+    mediaButtons: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    mediaButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1],
+      paddingVertical: theme.space[1],
+      paddingHorizontal: theme.space[2],
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    mediaButtonActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    mediaButtonText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.brand.accent,
+    },
+    mediaPlayer: {
+      marginTop: theme.space[2],
+    },
+    nativeVideo: {
+      width: '100%',
+      maxHeight: 360,
+      backgroundColor: '#000',
+      borderRadius: theme.radii.md,
+    },
+    nativeAudio: {
+      width: '100%',
+      height: 48,
     },
     ghostButton: {
       flexDirection: 'row',

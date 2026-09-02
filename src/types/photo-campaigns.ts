@@ -275,6 +275,17 @@ export interface CampaignVideoSection {
   motionPrompt?: string | null;
   status: CampaignVideoSectionStatus;
   error?: string | null;
+  /**
+   * URL del clip crudo (.mp4) generado por Kling para esta toma (sin precio
+   * superpuesto). null si la sección está en error o aún processing sin clip
+   * descargado. Stream `video/mp4` con soporte Range/206.
+   */
+  clipUrl?: string | null;
+  /**
+   * URL de la voz en off (.mp3) de esta sección. null si el archivo aún no
+   * existe. Stream `audio/mpeg`.
+   */
+  voiceUrl?: string | null;
 }
 
 /** Detalle completo del video (respuesta de creación / polling). */
