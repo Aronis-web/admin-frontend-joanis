@@ -45,7 +45,11 @@ import {
   AddProductRequest,
 } from '@/types/campaigns';
 import { useCampaignProductsDetail } from '@/hooks/api/useCampaigns';
-import { useSmartDesignStatus, useSmartPriceStatus } from '@/hooks/api/useSmartDesign';
+import {
+  useSmartDesignStatus,
+  useSmartPriceStatus,
+  useSmartPriceActive,
+} from '@/hooks/api/useSmartDesign';
 import { useTenantStore } from '@/store/tenant';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
@@ -529,7 +533,12 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     linkedPhotoCampaignId,
     Boolean(linkedPhotoCampaignId)
   );
-  const smartPriceBusy = Boolean(smartPriceStatus && smartPriceStatus.withoutPrice > 0);
+  const smartPriceActive = useSmartPriceActive(linkedPhotoCampaignId);
+  // "Ocupado" solo si se disparó una aplicación en esta sesión y aún quedan
+  // productos sin precio. `withoutPrice > 0` por sí solo es el estado inicial.
+  const smartPriceBusy = Boolean(
+    smartPriceActive && smartPriceStatus && smartPriceStatus.withoutPrice > 0
+  );
 
   const prevSmartPriceBusyRef = useRef(false);
   useEffect(() => {

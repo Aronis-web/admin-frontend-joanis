@@ -22,6 +22,7 @@ import {
   useRerunSmartDesign,
   useSmartPriceStatus,
   useApplySmartPrice,
+  useSmartPriceActive,
 } from '@/hooks/api/useSmartDesign';
 import Alert from '@/utils/alert';
 import { SendPhotoCampaignWhatsAppModal } from './SendPhotoCampaignWhatsAppModal';
@@ -716,7 +717,10 @@ const SmartDesignActions: React.FC<SmartDesignActionsProps> = ({ photoCampaignId
   // Smart Price (aplicación masiva de precio en el backend)
   const { data: priceStatus } = useSmartPriceStatus(photoCampaignId, Boolean(photoCampaignId));
   const applyPriceMutation = useApplySmartPrice(photoCampaignId);
-  const priceBusy = Boolean(priceStatus && priceStatus.withoutPrice > 0);
+  const priceActive = useSmartPriceActive(photoCampaignId);
+  // "Ocupado" solo si se disparó una aplicación en esta sesión y aún quedan
+  // productos sin precio. `withoutPrice > 0` por sí solo es el estado inicial.
+  const priceBusy = Boolean(priceActive && priceStatus && priceStatus.withoutPrice > 0);
   const priceDisabled = disabled || applyPriceMutation.isPending || priceBusy;
 
   const handleApplyPrice = useCallback(() => {
