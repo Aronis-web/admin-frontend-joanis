@@ -144,10 +144,41 @@ export interface QueryCustomersParams {
  */
 export interface CustomersResponse {
   data: Customer[];
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface QueryCustomersAutocompleteParams {
+  query: string;
+  limit?: number;
+  includeInactive?: boolean;
+  customerType?: CustomerType;
+}
+
+export interface CustomerAutocompleteItem {
+  id: string;
+  customerType: CustomerType;
+  documentNumber: string;
+  documentType: DocumentType;
+  fullName: string;
+  status: CustomerStatus;
+  isActive: boolean;
+  email?: string;
+  phone?: string;
+  matchType: 'document' | 'name' | 'email' | 'other';
+  label: string;
+}
+
+export interface CustomersAutocompleteResponse {
+  data: CustomerAutocompleteItem[];
+  meta: {
+    total: number;
+    query: string;
+  };
 }
 
 /**

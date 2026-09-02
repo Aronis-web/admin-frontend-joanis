@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,15 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { customersService } from '@/services/api/customers';
+import { useCustomersAutocomplete } from '@/hooks/api/useCustomers';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { Customer } from '@/types/customers';
+import { Customer, CustomerAutocompleteItem, CustomerType } from '@/types/customers';
 import { useDebounce } from '@/hooks/useDebounce';
+import { logger } from '@/utils/logger';
+import Alert from '@/utils/alert';
 
 interface CustomerAutocompleteProps {
   onSelectCustomer: (customer: Customer) => void;
@@ -31,87 +33,64 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const [searchText, setSearchText] = useState(initialValue);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectingCustomerId, setSelectingCustomerId] = useState<string | null>(null);
 
   const debouncedSearch = useDebounce(searchText, 300);
+  const normalizedSearch = debouncedSearch.trim();
+  const customerType =
+    documentTypeFilter === 'RUC'
+      ? CustomerType.EMPRESA
+      : documentTypeFilter === 'DNI'
+        ? CustomerType.PERSONA
+        : undefined;
+  const {
+    data: autocompleteResponse,
+    isFetching,
+    isError,
+  } = useCustomersAutocomplete(
+    { query: normalizedSearch, limit: 10, customerType },
+    !selectedCustomer
+  );
+  const customers = autocompleteResponse?.data ?? [];
+  const canShowDropdown = showDropdown && !selectedCustomer && normalizedSearch.length >= 2;
 
-  // Buscar clientes
-  const searchCustomers = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setCustomers([]);
-      setShowDropdown(false);
-      return;
-    }
-
-    setLoading(true);
+  const handleSelectCustomer = async (suggestion: CustomerAutocompleteItem) => {
     try {
-      const response = await customersService.getCustomers({
-        search: query,
-        limit: 10,
-      });
-
-      // La API devuelve CustomersResponse con estructura { data: { data: [], meta: { ... } } }
-      const customersData = (response as any).data?.data || response.data || [];
-
-      // Filtrar por tipo de documento si se especifica
-      let filteredCustomers = customersData;
-      if (documentTypeFilter !== 'ALL') {
-        filteredCustomers = customersData.filter((customer: Customer) => {
-          if (documentTypeFilter === 'RUC') {
-            return customer.documentType === 'RUC';
-          } else if (documentTypeFilter === 'DNI') {
-            return customer.documentType !== 'RUC'; // DNI, CE, Passport, etc.
-          }
-          return true;
-        });
-      }
-
-      setCustomers(filteredCustomers);
-      setShowDropdown(filteredCustomers.length > 0);
+      setSelectingCustomerId(suggestion.id);
+      const customer = await customersService.getCustomer(suggestion.id);
+      setSelectedCustomer(customer);
+      setSearchText(customer.razonSocial || customer.fullName);
+      setShowDropdown(false);
+      onSelectCustomer(customer);
     } catch (error) {
-      console.error('Error buscando clientes:', error);
-      setCustomers([]);
+      logger.error('Error cargando el detalle del cliente seleccionado:', error);
+      Alert.alert('Cliente no disponible', 'No se pudo cargar el cliente seleccionado');
     } finally {
-      setLoading(false);
+      setSelectingCustomerId(null);
     }
-  }, [documentTypeFilter]);
-
-  // Efecto para buscar cuando cambia el texto con debounce
-  React.useEffect(() => {
-    if (!selectedCustomer) {
-      searchCustomers(debouncedSearch);
-    }
-  }, [debouncedSearch, selectedCustomer, searchCustomers]);
-
-  const handleSelectCustomer = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setSearchText(customer.razonSocial || customer.fullName);
-    setShowDropdown(false);
-    onSelectCustomer(customer);
   };
 
   const handleClearSelection = () => {
     setSelectedCustomer(null);
     setSearchText('');
-    setCustomers([]);
-    setShowDropdown(false);
+        setShowDropdown(false);
   };
 
-  const renderCustomerItem = ({ item }: { item: Customer }) => {
+  const renderCustomerItem = ({ item }: { item: CustomerAutocompleteItem }) => {
     const isCompany = item.documentType === 'RUC';
 
     return (
       <TouchableOpacity
         style={styles.dropdownItem}
         onPress={() => handleSelectCustomer(item)}
+        disabled={selectingCustomerId !== null}
       >
         <View style={styles.customerInfo}>
           <View style={styles.customerNameRow}>
             <Text style={styles.customerName}>
-              {item.razonSocial || item.fullName}
+              {item.fullName}
             </Text>
             {isCompany && (
               <View style={styles.companyBadge}>
@@ -127,8 +106,9 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
           <Text style={styles.customerDocument}>
             {item.documentType}: {item.documentNumber}
           </Text>
-          {item.email && (
-            <Text style={styles.customerEmail}>{item.email}</Text>
+          {item.email && <Text style={styles.customerEmail}>{item.email}</Text>}
+          {selectingCustomerId === item.id && (
+            <ActivityIndicator size="small" color={theme.color.brand.accent} />
           )}
         </View>
       </TouchableOpacity>
@@ -146,6 +126,7 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
           value={searchText}
           onChangeText={(text) => {
             setSearchText(text);
+            setShowDropdown(text.trim().length >= 2);
             if (selectedCustomer) {
               setSelectedCustomer(null);
             }
@@ -154,7 +135,7 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
           placeholderTextColor={theme.color.text.placeholder}
           editable={!selectedCustomer}
         />
-        {loading && (
+        {isFetching && (
           <ActivityIndicator
             size="small"
             color={theme.color.brand.accent}
@@ -179,7 +160,7 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
         </View>
       )}
 
-      {showDropdown && !selectedCustomer && (
+      {canShowDropdown && (
         <View style={styles.dropdown}>
           <FlatList
             data={customers}
@@ -188,9 +169,11 @@ export const CustomerAutocomplete: React.FC<CustomerAutocompleteProps> = ({
             style={styles.dropdownList}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
-              <Text style={styles.emptyText}>
-                No se encontraron clientes
-              </Text>
+              !isFetching ? (
+                <Text style={styles.emptyText}>
+                  {isError ? 'No se pudo realizar la búsqueda' : 'No se encontraron clientes'}
+                </Text>
+              ) : null
             }
           />
         </View>

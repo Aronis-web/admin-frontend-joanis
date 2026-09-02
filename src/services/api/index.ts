@@ -35,6 +35,7 @@ export * from './campaigns';
 export * from './repartos';
 export * from './transport';
 export * from './users';
+export * from './customers';
 export { salesApi } from './sales';
 export { externalSalesApi } from './external-sales';
 export { izipayReportSyncApi } from './izipay-report-sync';

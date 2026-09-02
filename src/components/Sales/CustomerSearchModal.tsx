@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,11 @@ import {
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { customersService } from '@/services/api/customers';
-import { Customer, CustomerType } from '@/types/customers';
+import { Customer, CustomerAutocompleteItem, CustomerType } from '@/types/customers';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useCustomersAutocomplete } from '@/hooks/api/useCustomers';
+import { logger } from '@/utils/logger';
+import Alert from '@/utils/alert';
 
 interface CustomerSearchModalProps {
   visible: boolean;
@@ -31,61 +34,48 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const [searchText, setSearchText] = useState('');
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [selectingCustomerId, setSelectingCustomerId] = useState<string | null>(null);
 
   const debouncedSearch = useDebounce(searchText, 300);
+  const normalizedSearch = debouncedSearch.trim();
+  const {
+    data: autocompleteResponse,
+    isFetching,
+    isError,
+  } = useCustomersAutocomplete(
+    { query: normalizedSearch, customerType, limit: 20 },
+    visible
+  );
+  const customers = autocompleteResponse?.data ?? [];
 
-  // Buscar clientes
-  const searchCustomers = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setCustomers([]);
-      return;
-    }
-
-    setLoading(true);
+  const handleSelectCustomer = async (suggestion: CustomerAutocompleteItem) => {
     try {
-      const response = await customersService.getCustomers({
-        search: query,
-        customerType,
-        limit: 20,
-      });
-
-      // La API devuelve { data: Customer[], page, limit, total, totalPages }
-      const customersData = response.data || [];
-      setCustomers(customersData);
+      setSelectingCustomerId(suggestion.id);
+      const customer = await customersService.getCustomer(suggestion.id);
+      onSelectCustomer(customer);
+      setSearchText('');
+      onClose();
     } catch (error) {
-      console.error('Error buscando clientes:', error);
-      setCustomers([]);
+      logger.error('Error cargando el detalle del cliente seleccionado:', error);
+      Alert.alert('Cliente no disponible', 'No se pudo cargar el cliente seleccionado');
     } finally {
-      setLoading(false);
+      setSelectingCustomerId(null);
     }
-  }, [customerType]);
-
-  // Efecto para buscar cuando cambia el texto con debounce
-  React.useEffect(() => {
-    searchCustomers(debouncedSearch);
-  }, [debouncedSearch, searchCustomers]);
-
-  const handleSelectCustomer = (customer: Customer) => {
-    onSelectCustomer(customer);
-    setSearchText('');
-    setCustomers([]);
-    onClose();
   };
 
-  const renderCustomerItem = ({ item }: { item: Customer }) => {
+  const renderCustomerItem = ({ item }: { item: CustomerAutocompleteItem }) => {
     const isCompany = item.customerType === CustomerType.EMPRESA;
 
     return (
       <TouchableOpacity
         style={styles.customerItem}
         onPress={() => handleSelectCustomer(item)}
+        disabled={selectingCustomerId !== null}
       >
         <View style={styles.customerInfo}>
           <View style={styles.customerHeader}>
             <Text style={styles.customerName} numberOfLines={1}>
-              {item.razonSocial || item.fullName}
+              {item.fullName}
             </Text>
             {isCompany ? (
               <View style={styles.companyBadge}>
@@ -103,8 +93,9 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
           {item.email && (
             <Text style={styles.customerEmail}>{item.email}</Text>
           )}
-          {item.phone && (
-            <Text style={styles.customerPhone}>📞 {item.phone}</Text>
+          {item.phone && <Text style={styles.customerPhone}>📞 {item.phone}</Text>}
+          {selectingCustomerId === item.id && (
+            <ActivityIndicator size="small" color={theme.color.brand.accent} />
           )}
         </View>
       </TouchableOpacity>
@@ -138,7 +129,7 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
               placeholderTextColor={theme.color.text.placeholder}
               autoFocus
             />
-            {loading && (
+            {isFetching && (
               <ActivityIndicator
                 size="small"
                 color={theme.color.brand.accent}
@@ -155,13 +146,17 @@ export const CustomerSearchModal: React.FC<CustomerSearchModalProps> = ({
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
-              searchText.length >= 2 && !loading ? (
+              normalizedSearch.length >= 2 && !isFetching ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>
-                    No se encontraron {customerType === CustomerType.EMPRESA ? 'empresas' : 'clientes'}
+                    {isError
+                      ? 'No se pudo realizar la búsqueda'
+                      : `No se encontraron ${
+                          customerType === CustomerType.EMPRESA ? 'empresas' : 'clientes'
+                        }`}
                   </Text>
                 </View>
-              ) : searchText.length < 2 ? (
+              ) : normalizedSearch.length < 2 ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>
                     Escribe al menos 2 caracteres para buscar
