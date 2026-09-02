@@ -242,6 +242,12 @@ export const PERMISSIONS = {
     SMART_DESIGN: {
       TRIGGER: 'photo_campaigns.smart_design.trigger',
     },
+
+    VIDEO: {
+      READ: 'photo_campaigns.video.read',
+      GENERATE: 'photo_campaigns.video.generate',
+      DOWNLOAD: 'photo_campaigns.video.download',
+    },
   },
 
   // ========== REPARTOS ==========

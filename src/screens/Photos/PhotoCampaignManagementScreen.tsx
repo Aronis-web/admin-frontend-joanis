@@ -36,6 +36,7 @@ import {
 import { ensureSquareImageUri } from '@/utils/imageFile';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { SendPhotoCampaignWhatsAppModal } from '@/components/Photos/SendPhotoCampaignWhatsAppModal';
+import { CampaignVideoModal } from '@/components/Photos/CampaignVideoModal';
 import { PERMISSIONS } from '@/constants/permissions';
 import Alert from '@/utils/alert';
 
@@ -218,6 +219,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   const [priceProfilesLoading, setPriceProfilesLoading] = useState(false);
 
   const [whatsappModalVisible, setWhatsappModalVisible] = useState(false);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
 
   const photosCacheRef = useRef<Record<string, ProductPhotoAsset[]>>({});
 
@@ -1047,6 +1049,13 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     setWhatsappModalVisible(true);
   };
 
+  const openVideoModal = () => {
+    if (!selectedCampaign?.id) {
+      return;
+    }
+    setVideoModalVisible(true);
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -1348,6 +1357,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         <ProtectedFAB
           actions={[
             {
+              icon: 'videocam',
+              label: 'Crear video IA',
+              onPress: () => void openVideoModal(),
+              requiredPermissions: [PERMISSIONS.PHOTO_CAMPAIGNS.VIDEO.GENERATE],
+            },
+            {
               icon: 'logo-whatsapp',
               label: 'Enviar por WhatsApp',
               onPress: () => void openWhatsappModal(),
@@ -1363,6 +1378,15 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
           photoCampaignId={selectedCampaign.id}
           photoCampaignName={selectedCampaign.name}
           onClose={() => setWhatsappModalVisible(false)}
+        />
+      )}
+
+      {selectedCampaign && (
+        <CampaignVideoModal
+          visible={videoModalVisible}
+          photoCampaignId={selectedCampaign.id}
+          photoCampaignName={selectedCampaign.name}
+          onClose={() => setVideoModalVisible(false)}
         />
       )}
 

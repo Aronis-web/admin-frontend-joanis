@@ -236,3 +236,87 @@ export interface SmartPriceStatus {
   withoutPrice: number;
   items: SmartPriceItem[];
 }
+
+// ============================================
+// Videos publicitarios IA (a partir de una campaña de fotos)
+// ============================================
+
+/** Estado global del video. */
+export type CampaignVideoStatus = 'pending' | 'generating' | 'assembling' | 'done' | 'error';
+
+/** Estado de una sección individual del video. */
+export type CampaignVideoSectionStatus = 'pending' | 'processing' | 'done' | 'error';
+
+/** Tipo de sección: intro, un producto o cierre. */
+export type CampaignVideoSectionKind = 'intro' | 'product' | 'outro';
+
+/** Relación de aspecto soportada por el generador. */
+export type CampaignVideoAspectRatio = '9:16' | '1:1' | '4:5' | '16:9';
+
+export interface CampaignVideoConfig {
+  voiceId?: string | null;
+  musicPath?: string | null;
+  musicVolume?: number;
+  sectionDurationSec?: number;
+  tone?: string | null;
+}
+
+export interface CampaignVideoSection {
+  id: string;
+  sortOrder: number;
+  kind: CampaignVideoSectionKind;
+  productId?: string | null;
+  photoAssetId?: string | null;
+  /** Guion de la voz en off. */
+  scriptText?: string | null;
+  /** Precio en pantalla (solo secciones de producto). */
+  priceLabel?: string | null;
+  /** Prompt de cámara/movimiento (Kling). */
+  motionPrompt?: string | null;
+  status: CampaignVideoSectionStatus;
+  error?: string | null;
+}
+
+/** Detalle completo del video (respuesta de creación / polling). */
+export interface CampaignVideo {
+  id: string;
+  photoCampaignId: string;
+  status: CampaignVideoStatus;
+  aspectRatio: CampaignVideoAspectRatio;
+  config: CampaignVideoConfig;
+  /** null hasta que esté 'done'. */
+  durationSeconds?: number | null;
+  /** Bytes, null hasta 'done'. */
+  finalFileSize?: number | null;
+  error?: string | null;
+  /** null si el video aún no está 'done'. */
+  downloadUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sections: CampaignVideoSection[];
+}
+
+/** Item de listado de videos de una campaña. */
+export interface CampaignVideoListItem {
+  id: string;
+  status: CampaignVideoStatus;
+  aspectRatio: CampaignVideoAspectRatio;
+  durationSeconds?: number | null;
+  createdAt: string;
+  downloadUrl?: string | null;
+}
+
+/** Body para crear un video (POST /:id/videos). */
+export interface CreateCampaignVideoRequest {
+  /** UUIDs de product_photo_assets, en orden de prioridad de aparición. Min 1. */
+  photoAssetIds: string[];
+  aspectRatio?: CampaignVideoAspectRatio;
+  /** voice_id de ElevenLabs. */
+  voiceId?: string;
+  /** Ruta relativa (Z:) de música. */
+  musicPath?: string;
+  /** Tono del guion (ej. "energico", "elegante"). */
+  tone?: string;
+  /** Segundos por clip de producto. Entre 3 y 10. */
+  sectionDurationSec?: number;
+}

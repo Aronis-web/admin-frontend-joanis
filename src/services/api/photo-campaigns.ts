@@ -19,6 +19,9 @@ import {
   SmartDesignStatus,
   SmartPriceApplyRequest,
   SmartPriceStatus,
+  CampaignVideo,
+  CampaignVideoListItem,
+  CreateCampaignVideoRequest,
 } from '@/types/photo-campaigns';
 
 class PhotoCampaignsApi {
@@ -315,6 +318,50 @@ class PhotoCampaignsApi {
     return apiClient.get<SmartPriceStatus>(
       `${this.basePath}/${photoCampaignId}/smart-price/status`
     );
+  }
+
+  // ============================================
+  // Videos publicitarios IA (pipeline asíncrono)
+  // ============================================
+
+  /**
+   * Crea un video a partir de las fotos de la campaña en orden de prioridad.
+   * Devuelve el detalle ya en `status = generating` con las secciones creadas.
+   * El front debe empezar a hacer polling con `getCampaignVideo`.
+   */
+  createCampaignVideo(
+    campaignId: string,
+    payload: CreateCampaignVideoRequest
+  ): Promise<CampaignVideo> {
+    return apiClient.post<CampaignVideo>(`${this.basePath}/${campaignId}/videos`, payload);
+  }
+
+  /** Lista los videos de una campaña (orden por createdAt DESC). */
+  getCampaignVideos(campaignId: string): Promise<CampaignVideoListItem[]> {
+    return apiClient.get<CampaignVideoListItem[]>(`${this.basePath}/${campaignId}/videos`);
+  }
+
+  /** Detalle completo del video (endpoint de polling). */
+  getCampaignVideo(videoId: string): Promise<CampaignVideo> {
+    return apiClient.get<CampaignVideo>(`${this.basePath}/videos/${videoId}`);
+  }
+
+  /** Reintenta solo una sección (nuevo clip + voz). */
+  regenerateVideoSection(videoId: string, sectionId: string): Promise<CampaignVideo> {
+    return apiClient.post<CampaignVideo>(
+      `${this.basePath}/videos/${videoId}/sections/${sectionId}/regenerate`,
+      {}
+    );
+  }
+
+  /** Re-ensambla el mp4 final sin regenerar los clips (requiere todas las secciones en done). */
+  reassembleCampaignVideo(videoId: string): Promise<CampaignVideo> {
+    return apiClient.post<CampaignVideo>(`${this.basePath}/videos/${videoId}/reassemble`, {});
+  }
+
+  /** Elimina el video y (en cascada) sus secciones. */
+  deleteCampaignVideo(videoId: string): Promise<void> {
+    return apiClient.delete<void>(`${this.basePath}/videos/${videoId}`);
   }
 
   async editImageWithGemini(

@@ -81,6 +81,15 @@ export type {
   UpdatePhotoCampaignProductRequest,
   ProductPhotoAsset,
   PhotoType,
+  CampaignVideo,
+  CampaignVideoListItem,
+  CampaignVideoSection,
+  CampaignVideoStatus,
+  CampaignVideoSectionStatus,
+  CampaignVideoSectionKind,
+  CampaignVideoAspectRatio,
+  CampaignVideoConfig,
+  CreateCampaignVideoRequest,
 } from '@/types/photo-campaigns';
 
 // Export roles API (avoid GetPermissionsParams conflict with apps)
