@@ -23,6 +23,7 @@ export { chatbotSessionApi } from './chatbot-session';
 export { chatbotConversationsApi } from './chatbot-conversations';
 export { chatbotOrdersApi } from './chatbot-orders';
 export { chatbotCatalogApi } from './chatbot-catalog';
+export { chatbotSyncApi } from './chatbot-sync';
 export { chatbotSettingsApi } from './chatbot-settings';
 export { chatbotTrainingApi } from './chatbot-training';
 

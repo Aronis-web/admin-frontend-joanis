@@ -583,6 +583,10 @@ const ChatbotCatalogScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotCatalogScreen })),
   'Cargando Catálogo...'
 );
+const ChatbotSyncRulesScreen = lazyLoad(
+  () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSyncRulesScreen })),
+  'Cargando Reglas...'
+);
 const ChatbotTrainingScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotTrainingScreen })),
   'Cargando Entrenamiento...'
@@ -2183,6 +2187,16 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
             <ChatbotCatalogScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="ChatbotSyncRules"
+        options={{ title: 'Reglas de sincronización' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
+            <ChatbotSyncRulesScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

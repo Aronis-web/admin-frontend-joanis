@@ -45,6 +45,8 @@ import {
   useSiteWarehouses,
   useUpdateSellableProduct,
 } from '@/hooks/api/useChatbotCatalog';
+import { usePinSellable } from '@/hooks/api/useChatbotSync';
+import { MAIN_ROUTES } from '@/constants/routes';
 import type { Product, ProductAutocompleteItem } from '@/services/api/products';
 import { productsApi } from '@/services/api/products';
 import type { StockItemResponse } from '@/services/api/inventory';
@@ -91,7 +93,8 @@ const toForm = (item: SellableProduct): FormState => ({
   variantId: item.variantId ?? '',
   warehouseId: item.warehouseId,
   areaId: item.areaId ?? '',
-  presentationId: item.presentationId,
+  // presentationId ahora puede venir null (venta por unidad base).
+  presentationId: item.presentationId ?? '',
   maxSellableQty: item.maxSellableQty ?? '',
   priceProfileId: item.priceProfileId ?? '',
   priceOverrideCents: item.priceOverrideCents ?? '',
@@ -216,6 +219,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   const createMutation = useCreateSellableProduct();
   const updateMutation = useUpdateSellableProduct();
   const deleteMutation = useDeleteSellableProduct();
+  const pinMutation = usePinSellable();
 
   const [editing, setEditing] = useState<SellableProduct | null>(null);
   const [creating, setCreating] = useState(false);
@@ -332,6 +336,20 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  /**
+   * Fija o libera una fila del catálogo. Mientras está pinned, la sync
+   * automática (reglas) no la modifica ni la desactiva.
+   */
+  const handleTogglePin = (item: SellableProduct) => {
+    const nextPinned = !(item.pinned ?? false);
+    pinMutation.mutate(
+      { sellableId: item.id, pinned: nextPinned },
+      {
+        onError: (err: any) => Alert.alert('Error', err?.message ?? 'No se pudo actualizar el pin'),
+      }
+    );
+  };
+
   const handleDelete = (item: SellableProduct) => {
     Alert.alert('Eliminar entrada', '¿Seguro que quieres eliminar esta entrada del catálogo?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -412,6 +430,14 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <Text style={styles.headerSubtitle}>Whitelist de productos vendibles por WhatsApp</Text>
           </View>
+          <TouchableOpacity
+            style={styles.headerAction}
+            onPress={() => navigation.navigate(MAIN_ROUTES.CHATBOT_SYNC_RULES as never)}
+            accessibilityLabel="Reglas de sincronización"
+          >
+            <Ionicons name="sync-outline" size={20} color={theme.color.brand.onHeader} />
+            <Text style={styles.headerActionText}>Reglas</Text>
+          </TouchableOpacity>
         </LinearGradient>
 
         <ScrollView
@@ -468,10 +494,20 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                             : `Producto: ${item.productId.slice(0, 8)}…`}
                         </Caption>
                       </View>
-                      <Badge
-                        variant={item.isActive ? 'success' : 'default'}
-                        label={item.isActive ? 'Activo' : 'Inactivo'}
-                      />
+                      <View style={styles.badgeStack}>
+                        <Badge
+                          variant={item.isActive ? 'success' : 'default'}
+                          label={item.isActive ? 'Activo' : 'Inactivo'}
+                        />
+                        {item.source === 'RULE' ? (
+                          <Badge variant="info" label="Auto · regla" />
+                        ) : item.source === 'MANUAL' ? (
+                          <Badge variant="default" label="Manual" />
+                        ) : null}
+                        {item.isLowRotation ? (
+                          <Badge variant="warning" label="Baja rotación" />
+                        ) : null}
+                      </View>
                     </View>
                     <View style={styles.itemMeta}>
                       <Caption color={theme.color.text.muted}>
@@ -485,8 +521,33 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                           Precio override: S/ {(Number(item.priceOverrideCents) / 100).toFixed(2)}
                         </Caption>
                       ) : null}
+                      {item.ruleSnapshot ? (
+                        <Caption color={theme.color.text.muted}>
+                          Snapshot: stock {item.ruleSnapshot.availableBase}
+                          {item.ruleSnapshot.daysSinceEntry != null
+                            ? ` · ${item.ruleSnapshot.daysSinceEntry}d desde ingreso`
+                            : ''}
+                          {item.ruleSnapshot.daysWithoutMovement != null
+                            ? ` · ${item.ruleSnapshot.daysWithoutMovement}d sin mov.`
+                            : ''}
+                        </Caption>
+                      ) : null}
+                      {item.lastSyncedAt ? (
+                        <Caption color={theme.color.text.muted}>
+                          Sincronizado: {new Date(item.lastSyncedAt).toLocaleString()}
+                        </Caption>
+                      ) : null}
                     </View>
                     <View style={styles.itemActions}>
+                      <Button
+                        title={item.pinned ? 'Liberar' : 'Fijar'}
+                        variant={item.pinned ? 'primary' : 'ghost'}
+                        leftIcon={item.pinned ? 'lock-closed' : 'lock-open-outline'}
+                        onPress={() => handleTogglePin(item)}
+                        loading={
+                          pinMutation.isPending && pinMutation.variables?.sellableId === item.id
+                        }
+                      />
                       <Button
                         title="Eliminar"
                         variant="ghost"
@@ -770,6 +831,26 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing[5],
       paddingTop: spacing[4],
       paddingBottom: spacing[5],
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    headerAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      borderRadius: borderRadius.full,
+      backgroundColor: theme.color.brand.headerBadge,
+    },
+    headerActionText: {
+      color: theme.color.brand.onHeader,
+      fontWeight: '600',
+      fontSize: 13,
+    },
+    badgeStack: {
+      alignItems: 'flex-end',
+      gap: spacing[1],
     },
     headerTitleContainer: {
       flex: 1,

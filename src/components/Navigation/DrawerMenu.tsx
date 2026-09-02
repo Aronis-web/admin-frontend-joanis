@@ -423,6 +423,13 @@ const menuCategories: MenuCategory[] = [
         requiredPermissions: ['chatbot.catalog.manage'],
       },
       {
+        id: 'chatbot-sync-rules',
+        icon: 'sync-outline',
+        label: 'Reglas sync',
+        route: MAIN_ROUTES.CHATBOT_SYNC_RULES,
+        requiredPermissions: ['chatbot.catalog.manage'],
+      },
+      {
         id: 'chatbot-training',
         icon: 'school-outline',
         label: 'Entrenamiento',
