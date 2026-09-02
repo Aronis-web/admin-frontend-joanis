@@ -1194,123 +1194,31 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                   </View>
                 </View>
 
-                {(() => {
-                  const referencePhoto = getPhotoByType(item.productId, 'reference');
-                  const designPhoto = getPhotoByType(item.productId, 'design');
-                  const pricePhoto = getPhotoByType(item.productId, 'price');
+                <View style={styles.referenceDesignHeaderRow}>
+                  <TouchableOpacity
+                    style={styles.managePhotosButton}
+                    onPress={() => openPhotoManager(item)}
+                    disabled={submitting}
+                  >
+                    <Text style={styles.managePhotosButtonText}>🖼️ Fotos {completion}/3</Text>
+                  </TouchableOpacity>
 
-                  const referenceCount = (photosByProduct[item.productId] || []).filter(
-                    (asset) => asset.photoType === 'reference' && asset.isActive
-                  ).length;
+                  <TouchableOpacity
+                    style={styles.geminiGenerateButton}
+                    onPress={() => void openDesignModal(item)}
+                    disabled={submitting}
+                  >
+                    <Text style={styles.geminiGenerateButtonText}>Generar diseño</Text>
+                  </TouchableOpacity>
 
-                  return (
-                    <>
-                      <View style={styles.referenceDesignHeaderRow}>
-                        <TouchableOpacity
-                          style={styles.geminiGenerateButton}
-                          onPress={() => void openDesignModal(item)}
-                          disabled={submitting}
-                        >
-                          <Text style={styles.geminiGenerateButtonText}>Generar diseño</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={styles.priceDesignButton}
-                          onPress={() => void openPricePhotoModal(item)}
-                          disabled={submitting}
-                        >
-                          <Text style={styles.priceDesignButtonText}>Agregar datos</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      <View style={styles.photoTypesRow}>
-                        <View style={styles.photoTypeCard}>
-                          <Text style={styles.photoTypeLabel}>Referencia</Text>
-                          {referencePhoto ? (
-                            <TouchableOpacity
-                              onPress={() => openImageViewer(referencePhoto.fileUrl, 'Referencia')}
-                              activeOpacity={0.9}
-                              style={styles.photoTouchArea}
-                            >
-                              <Image
-                                source={{ uri: referencePhoto.fileUrl }}
-                                style={styles.photoThumb}
-                                resizeMode="cover"
-                              />
-                              {referenceCount > 1 && (
-                                <View style={styles.referenceCountBadge}>
-                                  <Text style={styles.referenceCountBadgeText}>
-                                    +{referenceCount - 1}
-                                  </Text>
-                                </View>
-                              )}
-                            </TouchableOpacity>
-                          ) : (
-                            <View style={styles.photoMissingBox}>
-                              <Text style={styles.photoMissingText}>Sin foto</Text>
-                            </View>
-                          )}
-                          <TouchableOpacity
-                            onPress={() => openPhotoManager(item)}
-                            disabled={submitting}
-                          >
-                            <Text style={styles.photoActionText}>
-                              {referencePhoto ? 'Gestionar' : 'Agregar'}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.photoTypeCard}>
-                          <Text style={styles.photoTypeLabel}>Diseño</Text>
-                          {designPhoto ? (
-                            <TouchableOpacity
-                              onPress={() => openImageViewer(designPhoto.fileUrl, 'Diseño')}
-                              activeOpacity={0.9}
-                              style={styles.photoTouchArea}
-                            >
-                              <Image
-                                source={{ uri: designPhoto.fileUrl }}
-                                style={styles.photoThumb}
-                                resizeMode="cover"
-                              />
-                            </TouchableOpacity>
-                          ) : (
-                            <View style={styles.photoMissingBox}>
-                              <Text style={styles.photoMissingText}>Generar con Gemini</Text>
-                            </View>
-                          )}
-                          <Text style={styles.photoActionTextMuted}>
-                            Se genera desde referencia
-                          </Text>
-                        </View>
-
-                        <View style={styles.photoTypeCard}>
-                          <Text style={styles.photoTypeLabel}>Con precio</Text>
-                          {pricePhoto ? (
-                            <TouchableOpacity
-                              onPress={() => openImageViewer(pricePhoto.fileUrl, 'Con precio')}
-                              activeOpacity={0.9}
-                              style={styles.photoTouchArea}
-                            >
-                              <Image
-                                source={{ uri: pricePhoto.fileUrl }}
-                                style={styles.photoThumb}
-                                resizeMode="cover"
-                              />
-                            </TouchableOpacity>
-                          ) : (
-                            <View style={styles.photoMissingBox}>
-                              <Text style={styles.photoMissingText}>Paso específico</Text>
-                            </View>
-                          )}
-                          <Text style={styles.photoActionTextMuted}>
-                            Se llena en flujo específico
-                          </Text>
-                        </View>
-                      </View>
-                    </>
-                  );
-                })()}
+                  <TouchableOpacity
+                    style={styles.priceDesignButton}
+                    onPress={() => void openPricePhotoModal(item)}
+                    disabled={submitting}
+                  >
+                    <Text style={styles.priceDesignButtonText}>Agregar datos</Text>
+                  </TouchableOpacity>
+                </View>
 
                 {isLoadingPhotos && (
                   <View style={styles.inlineLoadingRow}>
@@ -2039,22 +1947,19 @@ const createStyles = (theme: Theme) =>
       borderRadius: 6,
       backgroundColor: theme.color.border.subtle,
     },
-    referenceCountBadge: {
-      position: 'absolute',
-      top: 4,
-      right: 4,
-      minWidth: 22,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 11,
+    managePhotosButton: {
+      alignSelf: 'flex-start',
       backgroundColor: theme.color.brand.accent,
-      alignItems: 'center',
-      justifyContent: 'center',
+      borderRadius: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      minWidth: 130,
     },
-    referenceCountBadgeText: {
+    managePhotosButtonText: {
+      textAlign: 'center',
       color: theme.color.text.inverse,
-      fontSize: 11,
       fontWeight: '700',
+      fontSize: 12,
     },
     photoMissingBox: {
       width: '100%',
