@@ -212,3 +212,27 @@ export interface SmartDesignStatus {
   counts: SmartDesignCounts;
   items: SmartDesignItem[];
 }
+
+// ============================================
+// Smart Price (aplicación masiva de precio por backend)
+// ============================================
+
+export type SmartPriceTemplate = 'premium' | 'promo' | 'remate' | 'minimal';
+
+export interface SmartPriceApplyRequest {
+  template?: SmartPriceTemplate;
+}
+
+export interface SmartPriceItem {
+  itemId: string;
+  productId: string;
+  groups: number;
+  priced: number;
+}
+
+export interface SmartPriceStatus {
+  total: number;
+  withPrice: number;
+  withoutPrice: number;
+  items: SmartPriceItem[];
+}

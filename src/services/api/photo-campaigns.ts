@@ -17,6 +17,8 @@ import {
   SendPhotoCampaignWhatsappRequest,
   SendPhotoCampaignWhatsappResponse,
   SmartDesignStatus,
+  SmartPriceApplyRequest,
+  SmartPriceStatus,
 } from '@/types/photo-campaigns';
 
 class PhotoCampaignsApi {
@@ -290,6 +292,28 @@ class PhotoCampaignsApi {
   getSmartDesignStatus(photoCampaignId: string): Promise<SmartDesignStatus> {
     return apiClient.get<SmartDesignStatus>(
       `${this.basePath}/${photoCampaignId}/smart-design/status`
+    );
+  }
+
+  // ============================================
+  // Smart Price (aplicación masiva de precio en el backend)
+  // ============================================
+
+  /**
+   * Dispara en background la aplicación de precio para todos los productos de
+   * la campaña. Retorna 202 Accepted; el progreso se consulta con `getSmartPriceStatus`.
+   */
+  applySmartPrice(photoCampaignId: string, payload: SmartPriceApplyRequest = {}): Promise<unknown> {
+    return apiClient.post<unknown>(
+      `${this.basePath}/${photoCampaignId}/smart-price/apply`,
+      payload
+    );
+  }
+
+  /** Estado / progreso de Smart Price (total, withPrice, withoutPrice, items). */
+  getSmartPriceStatus(photoCampaignId: string): Promise<SmartPriceStatus> {
+    return apiClient.get<SmartPriceStatus>(
+      `${this.basePath}/${photoCampaignId}/smart-price/status`
     );
   }
 

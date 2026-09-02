@@ -49,7 +49,10 @@ import {
   useSmartDesignStatus,
   useEnableSmartDesign,
   useRerunSmartDesign,
+  useSmartPriceStatus,
+  useApplySmartPrice,
 } from '@/hooks/api/useSmartDesign';
+import type { SmartPriceTemplate } from '@/types/photo-campaigns';
 import { useTenantStore } from '@/store/tenant';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
@@ -470,13 +473,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     void loadLinkedPhotoCampaign();
   }, [loadLinkedPhotoCampaign]);
 
-  // Progreso global de la generación masiva de fotos con precio (aplica solo
-  // cuando pertenece a esta campaña, para que el usuario vea el indicador
-  // aunque cambie de tab dentro de la pantalla).
-  const bulkPricePlain = usePhotoGenerationStore((s) => s.bulkPrice);
-  const bulkPriceForThisCampaign =
-    bulkPricePlain.campaignId === campaignId && bulkPricePlain.running ? bulkPricePlain : null;
-  const generateBulkPrices = usePhotoGenerationStore((s) => s.generateBulkPrices);
+  // Nota: la generación masiva de fotos con precio ahora se hace en el backend
+  // vía Smart Price (POST /photo-campaigns/:id/smart-price/apply). Ver
+  // `useSmartPriceStatus` / `useApplySmartPrice` más abajo.
 
   // ¿Hay una generación de fotos (diseño / precio) en curso para el producto
   // cuyo modal está (o estuvo) abierto? Nos suscribimos al store global para
@@ -593,100 +592,60 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     );
   }, [linkedPhotoCampaignId, enableSmartDesignMutation.isPending, rerunSmartDesignMutation]);
 
-  const handleBulkGeneratePricePhotos = useCallback(() => {
-    if (!campaign?.products || campaign.products.length === 0) {
-      Alert.alert('Sin productos', 'Esta campaña no tiene productos.');
-      return;
+  // ============================================
+  // Smart Price (aplicación masiva de precio en el backend)
+  // ============================================
+  const { data: smartPriceStatus } = useSmartPriceStatus(
+    linkedPhotoCampaignId,
+    Boolean(linkedPhotoCampaignId)
+  );
+  const applySmartPriceMutation = useApplySmartPrice(linkedPhotoCampaignId);
+  const smartPriceBusy = Boolean(smartPriceStatus && smartPriceStatus.withoutPrice > 0);
+
+  // Al terminar la aplicación masiva (withoutPrice llega a 0), refrescamos
+  // el detalle de productos para que las nuevas fotos con precio se vean.
+  const prevSmartPriceBusyRef = useRef(false);
+  useEffect(() => {
+    const was = prevSmartPriceBusyRef.current;
+    prevSmartPriceBusyRef.current = smartPriceBusy;
+    if (was && !smartPriceBusy) {
+      void refetchProductsDetail?.();
     }
-    if (bulkPricePlain.running) {
+  }, [smartPriceBusy, refetchProductsDetail]);
+
+  const handleBulkGeneratePricePhotos = useCallback(() => {
+    if (!linkedPhotoCampaignId) {
       Alert.alert(
-        'En progreso',
-        'Ya hay una generación masiva de fotos con precio en curso. Espera a que termine.'
+        'Sin campaña de fotos',
+        'Primero vincula o crea una campaña de fotos para esta campaña.'
       );
       return;
     }
-
-    const productsPayload = campaign.products
-      .map((cp) => {
-        const detail = productsDetailMap[cp.id];
-        const productDetails = cp.product || products[cp.productId];
-        const name = detail?.title || productDetails?.title || '';
-        const sku = detail?.sku || productDetails?.sku || '';
-        return {
-          productId: cp.productId,
-          name,
-          sku,
-        };
-      })
-      .filter((p) => p.productId && p.name && p.sku);
-
-    if (productsPayload.length === 0) {
-      Alert.alert('Sin datos', 'No se pudieron determinar nombre/SKU de los productos.');
+    if (applySmartPriceMutation.isPending) {
       return;
     }
-
-    const launch = (scope: 'missing' | 'all') => {
-      void generateBulkPrices({
-        campaignId,
-        photoCampaignId: linkedPhotoCampaignId,
-        template: 'premium',
-        products: productsPayload,
-        scope,
+    const launch = (template: SmartPriceTemplate) => {
+      applySmartPriceMutation.mutate(template, {
+        onError: (error: any) => {
+          Alert.alert(
+            'Error',
+            error?.message || 'No se pudo iniciar la aplicación masiva de precio.'
+          );
+        },
       });
     };
-
     Alert.alert(
-      'Generar fotos con precio',
-      `Se recorrerán ${productsPayload.length} productos. Elige si quieres generar solo las fotos con precio que faltan o regenerar todas (reemplaza las existentes). El proceso corre en paralelo en segundo plano.`,
+      'Aplicar precio a todos los productos',
+      'El backend procesará en background los productos que aún no tienen foto con precio. Elige el template a usar.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Solo faltantes', onPress: () => launch('missing') },
-        { text: 'Todas', onPress: () => launch('all') },
+        { text: 'Premium', onPress: () => launch('premium') },
+        { text: 'Promo', onPress: () => launch('promo') },
+        { text: 'Remate', onPress: () => launch('remate') },
+        { text: 'Minimal', onPress: () => launch('minimal') },
       ]
     );
-  }, [
-    campaign?.products,
-    bulkPricePlain.running,
-    productsDetailMap,
-    products,
-    generateBulkPrices,
-    campaignId,
-    linkedPhotoCampaignId,
-  ]);
-
-  // Al terminar la generación masiva de fotos con precio, refrescamos los
-  // datos de productos para reflejar las nuevas imágenes.
-  const prevBulkPriceRunningRef = useRef(false);
-  useEffect(() => {
-    const wasRunning = prevBulkPriceRunningRef.current;
-    const isRunning = Boolean(bulkPriceForThisCampaign?.running);
-    prevBulkPriceRunningRef.current = isRunning;
-    if (wasRunning && !isRunning) {
-      void refetchProductsDetail?.();
-    }
-  }, [bulkPriceForThisCampaign?.running, refetchProductsDetail]);
-
-  // Refresco incremental durante el lote paralelo: cada vez que llegan
-  // nuevas tareas procesadas (done + failed), agendamos un refetch con
-  // debounce corto para reflejar las fotos apenas terminan sin disparar
-  // uno por cada foto.
-  const bulkProcessed =
-    (bulkPriceForThisCampaign?.done ?? 0) + (bulkPriceForThisCampaign?.failed ?? 0);
-  const lastRefetchedProcessedRef = useRef(0);
-  useEffect(() => {
-    if (!bulkPriceForThisCampaign?.running) {
-      lastRefetchedProcessedRef.current = 0;
-      return;
-    }
-    if (bulkProcessed <= lastRefetchedProcessedRef.current) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      lastRefetchedProcessedRef.current = bulkProcessed;
-      void refetchProductsDetail?.();
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [bulkProcessed, bulkPriceForThisCampaign?.running, refetchProductsDetail]);
+  }, [linkedPhotoCampaignId, applySmartPriceMutation]);
 
   const loadCampaign = useCallback(async () => {
     try {
@@ -3519,21 +3478,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     )}
                   </>
                 )}
-              {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.READ) && (
-                <TouchableOpacity
-                  style={[
-                    styles.bulkButton,
-                    isTablet && styles.bulkButtonTablet,
-                    bulkPriceForThisCampaign?.running && styles.bulkButtonDisabled,
-                  ]}
-                  disabled={bulkPriceForThisCampaign?.running}
-                  onPress={handleBulkGeneratePricePhotos}
-                >
-                  <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
-                    🏷️ Generar fotos con precio
-                  </Text>
-                </TouchableOpacity>
-              )}
+              {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.SMART_DESIGN.TRIGGER) &&
+                linkedPhotoCampaignId && (
+                  <TouchableOpacity
+                    style={[
+                      styles.bulkButton,
+                      isTablet && styles.bulkButtonTablet,
+                      (smartPriceBusy || applySmartPriceMutation.isPending) &&
+                        styles.bulkButtonDisabled,
+                    ]}
+                    disabled={smartPriceBusy || applySmartPriceMutation.isPending}
+                    onPress={handleBulkGeneratePricePhotos}
+                  >
+                    <Text style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}>
+                      🏷️ Aplicar precio a todos
+                    </Text>
+                  </TouchableOpacity>
+                )}
               {(campaign.status === CampaignStatus.DRAFT ||
                 campaign.status === CampaignStatus.ACTIVE) && (
                 <>
@@ -3582,30 +3543,18 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               </View>
             )}
 
-          {/* Indicador de generación masiva de fotos con precio */}
-          {bulkPriceForThisCampaign && (
+          {/* Indicador de Smart Price (aplicación masiva en el backend) */}
+          {smartPriceStatus && linkedPhotoCampaignId && smartPriceBusy && (
             <View style={styles.bulkPriceBanner}>
               <ActivityIndicator size="small" color={theme.color.brand.primary} />
               <View style={styles.bulkPriceBannerTextWrap}>
                 <Text style={styles.bulkPriceBannerTitle}>
-                  Generando fotos con precio en paralelo (
-                  {bulkPriceForThisCampaign.done + bulkPriceForThisCampaign.failed}/
-                  {bulkPriceForThisCampaign.total || '…'})
+                  Aplicando precio en el backend ({smartPriceStatus.withPrice}/
+                  {smartPriceStatus.total})
                 </Text>
                 <Text style={styles.bulkPriceBannerSubtitle} numberOfLines={1}>
-                  {bulkPriceForThisCampaign.scope === 'all'
-                    ? 'Modo: regenerar todas'
-                    : 'Modo: solo faltantes'}
-                  {'  ·  '}✅ {bulkPriceForThisCampaign.done}
-                  {'  ·  '}⚠️ {bulkPriceForThisCampaign.failed}
-                  {bulkPriceForThisCampaign.total > 0
-                    ? `  ·  ⏳ ${Math.max(
-                        bulkPriceForThisCampaign.total -
-                          bulkPriceForThisCampaign.done -
-                          bulkPriceForThisCampaign.failed,
-                        0
-                      )}`
-                    : ''}
+                  ✅ {smartPriceStatus.withPrice}
+                  {'  ·  '}⏳ {smartPriceStatus.withoutPrice}
                 </Text>
               </View>
             </View>

@@ -13,13 +13,15 @@ import {
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { photoCampaignsApi } from '@/services/api';
-import { PhotoCampaign, PhotoCampaignStatus } from '@/types/photo-campaigns';
+import { PhotoCampaign, PhotoCampaignStatus, SmartPriceTemplate } from '@/types/photo-campaigns';
 import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
   useSmartDesignStatus,
   useEnableSmartDesign,
   useRerunSmartDesign,
+  useSmartPriceStatus,
+  useApplySmartPrice,
 } from '@/hooks/api/useSmartDesign';
 import Alert from '@/utils/alert';
 import { SendPhotoCampaignWhatsAppModal } from './SendPhotoCampaignWhatsAppModal';
@@ -711,6 +713,36 @@ const SmartDesignActions: React.FC<SmartDesignActionsProps> = ({ photoCampaignId
   const enableMutation = useEnableSmartDesign(photoCampaignId);
   const rerunMutation = useRerunSmartDesign(photoCampaignId);
 
+  // Smart Price (aplicación masiva de precio en el backend)
+  const { data: priceStatus } = useSmartPriceStatus(photoCampaignId, Boolean(photoCampaignId));
+  const applyPriceMutation = useApplySmartPrice(photoCampaignId);
+  const priceBusy = Boolean(priceStatus && priceStatus.withoutPrice > 0);
+  const priceDisabled = disabled || applyPriceMutation.isPending || priceBusy;
+
+  const handleApplyPrice = useCallback(() => {
+    const launch = (template: SmartPriceTemplate) => {
+      applyPriceMutation.mutate(template, {
+        onError: (error: any) => {
+          Alert.alert(
+            'Error',
+            error?.message || 'No se pudo iniciar la aplicación masiva de precio.'
+          );
+        },
+      });
+    };
+    Alert.alert(
+      'Aplicar precio a todos los productos',
+      'El backend procesará en background los productos que aún no tienen foto con precio. Elige el template a usar.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Premium', onPress: () => launch('premium') },
+        { text: 'Promo', onPress: () => launch('promo') },
+        { text: 'Remate', onPress: () => launch('remate') },
+        { text: 'Minimal', onPress: () => launch('minimal') },
+      ]
+    );
+  }, [applyPriceMutation]);
+
   // Solo "ocupado" cuando el modo está activo y hay trabajo en curso; así el
   // botón "Generar" no queda bloqueado si el backend informa pending antes de
   // activar el modo (por ejemplo, contando productos como pendientes).
@@ -784,6 +816,26 @@ const SmartDesignActions: React.FC<SmartDesignActionsProps> = ({ photoCampaignId
           </TouchableOpacity>
         )}
       </View>
+      <View style={styles.smartDesignActionsRow}>
+        <TouchableOpacity
+          style={[styles.aiButton, priceDisabled && styles.aiButtonDisabled]}
+          onPress={handleApplyPrice}
+          disabled={priceDisabled}
+        >
+          <Text style={styles.aiButtonText}>🏷️ Aplicar precio a todos</Text>
+        </TouchableOpacity>
+      </View>
+      {priceStatus && (priceBusy || priceStatus.total > 0) && (
+        <View style={styles.smartDesignStatusRow}>
+          {priceBusy && <ActivityIndicator size="small" color={theme.color.brand.accent} />}
+          <Text style={styles.smartDesignStatusText}>
+            {priceBusy
+              ? `Aplicando precio (${priceStatus.withPrice}/${priceStatus.total})`
+              : `Precio: ${priceStatus.withPrice}/${priceStatus.total}`}
+            {'  ·  '}⏳ {priceStatus.withoutPrice}
+          </Text>
+        </View>
+      )}
       {status?.enabled && (busy || (status.counts.error ?? 0) > 0) && (
         <View style={styles.smartDesignStatusRow}>
           {busy && <ActivityIndicator size="small" color={theme.color.brand.accent} />}

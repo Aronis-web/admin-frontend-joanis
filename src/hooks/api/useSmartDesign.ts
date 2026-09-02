@@ -1,7 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { photoCampaignsApi } from '@/services/api';
-import type { SmartDesignStatus } from '@/types/photo-campaigns';
+import type {
+  SmartDesignStatus,
+  SmartPriceStatus,
+  SmartPriceTemplate,
+} from '@/types/photo-campaigns';
 import { logger } from '@/utils/logger';
 
 /**
@@ -60,6 +64,58 @@ export const useEnableSmartDesign = (photoCampaignId: string | undefined) => {
  * Reinicia y reprocesa toda la campaña. Reemplaza el estado actual con el
  * devuelto por el backend para que el polling continúe correctamente.
  */
+/**
+ * Query keys para Smart Price (aplicación masiva de precio en el backend).
+ */
+export const smartPriceKeys = {
+  all: ['photo-campaigns', 'smart-price'] as const,
+  status: (photoCampaignId: string) => [...smartPriceKeys.all, 'status', photoCampaignId] as const,
+};
+
+/**
+ * Polling del estado de Smart Price. Como el endpoint aplica sobre productos
+ * sin foto de precio, se hace polling con un pequeño intervalo mientras haya
+ * productos pendientes (`withoutPrice > 0`) y una mutation reciente indique
+ * que se disparó el proceso.
+ *
+ * Cuando `enabled` es false o `withoutPrice === 0`, deja de refetchear.
+ */
+export const useSmartPriceStatus = (photoCampaignId: string | undefined, enabled = true) => {
+  return useQuery<SmartPriceStatus>({
+    queryKey: smartPriceKeys.status(photoCampaignId || ''),
+    queryFn: () => photoCampaignsApi.getSmartPriceStatus(photoCampaignId as string),
+    enabled: enabled && !!photoCampaignId,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchInterval: (query) => {
+      const data = query.state.data as SmartPriceStatus | undefined;
+      if (!data) return false;
+      return data.withoutPrice > 0 ? 4000 : false;
+    },
+  });
+};
+
+/**
+ * Dispara la aplicación masiva de precio. Al completar, invalida el estado
+ * para que arranque el polling automáticamente.
+ */
+export const useApplySmartPrice = (photoCampaignId: string | undefined) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (template?: SmartPriceTemplate) => {
+      if (!photoCampaignId) throw new Error('photoCampaignId requerido');
+      return photoCampaignsApi.applySmartPrice(photoCampaignId, template ? { template } : {});
+    },
+    onSuccess: () => {
+      if (!photoCampaignId) return;
+      void queryClient.invalidateQueries({ queryKey: smartPriceKeys.status(photoCampaignId) });
+    },
+    onError: (error) => {
+      logger.error('[SMART_PRICE] Error aplicando precio masivo', error);
+    },
+  });
+};
+
 export const useRerunSmartDesign = (photoCampaignId: string | undefined) => {
   const queryClient = useQueryClient();
   return useMutation({
