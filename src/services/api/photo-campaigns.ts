@@ -333,7 +333,12 @@ class PhotoCampaignsApi {
     campaignId: string,
     payload: CreateCampaignVideoRequest
   ): Promise<CampaignVideo> {
-    return apiClient.post<CampaignVideo>(`${this.basePath}/${campaignId}/videos`, payload);
+    // La generación del video (Gemini + Kling) puede tardar varios minutos antes
+    // de responder con las secciones en `generating`. Desactivamos el timeout del
+    // cliente (0 = sin límite) para no cortar el request antes de tiempo.
+    return apiClient.post<CampaignVideo>(`${this.basePath}/${campaignId}/videos`, payload, {
+      timeout: 0,
+    });
   }
 
   /** Lista los videos de una campaña (orden por createdAt DESC). */
@@ -386,15 +391,24 @@ class PhotoCampaignsApi {
 
   /** Reintenta solo una sección (nuevo clip + voz). */
   regenerateVideoSection(videoId: string, sectionId: string): Promise<CampaignVideo> {
+    // Regenerar una sección relanza Gemini + Kling: puede tardar varios minutos.
     return apiClient.post<CampaignVideo>(
       `${this.basePath}/videos/${videoId}/sections/${sectionId}/regenerate`,
-      {}
+      {},
+      { timeout: 0 }
     );
   }
 
   /** Re-ensambla el mp4 final sin regenerar los clips (requiere todas las secciones en done). */
   reassembleCampaignVideo(videoId: string): Promise<CampaignVideo> {
-    return apiClient.post<CampaignVideo>(`${this.basePath}/videos/${videoId}/reassemble`, {});
+    // El re-ensamblado del mp4 final puede tardar; sin timeout de cliente.
+    return apiClient.post<CampaignVideo>(
+      `${this.basePath}/videos/${videoId}/reassemble`,
+      {},
+      {
+        timeout: 0,
+      }
+    );
   }
 
   /** Elimina el video y (en cascada) sus secciones. */
