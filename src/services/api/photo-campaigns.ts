@@ -346,6 +346,24 @@ class PhotoCampaignsApi {
     return apiClient.get<CampaignVideo>(`${this.basePath}/videos/${videoId}`);
   }
 
+  /**
+   * Descarga el clip crudo (.mp4 de Kling) de una sección como Blob.
+   * Usa `apiClient` para adjuntar auth + tenant y evitar el bloqueo de CSP
+   * (media-src solo permite 'self' y blob:).
+   */
+  getSectionClip(videoId: string, sectionId: string): Promise<Blob> {
+    return apiClient.get<Blob>(`${this.basePath}/videos/${videoId}/sections/${sectionId}/clip`, {
+      responseType: 'blob',
+    });
+  }
+
+  /** Descarga la voz en off (.mp3) de una sección como Blob. */
+  getSectionVoice(videoId: string, sectionId: string): Promise<Blob> {
+    return apiClient.get<Blob>(`${this.basePath}/videos/${videoId}/sections/${sectionId}/voice`, {
+      responseType: 'blob',
+    });
+  }
+
   /** Reintenta solo una sección (nuevo clip + voz). */
   regenerateVideoSection(videoId: string, sectionId: string): Promise<CampaignVideo> {
     return apiClient.post<CampaignVideo>(

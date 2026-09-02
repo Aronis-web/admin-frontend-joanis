@@ -14,10 +14,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { photoCampaignsApi } from '@/services/api';
+import { config } from '@/utils/config';
+import { authService } from '@/services/AuthService';
+import { useAuthStore } from '@/store/auth';
 import {
   CampaignVideoAspectRatio,
   CampaignVideoSectionKind,
@@ -114,35 +118,146 @@ const formatDate = (iso?: string): string => {
 type SectionMediaKind = 'clip' | 'voice';
 
 /**
+ * Descarga un stream protegido a un archivo temporal en cache (solo nativo),
+ * adjuntando auth + tenant. Devuelve la URI local reproducible por `expo-av`.
+ */
+const downloadSectionMediaNative = async (
+  url: string,
+  cacheKey: string,
+  ext: string
+): Promise<string> => {
+  const authStore = useAuthStore.getState();
+  const token = authService.getAccessToken() || authStore.token;
+  const headers: Record<string, string> = {
+    Accept: '*/*',
+    'X-App-Id': config.APP_ID,
+    'X-App-Version': config.APP_VERSION,
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (authStore.user?.id) headers['X-User-Id'] = authStore.user.id;
+  if (authStore.currentCompany?.id) headers['X-Company-Id'] = authStore.currentCompany.id;
+  if (authStore.currentSite?.id) headers['X-Site-Id'] = authStore.currentSite.id;
+
+  const finalUri = `${FileSystem.cacheDirectory}${cacheKey}.${ext}`;
+  try {
+    await FileSystem.deleteAsync(finalUri, { idempotent: true });
+  } catch {
+    // noop
+  }
+  const result = await FileSystem.downloadAsync(url, finalUri, { headers });
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`HTTP ${result.status}`);
+  }
+  return result.uri;
+};
+
+/**
  * Reproductor inline por sección: permite ver el clip crudo (.mp4 de Kling) y
  * escuchar la voz en off (.mp3) de cada sección sin salir del modal.
  *
- * - Web/desktop: renderiza un `<video>` / `<audio>` HTML nativo apuntando a la
- *   URL de stream (soporta Range/206).
- * - Nativo: usa `expo-av` `<Video>` (reproduce tanto mp4 como mp3 con controles
- *   nativos).
+ * El media se descarga bajo demanda como Blob (web) o archivo temporal (nativo)
+ * pasando por `apiClient`/headers de auth. Esto es obligatorio porque la CSP del
+ * desktop solo permite `media-src 'self' blob:`, así que un `src` cross-origin
+ * directo a la API queda bloqueado.
  */
 const SectionMediaPlayer: React.FC<{
+  videoId: string;
+  sectionId: string;
   clipUrl?: string | null;
   voiceUrl?: string | null;
   aspectRatio: CampaignVideoAspectRatio;
-}> = ({ clipUrl, voiceUrl, aspectRatio }) => {
+}> = ({ videoId, sectionId, clipUrl, voiceUrl, aspectRatio }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const [active, setActive] = useState<SectionMediaKind | null>(null);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const hasClip = !!clipUrl;
   const hasVoice = !!voiceUrl;
 
+  // Limpieza de object URL (web) / archivo temporal (nativo) al cambiar o desmontar.
+  const cleanupResolved = useCallback((url: string | null) => {
+    if (!url) return;
+    if (Platform.OS === 'web') {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        // noop
+      }
+    } else {
+      FileSystem.deleteAsync(url, { idempotent: true }).catch(() => {
+        // noop
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cleanupResolved(resolvedUrl);
+    };
+  }, [resolvedUrl, cleanupResolved]);
+
+  const loadMedia = useCallback(
+    async (kind: SectionMediaKind) => {
+      setLoading(true);
+      setError(null);
+      try {
+        let url: string;
+        if (Platform.OS === 'web') {
+          const blob =
+            kind === 'clip'
+              ? await photoCampaignsApi.getSectionClip(videoId, sectionId)
+              : await photoCampaignsApi.getSectionVoice(videoId, sectionId);
+          url = URL.createObjectURL(blob);
+        } else {
+          const sourceUrl = kind === 'clip' ? clipUrl : voiceUrl;
+          if (!sourceUrl) throw new Error('URL no disponible');
+          url = await downloadSectionMediaNative(
+            sourceUrl,
+            `campaign-section-${sectionId}-${kind}`,
+            kind === 'clip' ? 'mp4' : 'mp3'
+          );
+        }
+        setResolvedUrl((prev) => {
+          cleanupResolved(prev);
+          return url;
+        });
+      } catch (err) {
+        logger.error('[CAMPAIGN_VIDEO] Error cargando media de sección', err);
+        setError(kind === 'clip' ? 'No se pudo cargar el clip.' : 'No se pudo cargar la voz.');
+        setResolvedUrl((prev) => {
+          cleanupResolved(prev);
+          return null;
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [videoId, sectionId, clipUrl, voiceUrl, cleanupResolved]
+  );
+
+  const toggle = useCallback(
+    (kind: SectionMediaKind) => {
+      if (active === kind) {
+        setActive(null);
+        setError(null);
+        setResolvedUrl((prev) => {
+          cleanupResolved(prev);
+          return null;
+        });
+        return;
+      }
+      setActive(kind);
+      void loadMedia(kind);
+    },
+    [active, loadMedia, cleanupResolved]
+  );
+
   if (!hasClip && !hasVoice) {
     return null;
   }
-
-  const toggle = (kind: SectionMediaKind) => {
-    setActive((prev) => (prev === kind ? null : kind));
-  };
-
-  const activeUrl = active === 'clip' ? clipUrl : active === 'voice' ? voiceUrl : null;
 
   const ratioValue = (() => {
     const [w, h] = aspectRatio.split(':').map((n) => Number(n));
@@ -184,45 +299,54 @@ const SectionMediaPlayer: React.FC<{
         )}
       </View>
 
-      {!!activeUrl && (
+      {active && (
         <View style={styles.mediaPlayer}>
-          {Platform.OS === 'web' ? (
-            active === 'clip' ? (
-              React.createElement('video' as any, {
-                src: activeUrl,
-                controls: true,
-                autoPlay: true,
-                playsInline: true,
-                style: {
-                  width: '100%',
-                  maxHeight: 360,
-                  aspectRatio: ratioValue,
-                  backgroundColor: '#000',
-                  borderRadius: 8,
-                },
-              })
+          {loading ? (
+            <View style={styles.mediaLoadingRow}>
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
+              <Text style={styles.mutedText}>Cargando…</Text>
+            </View>
+          ) : error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : resolvedUrl ? (
+            Platform.OS === 'web' ? (
+              active === 'clip' ? (
+                React.createElement('video' as any, {
+                  src: resolvedUrl,
+                  controls: true,
+                  autoPlay: true,
+                  playsInline: true,
+                  style: {
+                    width: '100%',
+                    maxHeight: 360,
+                    aspectRatio: ratioValue,
+                    backgroundColor: '#000',
+                    borderRadius: 8,
+                  },
+                })
+              ) : (
+                React.createElement('audio' as any, {
+                  src: resolvedUrl,
+                  controls: true,
+                  autoPlay: true,
+                  style: { width: '100%' },
+                })
+              )
             ) : (
-              React.createElement('audio' as any, {
-                src: activeUrl,
-                controls: true,
-                autoPlay: true,
-                style: { width: '100%' },
-              })
+              <Video
+                source={{ uri: resolvedUrl }}
+                style={
+                  active === 'clip'
+                    ? [styles.nativeVideo, { aspectRatio: ratioValue }]
+                    : styles.nativeAudio
+                }
+                useNativeControls
+                resizeMode={ResizeMode.CONTAIN}
+                shouldPlay
+                isLooping={false}
+              />
             )
-          ) : (
-            <Video
-              source={{ uri: activeUrl }}
-              style={
-                active === 'clip'
-                  ? [styles.nativeVideo, { aspectRatio: ratioValue }]
-                  : styles.nativeAudio
-              }
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay
-              isLooping={false}
-            />
-          )}
+          ) : null}
         </View>
       )}
     </View>
@@ -593,6 +717,8 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
                 {!!section.error && <Text style={styles.errorText}>{section.error}</Text>}
 
                 <SectionMediaPlayer
+                  videoId={video.id}
+                  sectionId={section.id}
                   clipUrl={section.clipUrl}
                   voiceUrl={section.voiceUrl}
                   aspectRatio={video.aspectRatio}
@@ -1212,6 +1338,12 @@ const createStyles = (theme: Theme) =>
     },
     mediaPlayer: {
       marginTop: theme.space[2],
+    },
+    mediaLoadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+      paddingVertical: theme.space[2],
     },
     nativeVideo: {
       width: '100%',
