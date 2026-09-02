@@ -28,15 +28,11 @@ import {
   AdDesignTemplate,
 } from '@/types/photo-campaigns';
 import { PriceProfile, ProductSalePrice } from '@/types/price-profiles';
-import {
-  launchImageLibraryAsync,
-  requestMediaLibraryPermissionsAsync,
-  MediaTypeOptions,
-} from '@/utils/filePicker';
 import { ensureSquareImageUri } from '@/utils/imageFile';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { SendPhotoCampaignWhatsAppModal } from '@/components/Photos/SendPhotoCampaignWhatsAppModal';
 import { CampaignVideoModal } from '@/components/Photos/CampaignVideoModal';
+import { ProductPhotoManagerModal } from '@/components/Photos/ProductPhotoManagerModal';
 import { PERMISSIONS } from '@/constants/permissions';
 import Alert from '@/utils/alert';
 
@@ -179,7 +175,17 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 20 });
   const [photosByProduct, setPhotosByProduct] = useState<Record<string, ProductPhotoAsset[]>>({});
   const [photoLoadingByProduct, setPhotoLoadingByProduct] = useState<Record<string, boolean>>({});
-  const [photoUploadingKey, setPhotoUploadingKey] = useState<string | null>(null);
+
+  // Gestor multi-referencia (mismo modal que el módulo Campaña).
+  const [photoManagerProduct, setPhotoManagerProduct] = useState<{
+    productId: string;
+    title: string;
+    sku: string;
+    catalogPhotoUrl?: string;
+    fallbackImageUrl?: string;
+    existingReferenceUrls?: string[];
+  } | null>(null);
+  const [photoManagerVisible, setPhotoManagerVisible] = useState(false);
 
   const [designModalVisible, setDesignModalVisible] = useState(false);
   const [pricePhotoModalVisible, setPricePhotoModalVisible] = useState(false);
@@ -401,58 +407,27 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     [photosByProduct]
   );
 
-  const pickAndUploadPhoto = useCallback(
-    async (item: PhotoCampaignProductItem, photoType: PhotoType) => {
-      const campaignId = selectedCampaign?.id;
-      if (!campaignId) {
-        Alert.alert('Atención', 'Selecciona una campaña primero');
-        return;
-      }
+  const openPhotoManager = useCallback(
+    (item: PhotoCampaignProductItem) => {
+      const assets = photosByProduct[item.productId] || [];
+      const referenceUrls = assets
+        .filter((asset) => asset.photoType === 'reference' && asset.isActive && !!asset.fileUrl)
+        .map((asset) => asset.fileUrl);
+      const fallbackImageUrl =
+        assets.find((asset) => asset.photoType === 'design' && asset.isActive)?.fileUrl ||
+        referenceUrls[0] ||
+        assets.find((asset) => asset.isActive)?.fileUrl;
 
-      const permission = await requestMediaLibraryPermissionsAsync();
-      if (permission.status !== 'granted') {
-        Alert.alert('Permiso requerido', 'Se necesita permiso para acceder a las fotos');
-        return;
-      }
-
-      const result = await launchImageLibraryAsync({
-        mediaTypes: MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
+      setPhotoManagerProduct({
+        productId: item.productId,
+        title: item.product?.title || item.productId,
+        sku: item.product?.sku || '',
+        fallbackImageUrl,
+        existingReferenceUrls: referenceUrls,
       });
-
-      if (result.canceled || !result.assets?.[0]) {
-        return;
-      }
-
-      const asset = result.assets[0];
-      // Forzamos recorte 1:1 antes de subir.
-      const squareUri = await ensureSquareImageUri(asset.uri);
-      const filePayload: any = {
-        uri: squareUri,
-        type: asset.mimeType || 'image/jpeg',
-        name: asset.fileName || `${photoType}-${Date.now()}.jpg`,
-      };
-
-      const uploadKey = `${item.productId}:${photoType}`;
-
-      try {
-        setPhotoUploadingKey(uploadKey);
-        await photoCampaignsApi.uploadProductPhoto(item.productId, {
-          photoType,
-          file: filePayload,
-          photoCampaignId: campaignId,
-        });
-
-        await loadProductPhotos(item.productId, true);
-      } catch (error: any) {
-        Alert.alert('Error', error?.message || `No se pudo subir la foto (${photoType})`);
-      } finally {
-        setPhotoUploadingKey(null);
-      }
+      setPhotoManagerVisible(true);
     },
-    [loadProductPhotos, selectedCampaign?.id]
+    [photosByProduct]
   );
 
   const openPricePhotoModal = async (item: PhotoCampaignProductItem) => {
@@ -1224,7 +1199,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                   const designPhoto = getPhotoByType(item.productId, 'design');
                   const pricePhoto = getPhotoByType(item.productId, 'price');
 
-                  const referenceUploading = photoUploadingKey === `${item.productId}:reference`;
+                  const referenceCount = (photosByProduct[item.productId] || []).filter(
+                    (asset) => asset.photoType === 'reference' && asset.isActive
+                  ).length;
 
                   return (
                     <>
@@ -1260,6 +1237,13 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                                 style={styles.photoThumb}
                                 resizeMode="cover"
                               />
+                              {referenceCount > 1 && (
+                                <View style={styles.referenceCountBadge}>
+                                  <Text style={styles.referenceCountBadgeText}>
+                                    +{referenceCount - 1}
+                                  </Text>
+                                </View>
+                              )}
                             </TouchableOpacity>
                           ) : (
                             <View style={styles.photoMissingBox}>
@@ -1267,20 +1251,12 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
                             </View>
                           )}
                           <TouchableOpacity
-                            onPress={() => void pickAndUploadPhoto(item, 'reference')}
-                            disabled={referenceUploading || submitting}
+                            onPress={() => openPhotoManager(item)}
+                            disabled={submitting}
                           >
-                            {referenceUploading ? (
-                              <ActivityIndicator
-                                size="small"
-                                color={theme.color.brand.accent}
-                                style={styles.photoActionIndicator}
-                              />
-                            ) : (
-                              <Text style={styles.photoActionText}>
-                                {referencePhoto ? 'Reemplazar' : 'Subir'}
-                              </Text>
-                            )}
+                            <Text style={styles.photoActionText}>
+                              {referencePhoto ? 'Gestionar' : 'Agregar'}
+                            </Text>
                           </TouchableOpacity>
                         </View>
 
@@ -1387,6 +1363,21 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
           photoCampaignId={selectedCampaign.id}
           photoCampaignName={selectedCampaign.name}
           onClose={() => setVideoModalVisible(false)}
+        />
+      )}
+
+      {photoManagerProduct && (
+        <ProductPhotoManagerModal
+          visible={photoManagerVisible}
+          productId={photoManagerProduct.productId}
+          productTitle={photoManagerProduct.title}
+          productSku={photoManagerProduct.sku}
+          catalogPhotoUrl={photoManagerProduct.catalogPhotoUrl}
+          fallbackImageUrl={photoManagerProduct.fallbackImageUrl}
+          existingReferenceUrls={photoManagerProduct.existingReferenceUrls}
+          photoCampaignId={selectedCampaign?.id}
+          onPhotosChanged={() => void loadProductPhotos(photoManagerProduct.productId, true)}
+          onClose={() => setPhotoManagerVisible(false)}
         />
       )}
 
@@ -2047,6 +2038,23 @@ const createStyles = (theme: Theme) =>
       aspectRatio: 1.35,
       borderRadius: 6,
       backgroundColor: theme.color.border.subtle,
+    },
+    referenceCountBadge: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      minWidth: 22,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 11,
+      backgroundColor: theme.color.brand.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    referenceCountBadgeText: {
+      color: theme.color.text.inverse,
+      fontSize: 11,
+      fontWeight: '700',
     },
     photoMissingBox: {
       width: '100%',
