@@ -237,6 +237,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [productStatusFilter, setProductStatusFilter] = useState<'all' | 'preliminary' | 'active'>(
     'all'
   );
+  // Filtro por avance fotográfico del producto (agregado):
+  //  - 'empty'    : no tiene fotos relevantes
+  //  - 'ref'      : tiene solo referencia
+  //  - 'ref-des'  : tiene referencia y diseño (sin precio)
+  //  - 'complete' : tiene referencia, diseño y precio
+  const [photoStatusFilter, setPhotoStatusFilter] = useState<
+    'all' | 'empty' | 'ref' | 'ref-des' | 'complete'
+  >('all');
   // Set de campaignProductIds que están actualmente cerrando validación
   // (para mostrar spinner en el botón "Activar").
   const [activatingProductIds, setActivatingProductIds] = useState<Set<string>>(new Set());
@@ -527,22 +535,23 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       return;
     }
 
+    const launch = (scope: 'missing' | 'all') => {
+      void generateBulkPrices({
+        campaignId,
+        photoCampaignId: linkedPhotoCampaignId,
+        template: 'premium',
+        products: productsPayload,
+        scope,
+      });
+    };
+
     Alert.alert(
       'Generar fotos con precio',
-      `Se recorrerán ${productsPayload.length} productos y se generará la foto con precio para los que ya tengan diseño y aún no tengan precio. El proceso corre en segundo plano.`,
+      `Se recorrerán ${productsPayload.length} productos. Elige si quieres generar solo las fotos con precio que faltan o regenerar todas (reemplaza las existentes). El proceso corre en paralelo en segundo plano.`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Generar',
-          onPress: () => {
-            void generateBulkPrices({
-              campaignId,
-              photoCampaignId: linkedPhotoCampaignId,
-              template: 'premium',
-              products: productsPayload,
-            });
-          },
-        },
+        { text: 'Solo faltantes', onPress: () => launch('missing') },
+        { text: 'Todas', onPress: () => launch('all') },
       ]
     );
   }, [
@@ -566,6 +575,28 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       void refetchProductsDetail?.();
     }
   }, [bulkPriceForThisCampaign?.running, refetchProductsDetail]);
+
+  // Refresco incremental durante el lote paralelo: cada vez que llegan
+  // nuevas tareas procesadas (done + failed), agendamos un refetch con
+  // debounce corto para reflejar las fotos apenas terminan sin disparar
+  // uno por cada foto.
+  const bulkProcessed =
+    (bulkPriceForThisCampaign?.done ?? 0) + (bulkPriceForThisCampaign?.failed ?? 0);
+  const lastRefetchedProcessedRef = useRef(0);
+  useEffect(() => {
+    if (!bulkPriceForThisCampaign?.running) {
+      lastRefetchedProcessedRef.current = 0;
+      return;
+    }
+    if (bulkProcessed <= lastRefetchedProcessedRef.current) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      lastRefetchedProcessedRef.current = bulkProcessed;
+      void refetchProductsDetail?.();
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [bulkProcessed, bulkPriceForThisCampaign?.running, refetchProductsDetail]);
 
   const loadCampaign = useCallback(async () => {
     try {
@@ -2513,6 +2544,35 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     [priceProfiles, getSalePriceForProfile]
   );
 
+  // Clasifica el avance fotográfico agregado de un producto usando los tipos
+  // planos que ya entrega `products-detail`. Nota: si un producto tiene
+  // múltiples grupos en estados distintos, se clasifica según el conjunto de
+  // tipos presentes (no se distingue por grupo).
+  const getProductPhotoStatus = useCallback(
+    (campaignProductId: string): 'empty' | 'ref' | 'ref-des' | 'complete' => {
+      const detail = productsDetailMap[campaignProductId];
+      const photos = Array.isArray(detail?.photos) ? detail!.photos : [];
+      let hasRef = false;
+      let hasDesign = false;
+      let hasPrice = false;
+      for (const p of photos) {
+        if (!p || typeof p !== 'object') continue;
+        const t =
+          typeof (p as { type?: unknown }).type === 'string'
+            ? (p as { type: string }).type.toLowerCase()
+            : '';
+        if (t === 'reference') hasRef = true;
+        else if (t === 'design') hasDesign = true;
+        else if (t === 'price') hasPrice = true;
+      }
+      if (hasPrice) return 'complete';
+      if (hasDesign) return 'ref-des';
+      if (hasRef) return 'ref';
+      return 'empty';
+    },
+    [productsDetailMap]
+  );
+
   const filteredProducts = useMemo(() => {
     if (!campaign?.products) {
       return [];
@@ -2561,6 +2621,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       });
     }
 
+    // Apply photo progress filter (agregado por producto)
+    if (photoStatusFilter !== 'all') {
+      filtered = filtered.filter(
+        (product) => getProductPhotoStatus(product.id) === photoStatusFilter
+      );
+    }
+
     // Apply search filter (usa primero los datos del endpoint compacto)
     // Normalizamos el texto para tolerar guiones, puntos, comas, espacios y
     // acentos, de forma que "AB-12.3" coincida con "ab123", etc.
@@ -2598,6 +2665,8 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     distributionFilter,
     supplierFilter,
     productStatusFilter,
+    photoStatusFilter,
+    getProductPhotoStatus,
   ]);
 
   // Lista única de proveedores presentes entre los productos de la campaña.
@@ -2688,7 +2757,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   // Reset pagination when filters change (side effect, must be useEffect)
   React.useEffect(() => {
     setDisplayedItemsCount(ITEMS_PER_PAGE);
-  }, [searchQuery, distributionFilter]);
+  }, [searchQuery, distributionFilter, supplierFilter, productStatusFilter, photoStatusFilter]);
 
   // Load more items
   const handleLoadMore = useCallback(() => {
@@ -3366,14 +3435,25 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               <ActivityIndicator size="small" color={theme.color.brand.primary} />
               <View style={styles.bulkPriceBannerTextWrap}>
                 <Text style={styles.bulkPriceBannerTitle}>
-                  Generando fotos con precio en segundo plano ({bulkPriceForThisCampaign.done}/
+                  Generando fotos con precio en paralelo (
+                  {bulkPriceForThisCampaign.done + bulkPriceForThisCampaign.failed}/
                   {bulkPriceForThisCampaign.total || '…'})
                 </Text>
-                {bulkPriceForThisCampaign.currentProductName && (
-                  <Text style={styles.bulkPriceBannerSubtitle} numberOfLines={1}>
-                    Procesando: {bulkPriceForThisCampaign.currentProductName}
-                  </Text>
-                )}
+                <Text style={styles.bulkPriceBannerSubtitle} numberOfLines={1}>
+                  {bulkPriceForThisCampaign.scope === 'all'
+                    ? 'Modo: regenerar todas'
+                    : 'Modo: solo faltantes'}
+                  {'  ·  '}✅ {bulkPriceForThisCampaign.done}
+                  {'  ·  '}⚠️ {bulkPriceForThisCampaign.failed}
+                  {bulkPriceForThisCampaign.total > 0
+                    ? `  ·  ⏳ ${Math.max(
+                        bulkPriceForThisCampaign.total -
+                          bulkPriceForThisCampaign.done -
+                          bulkPriceForThisCampaign.failed,
+                        0
+                      )}`
+                    : ''}
+                </Text>
               </View>
             </View>
           )}
@@ -3538,6 +3618,49 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
           )}
 
+          {/* Filtro por avance fotográfico del producto (agregado) */}
+          {campaign.products && campaign.products.length > 0 && (
+            <View style={styles.filterContainer}>
+              <Text style={styles.filterLabel}>Fotos:</Text>
+              <View style={[styles.filterButtons, { flexWrap: 'wrap' }]}>
+                {(
+                  [
+                    { key: 'all', label: 'Todas' },
+                    { key: 'empty', label: 'Sin nada' },
+                    { key: 'ref', label: 'Solo referencia' },
+                    { key: 'ref-des', label: 'Ref + diseño' },
+                    { key: 'complete', label: 'Ref + diseño + precio' },
+                  ] as const
+                ).map((opt) => {
+                  const count =
+                    opt.key === 'all'
+                      ? campaign.products!.length
+                      : campaign.products!.filter((p) => getProductPhotoStatus(p.id) === opt.key)
+                          .length;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[
+                        styles.filterButton,
+                        photoStatusFilter === opt.key && styles.filterButtonActive,
+                      ]}
+                      onPress={() => setPhotoStatusFilter(opt.key)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterButtonText,
+                          photoStatusFilter === opt.key && styles.filterButtonTextActive,
+                        ]}
+                      >
+                        {opt.label} ({count})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           {/* Mensaje vacío: solo cuando NO hay productos en campaña Y el usuario no está buscando.
               Si está buscando, dejamos que el buscador global muestre sugerencias debajo. */}
           {(!campaign.products || campaign.products.length === 0) && !searchQuery.trim() && (
@@ -3553,6 +3676,16 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             campaign.products.length > 0 && (
               <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
                 No se encontraron productos en la campaña que coincidan con "{searchQuery}"
+              </Text>
+            )}
+
+          {/* Sin coincidencias cuando el vacío proviene solo de filtros (sin búsqueda) */}
+          {filteredProducts.length === 0 &&
+            !searchQuery.trim() &&
+            campaign.products &&
+            campaign.products.length > 0 && (
+              <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+                No hay productos que coincidan con los filtros seleccionados.
               </Text>
             )}
         </View>

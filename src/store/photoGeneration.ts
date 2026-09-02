@@ -64,21 +64,33 @@ interface BulkPriceProduct {
   sku: string;
 }
 
+/**
+ * Alcance del lote de generación de fotos con precio:
+ * - `missing`: solo grupos con referencia + diseño que aún NO tienen precio.
+ * - `all`: incluye además grupos con precio existente para regenerarlo.
+ */
+export type BulkPriceScope = 'missing' | 'all';
+
 interface GenerateBulkPricesParams {
   campaignId: string;
   photoCampaignId?: string;
   template?: AdDesignTemplate;
   products: BulkPriceProduct[];
+  scope?: BulkPriceScope;
 }
 
 interface BulkPriceProgress {
   running: boolean;
+  /** Total de tareas descubiertas (0 mientras enumera). */
   total: number;
+  /** Tareas completadas con éxito. */
   done: number;
+  /** Tareas completadas con error. */
   failed: number;
+  /** Productos que se omitieron por falta de precio o error de datos. */
   skipped: number;
   campaignId?: string;
-  currentProductName?: string;
+  scope?: BulkPriceScope;
 }
 
 /** Llave compuesta producto+grupo para llevar flags de generación por grupo. */
@@ -317,7 +329,13 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
       }
     },
 
-    generateBulkPrices: async ({ campaignId, photoCampaignId, template = 'premium', products }) => {
+    generateBulkPrices: async ({
+      campaignId,
+      photoCampaignId,
+      template = 'premium',
+      products,
+      scope = 'missing',
+    }) => {
       if (get().bulkPrice.running) {
         return;
       }
@@ -330,6 +348,7 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
           failed: 0,
           skipped: 0,
           campaignId,
+          scope,
         },
       });
 
@@ -345,8 +364,8 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
           logger.warn('[BULK_PRICE] No se pudieron cargar perfiles de precio', error);
         }
 
-        // 2) Enumerar tareas: para cada producto, obtener sus grupos y filtrar
-        // los que ya tienen design pero aún NO tienen price.
+        // 2) Enumerar tareas: por producto, en paralelo, obtener grupos + precios
+        // y filtrar los grupos elegibles según el `scope` elegido.
         interface Task {
           productId: string;
           productName: string;
@@ -355,40 +374,42 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
           price: string;
         }
 
-        const tasks: Task[] = [];
+        const enumerationResults = await Promise.all(
+          products.map(async (p) => {
+            try {
+              const [groups, salePricesResp] = await Promise.all([
+                photoCampaignsApi.getProductPhotoGroups(p.productId),
+                priceProfilesApi.getProductSalePrices(p.productId).catch(() => null),
+              ]);
 
-        for (const p of products) {
-          try {
-            const [groups, salePricesResp] = await Promise.all([
-              photoCampaignsApi.getProductPhotoGroups(p.productId),
-              priceProfilesApi.getProductSalePrices(p.productId).catch(() => null),
-            ]);
+              const salePricesArray: ProductSalePrice[] = salePricesResp
+                ? (salePricesResp as any).salePrices || (salePricesResp as any).data || []
+                : [];
 
-            const salePricesArray: ProductSalePrice[] = salePricesResp
-              ? (salePricesResp as any).salePrices || (salePricesResp as any).data || []
-              : [];
+              const defaultSalePrice = sociaProfileId
+                ? salePricesArray.find(
+                    (sp) => sp.profileId === sociaProfileId && sp.presentationId === null
+                  )
+                : salePricesArray[0];
 
-            const defaultSalePrice = sociaProfileId
-              ? salePricesArray.find(
-                  (sp) => sp.profileId === sociaProfileId && sp.presentationId === null
-                )
-              : salePricesArray[0];
+              const priceValue = defaultSalePrice
+                ? (defaultSalePrice.priceCents / 100).toFixed(2)
+                : '';
 
-            const priceValue = defaultSalePrice
-              ? (defaultSalePrice.priceCents / 100).toFixed(2)
-              : '';
+              if (!priceValue) {
+                return { tasks: [] as Task[], skipped: true };
+              }
 
-            if (!priceValue) {
-              // Sin precio configurado, no podemos generar.
-              set((state) => ({
-                bulkPrice: { ...state.bulkPrice, skipped: state.bulkPrice.skipped + 1 },
-              }));
-              continue;
-            }
-
-            for (const g of groups) {
-              if (g.design?.fileUrl && !g.price && g.reference?.id) {
-                tasks.push({
+              const productTasks: Task[] = [];
+              for (const g of groups) {
+                if (!g.design?.fileUrl || !g.reference?.id) {
+                  continue;
+                }
+                // `missing` salta grupos que ya tienen precio; `all` los regenera.
+                if (scope === 'missing' && g.price) {
+                  continue;
+                }
+                productTasks.push({
                   productId: p.productId,
                   productName: p.name,
                   productSku: p.sku,
@@ -396,49 +417,64 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
                   price: priceValue,
                 });
               }
+              return { tasks: productTasks, skipped: false };
+            } catch (error) {
+              logger.warn('[BULK_PRICE] Error enumerando grupos del producto', p.productId, error);
+              return { tasks: [] as Task[], skipped: true };
             }
-          } catch (error) {
-            logger.warn('[BULK_PRICE] Error enumerando grupos del producto', p.productId, error);
-            set((state) => ({
-              bulkPrice: { ...state.bulkPrice, skipped: state.bulkPrice.skipped + 1 },
-            }));
+          })
+        );
+
+        const tasks: Task[] = [];
+        let skippedCount = 0;
+        for (const result of enumerationResults) {
+          tasks.push(...result.tasks);
+          if (result.skipped) {
+            skippedCount += 1;
           }
         }
 
         set((state) => ({
-          bulkPrice: { ...state.bulkPrice, total: tasks.length },
+          bulkPrice: {
+            ...state.bulkPrice,
+            total: tasks.length,
+            skipped: state.bulkPrice.skipped + skippedCount,
+          },
         }));
 
-        // 3) Ejecutar secuencialmente para no saturar la generación con IA.
-        for (const task of tasks) {
-          set((state) => ({
-            bulkPrice: {
-              ...state.bulkPrice,
-              currentProductName: task.productName,
-            },
-          }));
-
-          const ok = await get().generatePrice({
-            productId: task.productId,
-            photoCampaignId,
-            designUrl: task.group.design!.fileUrl,
-            designMimeType: task.group.design!.mimeType,
-            name: task.productName,
-            sku: task.productSku,
-            price: task.price,
-            template,
-            parentAssetId: task.group.reference!.id,
-            silent: true,
-          });
-
-          set((state) => ({
-            bulkPrice: {
-              ...state.bulkPrice,
-              done: state.bulkPrice.done + (ok ? 1 : 0),
-              failed: state.bulkPrice.failed + (ok ? 0 : 1),
-            },
-          }));
-        }
+        // 3) Ejecutar TODAS las tareas en paralelo. Cada una actualiza su
+        // propio contador cuando finaliza; un fallo aislado no detiene al
+        // resto (`allSettled`). El lock por grupo dentro de `generatePrice`
+        // sigue evitando duplicados sobre el mismo asset.
+        await Promise.allSettled(
+          tasks.map(async (task) => {
+            let ok = false;
+            try {
+              ok = await get().generatePrice({
+                productId: task.productId,
+                photoCampaignId,
+                designUrl: task.group.design!.fileUrl,
+                designMimeType: task.group.design!.mimeType,
+                name: task.productName,
+                sku: task.productSku,
+                price: task.price,
+                template,
+                parentAssetId: task.group.reference!.id,
+                silent: true,
+              });
+            } catch (error) {
+              logger.error('[BULK_PRICE] Tarea con error no controlado', error);
+              ok = false;
+            }
+            set((state) => ({
+              bulkPrice: {
+                ...state.bulkPrice,
+                done: state.bulkPrice.done + (ok ? 1 : 0),
+                failed: state.bulkPrice.failed + (ok ? 0 : 1),
+              },
+            }));
+          })
+        );
       } catch (error: any) {
         logger.error('[BULK_PRICE] Error inesperado', error);
         Alert.alert(
@@ -448,7 +484,7 @@ export const usePhotoGenerationStore = create<PhotoGenerationState>((set, get) =
       } finally {
         const finalState = get().bulkPrice;
         set({
-          bulkPrice: { ...finalState, running: false, currentProductName: undefined },
+          bulkPrice: { ...finalState, running: false },
         });
         const { total, done, failed, skipped } = finalState;
         if (total === 0 && skipped === 0) {
