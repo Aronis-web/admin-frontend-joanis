@@ -163,6 +163,19 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
   const [campaignSearchTimeout, setCampaignSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const [visibleProductIds, setVisibleProductIds] = useState<Set<string>>(new Set());
+
+  // FlatList prohíbe cambiar `onViewableItemsChanged` y `viewabilityConfig`
+  // entre renders (Invariant Violation). Los memorizamos con `useRef` para
+  // mantener la misma referencia durante todo el ciclo de vida del componente.
+  const onViewableItemsChangedRef = useRef(
+    ({ viewableItems }: { viewableItems: Array<{ item?: unknown }> }) => {
+      const ids = viewableItems
+        .map((v) => (v.item as PhotoCampaignProductItem | undefined)?.productId)
+        .filter((id): id is string => !!id);
+      setVisibleProductIds(new Set(ids));
+    }
+  );
+  const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 20 });
   const [photosByProduct, setPhotosByProduct] = useState<Record<string, ProductPhotoAsset[]>>({});
   const [photoLoadingByProduct, setPhotoLoadingByProduct] = useState<Record<string, boolean>>({});
   const [photoUploadingKey, setPhotoUploadingKey] = useState<string | null>(null);
@@ -1165,13 +1178,8 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
           maxToRenderPerBatch={20}
           windowSize={9}
           removeClippedSubviews
-          onViewableItemsChanged={({ viewableItems }) => {
-            const ids = viewableItems
-              .map((v) => (v.item as PhotoCampaignProductItem | undefined)?.productId)
-              .filter((id): id is string => !!id);
-
-            setVisibleProductIds(new Set(ids));
-          }}
+          onViewableItemsChanged={onViewableItemsChangedRef.current}
+          viewabilityConfig={viewabilityConfigRef.current}
           renderItem={({ item }) => {
             const completion = getPhotoCompletion(item.productId);
             const isLoadingPhotos = photoLoadingByProduct[item.productId];
