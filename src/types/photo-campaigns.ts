@@ -182,3 +182,33 @@ export interface SendPhotoCampaignWhatsappResponse {
   sentCount?: number;
   [key: string]: any;
 }
+
+// ============================================
+// Smart Design (generación automática con IA)
+// ============================================
+
+export type SmartDesignItemStatus = 'pending' | 'processing' | 'done' | 'error';
+
+export interface SmartDesignCounts {
+  pending: number;
+  processing: number;
+  done: number;
+  error: number;
+  total: number;
+}
+
+export interface SmartDesignItem {
+  itemId: string;
+  productId: string;
+  status: SmartDesignItemStatus;
+  error?: string | null;
+  assetId?: string | null;
+  generatedAt?: string | null;
+}
+
+export interface SmartDesignStatus {
+  enabled: boolean;
+  triggeredAt?: string | null;
+  counts: SmartDesignCounts;
+  items: SmartDesignItem[];
+}

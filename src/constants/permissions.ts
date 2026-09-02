@@ -238,6 +238,10 @@ export const PERMISSIONS = {
       UPDATE: 'photo_campaigns.products.update',
       DELETE: 'photo_campaigns.products.delete',
     },
+
+    SMART_DESIGN: {
+      TRIGGER: 'photo_campaigns.smart_design.trigger',
+    },
   },
 
   // ========== REPARTOS ==========

@@ -45,6 +45,11 @@ import {
   AddProductRequest,
 } from '@/types/campaigns';
 import { useCampaignProductsDetail } from '@/hooks/api/useCampaigns';
+import {
+  useSmartDesignStatus,
+  useEnableSmartDesign,
+  useRerunSmartDesign,
+} from '@/hooks/api/useSmartDesign';
 import { useTenantStore } from '@/store/tenant';
 import { Company } from '@/types/companies';
 import { Site } from '@/types/sites';
@@ -502,6 +507,88 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       setPhotoManagerProduct(null);
     }
   }, [photoGeneratingForProduct, photoManagerVisible, photoManagerProduct, refetchProductsDetail]);
+
+  // ============================================
+  // Smart Design (generación automática de diseños con IA)
+  // ============================================
+  const { data: smartDesignStatus } = useSmartDesignStatus(
+    linkedPhotoCampaignId,
+    Boolean(linkedPhotoCampaignId)
+  );
+  const enableSmartDesignMutation = useEnableSmartDesign(linkedPhotoCampaignId);
+  const rerunSmartDesignMutation = useRerunSmartDesign(linkedPhotoCampaignId);
+
+  const smartDesignBusy = Boolean(
+    smartDesignStatus &&
+    (smartDesignStatus.counts.pending > 0 || smartDesignStatus.counts.processing > 0)
+  );
+
+  // Al terminar el trabajo pendiente de Smart Design, refrescamos el detalle
+  // de productos para que las nuevas fotos de diseño aparezcan en la lista.
+  const prevSmartDesignBusyRef = useRef(false);
+  useEffect(() => {
+    const was = prevSmartDesignBusyRef.current;
+    prevSmartDesignBusyRef.current = smartDesignBusy;
+    if (was && !smartDesignBusy) {
+      void refetchProductsDetail?.();
+    }
+  }, [smartDesignBusy, refetchProductsDetail]);
+
+  const handleEnableSmartDesign = useCallback(() => {
+    if (!linkedPhotoCampaignId) {
+      Alert.alert(
+        'Sin campaña de fotos',
+        'Primero vincula o crea una campaña de fotos para esta campaña.'
+      );
+      return;
+    }
+    if (enableSmartDesignMutation.isPending || rerunSmartDesignMutation.isPending) {
+      return;
+    }
+    Alert.alert(
+      'Generar diseños con IA',
+      'Se procesarán en paralelo todas las fotos pendientes de la campaña. Podés cerrar la pantalla; el proceso continúa en el backend.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Activar',
+          onPress: () => {
+            enableSmartDesignMutation.mutate(undefined, {
+              onError: (error: any) => {
+                Alert.alert(
+                  'Error',
+                  error?.message || 'No se pudo activar la generación automática.'
+                );
+              },
+            });
+          },
+        },
+      ]
+    );
+  }, [linkedPhotoCampaignId, enableSmartDesignMutation, rerunSmartDesignMutation.isPending]);
+
+  const handleRerunSmartDesign = useCallback(() => {
+    if (!linkedPhotoCampaignId) return;
+    if (enableSmartDesignMutation.isPending || rerunSmartDesignMutation.isPending) return;
+    Alert.alert(
+      'Re-editar todas',
+      'Se reprocesarán TODOS los productos de la campaña, incluso los que ya tienen diseño. ¿Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Re-editar',
+          style: 'destructive',
+          onPress: () => {
+            rerunSmartDesignMutation.mutate(undefined, {
+              onError: (error: any) => {
+                Alert.alert('Error', error?.message || 'No se pudo re-editar la campaña.');
+              },
+            });
+          },
+        },
+      ]
+    );
+  }, [linkedPhotoCampaignId, enableSmartDesignMutation.isPending, rerunSmartDesignMutation]);
 
   const handleBulkGeneratePricePhotos = useCallback(() => {
     if (!campaign?.products || campaign.products.length === 0) {
@@ -3390,6 +3477,45 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   </Text>
                 </TouchableOpacity>
               )}
+              {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.SMART_DESIGN.TRIGGER) &&
+                linkedPhotoCampaignId && (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        styles.bulkButton,
+                        isTablet && styles.bulkButtonTablet,
+                        (smartDesignBusy || enableSmartDesignMutation.isPending) &&
+                          styles.bulkButtonDisabled,
+                      ]}
+                      disabled={smartDesignBusy || enableSmartDesignMutation.isPending}
+                      onPress={handleEnableSmartDesign}
+                    >
+                      <Text
+                        style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}
+                      >
+                        🤖 Generar diseños con IA
+                      </Text>
+                    </TouchableOpacity>
+                    {smartDesignStatus?.enabled && (
+                      <TouchableOpacity
+                        style={[
+                          styles.bulkButton,
+                          isTablet && styles.bulkButtonTablet,
+                          (smartDesignBusy || rerunSmartDesignMutation.isPending) &&
+                            styles.bulkButtonDisabled,
+                        ]}
+                        disabled={smartDesignBusy || rerunSmartDesignMutation.isPending}
+                        onPress={handleRerunSmartDesign}
+                      >
+                        <Text
+                          style={[styles.bulkButtonText, isTablet && styles.bulkButtonTextTablet]}
+                        >
+                          ♻️ Re-editar todas
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
               {hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.READ) && (
                 <TouchableOpacity
                   style={[
@@ -3428,6 +3554,30 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
               )}
             </View>
           </View>
+
+          {/* Indicador de Smart Design (generación automática con IA) */}
+          {smartDesignStatus?.enabled &&
+            linkedPhotoCampaignId &&
+            (smartDesignBusy || (smartDesignStatus.counts.error ?? 0) > 0) && (
+              <View style={styles.bulkPriceBanner}>
+                {smartDesignBusy && (
+                  <ActivityIndicator size="small" color={theme.color.brand.primary} />
+                )}
+                <View style={styles.bulkPriceBannerTextWrap}>
+                  <Text style={styles.bulkPriceBannerTitle}>
+                    {smartDesignBusy
+                      ? `Generando diseños con IA (${smartDesignStatus.counts.done}/${smartDesignStatus.counts.total})`
+                      : `Diseños con IA finalizados (${smartDesignStatus.counts.done}/${smartDesignStatus.counts.total})`}
+                  </Text>
+                  <Text style={styles.bulkPriceBannerSubtitle} numberOfLines={1}>
+                    ⏳ {smartDesignStatus.counts.pending}
+                    {'  ·  '}⚙️ {smartDesignStatus.counts.processing}
+                    {'  ·  '}✅ {smartDesignStatus.counts.done}
+                    {'  ·  '}⚠️ {smartDesignStatus.counts.error}
+                  </Text>
+                </View>
+              </View>
+            )}
 
           {/* Indicador de generación masiva de fotos con precio */}
           {bulkPriceForThisCampaign && (

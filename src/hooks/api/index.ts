@@ -19,3 +19,4 @@ export * from './useChatbotCatalog';
 export * from './useChatbotSettings';
 export * from './useChatbotTraining';
 export * from './useCustomers';
+export * from './useSmartDesign';

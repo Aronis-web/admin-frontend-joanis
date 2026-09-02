@@ -16,6 +16,7 @@ import {
   PhotoCampaignWhatsappContact,
   SendPhotoCampaignWhatsappRequest,
   SendPhotoCampaignWhatsappResponse,
+  SmartDesignStatus,
 } from '@/types/photo-campaigns';
 
 class PhotoCampaignsApi {
@@ -255,6 +256,40 @@ class PhotoCampaignsApi {
     return apiClient.post<SendPhotoCampaignWhatsappResponse>(
       `${this.basePath}/${campaignId}/send-whatsapp`,
       normalizedPayload
+    );
+  }
+
+  // ============================================
+  // Smart Design (generación automática de diseño con IA)
+  // ============================================
+
+  /**
+   * Activa el modo de generación automática de diseños con IA para la campaña.
+   * Idempotente: si ya estaba activo, devuelve el estado actual sin reprocesar.
+   */
+  enableSmartDesign(photoCampaignId: string): Promise<SmartDesignStatus> {
+    return apiClient.post<SmartDesignStatus>(
+      `${this.basePath}/${photoCampaignId}/smart-design/enable`,
+      {}
+    );
+  }
+
+  /**
+   * Reinicia y reprocesa todos los productos de la campaña (aunque estén done).
+   */
+  rerunSmartDesign(photoCampaignId: string): Promise<SmartDesignStatus> {
+    return apiClient.post<SmartDesignStatus>(
+      `${this.basePath}/${photoCampaignId}/smart-design/rerun`,
+      {}
+    );
+  }
+
+  /**
+   * Estado / progreso para hacer polling mientras haya items pending o processing.
+   */
+  getSmartDesignStatus(photoCampaignId: string): Promise<SmartDesignStatus> {
+    return apiClient.get<SmartDesignStatus>(
+      `${this.basePath}/${photoCampaignId}/smart-design/status`
     );
   }
 
