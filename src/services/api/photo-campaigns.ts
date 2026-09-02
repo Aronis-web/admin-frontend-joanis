@@ -365,6 +365,16 @@ class PhotoCampaignsApi {
   }
 
   /**
+   * Descarga el preview (image/jpeg) de la escena que Gemini compuso y envió a
+   * Kling, como Blob (para renderizar con `URL.createObjectURL` → `<img>`).
+   */
+  getSectionScene(videoId: string, sectionId: string): Promise<Blob> {
+    return apiClient.get<Blob>(`${this.basePath}/videos/${videoId}/sections/${sectionId}/scene`, {
+      responseType: 'blob',
+    });
+  }
+
+  /**
    * Descarga como Blob cualquier media protegida del pipeline (p. ej. el mp4
    * final vía su `downloadUrl` absoluto). `apiClient` adjunta auth + tenant
    * incluso con URL absoluta gracias a los interceptores, y el Blob permite

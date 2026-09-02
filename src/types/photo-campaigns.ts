@@ -259,6 +259,10 @@ export interface CampaignVideoConfig {
   musicVolume?: number;
   sectionDurationSec?: number;
   tone?: string | null;
+  /** Dirección de arte global aplicada a las escenas generadas. */
+  artDirection?: string | null;
+  /** Si la IA compone una escena premium por sección antes de animar. */
+  sceneGeneration?: boolean;
 }
 
 export interface CampaignVideoSection {
@@ -273,8 +277,15 @@ export interface CampaignVideoSection {
   priceLabel?: string | null;
   /** Prompt de cámara/movimiento (Kling). */
   motionPrompt?: string | null;
+  /** Prompt de composición de la escena premium (Gemini). */
+  editPrompt?: string | null;
   status: CampaignVideoSectionStatus;
   error?: string | null;
+  /**
+   * URL de preview (image/jpeg) de la escena que Gemini compuso y envió a Kling.
+   * null hasta que el archivo exista.
+   */
+  sceneUrl?: string | null;
   /**
    * URL del clip crudo (.mp4) generado por Kling para esta toma (sin precio
    * superpuesto). null si la sección está en error o aún processing sin clip
@@ -319,13 +330,16 @@ export interface CampaignVideoListItem {
 
 /** Body para crear un video (POST /:id/videos). */
 export interface CreateCampaignVideoRequest {
-  /** UUIDs de product_photo_assets, en orden de prioridad de aparición. Min 1. */
-  photoAssetIds: string[];
+  /**
+   * UUIDs de productos, en orden de prioridad de aparición. Min 1. La IA elige
+   * la foto de referencia de cada producto (ya no se envían photoAssetIds).
+   */
+  productIds: string[];
   aspectRatio?: CampaignVideoAspectRatio;
   /** voice_id de ElevenLabs. */
-  voiceId?: string;
+  voiceId?: string | null;
   /** Ruta relativa (Z:) de música. */
-  musicPath?: string;
+  musicPath?: string | null;
   /** Tono del guion (ej. "energico", "elegante"). */
   tone?: string;
   /** Segundos por clip de producto. Entre 3 y 10. */

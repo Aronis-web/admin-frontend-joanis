@@ -28,7 +28,6 @@ import {
   CampaignVideoSectionStatus,
   CampaignVideoStatus,
   PhotoCampaignProductItem,
-  PhotoType,
   ProductPhotoAsset,
 } from '@/types/photo-campaigns';
 import {
@@ -51,23 +50,18 @@ interface CampaignVideoModalProps {
   onClose: () => void;
 }
 
-/** Foto seleccionable enriquecida con datos de su producto. */
-interface SelectableAsset {
-  id: string;
-  fileUrl: string;
-  photoType: PhotoType;
+/** Producto seleccionable para el video (la IA elige su foto de referencia). */
+interface SelectableProduct {
   productId: string;
   productTitle: string;
+  /** Miniatura representativa (preferentemente la foto de referencia). */
+  thumbnailUrl?: string;
+  /** Si el producto tiene al menos una foto de tipo `reference`. */
+  hasReference: boolean;
 }
 
 const ASPECT_RATIOS: CampaignVideoAspectRatio[] = ['9:16', '1:1', '4:5', '16:9'];
 const SECTION_DURATIONS = [3, 4, 5, 6, 7, 8, 9, 10];
-
-const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
-  reference: 'Referencia',
-  design: 'Diseño',
-  price: 'Con precio',
-};
 
 const VIDEO_STATUS_LABELS: Record<CampaignVideoStatus, string> = {
   pending: 'Pendiente',
@@ -386,6 +380,123 @@ const SectionMediaPlayer: React.FC<{
   return <InlineMediaPlayer sources={sources} aspectRatio={aspectRatio} />;
 };
 
+/**
+ * Preview de la escena que Gemini compuso y envió a Kling (image/jpeg).
+ * Requiere Authorization, así que se descarga como Blob (web) o archivo temporal
+ * (nativo) y se muestra con `<Image>`.
+ */
+const SectionScenePreview: React.FC<{
+  videoId: string;
+  sectionId: string;
+  sceneUrl: string;
+  aspectRatio: CampaignVideoAspectRatio;
+}> = ({ videoId, sectionId, sceneUrl, aspectRatio }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const [expanded, setExpanded] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const cleanup = useCallback((uri: string | null) => {
+    if (!uri) return;
+    if (Platform.OS === 'web') {
+      try {
+        URL.revokeObjectURL(uri);
+      } catch {
+        // noop
+      }
+    } else {
+      FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {
+        // noop
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => cleanup(imageUri);
+  }, [imageUri, cleanup]);
+
+  const toggle = useCallback(async () => {
+    if (expanded) {
+      setExpanded(false);
+      setError(null);
+      setImageUri((prev) => {
+        cleanup(prev);
+        return null;
+      });
+      return;
+    }
+    setExpanded(true);
+    setLoading(true);
+    setError(null);
+    try {
+      let uri: string;
+      if (Platform.OS === 'web') {
+        const blob = await photoCampaignsApi.getSectionScene(videoId, sectionId);
+        uri = URL.createObjectURL(blob);
+      } else {
+        uri = await downloadSectionMediaNative(
+          sceneUrl,
+          `campaign-section-${sectionId}-scene`,
+          'jpg'
+        );
+      }
+      setImageUri((prev) => {
+        cleanup(prev);
+        return uri;
+      });
+    } catch (err) {
+      logger.error('[CAMPAIGN_VIDEO] Error cargando escena', err);
+      setError('No se pudo cargar la escena.');
+    } finally {
+      setLoading(false);
+    }
+  }, [expanded, videoId, sectionId, sceneUrl, cleanup]);
+
+  const ratioValue = (() => {
+    const [w, h] = aspectRatio.split(':').map((n) => Number(n));
+    return w > 0 && h > 0 ? w / h : 9 / 16;
+  })();
+
+  return (
+    <View style={styles.mediaWrap}>
+      <View style={styles.mediaButtons}>
+        <TouchableOpacity
+          style={[styles.mediaButton, expanded && styles.mediaButtonActive]}
+          onPress={() => void toggle()}
+        >
+          <Ionicons
+            name={expanded ? 'close' : 'image-outline'}
+            size={14}
+            color={theme.color.brand.accent}
+          />
+          <Text style={styles.mediaButtonText}>{expanded ? 'Ocultar escena' : 'Ver escena'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {expanded && (
+        <View style={styles.mediaPlayer}>
+          {loading ? (
+            <View style={styles.mediaLoadingRow}>
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
+              <Text style={styles.mutedText}>Cargando…</Text>
+            </View>
+          ) : error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={[styles.sceneImage, { aspectRatio: ratioValue }]}
+              resizeMode="contain"
+            />
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+};
+
 /** Reproductor inline del mp4 final ensamblado del video. */
 const FullVideoPlayer: React.FC<{
   videoId: string;
@@ -443,7 +554,7 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
   const [loadingPhotos, setLoadingPhotos] = useState(false);
 
   // ----- Selección ordenada + configuración -----
-  const [orderedSelection, setOrderedSelection] = useState<SelectableAsset[]>([]);
+  const [orderedSelection, setOrderedSelection] = useState<SelectableProduct[]>([]);
   const [aspectRatio, setAspectRatio] = useState<CampaignVideoAspectRatio>('9:16');
   const [tone, setTone] = useState('');
   const [sectionDurationSec, setSectionDurationSec] = useState(5);
@@ -522,30 +633,47 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
     return map;
   }, [products]);
 
-  const selectedIds = useMemo(() => new Set(orderedSelection.map((a) => a.id)), [orderedSelection]);
+  /** Metadatos por producto: miniatura (preferente reference) y si tiene reference. */
+  const productMetaById = useMemo(() => {
+    const map: Record<string, { thumbnailUrl?: string; hasReference: boolean }> = {};
+    products.forEach((item) => {
+      const assets = photosByProduct[item.productId] || [];
+      const reference = assets.find((a) => a.photoType === 'reference');
+      map[item.productId] = {
+        thumbnailUrl: (reference || assets[0])?.fileUrl,
+        hasReference: !!reference,
+      };
+    });
+    return map;
+  }, [products, photosByProduct]);
 
-  const toggleAsset = useCallback(
-    (asset: ProductPhotoAsset) => {
+  const selectedProductIds = useMemo(
+    () => new Set(orderedSelection.map((p) => p.productId)),
+    [orderedSelection]
+  );
+
+  const toggleProduct = useCallback(
+    (productId: string) => {
       setOrderedSelection((prev) => {
-        if (prev.some((a) => a.id === asset.id)) {
-          return prev.filter((a) => a.id !== asset.id);
+        if (prev.some((p) => p.productId === productId)) {
+          return prev.filter((p) => p.productId !== productId);
         }
+        const meta = productMetaById[productId];
         return [
           ...prev,
           {
-            id: asset.id,
-            fileUrl: asset.fileUrl,
-            photoType: asset.photoType,
-            productId: asset.productId,
-            productTitle: productTitleById[asset.productId] || asset.productId,
+            productId,
+            productTitle: productTitleById[productId] || productId,
+            thumbnailUrl: meta?.thumbnailUrl,
+            hasReference: meta?.hasReference ?? false,
           },
         ];
       });
     },
-    [productTitleById]
+    [productMetaById, productTitleById]
   );
 
-  const moveAsset = useCallback((index: number, direction: -1 | 1) => {
+  const moveProduct = useCallback((index: number, direction: -1 | 1) => {
     setOrderedSelection((prev) => {
       const target = index + direction;
       if (target < 0 || target >= prev.length) return prev;
@@ -556,18 +684,28 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
     });
   }, []);
 
-  const removeAsset = useCallback((id: string) => {
-    setOrderedSelection((prev) => prev.filter((a) => a.id !== id));
+  const removeProduct = useCallback((productId: string) => {
+    setOrderedSelection((prev) => prev.filter((p) => p.productId !== productId));
   }, []);
 
   const handleCreate = useCallback(() => {
     if (orderedSelection.length === 0) {
-      Alert.alert('Validación', 'Selecciona al menos una foto para generar el video.');
+      Alert.alert('Validación', 'Selecciona al menos un producto para generar el video.');
+      return;
+    }
+    const withoutReference = orderedSelection.filter((p) => !p.hasReference);
+    if (withoutReference.length > 0) {
+      Alert.alert(
+        'Faltan fotos de referencia',
+        `Estos productos no tienen foto de referencia:\n${withoutReference
+          .map((p) => `• ${p.productTitle}`)
+          .join('\n')}`
+      );
       return;
     }
     createMut.mutate(
       {
-        photoAssetIds: orderedSelection.map((a) => a.id),
+        productIds: orderedSelection.map((p) => p.productId),
         aspectRatio,
         tone: tone.trim() || undefined,
         sectionDurationSec,
@@ -782,6 +920,15 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
 
                 {!!section.error && <Text style={styles.errorText}>{section.error}</Text>}
 
+                {!!section.sceneUrl && (
+                  <SectionScenePreview
+                    videoId={video.id}
+                    sectionId={section.id}
+                    sceneUrl={section.sceneUrl}
+                    aspectRatio={video.aspectRatio}
+                  />
+                )}
+
                 <SectionMediaPlayer
                   videoId={video.id}
                   sectionId={section.id}
@@ -928,26 +1075,37 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
               placeholderTextColor={theme.color.text.placeholder}
             />
 
-            {/* Orden de aparición */}
+            {/* Orden de aparición (productos) */}
             <Text style={styles.fieldLabel}>Orden de aparición ({orderedSelection.length})</Text>
+            <Text style={styles.mutedText}>
+              La IA elige automáticamente la foto de referencia de cada producto.
+            </Text>
             {orderedSelection.length === 0 ? (
               <Text style={styles.mutedText}>
-                Toca las fotos de abajo para agregarlas en el orden deseado.
+                Toca los productos de abajo para agregarlos en el orden deseado.
               </Text>
             ) : (
-              orderedSelection.map((asset, index) => (
-                <View key={asset.id} style={styles.orderRow}>
+              orderedSelection.map((product, index) => (
+                <View key={product.productId} style={styles.orderRow}>
                   <Text style={styles.orderNumber}>{index + 1}</Text>
-                  <Image source={{ uri: asset.fileUrl }} style={styles.orderThumb} />
+                  {product.thumbnailUrl ? (
+                    <Image source={{ uri: product.thumbnailUrl }} style={styles.orderThumb} />
+                  ) : (
+                    <View style={[styles.orderThumb, styles.orderThumbEmpty]}>
+                      <Ionicons name="image-outline" size={18} color={theme.color.text.muted} />
+                    </View>
+                  )}
                   <View style={styles.orderInfo}>
                     <Text style={styles.orderTitle} numberOfLines={1}>
-                      {asset.productTitle}
+                      {product.productTitle}
                     </Text>
-                    <Text style={styles.orderType}>{PHOTO_TYPE_LABELS[asset.photoType]}</Text>
+                    {!product.hasReference && (
+                      <Text style={styles.orderWarn}>Sin foto de referencia</Text>
+                    )}
                   </View>
                   <TouchableOpacity
                     style={styles.orderIconBtn}
-                    onPress={() => moveAsset(index, -1)}
+                    onPress={() => moveProduct(index, -1)}
                     disabled={index === 0}
                   >
                     <Ionicons
@@ -958,7 +1116,7 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.orderIconBtn}
-                    onPress={() => moveAsset(index, 1)}
+                    onPress={() => moveProduct(index, 1)}
                     disabled={index === orderedSelection.length - 1}
                   >
                     <Ionicons
@@ -973,7 +1131,7 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.orderIconBtn}
-                    onPress={() => removeAsset(asset.id)}
+                    onPress={() => removeProduct(product.productId)}
                   >
                     <Ionicons name="close" size={16} color={theme.color.state.danger.text} />
                   </TouchableOpacity>
@@ -981,50 +1139,54 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
               ))
             )}
 
-            {/* Galería por producto */}
-            <Text style={styles.fieldLabel}>Fotos de la campaña</Text>
+            {/* Productos de la campaña */}
+            <Text style={styles.fieldLabel}>Productos de la campaña</Text>
             {loadingPhotos ? (
               <View style={styles.inlineLoadingRow}>
                 <ActivityIndicator size="small" color={theme.color.brand.accent} />
-                <Text style={styles.mutedText}>Cargando fotos...</Text>
+                <Text style={styles.mutedText}>Cargando productos...</Text>
               </View>
             ) : products.length === 0 ? (
               <Text style={styles.mutedText}>La campaña no tiene productos.</Text>
             ) : (
-              products.map((item) => {
-                const assets = photosByProduct[item.productId] || [];
-                if (assets.length === 0) return null;
-                return (
-                  <View key={item.id} style={styles.productBlock}>
-                    <Text style={styles.productBlockTitle} numberOfLines={1}>
-                      {item.product?.title || item.productId}
-                    </Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {assets.map((asset) => {
-                        const selected = selectedIds.has(asset.id);
-                        const order = orderedSelection.findIndex((a) => a.id === asset.id);
-                        return (
-                          <TouchableOpacity
-                            key={asset.id}
-                            style={[styles.thumbWrap, selected && styles.thumbWrapSelected]}
-                            onPress={() => toggleAsset(asset)}
-                          >
-                            <Image source={{ uri: asset.fileUrl }} style={styles.thumb} />
-                            {selected && (
-                              <View style={styles.thumbBadge}>
-                                <Text style={styles.thumbBadgeText}>{order + 1}</Text>
-                              </View>
-                            )}
-                            <Text style={styles.thumbType}>
-                              {PHOTO_TYPE_LABELS[asset.photoType]}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  </View>
-                );
-              })
+              <View style={styles.productGrid}>
+                {products.map((item) => {
+                  const meta = productMetaById[item.productId];
+                  const selected = selectedProductIds.has(item.productId);
+                  const order = orderedSelection.findIndex((p) => p.productId === item.productId);
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[styles.productCard, selected && styles.productCardSelected]}
+                      onPress={() => toggleProduct(item.productId)}
+                    >
+                      {meta?.thumbnailUrl ? (
+                        <Image
+                          source={{ uri: meta.thumbnailUrl }}
+                          style={styles.productCardImage}
+                        />
+                      ) : (
+                        <View style={[styles.productCardImage, styles.orderThumbEmpty]}>
+                          <Ionicons name="image-outline" size={22} color={theme.color.text.muted} />
+                        </View>
+                      )}
+                      {selected && (
+                        <View style={styles.thumbBadge}>
+                          <Text style={styles.thumbBadgeText}>{order + 1}</Text>
+                        </View>
+                      )}
+                      {!meta?.hasReference && (
+                        <View style={styles.noRefBadge}>
+                          <Text style={styles.noRefBadgeText}>Sin ref.</Text>
+                        </View>
+                      )}
+                      <Text style={styles.productCardTitle} numberOfLines={2}>
+                        {item.product?.title || item.productId}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             )}
           </>
         )}
@@ -1235,6 +1397,10 @@ const createStyles = (theme: Theme) =>
       borderRadius: theme.radii.sm,
       backgroundColor: theme.color.background.subtle,
     },
+    orderThumbEmpty: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     orderInfo: {
       flex: 1,
     },
@@ -1243,39 +1409,54 @@ const createStyles = (theme: Theme) =>
       fontWeight: '700',
       color: theme.color.text.heading,
     },
-    orderType: {
+    orderWarn: {
       fontSize: 11,
-      color: theme.color.text.muted,
+      fontWeight: '600',
+      color: theme.color.state.danger.text,
     },
     orderIconBtn: {
       padding: theme.space[1.5],
     },
-    // ----- Galería -----
-    productBlock: {
-      marginBottom: theme.space[2],
+    // ----- Grilla de productos -----
+    productGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
     },
-    productBlockTitle: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      marginBottom: theme.space[1],
-    },
-    thumbWrap: {
-      width: 72,
-      marginRight: theme.space[2],
+    productCard: {
+      width: 96,
       borderRadius: theme.radii.md,
       borderWidth: 2,
       borderColor: 'transparent',
       padding: 2,
     },
-    thumbWrapSelected: {
+    productCardSelected: {
       borderColor: theme.color.brand.accent,
     },
-    thumb: {
+    productCardImage: {
       width: '100%',
-      height: 72,
+      height: 96,
       borderRadius: theme.radii.sm,
       backgroundColor: theme.color.background.subtle,
+    },
+    productCardTitle: {
+      fontSize: 11,
+      color: theme.color.text.body,
+      marginTop: 2,
+    },
+    noRefBadge: {
+      position: 'absolute',
+      bottom: 26,
+      left: 4,
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: theme.radii.sm,
+      backgroundColor: theme.color.state.danger.background,
+    },
+    noRefBadgeText: {
+      color: theme.color.state.danger.text,
+      fontSize: 9,
+      fontWeight: '700',
     },
     thumbBadge: {
       position: 'absolute',
@@ -1293,12 +1474,6 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.inverse,
       fontSize: 10,
       fontWeight: '700',
-    },
-    thumbType: {
-      fontSize: 10,
-      color: theme.color.text.muted,
-      textAlign: 'center',
-      marginTop: 2,
     },
     // ----- Detalle -----
     backRow: {
@@ -1436,6 +1611,12 @@ const createStyles = (theme: Theme) =>
     nativeAudio: {
       width: '100%',
       height: 48,
+    },
+    sceneImage: {
+      width: '100%',
+      maxHeight: 360,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.background.subtle,
     },
     ghostButton: {
       flexDirection: 'row',
