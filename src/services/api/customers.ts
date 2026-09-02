@@ -5,6 +5,8 @@ import {
   CreateCustomerRequest,
   UpdateCustomerRequest,
   QueryCustomersParams,
+  QueryCustomersAutocompleteParams,
+  CustomersAutocompleteResponse,
   ApiPeruDniResponse,
   ApiPeruRucResponse,
 } from '@/types/customers';
@@ -22,8 +24,24 @@ class CustomersService {
   /**
    * Get all customers with optional filters
    */
-  async getCustomers(params?: QueryCustomersParams): Promise<CustomersResponse> {
-    return apiClient.get<CustomersResponse>(this.basePath, { params });
+  async getCustomers(
+    params?: QueryCustomersParams,
+    signal?: AbortSignal
+  ): Promise<CustomersResponse> {
+    return apiClient.get<CustomersResponse>(this.basePath, { params, signal });
+  }
+
+  async getCustomersAutocomplete(
+    params: QueryCustomersAutocompleteParams,
+    signal?: AbortSignal
+  ): Promise<CustomersAutocompleteResponse> {
+    const query = params.query.trim();
+    const limit = Math.min(50, Math.max(1, params.limit ?? 10));
+
+    return apiClient.get<CustomersAutocompleteResponse>(`${this.basePath}/autocomplete`, {
+      signal,
+      params: { ...params, query, limit },
+    });
   }
 
   /**
@@ -81,4 +99,5 @@ class CustomersService {
 }
 
 export const customersService = new CustomersService();
+export const customersApi = customersService;
 export default customersService;

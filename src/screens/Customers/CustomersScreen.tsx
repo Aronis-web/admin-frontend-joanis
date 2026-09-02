@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,106 +11,67 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
-import { useMenuNavigation } from '@/hooks/useMenuNavigation';
-import { customersService } from '@/services/api/customers';
 import { Customer, CustomerType } from '@/types/customers';
+import { useCustomers, useDeleteCustomer } from '@/hooks/api/useCustomers';
+import { useDebounce } from '@/hooks/useDebounce';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { logger } from '@/utils/logger';
 
 interface CustomersScreenProps {
-  navigation: any;
+  navigation: {
+    navigate: (screen: string, params: { customerId?: string }) => void;
+  };
 }
 
 export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) => {
-  const { user } = useAuthStore();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebounce(searchQuery, 300).trim();
+  const limit = 20;
+  const {
+    data: customersResponse,
+    isLoading,
+    isFetching,
+    isRefetching,
+    isError,
+    refetch,
+  } = useCustomers({
+    page,
+    limit,
+    search: debouncedSearch || undefined,
+    isActive: true,
+  });
+  const deleteCustomer = useDeleteCustomer();
+  const customers = customersResponse?.data ?? [];
+  const pagination = customersResponse?.meta ?? {
+    page,
+    limit,
     total: 0,
     totalPages: 0,
-  });
+  };
 
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 768 || height >= 768;
-  const isLandscape = width > height;
 
   const handleMenuToggle = () => {
     setIsMenuVisible(!isMenuVisible);
   };
 
-  useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  useEffect(() => {
-    if (!Array.isArray(customers)) {
-      setFilteredCustomers([]);
-      return;
-    }
-
-    if (searchQuery.trim() === '') {
-      setFilteredCustomers(customers);
-    } else {
-      const filtered = customers.filter(
-        (customer) =>
-          (customer.fullName &&
-            customer.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (customer.documentNumber && customer.documentNumber.includes(searchQuery)) ||
-          (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (customer.razonSocial &&
-            customer.razonSocial.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (customer.nombreComercial &&
-            customer.nombreComercial.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-      setFilteredCustomers(filtered);
-    }
-  }, [searchQuery, customers]);
-
-  const loadCustomers = async (page: number = 1) => {
-    try {
-      setLoading(true);
-      const response = await customersService.getCustomers({
-        page,
-        limit: pagination.limit,
-        isActive: true,
-      });
-
-      setCustomers(response.data);
-
-      const totalPages = Math.ceil(response.total / response.limit);
-      setPagination({
-        page: response.page,
-        limit: response.limit,
-        total: response.total,
-        totalPages: totalPages,
-      });
-    } catch (error: any) {
-      console.error('Error loading customers:', error);
-      const errorMessage =
-        error.response?.data?.message || error.message || 'No se pudieron cargar los clientes';
-      Alert.alert('Error', errorMessage);
-    } finally {
-      setLoading(false);
-    }
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    setPage(1);
   };
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadCustomers(1);
-    setRefreshing(false);
+    await refetch();
   };
 
   const handleAddCustomer = () => {
@@ -132,15 +93,14 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
           style: 'destructive',
           onPress: async () => {
             try {
-              await customersService.deleteCustomer(customer.id);
+              await deleteCustomer.mutateAsync(customer.id);
               Alert.alert('Éxito', 'Cliente eliminado correctamente');
-              loadCustomers(pagination.page);
-            } catch (error: any) {
-              console.error('Error deleting customer:', error);
-              Alert.alert(
-                'Error',
-                error.response?.data?.message || 'No se pudo eliminar el cliente'
-              );
+              if (customers.length === 1 && page > 1) {
+                setPage(page - 1);
+              }
+            } catch (error) {
+              logger.error('Error deleting customer:', error);
+              Alert.alert('Error', 'No se pudo eliminar el cliente');
             }
           },
         },
@@ -232,8 +192,8 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
         totalPages={pagination.totalPages}
         totalItems={pagination.total}
         itemsPerPage={pagination.limit}
-        onPageChange={loadCustomers}
-        loading={loading}
+        onPageChange={setPage}
+        loading={isFetching}
       />
     );
   };
@@ -264,11 +224,11 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
           style={[styles.searchInput, isTablet && styles.searchInputTablet]}
           placeholder="Buscar por nombre, documento, email..."
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearchChange}
           placeholderTextColor={theme.color.text.placeholder}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+          <TouchableOpacity onPress={() => handleSearchChange('')} style={styles.clearButton}>
             <Text style={styles.clearButtonText}>✕</Text>
           </TouchableOpacity>
         )}
@@ -282,12 +242,19 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
       </View>
 
       {/* Content */}
-      {loading ? (
+      {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando clientes...</Text>
         </View>
-      ) : filteredCustomers.length === 0 ? (
+      ) : isError ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No se pudieron cargar los clientes</Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={() => refetch()}>
+            <Text style={styles.emptyButtonText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      ) : customers.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
             {searchQuery ? 'No se encontraron clientes' : 'No hay clientes registrados'}
@@ -301,9 +268,9 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
       ) : (
         <ScrollView
           style={styles.scrollView}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
         >
-          {filteredCustomers.map(renderCustomerCard)}
+          {customers.map(renderCustomerCard)}
           <View style={styles.bottomPadding} />
         </ScrollView>
       )}
