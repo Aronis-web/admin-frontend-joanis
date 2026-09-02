@@ -16,6 +16,11 @@ import { photoCampaignsApi } from '@/services/api';
 import { PhotoCampaign, PhotoCampaignStatus } from '@/types/photo-campaigns';
 import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
+import {
+  useSmartDesignStatus,
+  useEnableSmartDesign,
+  useRerunSmartDesign,
+} from '@/hooks/api/useSmartDesign';
 import Alert from '@/utils/alert';
 import { SendPhotoCampaignWhatsAppModal } from './SendPhotoCampaignWhatsAppModal';
 
@@ -70,6 +75,7 @@ export const LinkPhotoCampaignModal: React.FC<LinkPhotoCampaignModalProps> = ({
   const canLink = hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.PRODUCTS.CREATE);
   const canUnlink = hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.PRODUCTS.DELETE);
   const canSendWhatsapp = hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.UPDATE);
+  const canTriggerSmartDesign = hasPermission(PERMISSIONS.PHOTO_CAMPAIGNS.SMART_DESIGN.TRIGGER);
 
   const loadData = useCallback(async () => {
     if (!campaignId) {
@@ -275,31 +281,36 @@ export const LinkPhotoCampaignModal: React.FC<LinkPhotoCampaignModalProps> = ({
               ) : (
                 uniqueLinkedCampaigns.map((c) => (
                   <View key={c.id} style={styles.linkedRow}>
-                    <View style={styles.linkedInfo}>
-                      <Text style={styles.linkedCode}>{c.code}</Text>
-                      <Text style={styles.linkedName}>{c.name}</Text>
-                      <Text style={styles.linkedStatus}>{statusLabel[c.status]}</Text>
+                    <View style={styles.linkedRowTop}>
+                      <View style={styles.linkedInfo}>
+                        <Text style={styles.linkedCode}>{c.code}</Text>
+                        <Text style={styles.linkedName}>{c.name}</Text>
+                        <Text style={styles.linkedStatus}>{statusLabel[c.status]}</Text>
+                      </View>
+                      <View style={styles.linkedActions}>
+                        {canSendWhatsapp && (
+                          <TouchableOpacity
+                            style={styles.whatsappButton}
+                            onPress={() => openWhatsapp(c)}
+                            disabled={submitting}
+                          >
+                            <Text style={styles.whatsappButtonText}>WhatsApp</Text>
+                          </TouchableOpacity>
+                        )}
+                        {canUnlink && (
+                          <TouchableOpacity
+                            style={styles.dangerButton}
+                            onPress={() => handleUnlink(c)}
+                            disabled={submitting}
+                          >
+                            <Text style={styles.dangerButtonText}>Desvincular</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
-                    <View style={styles.linkedActions}>
-                      {canSendWhatsapp && (
-                        <TouchableOpacity
-                          style={styles.whatsappButton}
-                          onPress={() => openWhatsapp(c)}
-                          disabled={submitting}
-                        >
-                          <Text style={styles.whatsappButtonText}>WhatsApp</Text>
-                        </TouchableOpacity>
-                      )}
-                      {canUnlink && (
-                        <TouchableOpacity
-                          style={styles.dangerButton}
-                          onPress={() => handleUnlink(c)}
-                          disabled={submitting}
-                        >
-                          <Text style={styles.dangerButtonText}>Desvincular</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
+                    {canTriggerSmartDesign && (
+                      <SmartDesignActions photoCampaignId={c.id} disabled={submitting} />
+                    )}
                   </View>
                 ))
               )}
@@ -464,15 +475,66 @@ const createStyles = (theme: Theme) =>
       marginBottom: theme.space[2],
     },
     linkedRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
       borderWidth: 1,
       borderColor: theme.color.border.subtle,
       borderRadius: theme.radii.md,
       padding: theme.space[2.5],
       marginBottom: theme.space[2],
       backgroundColor: theme.color.background.subtle,
+    },
+    linkedRowTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    smartDesignBlock: {
+      marginTop: theme.space[2],
+      paddingTop: theme.space[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+      gap: theme.space[1.5],
+    },
+    smartDesignActionsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    smartDesignStatusRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[2],
+    },
+    smartDesignStatusText: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      flexShrink: 1,
+    },
+    aiButton: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.brand.accent,
+    },
+    aiButtonText: {
+      color: theme.color.text.inverse,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    aiSecondaryButton: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.color.brand.accentSoft,
+      borderWidth: 1,
+      borderColor: theme.color.brand.accent,
+    },
+    aiSecondaryButtonText: {
+      color: theme.color.brand.accent,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    aiButtonDisabled: {
+      opacity: 0.5,
     },
     availableRow: {
       flexDirection: 'row',
@@ -630,5 +692,109 @@ const createStyles = (theme: Theme) =>
       textAlignVertical: 'top',
     },
   });
+
+/**
+ * Acciones y progreso del flujo Smart Design (generación automática de
+ * diseños con IA) para una campaña de fotos concreta. Se renderiza dentro
+ * de cada fila de campaña vinculada y hace polling automático mientras haya
+ * items pendientes o en proceso.
+ */
+interface SmartDesignActionsProps {
+  photoCampaignId: string;
+  disabled?: boolean;
+}
+
+const SmartDesignActions: React.FC<SmartDesignActionsProps> = ({ photoCampaignId, disabled }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const { data: status } = useSmartDesignStatus(photoCampaignId, Boolean(photoCampaignId));
+  const enableMutation = useEnableSmartDesign(photoCampaignId);
+  const rerunMutation = useRerunSmartDesign(photoCampaignId);
+
+  const busy = Boolean(status && (status.counts.pending > 0 || status.counts.processing > 0));
+  const isSubmitting = enableMutation.isPending || rerunMutation.isPending;
+  const disabledAll = disabled || isSubmitting || busy;
+
+  const handleEnable = useCallback(() => {
+    Alert.alert(
+      'Generar diseños con IA',
+      'Se procesarán en paralelo todas las fotos pendientes de la campaña. El proceso continúa en el backend.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Activar',
+          onPress: () => {
+            enableMutation.mutate(undefined, {
+              onError: (error: any) => {
+                Alert.alert(
+                  'Error',
+                  error?.message || 'No se pudo activar la generación automática.'
+                );
+              },
+            });
+          },
+        },
+      ]
+    );
+  }, [enableMutation]);
+
+  const handleRerun = useCallback(() => {
+    Alert.alert(
+      'Re-editar todas',
+      'Se reprocesarán TODOS los productos de la campaña, incluso los que ya tienen diseño. ¿Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Re-editar',
+          style: 'destructive',
+          onPress: () => {
+            rerunMutation.mutate(undefined, {
+              onError: (error: any) => {
+                Alert.alert('Error', error?.message || 'No se pudo re-editar la campaña.');
+              },
+            });
+          },
+        },
+      ]
+    );
+  }, [rerunMutation]);
+
+  return (
+    <View style={styles.smartDesignBlock}>
+      <View style={styles.smartDesignActionsRow}>
+        <TouchableOpacity
+          style={[styles.aiButton, disabledAll && styles.aiButtonDisabled]}
+          onPress={handleEnable}
+          disabled={disabledAll}
+        >
+          <Text style={styles.aiButtonText}>🤖 Generar diseños con IA</Text>
+        </TouchableOpacity>
+        {status?.enabled && (
+          <TouchableOpacity
+            style={[styles.aiSecondaryButton, disabledAll && styles.aiButtonDisabled]}
+            onPress={handleRerun}
+            disabled={disabledAll}
+          >
+            <Text style={styles.aiSecondaryButtonText}>♻️ Re-editar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {status?.enabled && (busy || (status.counts.error ?? 0) > 0) && (
+        <View style={styles.smartDesignStatusRow}>
+          {busy && <ActivityIndicator size="small" color={theme.color.brand.accent} />}
+          <Text style={styles.smartDesignStatusText}>
+            {busy
+              ? `Generando (${status.counts.done}/${status.counts.total})`
+              : `Finalizado (${status.counts.done}/${status.counts.total})`}
+            {'  ·  '}⏳ {status.counts.pending}
+            {'  ·  '}⚙️ {status.counts.processing}
+            {'  ·  '}✅ {status.counts.done}
+            {'  ·  '}⚠️ {status.counts.error}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 export default LinkPhotoCampaignModal;
