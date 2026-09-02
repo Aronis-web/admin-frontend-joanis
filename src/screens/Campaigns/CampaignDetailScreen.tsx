@@ -3370,46 +3370,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             </View>
           </View>
 
-          {/* Indicador de Smart Design (generación automática con IA) */}
-          {smartDesignStatus?.enabled &&
-            linkedPhotoCampaignId &&
-            (smartDesignBusy || (smartDesignStatus.counts.error ?? 0) > 0) && (
-              <View style={styles.bulkPriceBanner}>
-                {smartDesignBusy && (
-                  <ActivityIndicator size="small" color={theme.color.brand.primary} />
-                )}
-                <View style={styles.bulkPriceBannerTextWrap}>
-                  <Text style={styles.bulkPriceBannerTitle}>
-                    {smartDesignBusy
-                      ? `Generando diseños con IA (${smartDesignStatus.counts.done}/${smartDesignStatus.counts.total})`
-                      : `Diseños con IA finalizados (${smartDesignStatus.counts.done}/${smartDesignStatus.counts.total})`}
-                  </Text>
-                  <Text style={styles.bulkPriceBannerSubtitle} numberOfLines={1}>
-                    ⏳ {smartDesignStatus.counts.pending}
-                    {'  ·  '}⚙️ {smartDesignStatus.counts.processing}
-                    {'  ·  '}✅ {smartDesignStatus.counts.done}
-                    {'  ·  '}⚠️ {smartDesignStatus.counts.error}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-          {/* Indicador de Smart Price (aplicación masiva en el backend) */}
-          {smartPriceStatus && linkedPhotoCampaignId && smartPriceBusy && (
-            <View style={styles.bulkPriceBanner}>
-              <ActivityIndicator size="small" color={theme.color.brand.primary} />
-              <View style={styles.bulkPriceBannerTextWrap}>
-                <Text style={styles.bulkPriceBannerTitle}>
-                  Aplicando precio en el backend ({smartPriceStatus.withPrice}/
-                  {smartPriceStatus.total})
-                </Text>
-                <Text style={styles.bulkPriceBannerSubtitle} numberOfLines={1}>
-                  ✅ {smartPriceStatus.withPrice}
-                  {'  ·  '}⏳ {smartPriceStatus.withoutPrice}
-                </Text>
-              </View>
-            </View>
-          )}
+          {/* Los indicadores de progreso de Smart Design y Smart Price se
+              muestran únicamente dentro del modal `LinkPhotoCampaignModal`.
+              Aquí solo se conserva el auto-refresh silencioso al completar. */}
 
           {/* Search bar + supplier picker */}
           <View style={styles.searchRow}>
