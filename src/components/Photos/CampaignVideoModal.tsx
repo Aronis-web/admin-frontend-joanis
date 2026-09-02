@@ -115,8 +115,6 @@ const formatDate = (iso?: string): string => {
   }
 };
 
-type SectionMediaKind = 'clip' | 'voice';
-
 /**
  * Descarga un stream protegido a un archivo temporal en cache (solo nativo),
  * adjuntando auth + tenant. Devuelve la URI local reproducible por `expo-av`.
@@ -151,33 +149,43 @@ const downloadSectionMediaNative = async (
   return result.uri;
 };
 
+/** Descriptor de una pista reproducible dentro de un `InlineMediaPlayer`. */
+interface InlineMediaSource {
+  /** Clave única dentro del grupo de pistas. */
+  key: string;
+  mediaType: 'video' | 'audio';
+  /** Texto/ícono del botón cuando la pista está cerrada. */
+  openLabel: string;
+  openIcon: React.ComponentProps<typeof Ionicons>['name'];
+  /** Texto del botón cuando la pista está abierta. */
+  closeLabel: string;
+  /** Extensión para el archivo temporal en nativo. */
+  ext: string;
+  /** Nombre base del archivo temporal en nativo. */
+  cacheKey: string;
+  /** URL absoluta para descarga con headers en nativo. */
+  nativeUrl?: string | null;
+  /** Obtiene el Blob (web) a través de `apiClient` con auth + tenant. */
+  fetchBlob: () => Promise<Blob>;
+}
+
 /**
- * Reproductor inline por sección: permite ver el clip crudo (.mp4 de Kling) y
- * escuchar la voz en off (.mp3) de cada sección sin salir del modal.
- *
- * El media se descarga bajo demanda como Blob (web) o archivo temporal (nativo)
- * pasando por `apiClient`/headers de auth. Esto es obligatorio porque la CSP del
- * desktop solo permite `media-src 'self' blob:`, así que un `src` cross-origin
- * directo a la API queda bloqueado.
+ * Reproductor inline con pestañas: descarga cada pista bajo demanda como Blob
+ * (web) o archivo temporal (nativo) usando auth + tenant, y la reproduce dentro
+ * del modal. Es obligatorio pasar por Blob porque la CSP del desktop solo
+ * permite `media-src 'self' blob:`, bloqueando un `src` cross-origin directo.
  */
-const SectionMediaPlayer: React.FC<{
-  videoId: string;
-  sectionId: string;
-  clipUrl?: string | null;
-  voiceUrl?: string | null;
+const InlineMediaPlayer: React.FC<{
+  sources: InlineMediaSource[];
   aspectRatio: CampaignVideoAspectRatio;
-}> = ({ videoId, sectionId, clipUrl, voiceUrl, aspectRatio }) => {
+}> = ({ sources, aspectRatio }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
-  const [active, setActive] = useState<SectionMediaKind | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasClip = !!clipUrl;
-  const hasVoice = !!voiceUrl;
-
-  // Limpieza de object URL (web) / archivo temporal (nativo) al cambiar o desmontar.
   const cleanupResolved = useCallback((url: string | null) => {
     if (!url) return;
     if (Platform.OS === 'web') {
@@ -200,33 +208,25 @@ const SectionMediaPlayer: React.FC<{
   }, [resolvedUrl, cleanupResolved]);
 
   const loadMedia = useCallback(
-    async (kind: SectionMediaKind) => {
+    async (source: InlineMediaSource) => {
       setLoading(true);
       setError(null);
       try {
         let url: string;
         if (Platform.OS === 'web') {
-          const blob =
-            kind === 'clip'
-              ? await photoCampaignsApi.getSectionClip(videoId, sectionId)
-              : await photoCampaignsApi.getSectionVoice(videoId, sectionId);
+          const blob = await source.fetchBlob();
           url = URL.createObjectURL(blob);
         } else {
-          const sourceUrl = kind === 'clip' ? clipUrl : voiceUrl;
-          if (!sourceUrl) throw new Error('URL no disponible');
-          url = await downloadSectionMediaNative(
-            sourceUrl,
-            `campaign-section-${sectionId}-${kind}`,
-            kind === 'clip' ? 'mp4' : 'mp3'
-          );
+          if (!source.nativeUrl) throw new Error('URL no disponible');
+          url = await downloadSectionMediaNative(source.nativeUrl, source.cacheKey, source.ext);
         }
         setResolvedUrl((prev) => {
           cleanupResolved(prev);
           return url;
         });
       } catch (err) {
-        logger.error('[CAMPAIGN_VIDEO] Error cargando media de sección', err);
-        setError(kind === 'clip' ? 'No se pudo cargar el clip.' : 'No se pudo cargar la voz.');
+        logger.error('[CAMPAIGN_VIDEO] Error cargando media', err);
+        setError('No se pudo cargar el contenido.');
         setResolvedUrl((prev) => {
           cleanupResolved(prev);
           return null;
@@ -235,13 +235,13 @@ const SectionMediaPlayer: React.FC<{
         setLoading(false);
       }
     },
-    [videoId, sectionId, clipUrl, voiceUrl, cleanupResolved]
+    [cleanupResolved]
   );
 
   const toggle = useCallback(
-    (kind: SectionMediaKind) => {
-      if (active === kind) {
-        setActive(null);
+    (source: InlineMediaSource) => {
+      if (activeKey === source.key) {
+        setActiveKey(null);
         setError(null);
         setResolvedUrl((prev) => {
           cleanupResolved(prev);
@@ -249,15 +249,17 @@ const SectionMediaPlayer: React.FC<{
         });
         return;
       }
-      setActive(kind);
-      void loadMedia(kind);
+      setActiveKey(source.key);
+      void loadMedia(source);
     },
-    [active, loadMedia, cleanupResolved]
+    [activeKey, loadMedia, cleanupResolved]
   );
 
-  if (!hasClip && !hasVoice) {
+  if (sources.length === 0) {
     return null;
   }
+
+  const activeSource = sources.find((s) => s.key === activeKey) || null;
 
   const ratioValue = (() => {
     const [w, h] = aspectRatio.split(':').map((n) => Number(n));
@@ -267,39 +269,28 @@ const SectionMediaPlayer: React.FC<{
   return (
     <View style={styles.mediaWrap}>
       <View style={styles.mediaButtons}>
-        {hasClip && (
-          <TouchableOpacity
-            style={[styles.mediaButton, active === 'clip' && styles.mediaButtonActive]}
-            onPress={() => toggle('clip')}
-          >
-            <Ionicons
-              name={active === 'clip' ? 'close' : 'film-outline'}
-              size={14}
-              color={theme.color.brand.accent}
-            />
-            <Text style={styles.mediaButtonText}>
-              {active === 'clip' ? 'Ocultar clip' : 'Ver clip'}
-            </Text>
-          </TouchableOpacity>
-        )}
-        {hasVoice && (
-          <TouchableOpacity
-            style={[styles.mediaButton, active === 'voice' && styles.mediaButtonActive]}
-            onPress={() => toggle('voice')}
-          >
-            <Ionicons
-              name={active === 'voice' ? 'close' : 'volume-high-outline'}
-              size={14}
-              color={theme.color.brand.accent}
-            />
-            <Text style={styles.mediaButtonText}>
-              {active === 'voice' ? 'Ocultar voz' : 'Escuchar voz'}
-            </Text>
-          </TouchableOpacity>
-        )}
+        {sources.map((source) => {
+          const isActive = activeKey === source.key;
+          return (
+            <TouchableOpacity
+              key={source.key}
+              style={[styles.mediaButton, isActive && styles.mediaButtonActive]}
+              onPress={() => toggle(source)}
+            >
+              <Ionicons
+                name={isActive ? 'close' : source.openIcon}
+                size={14}
+                color={theme.color.brand.accent}
+              />
+              <Text style={styles.mediaButtonText}>
+                {isActive ? source.closeLabel : source.openLabel}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {active && (
+      {activeSource && (
         <View style={styles.mediaPlayer}>
           {loading ? (
             <View style={styles.mediaLoadingRow}>
@@ -310,7 +301,7 @@ const SectionMediaPlayer: React.FC<{
             <Text style={styles.errorText}>{error}</Text>
           ) : resolvedUrl ? (
             Platform.OS === 'web' ? (
-              active === 'clip' ? (
+              activeSource.mediaType === 'video' ? (
                 React.createElement('video' as any, {
                   src: resolvedUrl,
                   controls: true,
@@ -336,7 +327,7 @@ const SectionMediaPlayer: React.FC<{
               <Video
                 source={{ uri: resolvedUrl }}
                 style={
-                  active === 'clip'
+                  activeSource.mediaType === 'video'
                     ? [styles.nativeVideo, { aspectRatio: ratioValue }]
                     : styles.nativeAudio
                 }
@@ -351,6 +342,74 @@ const SectionMediaPlayer: React.FC<{
       )}
     </View>
   );
+};
+
+/** Reproductor inline del clip crudo y la voz de una sección. */
+const SectionMediaPlayer: React.FC<{
+  videoId: string;
+  sectionId: string;
+  clipUrl?: string | null;
+  voiceUrl?: string | null;
+  aspectRatio: CampaignVideoAspectRatio;
+}> = ({ videoId, sectionId, clipUrl, voiceUrl, aspectRatio }) => {
+  const sources = useMemo<InlineMediaSource[]>(() => {
+    const list: InlineMediaSource[] = [];
+    if (clipUrl) {
+      list.push({
+        key: 'clip',
+        mediaType: 'video',
+        openLabel: 'Ver clip',
+        closeLabel: 'Ocultar clip',
+        openIcon: 'film-outline',
+        ext: 'mp4',
+        cacheKey: `campaign-section-${sectionId}-clip`,
+        nativeUrl: clipUrl,
+        fetchBlob: () => photoCampaignsApi.getSectionClip(videoId, sectionId),
+      });
+    }
+    if (voiceUrl) {
+      list.push({
+        key: 'voice',
+        mediaType: 'audio',
+        openLabel: 'Escuchar voz',
+        closeLabel: 'Ocultar voz',
+        openIcon: 'volume-high-outline',
+        ext: 'mp3',
+        cacheKey: `campaign-section-${sectionId}-voice`,
+        nativeUrl: voiceUrl,
+        fetchBlob: () => photoCampaignsApi.getSectionVoice(videoId, sectionId),
+      });
+    }
+    return list;
+  }, [videoId, sectionId, clipUrl, voiceUrl]);
+
+  return <InlineMediaPlayer sources={sources} aspectRatio={aspectRatio} />;
+};
+
+/** Reproductor inline del mp4 final ensamblado del video. */
+const FullVideoPlayer: React.FC<{
+  videoId: string;
+  downloadUrl: string;
+  aspectRatio: CampaignVideoAspectRatio;
+}> = ({ videoId, downloadUrl, aspectRatio }) => {
+  const sources = useMemo<InlineMediaSource[]>(
+    () => [
+      {
+        key: 'final',
+        mediaType: 'video',
+        openLabel: 'Reproducir video',
+        closeLabel: 'Ocultar video',
+        openIcon: 'play-circle',
+        ext: 'mp4',
+        cacheKey: `campaign-video-${videoId}-final`,
+        nativeUrl: downloadUrl,
+        fetchBlob: () => photoCampaignsApi.getMediaBlob(downloadUrl),
+      },
+    ],
+    [videoId, downloadUrl]
+  );
+
+  return <InlineMediaPlayer sources={sources} aspectRatio={aspectRatio} />;
 };
 
 /**
@@ -670,15 +729,22 @@ export const CampaignVideoModal: React.FC<CampaignVideoModalProps> = ({
           </Text>
         )}
 
-        {/* Descargar / reproducir */}
+        {/* Reproducir inline el mp4 final + descarga opcional */}
         {video.status === 'done' && !!video.downloadUrl && canDownload && (
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => handleOpenDownload(video.downloadUrl)}
-          >
-            <Ionicons name="play-circle" size={18} color={theme.color.action.primary.text} />
-            <Text style={styles.primaryButtonText}>Reproducir / Descargar</Text>
-          </TouchableOpacity>
+          <View style={styles.finalVideoBlock}>
+            <FullVideoPlayer
+              videoId={video.id}
+              downloadUrl={video.downloadUrl}
+              aspectRatio={video.aspectRatio}
+            />
+            <TouchableOpacity
+              style={styles.downloadLink}
+              onPress={() => handleOpenDownload(video.downloadUrl)}
+            >
+              <Ionicons name="download-outline" size={14} color={theme.color.brand.accent} />
+              <Text style={styles.downloadLinkText}>Descargar en el navegador</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Secciones */}
@@ -1344,6 +1410,22 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       gap: theme.space[2],
       paddingVertical: theme.space[2],
+    },
+    finalVideoBlock: {
+      marginTop: theme.space[2],
+    },
+    downloadLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1],
+      alignSelf: 'flex-start',
+      marginTop: theme.space[2],
+      paddingVertical: theme.space[1],
+    },
+    downloadLinkText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.brand.accent,
     },
     nativeVideo: {
       width: '100%',

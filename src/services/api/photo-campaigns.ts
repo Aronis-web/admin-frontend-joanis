@@ -364,6 +364,16 @@ class PhotoCampaignsApi {
     });
   }
 
+  /**
+   * Descarga como Blob cualquier media protegida del pipeline (p. ej. el mp4
+   * final vía su `downloadUrl` absoluto). `apiClient` adjunta auth + tenant
+   * incluso con URL absoluta gracias a los interceptores, y el Blob permite
+   * reproducir con `blob:` respetando la CSP del desktop.
+   */
+  getMediaBlob(url: string): Promise<Blob> {
+    return apiClient.get<Blob>(url, { responseType: 'blob' });
+  }
+
   /** Reintenta solo una sección (nuevo clip + voz). */
   regenerateVideoSection(videoId: string, sectionId: string): Promise<CampaignVideo> {
     return apiClient.post<CampaignVideo>(
