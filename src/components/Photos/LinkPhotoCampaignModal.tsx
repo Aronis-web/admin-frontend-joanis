@@ -799,13 +799,17 @@ const SmartDesignActions: React.FC<SmartDesignActionsProps> = ({ photoCampaignId
   return (
     <View style={styles.smartDesignBlock}>
       <View style={styles.smartDesignActionsRow}>
-        <TouchableOpacity
-          style={[styles.aiButton, disabledAll && styles.aiButtonDisabled]}
-          onPress={handleEnable}
-          disabled={disabledAll}
-        >
-          <Text style={styles.aiButtonText}>🤖 Generar diseños con IA</Text>
-        </TouchableOpacity>
+        {/* "Generar diseños con IA" solo se dispara una vez por campaña; luego
+            queda "Re-editar" para reprocesar. */}
+        {!status?.enabled && (
+          <TouchableOpacity
+            style={[styles.aiButton, disabledAll && styles.aiButtonDisabled]}
+            onPress={handleEnable}
+            disabled={disabledAll}
+          >
+            <Text style={styles.aiButtonText}>🤖 Generar diseños con IA</Text>
+          </TouchableOpacity>
+        )}
         {status?.enabled && (
           <TouchableOpacity
             style={[styles.aiSecondaryButton, disabledAll && styles.aiButtonDisabled]}
