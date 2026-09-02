@@ -518,8 +518,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const enableSmartDesignMutation = useEnableSmartDesign(linkedPhotoCampaignId);
   const rerunSmartDesignMutation = useRerunSmartDesign(linkedPhotoCampaignId);
 
+  // Solo consideramos "ocupado" cuando el modo está activo Y hay trabajo en
+  // curso. Si `enabled === false`, el botón "Generar diseños con IA" debe
+  // estar habilitado aunque el backend informe `pending` contando productos.
   const smartDesignBusy = Boolean(
-    smartDesignStatus &&
+    smartDesignStatus?.enabled &&
     (smartDesignStatus.counts.pending > 0 || smartDesignStatus.counts.processing > 0)
   );
 

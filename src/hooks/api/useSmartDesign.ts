@@ -28,7 +28,7 @@ export const useSmartDesignStatus = (photoCampaignId: string | undefined, enable
     refetchOnWindowFocus: false,
     refetchInterval: (query) => {
       const data = query.state.data as SmartDesignStatus | undefined;
-      if (!data) return false;
+      if (!data || !data.enabled) return false;
       const busy = (data.counts?.pending || 0) + (data.counts?.processing || 0) > 0;
       return busy ? 4000 : false;
     },

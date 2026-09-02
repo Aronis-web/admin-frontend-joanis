@@ -711,7 +711,12 @@ const SmartDesignActions: React.FC<SmartDesignActionsProps> = ({ photoCampaignId
   const enableMutation = useEnableSmartDesign(photoCampaignId);
   const rerunMutation = useRerunSmartDesign(photoCampaignId);
 
-  const busy = Boolean(status && (status.counts.pending > 0 || status.counts.processing > 0));
+  // Solo "ocupado" cuando el modo está activo y hay trabajo en curso; así el
+  // botón "Generar" no queda bloqueado si el backend informa pending antes de
+  // activar el modo (por ejemplo, contando productos como pendientes).
+  const busy = Boolean(
+    status?.enabled && (status.counts.pending > 0 || status.counts.processing > 0)
+  );
   const isSubmitting = enableMutation.isPending || rerunMutation.isPending;
   const disabledAll = disabled || isSubmitting || busy;
 
