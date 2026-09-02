@@ -16,6 +16,7 @@ export * from './useChatbotSession';
 export * from './useChatbotConversations';
 export * from './useChatbotOrders';
 export * from './useChatbotCatalog';
+export * from './useChatbotSync';
 export * from './useChatbotSettings';
 export * from './useChatbotTraining';
 export * from './useCustomers';
