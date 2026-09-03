@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { DateRangePicker } from '@/components/DateRangePicker';
 import { SireSyncModal, type SireSyncApi } from '@/components/SireSync';
 import {
   Body,
@@ -44,6 +44,12 @@ import type {
   SireVentasSortDir,
 } from '@/types/sireVentas';
 import { formatDateToString } from '@/utils/dateHelpers';
+import {
+  AVAILABLE_QUICK_FILTERS,
+  getDateRangeByFilter,
+  QUICK_DATE_FILTERS,
+  type QuickDateFilter,
+} from '@/utils/dateFilters';
 
 type Props = NativeStackScreenProps<any, 'SireVentas'>;
 
@@ -82,6 +88,12 @@ const SORT_OPTIONS: Array<{ label: string; value: SireVentasInvoiceSortBy }> = [
   { label: 'Importe', value: 'importeTotal' },
   { label: 'Cliente', value: 'razonSocialCliente' },
   { label: 'Período', value: 'perTributario' },
+];
+
+// Filtros rápidos de fecha (misma UX que los demás módulos) + rango personalizado.
+const DATE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
+  ...AVAILABLE_QUICK_FILTERS.map((f) => ({ label: `${f.icon} ${f.label}`, value: f.key })),
+  { label: '🎯 Personalizar', value: QUICK_DATE_FILTERS.CUSTOM },
 ];
 
 const CONCILIATION_COLORS: Record<string, string> = {
@@ -154,8 +166,8 @@ export const SireVentasScreen: React.FC<Props> = ({ navigation: _navigation }) =
   const [sortBy, setSortBy] = useState<SireVentasInvoiceSortBy>('fechaEmision');
   const [sortDir, setSortDir] = useState<SireVentasSortDir>('DESC');
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showFromPicker, setShowFromPicker] = useState(false);
-  const [showToPicker, setShowToPicker] = useState(false);
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickDateFilter | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
 
   const [page, setPage] = useState(1);
@@ -244,8 +256,31 @@ export const SireVentasScreen: React.FC<Props> = ({ navigation: _navigation }) =
     setNumDocCliente('');
     setFechaFrom('');
     setFechaTo('');
+    setSelectedQuickFilter(null);
     setMontoMin('');
     setMontoMax('');
+    setPage(1);
+  }, []);
+
+  const handleQuickDateFilter = useCallback((key?: QuickDateFilter) => {
+    if (!key) {
+      setSelectedQuickFilter(null);
+      setFechaFrom('');
+      setFechaTo('');
+      setPage(1);
+      return;
+    }
+    if (key === QUICK_DATE_FILTERS.CUSTOM) {
+      setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+      setShowDateRange(true);
+      return;
+    }
+    const range = getDateRangeByFilter(key);
+    if (range) {
+      setFechaFrom(range.fromDate);
+      setFechaTo(range.toDate);
+    }
+    setSelectedQuickFilter(key);
     setPage(1);
   }, []);
 
@@ -441,6 +476,30 @@ export const SireVentasScreen: React.FC<Props> = ({ navigation: _navigation }) =
             />
           </View>
 
+          {/* Rango de fechas (emisión) con filtros rápidos */}
+          <View style={styles.chipsSection}>
+            <View style={styles.dateFilterHeader}>
+              <Caption color={theme.color.text.muted}>Fecha de emisión</Caption>
+              {fechaFrom || fechaTo ? (
+                <TouchableOpacity onPress={() => handleQuickDateFilter(undefined)}>
+                  <Caption color={theme.color.brand.accent}>Quitar</Caption>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <ChipGroup
+              options={DATE_FILTER_OPTIONS}
+              selected={selectedQuickFilter ? [selectedQuickFilter] : []}
+              onChange={(sel) => handleQuickDateFilter(sel[0] as QuickDateFilter | undefined)}
+              variant="filled"
+              size="small"
+            />
+            {fechaFrom || fechaTo ? (
+              <Caption color={theme.color.text.body}>
+                {formatDate(fechaFrom)} → {formatDate(fechaTo)}
+              </Caption>
+            ) : null}
+          </View>
+
           {/* Filtros avanzados */}
           {showAdvanced ? (
             <Card style={styles.advancedCard}>
@@ -469,25 +528,6 @@ export const SireVentasScreen: React.FC<Props> = ({ navigation: _navigation }) =
                       setNumDocCliente(v.replace(/\D/g, ''));
                       setPage(1);
                     }}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.row}>
-                <View style={styles.field}>
-                  <DatePickerButton
-                    label="Fecha desde"
-                    value={fechaFrom}
-                    onPress={() => setShowFromPicker(true)}
-                    placeholder="Selecciona fecha"
-                  />
-                </View>
-                <View style={styles.field}>
-                  <DatePickerButton
-                    label="Fecha hasta"
-                    value={fechaTo}
-                    onPress={() => setShowToPicker(true)}
-                    placeholder="Selecciona fecha"
                   />
                 </View>
               </View>
@@ -620,27 +660,20 @@ export const SireVentasScreen: React.FC<Props> = ({ navigation: _navigation }) =
           ) : null}
         </ScrollView>
 
-        <DatePicker
-          visible={showFromPicker}
-          date={fechaFrom ? new Date(fechaFrom) : new Date()}
-          onCancel={() => setShowFromPicker(false)}
-          onConfirm={(d) => {
-            setFechaFrom(formatDateToString(d));
-            setShowFromPicker(false);
+        <DateRangePicker
+          visible={showDateRange}
+          startDate={fechaFrom ? new Date(`${fechaFrom}T12:00:00`) : new Date()}
+          endDate={fechaTo ? new Date(`${fechaTo}T12:00:00`) : new Date()}
+          maximumDate={new Date()}
+          onConfirm={(start, end) => {
+            setFechaFrom(formatDateToString(start));
+            setFechaTo(formatDateToString(end));
+            setSelectedQuickFilter(QUICK_DATE_FILTERS.CUSTOM);
+            setShowDateRange(false);
             setPage(1);
           }}
-          title="Fecha desde"
-        />
-        <DatePicker
-          visible={showToPicker}
-          date={fechaTo ? new Date(fechaTo) : new Date()}
-          onCancel={() => setShowToPicker(false)}
-          onConfirm={(d) => {
-            setFechaTo(formatDateToString(d));
-            setShowToPicker(false);
-            setPage(1);
-          }}
-          title="Fecha hasta"
+          onCancel={() => setShowDateRange(false)}
+          title="Rango de fechas de emisión"
         />
 
         <SireSyncModal
@@ -762,6 +795,11 @@ const createStyles = (theme: Theme) =>
     },
     chipsSection: {
       gap: spacing[1],
+    },
+    dateFilterHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
     },
     advancedCard: {
       padding: spacing[3],
