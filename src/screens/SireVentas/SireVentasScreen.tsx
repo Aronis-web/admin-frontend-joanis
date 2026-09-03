@@ -15,6 +15,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { SireSyncModal, type SireSyncApi } from '@/components/SireSync';
+import { SunatReportModal } from '@/components/SunatReport';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import {
   Body,
   Button,
@@ -169,6 +171,7 @@ export const SireVentasScreen: React.FC<Props> = ({ navigation: _navigation }) =
   const [showDateRange, setShowDateRange] = useState(false);
   const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickDateFilter | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const [page, setPage] = useState(1);
   const limit = DEFAULT_LIMIT;
@@ -397,14 +400,6 @@ export const SireVentasScreen: React.FC<Props> = ({ navigation: _navigation }) =
                 Propuesta SUNAT (RVIE) para conciliar con tus ventas internas
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => setShowSyncModal(true)}
-              style={styles.headerAction}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="sync-outline" size={16} color={theme.color.brand.onHeader} />
-              <Text style={styles.headerActionText}>Sincronizar</Text>
-            </TouchableOpacity>
           </View>
         </LinearGradient>
 
@@ -682,6 +677,29 @@ export const SireVentasScreen: React.FC<Props> = ({ navigation: _navigation }) =
           api={sireVentasApi as unknown as SireSyncApi}
           title="Sincronizar Ventas · RVIE"
           onRunsChanged={handleRunsChanged}
+        />
+
+        <SunatReportModal
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          title="Descargar reporte · Ventas"
+          defaultDatasets={['ventas-mapeadas']}
+          fileBaseName="reporte-sire-ventas"
+        />
+
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'sync-outline',
+              label: 'Sincronizar',
+              onPress: () => setShowSyncModal(true),
+            },
+            {
+              icon: 'download-outline',
+              label: 'Descargar reporte',
+              onPress: () => setShowReportModal(true),
+            },
+          ]}
         />
       </SafeAreaView>
     </ScreenLayout>

@@ -18,6 +18,8 @@ export { sireComprasApi, sireComprasService } from './sire-compras';
 export { sireVentasApi, sireVentasService } from './sire-ventas';
 export { sireComprasDeclaredApi, sireComprasDeclaredService } from './sire-compras-declared';
 export { sireVentasDeclaredApi, sireVentasDeclaredService } from './sire-ventas-declared';
+export { sunatReportsApi, sunatReportsService } from './sunat-reports';
+export type { SunatReportDataset, SunatReportExportParams } from './sunat-reports';
 export { organizationApi } from './organization';
 export { chatbotSessionApi } from './chatbot-session';
 export { chatbotConversationsApi } from './chatbot-conversations';

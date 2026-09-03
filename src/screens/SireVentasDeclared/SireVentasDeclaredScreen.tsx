@@ -14,6 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { SunatReportModal } from '@/components/SunatReport';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import {
   Body,
   Button,
@@ -124,6 +126,7 @@ export const SireVentasDeclaredScreen: React.FC<Props> = ({ navigation: _navigat
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const [page, setPage] = useState(1);
   const limit = DEFAULT_LIMIT;
@@ -288,21 +291,6 @@ export const SireVentasDeclaredScreen: React.FC<Props> = ({ navigation: _navigat
                 Registro declarado / presentado (RVIE)
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={handleSync}
-              style={styles.headerAction}
-              activeOpacity={0.8}
-              disabled={syncMutation.isPending}
-            >
-              <Ionicons
-                name={syncMutation.isPending ? 'time-outline' : 'sync-outline'}
-                size={16}
-                color={theme.color.brand.onHeader}
-              />
-              <Text style={styles.headerActionText}>
-                {syncMutation.isPending ? 'Sincronizando…' : 'Sincronizar'}
-              </Text>
-            </TouchableOpacity>
           </View>
         </LinearGradient>
 
@@ -524,6 +512,29 @@ export const SireVentasDeclaredScreen: React.FC<Props> = ({ navigation: _navigat
             setPage(1);
           }}
           title="Fecha hasta"
+        />
+
+        <SunatReportModal
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          title="Descargar reporte · Ventas declaradas"
+          defaultDatasets={['ventas-declaradas']}
+          fileBaseName="reporte-sire-ventas-declaradas"
+        />
+
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'sync-outline',
+              label: syncMutation.isPending ? 'Sincronizando…' : 'Sincronizar',
+              onPress: () => void handleSync(),
+            },
+            {
+              icon: 'download-outline',
+              label: 'Descargar reporte',
+              onPress: () => setShowReportModal(true),
+            },
+          ]}
         />
       </SafeAreaView>
     </ScreenLayout>
