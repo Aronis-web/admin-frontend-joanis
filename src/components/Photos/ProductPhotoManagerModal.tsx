@@ -628,7 +628,7 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
     }
     try {
       setPhotosLoading(true);
-      const result = await photoCampaignsApi.getProductPhotoGroups(productId);
+      const result = await photoCampaignsApi.getProductPhotoGroups(productId, photoCampaignId);
       const sorted = [...result].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
       setGroups(sorted);
     } catch {
@@ -636,7 +636,7 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
     } finally {
       setPhotosLoading(false);
     }
-  }, [productId]);
+  }, [productId, photoCampaignId]);
 
   const notifyChanged = useCallback(async () => {
     await loadPhotos();

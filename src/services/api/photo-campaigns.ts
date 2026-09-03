@@ -117,9 +117,16 @@ class PhotoCampaignsApi {
     return apiClient.get<ProductPhotoAsset[]>(`${this.basePath}/products/${productId}/photos`);
   }
 
-  /** Lista las fotos agrupadas por reference (cada grupo con su design y price). */
-  getProductPhotoGroups(productId: string): Promise<PhotoGroup[]> {
-    return apiClient.get<PhotoGroup[]>(`${this.basePath}/products/${productId}/photo-groups`);
+  /**
+   * Lista las fotos agrupadas por reference (cada grupo con su design y price).
+   * Si se pasa `photoCampaignId`, acota los grupos a esa campaña de fotos (las
+   * referencias se suben asociadas a la campaña, así que sin este filtro pueden
+   * no aparecer todas).
+   */
+  getProductPhotoGroups(productId: string, photoCampaignId?: string): Promise<PhotoGroup[]> {
+    return apiClient.get<PhotoGroup[]>(`${this.basePath}/products/${productId}/photo-groups`, {
+      params: photoCampaignId ? { photoCampaignId } : undefined,
+    });
   }
 
   uploadProductPhoto(
