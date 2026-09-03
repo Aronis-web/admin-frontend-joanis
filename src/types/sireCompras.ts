@@ -141,6 +141,11 @@ export interface SireSyncBody {
   periodo?: string; // AAAAMM (opcional)
 }
 
+export interface SireSyncRangeBody {
+  perIni: string; // AAAAMM
+  perFin: string; // AAAAMM
+}
+
 export interface SireImportResponse extends SireRun {
   fileName: string;
 }

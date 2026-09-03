@@ -16,6 +16,7 @@ import type {
   SireRun,
   SireRunsListResponse,
   SireSyncBody,
+  SireSyncRangeBody,
 } from '@/types/sireCompras';
 
 /**
@@ -32,6 +33,10 @@ class SireComprasService {
 
   async syncPeriodo(body: SireSyncBody = {}): Promise<SireRun> {
     return apiClient.post<SireRun>(`${this.basePath}/sync`, body);
+  }
+
+  async syncRange(body: SireSyncRangeBody): Promise<SireRun> {
+    return apiClient.post<SireRun>(`${this.basePath}/sync-range`, body);
   }
 
   async importFile(

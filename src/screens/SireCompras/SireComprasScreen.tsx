@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
+import { SireSyncModal, type SireSyncApi } from '@/components/SireSync';
 import {
   Body,
   Button,
@@ -31,8 +32,10 @@ import {
 } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useSireInvoices, useSyncSireCompras } from '@/hooks/api/useSireCompras';
+import { useSireInvoices, sireComprasKeys } from '@/hooks/api/useSireCompras';
+import { sireComprasApi } from '@/services/api';
 import type {
   GetSireInvoicesParams,
   SireConciliation,
@@ -41,7 +44,6 @@ import type {
   SireSortDir,
 } from '@/types/sireCompras';
 import { formatDateToString } from '@/utils/dateHelpers';
-import Alert from '@/utils/alert';
 
 type Props = NativeStackScreenProps<any, 'SireCompras'>;
 
@@ -130,6 +132,7 @@ const formatPeriodo = (per?: string) => {
 export const SireComprasScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const queryClient = useQueryClient();
 
   // ============ Estado de filtros ============
   const [search, setSearch] = useState('');
@@ -147,6 +150,7 @@ export const SireComprasScreen: React.FC<Props> = ({ navigation: _navigation }) 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   const [page, setPage] = useState(1);
   const limit = DEFAULT_LIMIT;
@@ -194,7 +198,6 @@ export const SireComprasScreen: React.FC<Props> = ({ navigation: _navigation }) 
   ]);
 
   const { data, isLoading, isFetching, refetch, isError, error } = useSireInvoices(params);
-  const syncMutation = useSyncSireCompras();
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -245,20 +248,9 @@ export const SireComprasScreen: React.FC<Props> = ({ navigation: _navigation }) 
     void refetch();
   }, [refetch]);
 
-  const handleSync = useCallback(async () => {
-    try {
-      const body = periodo && /^\d{6}$/.test(periodo) ? { periodo } : {};
-      await syncMutation.mutateAsync(body);
-      Alert.alert(
-        'Sincronización iniciada',
-        'Se disparó la descarga de la propuesta de SUNAT. Podrás ver el avance en el historial de corridas.'
-      );
-    } catch (e: any) {
-      const msg =
-        e?.response?.data?.message || e?.message || 'No se pudo iniciar la sincronización';
-      Alert.alert('Error', msg);
-    }
-  }, [periodo, syncMutation]);
+  const handleRunsChanged = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: sireComprasKeys.invoices() });
+  }, [queryClient]);
 
   const toggleSortDir = useCallback(() => {
     setSortDir((d) => (d === 'ASC' ? 'DESC' : 'ASC'));
@@ -365,19 +357,12 @@ export const SireComprasScreen: React.FC<Props> = ({ navigation: _navigation }) 
               </Text>
             </View>
             <TouchableOpacity
-              onPress={handleSync}
+              onPress={() => setShowSyncModal(true)}
               style={styles.headerAction}
               activeOpacity={0.8}
-              disabled={syncMutation.isPending}
             >
-              <Ionicons
-                name={syncMutation.isPending ? 'time-outline' : 'sync-outline'}
-                size={16}
-                color={theme.color.brand.onHeader}
-              />
-              <Text style={styles.headerActionText}>
-                {syncMutation.isPending ? 'Sincronizando…' : 'Sincronizar'}
-              </Text>
+              <Ionicons name="sync-outline" size={16} color={theme.color.brand.onHeader} />
+              <Text style={styles.headerActionText}>Sincronizar</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -650,6 +635,14 @@ export const SireComprasScreen: React.FC<Props> = ({ navigation: _navigation }) 
             setPage(1);
           }}
           title="Fecha hasta"
+        />
+
+        <SireSyncModal
+          visible={showSyncModal}
+          onClose={() => setShowSyncModal(false)}
+          api={sireComprasApi as unknown as SireSyncApi}
+          title="Sincronizar Compras · RCE"
+          onRunsChanged={handleRunsChanged}
         />
       </SafeAreaView>
     </ScreenLayout>

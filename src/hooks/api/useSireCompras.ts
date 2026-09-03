@@ -13,6 +13,7 @@ import type {
   SireInvoicesSummaryResponse,
   SireRun,
   SireSyncBody,
+  SireSyncRangeBody,
 } from '@/types/sireCompras';
 
 // ============================================
@@ -151,6 +152,17 @@ export const useSyncSireCompras = () => {
   const queryClient = useQueryClient();
   return useMutation<SireRun, Error, SireSyncBody | undefined>({
     mutationFn: (body) => sireComprasApi.syncPeriodo(body ?? {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sireComprasKeys.runs() });
+      queryClient.invalidateQueries({ queryKey: sireComprasKeys.invoices() });
+    },
+  });
+};
+
+export const useSyncRangeSireCompras = () => {
+  const queryClient = useQueryClient();
+  return useMutation<SireRun, Error, SireSyncRangeBody>({
+    mutationFn: (body) => sireComprasApi.syncRange(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sireComprasKeys.runs() });
       queryClient.invalidateQueries({ queryKey: sireComprasKeys.invoices() });
