@@ -28,6 +28,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { sunatReportsApi, type SunatReportDataset } from '@/services/api';
+import {
+  QuickDateRangeField,
+  getDefaultQuickDateRange,
+  type QuickDateRangeValue,
+} from '@/components/common/QuickDateRangeField';
 import { saveAndShareExcel } from '@/utils/fileDownload';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
@@ -57,12 +62,8 @@ const MONEDA_OPTIONS: Array<{ value: string; label: string }> = [
 // Utils
 // ============================================================================
 
-const isValidPeriodo = (per: string): boolean => {
-  if (!/^\d{6}$/.test(per)) return false;
-  const month = Number(per.slice(4, 6));
-  const year = Number(per.slice(0, 4));
-  return month >= 1 && month <= 12 && year >= 2018 && year <= 2100;
-};
+/** Deriva el período AAAAMM a partir de una fecha ISO (YYYY-MM-DD). */
+const periodoFromIso = (iso: string): string => iso.slice(0, 4) + iso.slice(5, 7);
 
 // ============================================================================
 // Props
@@ -93,19 +94,19 @@ export const SunatReportModal: React.FC<Props> = ({
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
-  const [perIni, setPerIni] = useState('');
-  const [perFin, setPerFin] = useState('');
+  const [dateRange, setDateRange] = useState<QuickDateRangeValue>(getDefaultQuickDateRange);
   const [moneda, setMoneda] = useState('');
   const [estado, setEstado] = useState('');
   const [datasets, setDatasets] = useState<SunatReportDataset[]>(defaultDatasets);
   const [incluirDetalle, setIncluirDetalle] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
-  // Re-sincroniza los datasets por defecto cada vez que se abre el modal.
+  // Reinicia datasets y rango (por defecto "este mes") cada vez que se abre.
   const defaultKey = useMemo(() => defaultDatasets.join(','), [defaultDatasets]);
   React.useEffect(() => {
     if (visible) {
       setDatasets(defaultDatasets);
+      setDateRange(getDefaultQuickDateRange());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, defaultKey]);
@@ -123,24 +124,12 @@ export const SunatReportModal: React.FC<Props> = ({
       Alert.alert('Datos incompletos', 'Selecciona al menos un conjunto de datos a exportar.');
       return;
     }
-    if (perIni && !isValidPeriodo(perIni)) {
-      Alert.alert('Datos inválidos', 'El período inicial debe tener formato AAAAMM (ej. 202501).');
-      return;
-    }
-    if (perFin && !isValidPeriodo(perFin)) {
-      Alert.alert('Datos inválidos', 'El período final debe tener formato AAAAMM (ej. 202506).');
-      return;
-    }
-    if (perIni && perFin && perIni > perFin) {
-      Alert.alert('Datos inválidos', 'El período inicial no puede ser mayor al final.');
-      return;
-    }
 
     setDownloading(true);
     try {
       const blob = await sunatReportsApi.exportReport({
-        perIni: perIni || undefined,
-        perFin: perFin || undefined,
+        perIni: periodoFromIso(dateRange.fromDate),
+        perFin: periodoFromIso(dateRange.toDate),
         moneda: moneda || undefined,
         estado: estado.trim() || undefined,
         datasets,
@@ -165,8 +154,7 @@ export const SunatReportModal: React.FC<Props> = ({
   }, [
     downloading,
     datasets,
-    perIni,
-    perFin,
+    dateRange,
     moneda,
     estado,
     incluirDetalle,
@@ -174,27 +162,6 @@ export const SunatReportModal: React.FC<Props> = ({
     title,
     onClose,
   ]);
-
-  const renderPeriodoInput = (
-    label: string,
-    value: string,
-    onChange: (v: string) => void,
-    placeholder: string
-  ) => (
-    <View style={styles.periodoField}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.textInput}
-        value={value}
-        onChangeText={(v) => onChange(v.replace(/\D/g, '').slice(0, 6))}
-        keyboardType="number-pad"
-        placeholder={placeholder}
-        placeholderTextColor={theme.color.text.placeholder}
-        editable={!downloading}
-        maxLength={6}
-      />
-    </View>
-  );
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -244,17 +211,18 @@ export const SunatReportModal: React.FC<Props> = ({
               })}
             </View>
 
-            {/* Rango de períodos */}
+            {/* Rango de fechas (estilo dashboard) */}
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Rango de períodos (AAAAMM) · opcional</Text>
-              <View style={styles.rangeRow}>
-                {renderPeriodoInput('Desde', perIni, setPerIni, '202501')}
-                <View style={styles.rangeArrow}>
-                  <Ionicons name="arrow-forward" size={16} color={theme.color.icon.muted} />
-                </View>
-                {renderPeriodoInput('Hasta', perFin, setPerFin, '202506')}
-              </View>
-              <Text style={styles.hintText}>Déjalo vacío para incluir todos los períodos.</Text>
+              <QuickDateRangeField
+                label="Rango de fechas"
+                value={dateRange}
+                onChange={setDateRange}
+                disabled={downloading}
+                maximumDate={new Date()}
+              />
+              <Text style={styles.hintText}>
+                El reporte agrupa por período (AAAAMM) según el rango elegido.
+              </Text>
             </View>
 
             {/* Moneda */}

@@ -14,7 +14,7 @@
  * Es agnóstico del módulo: recibe un adaptador `api` (sireComprasApi o
  * sireVentasApi) cuyas firmas son estructuralmente compatibles.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -23,7 +23,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  TextInput,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +30,11 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
+import {
+  QuickDateRangeField,
+  getDefaultQuickDateRange,
+  type QuickDateRangeValue,
+} from '@/components/common/QuickDateRangeField';
 
 // ============================================================================
 // Tipos (subset común entre SireRun y SireVentasRun)
@@ -80,25 +84,13 @@ const POLL_INTERVAL_MS = 3000;
 const HISTORY_PAGE_SIZE = 12;
 
 type Tab = 'sync' | 'history';
-type SyncMode = 'range' | 'single';
 
 // ============================================================================
 // Utils
 // ============================================================================
 
-const currentLimaPeriodo = (): string => {
-  const now = new Date();
-  const limaMs = now.getTime() - 5 * 60 * 60 * 1000;
-  const d = new Date(limaMs);
-  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-};
-
-const isValidPeriodo = (per: string): boolean => {
-  if (!/^\d{6}$/.test(per)) return false;
-  const month = Number(per.slice(4, 6));
-  const year = Number(per.slice(0, 4));
-  return month >= 1 && month <= 12 && year >= 2018 && year <= 2100;
-};
+/** Deriva el período AAAAMM a partir de una fecha ISO (YYYY-MM-DD). */
+const periodoFromIso = (iso: string): string => iso.slice(0, 4) + iso.slice(5, 7);
 
 const formatPeriodo = (per?: string): string => {
   if (!per || per.length !== 6) return per ?? '—';
@@ -158,13 +150,9 @@ export const SireSyncModal: React.FC<Props> = ({ visible, onClose, api, title, o
   const styles = useThemedStyles(createStyles);
 
   const [tab, setTab] = useState<Tab>('sync');
-  const [mode, setMode] = useState<SyncMode>('range');
 
   // ---- Form state ----
-  const initialPeriodo = useMemo(currentLimaPeriodo, []);
-  const [perIni, setPerIni] = useState('');
-  const [perFin, setPerFin] = useState('');
-  const [periodo, setPeriodo] = useState(initialPeriodo);
+  const [dateRange, setDateRange] = useState<QuickDateRangeValue>(getDefaultQuickDateRange);
 
   // ---- Data state ----
   const [activeRun, setActiveRun] = useState<SireSyncRun | null>(null);
@@ -245,6 +233,7 @@ export const SireSyncModal: React.FC<Props> = ({ visible, onClose, api, title, o
 
   useEffect(() => {
     if (visible) {
+      setDateRange(getDefaultQuickDateRange());
       void loadHistory(0);
       startPolling();
     } else {
@@ -264,27 +253,15 @@ export const SireSyncModal: React.FC<Props> = ({ visible, onClose, api, title, o
   const handleSync = useCallback(async () => {
     if (isBusy) return;
 
-    // Validación
-    if (mode === 'range') {
-      if (!isValidPeriodo(perIni) || !isValidPeriodo(perFin)) {
-        Alert.alert('Datos inválidos', 'Ingresa períodos válidos en formato AAAAMM (ej. 202501).');
-        return;
-      }
-      if (perIni > perFin) {
-        Alert.alert('Datos inválidos', 'El período inicial no puede ser mayor al final.');
-        return;
-      }
-    } else if (periodo && !isValidPeriodo(periodo)) {
-      Alert.alert('Datos inválidos', 'Ingresa un período válido en formato AAAAMM (ej. 202501).');
-      return;
-    }
+    const perIni = periodoFromIso(dateRange.fromDate);
+    const perFin = periodoFromIso(dateRange.toDate);
 
     setStarting(true);
     try {
-      if (mode === 'range') {
-        await api.syncRange({ perIni, perFin });
+      if (perIni === perFin) {
+        await api.syncPeriodo({ periodo: perIni });
       } else {
-        await api.syncPeriodo(periodo ? { periodo } : {});
+        await api.syncRange({ perIni, perFin });
       }
       onRunsChanged?.();
       startPolling();
@@ -305,7 +282,7 @@ export const SireSyncModal: React.FC<Props> = ({ visible, onClose, api, title, o
     } finally {
       setStarting(false);
     }
-  }, [api, isBusy, mode, perFin, perIni, periodo, onRunsChanged, startPolling]);
+  }, [api, isBusy, dateRange, onRunsChanged, startPolling]);
 
   // ==========================================================================
   // Render helpers
@@ -372,94 +349,25 @@ export const SireSyncModal: React.FC<Props> = ({ visible, onClose, api, title, o
     );
   };
 
-  const renderPeriodoInput = (
-    label: string,
-    value: string,
-    onChange: (v: string) => void,
-    placeholder: string
-  ) => (
-    <View style={styles.periodoField}>
-      <Text style={styles.formFieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.textInput}
-        value={value}
-        onChangeText={(v) => onChange(v.replace(/\D/g, '').slice(0, 6))}
-        keyboardType="number-pad"
-        placeholder={placeholder}
-        placeholderTextColor={theme.color.text.placeholder}
-        editable={!isBusy}
-        maxLength={6}
-      />
-    </View>
-  );
-
   // ==========================================================================
   // Tabs
   // ==========================================================================
 
   const renderSyncTab = () => (
     <ScrollView contentContainerStyle={styles.tabContent}>
-      {/* Selector de modo */}
+      {/* Selector de rango (estilo dashboard, por defecto "Este mes") */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Modo de sincronización</Text>
-        <View style={styles.modeRow}>
-          <TouchableOpacity
-            style={[styles.modeChip, mode === 'range' && styles.modeChipSelected]}
-            onPress={() => setMode('range')}
-            disabled={isBusy}
-          >
-            <Ionicons
-              name="calendar-outline"
-              size={16}
-              color={mode === 'range' ? theme.color.brand.accent : theme.color.text.muted}
-            />
-            <Text style={[styles.modeChipText, mode === 'range' && styles.modeChipTextSelected]}>
-              Rango de períodos
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modeChip, mode === 'single' && styles.modeChipSelected]}
-            onPress={() => setMode('single')}
-            disabled={isBusy}
-          >
-            <Ionicons
-              name="today-outline"
-              size={16}
-              color={mode === 'single' ? theme.color.brand.accent : theme.color.text.muted}
-            />
-            <Text style={[styles.modeChipText, mode === 'single' && styles.modeChipTextSelected]}>
-              Período único
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Inputs de período */}
-      <View style={styles.section}>
-        {mode === 'range' ? (
-          <>
-            <Text style={styles.sectionLabel}>Rango a sincronizar (AAAAMM)</Text>
-            <View style={styles.rangeRow}>
-              {renderPeriodoInput('Desde', perIni, setPerIni, '202501')}
-              <View style={styles.rangeArrow}>
-                <Ionicons name="arrow-forward" size={16} color={theme.color.icon.muted} />
-              </View>
-              {renderPeriodoInput('Hasta', perFin, setPerFin, '202506')}
-            </View>
-            <Text style={styles.hintText}>
-              Se sincronizarán todos los períodos del rango. Espera a que la corrida activa termine
-              antes de lanzar otra tanda.
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.sectionLabel}>Período a sincronizar (AAAAMM)</Text>
-            {renderPeriodoInput('Período', periodo, setPeriodo, '202501')}
-            <Text style={styles.hintText}>
-              Déjalo vacío para sincronizar el período por defecto.
-            </Text>
-          </>
-        )}
+        <QuickDateRangeField
+          label="Períodos a sincronizar"
+          value={dateRange}
+          onChange={setDateRange}
+          disabled={isBusy}
+          maximumDate={new Date()}
+        />
+        <Text style={styles.hintText}>
+          Se sincronizarán los períodos (AAAAMM) que abarque el rango elegido. Espera a que la
+          corrida activa termine antes de lanzar otra tanda.
+        </Text>
       </View>
 
       {/* Botón */}
