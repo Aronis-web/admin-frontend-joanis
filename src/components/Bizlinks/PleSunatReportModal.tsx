@@ -131,9 +131,9 @@ export const PleSunatReportModal: React.FC<PleSunatReportModalProps> = ({
     }
   }, [libro, sendRegistroVentas, sendKardexSalidas, sendKardexSalidasDetalle]);
 
-  const initialRange = useMemo(() => getDateRangeByFilter(QUICK_DATE_FILTERS.LAST_MONTH)!, []);
+  const initialRange = useMemo(() => getDateRangeByFilter(QUICK_DATE_FILTERS.THIS_MONTH)!, []);
   const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickDateFilter>(
-    QUICK_DATE_FILTERS.LAST_MONTH
+    QUICK_DATE_FILTERS.THIS_MONTH
   );
   const [fromDate, setFromDate] = useState(initialRange.fromDate);
   const [toDate, setToDate] = useState(initialRange.toDate);
