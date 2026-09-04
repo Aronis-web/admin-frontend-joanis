@@ -55,6 +55,8 @@ class SunatReportsService {
     return apiClient.get<Blob>(`${this.basePath}/export`, {
       params: query,
       responseType: 'blob',
+      // La generación del Excel puede tardar varios segundos: sin límite de tiempo.
+      timeout: 0,
     });
   }
 }
