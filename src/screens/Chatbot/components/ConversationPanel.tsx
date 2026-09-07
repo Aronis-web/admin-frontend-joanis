@@ -31,7 +31,7 @@ import {
 import type { ChatConversation, ChatMessage } from '@/types/chatbot';
 import { formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 import Alert from '@/utils/alert';
-import { AuthedMedia } from './AuthedMedia';
+import { AuthedMedia, extractFileNameFromText } from './AuthedMedia';
 
 interface Props {
   conversation: ChatConversation | null;
@@ -278,6 +278,9 @@ const MessageBubble: React.FC<BubbleProps> = ({ message, theme, conversationId }
   const isIncoming = message.direction ? message.direction === 'in' : message.role === 'user';
   const isSystem = message.role === 'system' || message.role === 'tool';
   const text = message.text ?? message.content ?? null;
+  // Si el bot envía un placeholder tipo `[documento: nombre.xlsx]` y ya
+  // vamos a pintar la tarjeta de descarga, evitamos duplicar la etiqueta.
+  const isDocumentPlaceholder = !!extractFileNameFromText(text);
 
   if (isSystem) {
     return (
@@ -287,11 +290,16 @@ const MessageBubble: React.FC<BubbleProps> = ({ message, theme, conversationId }
     );
   }
 
-  // El backend puede omitir `mediaType` en mensajes legacy con `mediaUrl`;
-  // ahí lo tratamos como imagen para no romper vouchers antiguos.
-  const hasMedia = !!message.mediaType || !!message.mediaUrl;
+  // El backend puede omitir `mediaType`/`mediaUrl` en mensajes legacy y
+  // dejar el texto como `[documento: nombre.xlsx]`. En ese caso igual
+  // pedimos al endpoint el binario y ofrecemos descarga.
+  const hasMedia = !!message.mediaType || !!message.mediaUrl || isDocumentPlaceholder;
   const mediaWidth = message.mediaType === 'audio' ? 260 : 220;
   const mediaHeight = message.mediaType === 'video' ? 160 : 220;
+  // Sólo ocultamos el placeholder `[documento: ...]` cuando también
+  // renderizaremos la tarjeta de descarga; si no, el usuario perdería la
+  // única señal visible del adjunto.
+  const displayText = hasMedia && isDocumentPlaceholder ? null : text;
 
   return (
     <View style={[styles.bubbleWrap, isIncoming ? styles.bubbleLeft : styles.bubbleRight]}>
@@ -304,7 +312,9 @@ const MessageBubble: React.FC<BubbleProps> = ({ message, theme, conversationId }
             height={mediaHeight}
           />
         ) : null}
-        {text ? <Body style={isIncoming ? undefined : { color: '#fff' }}>{text}</Body> : null}
+        {displayText ? (
+          <Body style={isIncoming ? undefined : { color: '#fff' }}>{displayText}</Body>
+        ) : null}
         <Caption color={isIncoming ? theme.color.text.muted : '#ffffffb0'} style={styles.timeText}>
           {formatTime(message.createdAt)}
         </Caption>

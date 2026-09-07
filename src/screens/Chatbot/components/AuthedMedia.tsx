@@ -43,6 +43,18 @@ type ScanStatus = NonNullable<ChatMessage['scanStatus']>;
 const resolveScanStatus = (msg: ChatMessage): ScanStatus => msg.scanStatus ?? 'skipped';
 
 /**
+ * Los mensajes que llegaron antes de la migración a `mediaType='document'`
+ * suelen traer el `text` con el placeholder `"[documento: nombre.ext]"`.
+ * Sacamos el nombre para usarlo como `fileName` de la descarga cuando el
+ * backend aún no lo envía.
+ */
+export const extractFileNameFromText = (text: string | null | undefined): string | null => {
+  if (!text) return null;
+  const match = /\[(?:documento|document)\s*:\s*([^\]]+)]/i.exec(text);
+  return match?.[1]?.trim() ?? null;
+};
+
+/**
  * Renderiza un adjunto de WhatsApp (imagen, video, audio, documento, sticker)
  * consultando el endpoint autenticado
  * `/chatbot/conversations/:id/messages/:mid/media`.
@@ -141,13 +153,19 @@ export const AuthedMedia: React.FC<Props> = ({
     );
   }
 
-  // ── Documento (no se auto-descarga) ───────────────────────────────────
-  if (mediaType === 'document') {
+  // ── Documento / adjunto no reproducible (no se auto-descarga) ────────
+  // Incluye:
+  // - `mediaType === 'document'` (nuevo shape).
+  // - Cualquier `mediaType` desconocido o `null` con `mediaUrl` presente
+  //   (mensajes legacy previos a la migración de mediaType). En estos casos
+  //   preferimos ofrecer descarga en vez de intentar renderizar como imagen.
+  if (!isPlayable) {
+    const fallbackFileName = message.fileName ?? extractFileNameFromText(message.text);
     return (
       <DocumentDownload
         conversationId={conversationId}
         messageId={message.id}
-        fileName={message.fileName}
+        fileName={fallbackFileName}
         width={width}
       />
     );
