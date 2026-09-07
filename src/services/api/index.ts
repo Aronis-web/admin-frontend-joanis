@@ -22,7 +22,11 @@ export { sunatReportsApi, sunatReportsService } from './sunat-reports';
 export type { SunatReportDataset, SunatReportExportParams } from './sunat-reports';
 export { organizationApi } from './organization';
 export { chatbotSessionApi } from './chatbot-session';
-export { chatbotConversationsApi } from './chatbot-conversations';
+export {
+  chatbotConversationsApi,
+  MessageMediaError,
+  type MessageMediaErrorCode,
+} from './chatbot-conversations';
 export { chatbotOrdersApi } from './chatbot-orders';
 export { chatbotCatalogApi } from './chatbot-catalog';
 export { chatbotSyncApi } from './chatbot-sync';

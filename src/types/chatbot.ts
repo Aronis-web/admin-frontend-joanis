@@ -26,7 +26,19 @@ export type PurchaseStage =
   | 'PERDIDO';
 export type ChatbotMessageRole = 'user' | 'assistant' | 'tool' | 'system';
 export type ChatbotMessageDirection = 'in' | 'out';
-export type ChatbotMessageMediaType = 'image' | null;
+/**
+ * Tipo de adjunto entregado por WhatsApp. `null` indica que el mensaje no
+ * tiene media.
+ */
+export type ChatbotMessageMediaType = 'image' | 'video' | 'audio' | 'document' | 'sticker' | null;
+/**
+ * Estado del escaneo antivirus (ClamAV) sobre el adjunto.
+ *
+ * - `clean` / `skipped` — se puede reproducir/descargar normalmente.
+ * - `pending` — aún en análisis o motor en standby; deshabilitar descarga.
+ * - `infected` — malware detectado; archivo eliminado del servidor.
+ */
+export type ChatbotMessageScanStatus = 'clean' | 'infected' | 'pending' | 'skipped';
 export type BotEmojiLevel = 'none' | 'low' | 'high';
 export type ChatbotOrderStatus =
   | 'PENDING_PAYMENT'
@@ -119,6 +131,16 @@ export interface ChatMessage {
   content?: string | null;
   mediaUrl: string | null;
   mediaType: ChatbotMessageMediaType;
+  /**
+   * Nombre original del archivo. Solo definido cuando
+   * `mediaType === 'document'`.
+   */
+  fileName?: string | null;
+  /**
+   * Estado del escaneo antivirus del adjunto. Si el backend legacy no lo
+   * envía, tratar como `'skipped'` (compatibilidad).
+   */
+  scanStatus?: ChatbotMessageScanStatus;
   tokens?: number | null;
   createdAt: string;
 }

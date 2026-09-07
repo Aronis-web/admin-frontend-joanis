@@ -31,7 +31,7 @@ import {
 import type { ChatConversation, ChatMessage } from '@/types/chatbot';
 import { formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 import Alert from '@/utils/alert';
-import { AuthedImage } from './AuthedImage';
+import { AuthedMedia } from './AuthedMedia';
 
 interface Props {
   conversation: ChatConversation | null;
@@ -287,17 +287,21 @@ const MessageBubble: React.FC<BubbleProps> = ({ message, theme, conversationId }
     );
   }
 
-  const isImage = message.mediaType === 'image' || !!message.mediaUrl;
+  // El backend puede omitir `mediaType` en mensajes legacy con `mediaUrl`;
+  // ahí lo tratamos como imagen para no romper vouchers antiguos.
+  const hasMedia = !!message.mediaType || !!message.mediaUrl;
+  const mediaWidth = message.mediaType === 'audio' ? 260 : 220;
+  const mediaHeight = message.mediaType === 'video' ? 160 : 220;
 
   return (
     <View style={[styles.bubbleWrap, isIncoming ? styles.bubbleLeft : styles.bubbleRight]}>
       <View style={[styles.bubble, isIncoming ? styles.bubbleUser : styles.bubbleAssistant]}>
-        {isImage ? (
-          <AuthedImage
+        {hasMedia ? (
+          <AuthedMedia
             conversationId={conversationId}
-            messageId={message.id}
-            width={220}
-            height={220}
+            message={message}
+            width={mediaWidth}
+            height={mediaHeight}
           />
         ) : null}
         {text ? <Body style={isIncoming ? undefined : { color: '#fff' }}>{text}</Body> : null}
