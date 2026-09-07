@@ -320,6 +320,14 @@ export type MainStackParamList = {
   };
   CreateRetencion: undefined;
 
+  // Smart Purchase (Compra Inteligente)
+  SmartPurchaseGroups: undefined;
+  SmartPurchaseGroupDetail: { groupId: string };
+  SmartPurchaseFamilies: { groupId: string };
+  SmartPurchaseOrders: { groupId?: string } | undefined;
+  SmartPurchaseOrderDetail: { orderId: string };
+  SmartPurchaseAnalysisRanking: undefined;
+
   // SIRE Compras (RCE)
   SireCompras: undefined;
 

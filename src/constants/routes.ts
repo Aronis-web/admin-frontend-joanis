@@ -40,6 +40,14 @@ export const MAIN_ROUTES = {
   VALIDATE_PURCHASE_PRODUCT: 'ValidatePurchaseProduct',
   ASSIGN_DEBT: 'AssignDebt',
 
+  // Smart Purchase (Compra Inteligente)
+  SMART_PURCHASE_GROUPS: 'SmartPurchaseGroups',
+  SMART_PURCHASE_GROUP_DETAIL: 'SmartPurchaseGroupDetail',
+  SMART_PURCHASE_FAMILIES: 'SmartPurchaseFamilies',
+  SMART_PURCHASE_ORDERS: 'SmartPurchaseOrders',
+  SMART_PURCHASE_ORDER_DETAIL: 'SmartPurchaseOrderDetail',
+  SMART_PURCHASE_ANALYSIS_RANKING: 'SmartPurchaseAnalysisRanking',
+
   // Expenses
   EXPENSES: 'Expenses',
   CREATE_EXPENSE: 'CreateExpense',
@@ -297,6 +305,14 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   EDIT_PURCHASE_PRODUCT: 'purchases.products.edit',
   VALIDATE_PURCHASE_PRODUCT: 'purchases.validate',
   ASSIGN_DEBT: 'purchases.debt.assign',
+
+  // Smart Purchase
+  SMART_PURCHASE_GROUPS: 'smart_purchase.groups.read',
+  SMART_PURCHASE_GROUP_DETAIL: 'smart_purchase.groups.read',
+  SMART_PURCHASE_FAMILIES: 'smart_purchase.products.read',
+  SMART_PURCHASE_ORDERS: 'smart_purchase.orders.generate',
+  SMART_PURCHASE_ORDER_DETAIL: 'smart_purchase.orders.generate',
+  SMART_PURCHASE_ANALYSIS_RANKING: 'smart_purchase.analysis.read',
 
   // Expenses
   EXPENSES: 'expenses.read',

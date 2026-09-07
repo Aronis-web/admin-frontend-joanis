@@ -508,6 +508,27 @@ export const PERMISSIONS = {
     },
   },
 
+  // ========== SMART PURCHASE (Compra Inteligente) ==========
+  SMART_PURCHASE: {
+    ANALYSIS: {
+      RUN: 'smart_purchase.analysis.run',
+      READ: 'smart_purchase.analysis.read',
+    },
+    GROUPS: {
+      READ: 'smart_purchase.groups.read',
+      MANAGE: 'smart_purchase.groups.manage',
+    },
+    PRODUCTS: {
+      READ: 'smart_purchase.products.read',
+      MANAGE: 'smart_purchase.products.manage',
+    },
+    ORDERS: {
+      GENERATE: 'smart_purchase.orders.generate',
+      MANAGE: 'smart_purchase.orders.manage',
+      EXPORT: 'smart_purchase.orders.export',
+    },
+  },
+
   // ========== SIRE COMPRAS (RCE) ==========
   SIRE_COMPRAS: {
     SYNC: 'admin.sire_compras.sync',

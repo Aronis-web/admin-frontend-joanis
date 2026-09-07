@@ -536,6 +536,41 @@ const CreateRetencionScreen = lazyLoad(
   'Cargando formulario...'
 );
 
+// Smart Purchase (Compra Inteligente) - Lazy Loaded
+const SmartPurchaseGroupsScreen = lazyLoad(
+  () => import('@/screens/SmartPurchase').then((m) => ({ default: m.SmartPurchaseGroupsScreen })),
+  'Cargando Compra Inteligente...'
+);
+const SmartPurchaseGroupDetailScreen = lazyLoad(
+  () =>
+    import('@/screens/SmartPurchase').then((m) => ({
+      default: m.SmartPurchaseGroupDetailScreen,
+    })),
+  'Cargando grupo...'
+);
+const SmartPurchaseFamiliesScreen = lazyLoad(
+  () => import('@/screens/SmartPurchase').then((m) => ({ default: m.SmartPurchaseFamiliesScreen })),
+  'Cargando familias...'
+);
+const SmartPurchaseOrdersScreen = lazyLoad(
+  () => import('@/screens/SmartPurchase').then((m) => ({ default: m.SmartPurchaseOrdersScreen })),
+  'Cargando órdenes...'
+);
+const SmartPurchaseOrderDetailScreen = lazyLoad(
+  () =>
+    import('@/screens/SmartPurchase').then((m) => ({
+      default: m.SmartPurchaseOrderDetailScreen,
+    })),
+  'Cargando orden...'
+);
+const SmartPurchaseAnalysisRankingScreen = lazyLoad(
+  () =>
+    import('@/screens/SmartPurchase').then((m) => ({
+      default: m.SmartPurchaseAnalysisRankingScreen,
+    })),
+  'Cargando ranking...'
+);
+
 // SIRE Compras (RCE) - Lazy Loaded
 const SireComprasScreen = lazyLoad(
   () => import('@/screens/SireCompras').then((m) => ({ default: m.SireComprasScreen })),
@@ -2101,6 +2136,92 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['bizlinks.retenciones.create']}>
             <CreateRetencionScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Smart Purchase · Grupos */}
+      <MainStackNavigator.Screen
+        name="SmartPurchaseGroups"
+        options={{ title: 'Compra Inteligente · Grupos' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['smart_purchase.groups.read']}>
+            <SmartPurchaseGroupsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Smart Purchase · Detalle de grupo */}
+      <MainStackNavigator.Screen
+        name="SmartPurchaseGroupDetail"
+        options={{ title: 'Grupo · Compra Inteligente' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['smart_purchase.groups.read']}>
+            <SmartPurchaseGroupDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Smart Purchase · Familias */}
+      <MainStackNavigator.Screen
+        name="SmartPurchaseFamilies"
+        options={{ title: 'Familias · Compra Inteligente' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['smart_purchase.products.read']}>
+            <SmartPurchaseFamiliesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Smart Purchase · Órdenes */}
+      <MainStackNavigator.Screen
+        name="SmartPurchaseOrders"
+        options={{ title: 'Órdenes sugeridas · Compra Inteligente' }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'smart_purchase.orders.generate',
+              'smart_purchase.orders.manage',
+              'smart_purchase.orders.export',
+            ]}
+            requireAll={false}
+          >
+            <SmartPurchaseOrdersScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Smart Purchase · Detalle de orden */}
+      <MainStackNavigator.Screen
+        name="SmartPurchaseOrderDetail"
+        options={{ title: 'Orden · Compra Inteligente' }}
+      >
+        {(props) => (
+          <ProtectedRoute
+            requiredPermissions={[
+              'smart_purchase.orders.generate',
+              'smart_purchase.orders.manage',
+              'smart_purchase.orders.export',
+            ]}
+            requireAll={false}
+          >
+            <SmartPurchaseOrderDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Smart Purchase · Ranking de proveedores */}
+      <MainStackNavigator.Screen
+        name="SmartPurchaseAnalysisRanking"
+        options={{ title: 'Ranking proveedores · Compra Inteligente' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['smart_purchase.analysis.read']}>
+            <SmartPurchaseAnalysisRankingScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

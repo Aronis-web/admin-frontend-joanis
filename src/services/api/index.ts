@@ -15,6 +15,7 @@ export { filesApi } from './files';
 export { accessApi } from './access';
 export { transmisionesApi } from './transmisiones';
 export { sireComprasApi, sireComprasService } from './sire-compras';
+export { smartPurchaseApi, smartPurchaseService } from './smart-purchase';
 export { sireVentasApi, sireVentasService } from './sire-ventas';
 export { sireComprasDeclaredApi, sireComprasDeclaredService } from './sire-compras-declared';
 export { sireVentasDeclaredApi, sireVentasDeclaredService } from './sire-ventas-declared';
