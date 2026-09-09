@@ -96,7 +96,7 @@ export const SmartPurchaseFamiliesScreen: React.FC<Props> = ({ navigation, route
 
   const renderItem = useCallback(
     ({ item }: { item: ProductFamily }) => {
-      const score = item.score ?? 0;
+      const score = Number(item.score ?? 0) || 0;
       const scoreColor =
         score >= 70
           ? theme.color.text.success

@@ -72,23 +72,33 @@ export const formatCents = (cents?: string | number | null, currency = 'PEN'): s
   }
 };
 
-export const formatPct = (n?: number | null, digits = 1): string => {
-  if (n === undefined || n === null || Number.isNaN(n)) return '—';
-  return `${n.toFixed(digits)}%`;
+/** Coerce cualquier valor tipo `number | string | null | undefined` a `number | null`. */
+const toNum = (n?: number | string | null): number | null => {
+  if (n === undefined || n === null || n === '') return null;
+  const v = typeof n === 'number' ? n : Number(n);
+  return Number.isFinite(v) ? v : null;
 };
 
-export const formatNumber = (n?: number | null, digits = 0): string => {
-  if (n === undefined || n === null || Number.isNaN(n)) return '—';
+export const formatPct = (n?: number | string | null, digits = 1): string => {
+  const v = toNum(n);
+  if (v === null) return '—';
+  return `${v.toFixed(digits)}%`;
+};
+
+export const formatNumber = (n?: number | string | null, digits = 0): string => {
+  const v = toNum(n);
+  if (v === null) return '—';
   return new Intl.NumberFormat('es-PE', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  }).format(n);
+  }).format(v);
 };
 
 /** Devuelve `n.toFixed(digits)` o `fallback` si `n` es null/undefined/NaN. */
-export const safeFixed = (n?: number | null, digits = 2, fallback = '—'): string => {
-  if (n === undefined || n === null || Number.isNaN(n)) return fallback;
-  return n.toFixed(digits);
+export const safeFixed = (n?: number | string | null, digits = 2, fallback = '—'): string => {
+  const v = toNum(n);
+  if (v === null) return fallback;
+  return v.toFixed(digits);
 };
 
 // ============================================

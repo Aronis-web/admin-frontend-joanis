@@ -77,7 +77,7 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
 
   const sortedItems = useMemo(() => {
     if (!order) return [];
-    return [...order.items].sort((a, b) => b.score - a.score);
+    return [...order.items].sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0));
   }, [order]);
 
   const isDraft = order?.status === 'DRAFT';
@@ -160,7 +160,7 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
   }
 
   const renderItem = ({ item }: { item: SmartPurchaseOrderItem }) => {
-    const score = item.score ?? 0;
+    const score = Number(item.score ?? 0) || 0;
     const scoreColor =
       score >= 70
         ? theme.color.text.success
