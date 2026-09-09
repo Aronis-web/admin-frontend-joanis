@@ -480,20 +480,16 @@ export const userPermissionsApi = {
   // Obtener permisos efectivos de un usuario (heredados + directos)
   getUserEffectivePermissions: async (userId: string): Promise<string[]> => {
     try {
-      const response = await apiClient.get(`/iam/users/${userId}/effective-permissions`);
+      // `apiClient.get` ya devuelve el body directamente (no un AxiosResponse).
+      // El backend responde con un array de strings: `["perm.a", "perm.b", ...]`.
+      const data = await apiClient.get<unknown>(`/iam/users/${userId}/effective-permissions`);
 
-      // Validate response data
-      if (!response.data) {
-        return [];
-      }
-
-      // Ensure it's an array
-      if (!Array.isArray(response.data)) {
+      if (!Array.isArray(data)) {
         return [];
       }
 
       // Validate all items are strings
-      const validPermissions = response.data.filter((perm: unknown) => typeof perm === 'string');
+      const validPermissions = data.filter((perm: unknown) => typeof perm === 'string') as string[];
 
       return validPermissions;
     } catch (error: any) {
