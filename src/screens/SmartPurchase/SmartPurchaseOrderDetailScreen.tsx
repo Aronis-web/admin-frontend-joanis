@@ -17,7 +17,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -36,13 +35,13 @@ import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
-import { sitesApi } from '@/services/api';
 import {
   downloadSmartPurchaseOrder,
   useApproveOrder,
   useCancelOrder,
   useSmartPurchaseOrder,
 } from '@/hooks/api/useSmartPurchase';
+import { useAllActiveSites } from './hooks/useAllActiveSites';
 import type { MainStackParamList } from '@/types/navigation';
 import type { OrderExportFormat, SmartPurchaseOrderItem } from '@/types/smartPurchase';
 import {
@@ -69,18 +68,12 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
   const approveOrder = useApproveOrder();
   const cancelOrder = useCancelOrder();
 
-  const { data: sitesRes } = useQuery({
-    queryKey: ['smart-purchase', 'orders-sites'],
-    queryFn: () => sitesApi.getSites({ isActive: true, limit: 100 }),
-    staleTime: 5 * 60 * 1000,
-    enabled: !!order,
-  });
+  const { siteName: resolveSiteName } = useAllActiveSites({ enabled: !!order });
 
   const siteName = useMemo(() => {
     if (!order) return '';
-    const s = sitesRes?.data.find((x) => x.id === order.siteId);
-    return s?.name ?? `Sede ${order.siteId.slice(0, 6)}`;
-  }, [sitesRes, order]);
+    return resolveSiteName(order.siteId);
+  }, [resolveSiteName, order]);
 
   const sortedItems = useMemo(() => {
     if (!order) return [];

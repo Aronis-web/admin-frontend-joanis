@@ -16,7 +16,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 import {
   Badge,
@@ -33,9 +33,12 @@ import { borderRadius, spacing } from '@/design-system/tokens';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 import { sitesApi } from '@/services/api';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useGenerateOrders } from '@/hooks/api/useSmartPurchase';
 import type { GenerateOrdersDto, SmartPurchaseGroup } from '@/types/smartPurchase';
 import type { Site } from '@/types/sites';
+
+const SITES_PAGE_SIZE = 50;
 
 interface Props {
   visible: boolean;
@@ -52,6 +55,8 @@ export const GenerateOrdersModal: React.FC<Props> = ({ visible, onClose, group, 
   const [coverage, setCoverage] = useState(String(group.coverageDays));
   const [lead, setLead] = useState(String(group.leadTimeDays));
   const [safety, setSafety] = useState(String(group.safetyDays));
+  const [siteSearch, setSiteSearch] = useState('');
+  const debouncedSiteSearch = useDebounce(siteSearch.trim(), 300);
 
   const generateOrders = useGenerateOrders();
 
@@ -61,16 +66,42 @@ export const GenerateOrdersModal: React.FC<Props> = ({ visible, onClose, group, 
     setCoverage(String(group.coverageDays));
     setLead(String(group.leadTimeDays));
     setSafety(String(group.safetyDays));
+    setSiteSearch('');
   }, [visible, group]);
 
-  const { data: sitesRes, isLoading: sitesLoading } = useQuery({
-    queryKey: ['smart-purchase', 'sites-picker'],
-    queryFn: () => sitesApi.getSites({ isActive: true, limit: 200 }),
+  const {
+    data: sitesData,
+    isLoading: sitesLoading,
+    fetchNextPage: fetchMoreSites,
+    hasNextPage: hasMoreSites,
+    isFetchingNextPage: fetchingMoreSites,
+  } = useInfiniteQuery({
+    queryKey: ['smart-purchase', 'sites-picker', debouncedSiteSearch],
+    queryFn: ({ pageParam = 1 }) =>
+      sitesApi.getSites({
+        q: debouncedSiteSearch || undefined,
+        isActive: true,
+        page: pageParam as number,
+        limit: SITES_PAGE_SIZE,
+        orderBy: 'name',
+        orderDir: 'ASC',
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => {
+      const totalPages =
+        last.meta?.totalPages ?? Math.ceil((last.meta?.total ?? 0) / SITES_PAGE_SIZE);
+      const page = last.meta?.page ?? 1;
+      return page < totalPages ? page + 1 : undefined;
+    },
     enabled: visible,
     staleTime: 5 * 60 * 1000,
   });
 
-  const sites: Site[] = useMemo(() => sitesRes?.data ?? [], [sitesRes]);
+  const sites: Site[] = useMemo(
+    () => (sitesData?.pages ?? []).flatMap((p) => p.data ?? []),
+    [sitesData]
+  );
+  const totalSites = sitesData?.pages?.[0]?.meta?.total ?? 0;
 
   const toggleSite = (id: string) => {
     setSelectedSiteIds((prev) => {
@@ -176,6 +207,14 @@ export const GenerateOrdersModal: React.FC<Props> = ({ visible, onClose, group, 
               )}
             </View>
 
+            <Input
+              leftIcon="search"
+              placeholder="Buscar sede por nombre o dirección..."
+              value={siteSearch}
+              onChangeText={setSiteSearch}
+              autoCapitalize="none"
+            />
+
             {sitesLoading ? (
               <View style={styles.centered}>
                 <ActivityIndicator color={theme.color.brand.primary} />
@@ -218,6 +257,27 @@ export const GenerateOrdersModal: React.FC<Props> = ({ visible, onClose, group, 
                     </TouchableOpacity>
                   );
                 })}
+
+                {hasMoreSites ? (
+                  <TouchableOpacity
+                    onPress={() => void fetchMoreSites()}
+                    disabled={fetchingMoreSites}
+                    style={styles.loadMore}
+                    activeOpacity={0.7}
+                  >
+                    {fetchingMoreSites ? (
+                      <ActivityIndicator color={theme.color.brand.primary} />
+                    ) : (
+                      <Caption color="muted">Cargar más sedes...</Caption>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.loadMore}>
+                    <Caption color="muted">
+                      {sites.length} de {totalSites} sede(s)
+                    </Caption>
+                  </View>
+                )}
               </View>
             )}
           </ScrollView>
@@ -311,6 +371,10 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: 120,
+    },
+    loadMore: {
+      paddingVertical: spacing[3],
+      alignItems: 'center',
     },
     footer: {
       flexDirection: 'row',

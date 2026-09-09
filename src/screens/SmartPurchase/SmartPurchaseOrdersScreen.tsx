@@ -7,7 +7,7 @@
  * - Filtro rápido por estado (DRAFT / APPROVED / SENT / CANCELLED).
  * - Tap → detalle de orden.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,7 +18,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -37,8 +36,8 @@ import {
 } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
-import { sitesApi } from '@/services/api';
 import { useSmartPurchaseGroup, useSmartPurchaseOrders } from '@/hooks/api/useSmartPurchase';
+import { useAllActiveSites } from './hooks/useAllActiveSites';
 import type { MainStackParamList } from '@/types/navigation';
 import type {
   QueryOrdersDto,
@@ -82,19 +81,8 @@ export const SmartPurchaseOrdersScreen: React.FC<Props> = ({ navigation, route }
 
   const { data, isLoading, isError, refetch, isRefetching } = useSmartPurchaseOrders(query);
 
-  // Preload sites once to map siteId → name in the list.
-  const { data: sitesRes } = useQuery({
-    queryKey: ['smart-purchase', 'orders-sites'],
-    queryFn: () => sitesApi.getSites({ isActive: true, limit: 100 }),
-    staleTime: 5 * 60 * 1000,
-  });
-  const siteName = useCallback(
-    (id: string): string => {
-      const s = sitesRes?.data.find((x) => x.id === id);
-      return s?.name ?? `Sede ${id.slice(0, 6)}`;
-    },
-    [sitesRes]
-  );
+  // Preload all active sites (auto-paginated) to map siteId → name in la lista.
+  const { siteName } = useAllActiveSites();
 
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
