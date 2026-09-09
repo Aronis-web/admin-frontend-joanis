@@ -51,6 +51,7 @@ import {
   formatNumber,
   ORDER_STATUS_COLOR,
   ORDER_STATUS_LABEL,
+  safeFixed,
 } from './helpers';
 import { OrderItemEditModal } from './components/OrderItemEditModal';
 
@@ -166,10 +167,11 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
   }
 
   const renderItem = ({ item }: { item: SmartPurchaseOrderItem }) => {
+    const score = item.score ?? 0;
     const scoreColor =
-      item.score >= 70
+      score >= 70
         ? theme.color.text.success
-        : item.score >= 40
+        : score >= 40
           ? theme.color.text.warning
           : theme.color.text.muted;
 
@@ -187,7 +189,7 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
               {item.sku ? `SKU ${item.sku} · ` : ''}
               Score{' '}
               <Body size="small" style={{ fontWeight: '600', color: scoreColor }}>
-                {item.score.toFixed(1)}
+                {safeFixed(item.score, 1)}
               </Body>
             </Caption>
           </View>

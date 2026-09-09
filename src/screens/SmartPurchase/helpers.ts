@@ -85,6 +85,12 @@ export const formatNumber = (n?: number | null, digits = 0): string => {
   }).format(n);
 };
 
+/** Devuelve `n.toFixed(digits)` o `fallback` si `n` es null/undefined/NaN. */
+export const safeFixed = (n?: number | null, digits = 2, fallback = '—'): string => {
+  if (n === undefined || n === null || Number.isNaN(n)) return fallback;
+  return n.toFixed(digits);
+};
+
 // ============================================
 // Viabilidad de proveedor
 // ============================================

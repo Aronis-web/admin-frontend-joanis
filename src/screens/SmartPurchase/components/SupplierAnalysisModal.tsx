@@ -26,6 +26,7 @@ import {
   formatDateTime,
   formatNumber,
   formatPct,
+  safeFixed,
   VIABILITY_COLOR,
   VIABILITY_LABEL,
 } from '../helpers';
@@ -116,7 +117,7 @@ export const SupplierAnalysisModal: React.FC<Props> = ({
                   />
                   <Metric label="Cobertura" value={formatPct(data.supplier.coveragePct)} />
                   <Metric label="Duplicados" value={formatPct(data.supplier.duplicateFamilyRate)} />
-                  <Metric label="Ajuste" value={data.supplier.adjustmentRatio.toFixed(2)} />
+                  <Metric label="Ajuste" value={safeFixed(data.supplier.adjustmentRatio, 2)} />
                   <Metric label="Gasto (60d)" value={formatCents(data.supplier.spendCents60d)} />
                   <Metric
                     label="Cobertura recomendada"

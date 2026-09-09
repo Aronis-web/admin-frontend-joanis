@@ -47,6 +47,7 @@ import {
   FAMILY_STATUS_LABEL,
   FAMILY_STATUS_OPTIONS,
   formatDateTime,
+  safeFixed,
 } from './helpers';
 import { FamilyDetailModal } from './components/FamilyDetailModal';
 
@@ -95,10 +96,11 @@ export const SmartPurchaseFamiliesScreen: React.FC<Props> = ({ navigation, route
 
   const renderItem = useCallback(
     ({ item }: { item: ProductFamily }) => {
+      const score = item.score ?? 0;
       const scoreColor =
-        item.score >= 70
+        score >= 70
           ? theme.color.text.success
-          : item.score >= 40
+          : score >= 40
             ? theme.color.text.warning
             : theme.color.text.muted;
 
@@ -129,7 +131,7 @@ export const SmartPurchaseFamiliesScreen: React.FC<Props> = ({ navigation, route
                 Score
               </Caption>
               <Body size="small" style={{ fontWeight: '700', color: scoreColor }}>
-                {item.score.toFixed(1)}
+                {safeFixed(item.score, 1)}
               </Body>
             </View>
             {item.status === 'BLOCKED' && item.requiredDiscountPct !== null && (

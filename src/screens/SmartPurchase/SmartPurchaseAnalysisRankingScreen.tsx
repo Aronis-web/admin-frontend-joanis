@@ -46,6 +46,7 @@ import {
   formatNumber,
   formatPct,
   formatRelative,
+  safeFixed,
   VIABILITY_COLOR,
   VIABILITY_LABEL,
   VIABILITY_OPTIONS,
@@ -187,7 +188,7 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
           <Metric label="Compras 60d" value={formatNumber(item.purchases60d)} />
           <Metric label="Cobertura" value={formatPct(item.coveragePct)} />
           <Metric label="Duplicados" value={formatPct(item.duplicateFamilyRate)} />
-          <Metric label="Ajuste" value={item.adjustmentRatio.toFixed(2)} />
+          <Metric label="Ajuste" value={safeFixed(item.adjustmentRatio, 2)} />
           <Metric label="Cob. reco." value={`${item.recommendedCoverageDays}d`} />
         </View>
 

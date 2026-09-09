@@ -42,7 +42,7 @@ import {
   useUpdateFamily,
 } from '@/hooks/api/useSmartPurchase';
 import type { FamilyMember } from '@/types/smartPurchase';
-import { FAMILY_STATUS_COLOR, FAMILY_STATUS_LABEL, formatDateTime } from '../helpers';
+import { FAMILY_STATUS_COLOR, FAMILY_STATUS_LABEL, formatDateTime, safeFixed } from '../helpers';
 
 interface Props {
   visible: boolean;
@@ -173,7 +173,7 @@ export const FamilyDetailModal: React.FC<Props> = ({ visible, familyId, onClose 
                     ]}
                   />
                   <Caption color="muted">
-                    {FAMILY_STATUS_LABEL[family.status]} · Score {family.score.toFixed(1)}
+                    {FAMILY_STATUS_LABEL[family.status]} · Score {safeFixed(family.score, 1)}
                   </Caption>
                 </View>
               )}
