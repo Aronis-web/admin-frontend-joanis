@@ -340,6 +340,9 @@ export type MainStackParamList = {
   // SIRE Ventas Declaradas (RVIE)
   SireVentasDeclared: undefined;
 
+  // Notifications WhatsApp
+  NotificationsWhatsapp: undefined;
+
   // Chatbot Ventas WhatsApp
   ChatbotChats: undefined;
   ChatbotChatDetail: { conversationId: string };

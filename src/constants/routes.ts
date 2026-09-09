@@ -226,6 +226,9 @@ export const MAIN_ROUTES = {
   // Drive / Gestor de archivos
   DRIVE_HOME: 'DriveHome',
 
+  // Notifications WhatsApp (sesión saliente de notificaciones)
+  NOTIFICATIONS_WHATSAPP: 'NotificationsWhatsapp',
+
   // Chatbot Ventas WhatsApp
   CHATBOT_CHATS: 'ChatbotChats',
   CHATBOT_CHAT_DETAIL: 'ChatbotChatDetail',
@@ -480,6 +483,9 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Drive
   DRIVE_HOME: 'drive.read',
+
+  // Notifications WhatsApp
+  NOTIFICATIONS_WHATSAPP: 'notifications.whatsapp.session.manage',
 
   // Chatbot Ventas WhatsApp
   CHATBOT_CHATS: 'chatbot.chats.manage',

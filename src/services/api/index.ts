@@ -33,6 +33,12 @@ export { chatbotCatalogApi } from './chatbot-catalog';
 export { chatbotSyncApi } from './chatbot-sync';
 export { chatbotSettingsApi } from './chatbot-settings';
 export { chatbotTrainingApi } from './chatbot-training';
+export { notificationsWhatsappApi } from './notifications-whatsapp';
+export type {
+  NotifWaStatus,
+  NotifWaSessionStatus,
+  NotifWaQrResponse,
+} from '@/types/notifications-whatsapp';
 
 // Re-export commonly used services
 export * from './products';

@@ -683,6 +683,13 @@ const menuCategories: MenuCategory[] = [
             requiredPermissions: ['cash_reconciliation.config'],
           },
           {
+            id: 'notifications-whatsapp',
+            icon: 'logo-whatsapp',
+            label: 'Notificaciones WhatsApp',
+            route: MAIN_ROUTES.NOTIFICATIONS_WHATSAPP,
+            requiredPermissions: ['notifications.whatsapp.session.manage'],
+          },
+          {
             id: 'app-versions',
             icon: 'cloud-upload-outline',
             label: 'Versiones de App',

@@ -420,6 +420,13 @@ const SeriesConfigScreen = lazyLoad(
   () => import('@/screens/CashReconciliation').then((m) => ({ default: m.SeriesConfigScreen })),
   'Cargando configuración...'
 );
+const NotificationsWhatsappScreen = lazyLoad(
+  () =>
+    import('@/screens/NotificationsWhatsapp').then((m) => ({
+      default: m.NotificationsWhatsappScreen,
+    })),
+  'Cargando WhatsApp de notificaciones...'
+);
 const ReviewDocumentsMenuScreen = lazyLoad(
   () =>
     import('@/screens/CashReconciliation').then((m) => ({ default: m.ReviewDocumentsMenuScreen })),
@@ -1767,6 +1774,13 @@ const MainStack = React.memo(() => {
         component={SeriesConfigScreen}
         options={{
           title: 'Configuración de Series',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.NOTIFICATIONS_WHATSAPP}
+        component={NotificationsWhatsappScreen}
+        options={{
+          title: 'WhatsApp de Notificaciones',
         }}
       />
       <MainStackNavigator.Screen

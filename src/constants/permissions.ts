@@ -574,6 +574,13 @@ export const PERMISSIONS = {
     TRAINING_MANAGE: 'chatbot.training.manage',
   },
 
+  // ========== NOTIFICATIONS WHATSAPP ==========
+  NOTIFICATIONS: {
+    WHATSAPP: {
+      SESSION_MANAGE: 'notifications.whatsapp.session.manage',
+    },
+  },
+
   // ========== CUENTAS POR PAGAR ==========
   ACCOUNTS_PAYABLE: {
     // Lectura
