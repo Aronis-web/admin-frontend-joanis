@@ -687,7 +687,14 @@ const menuCategories: MenuCategory[] = [
             icon: 'logo-whatsapp',
             label: 'Notificaciones WhatsApp',
             route: MAIN_ROUTES.NOTIFICATIONS_WHATSAPP,
-            requiredPermissions: ['notifications.whatsapp.session.manage'],
+            // El permiso propio (`notifications.whatsapp.session.manage`) puede
+            // no estar aún registrado en el backend para todos los roles admin,
+            // así que se aceptan permisos equivalentes del stack de admin.
+            requiredPermissions: [
+              'notifications.whatsapp.session.manage',
+              'chatbot.session.manage',
+              'apps.manage',
+            ],
           },
           {
             id: 'app-versions',
