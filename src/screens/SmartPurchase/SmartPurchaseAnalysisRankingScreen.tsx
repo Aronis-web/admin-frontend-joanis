@@ -9,10 +9,17 @@
  *                    individualmente o en bloque desde el FAB (`Ejecutar análisis`).
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -41,7 +48,9 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useRunAnalysis, useSupplierAnalysis } from '@/hooks/api/useSmartPurchase';
 import type { MainStackParamList } from '@/types/navigation';
 import type { SupplierAnalysisRow, SupplierViability } from '@/types/smartPurchase';
-import type { Supplier } from '@/types/suppliers';
+import { SupplierType, type Supplier } from '@/types/suppliers';
+
+const SUPPLIERS_PAGE_SIZE = 50;
 import {
   formatNumber,
   formatPct,
@@ -79,24 +88,43 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
     isRefetching: analysisRefetching,
   } = useSupplierAnalysis(viability === 'ALL' ? undefined : { viability });
 
-  // All active suppliers (used to compute "sin analizar").
+  // Proveedores de mercadería activos (para tab "sin analizar"). Paginado incremental.
   const {
-    data: suppliersRes,
+    data: suppliersData,
     isLoading: suppliersLoading,
     isError: suppliersError,
     refetch: refetchSuppliers,
     isRefetching: suppliersRefetching,
-  } = useQuery({
-    queryKey: ['smart-purchase', 'all-suppliers', debouncedSearch],
-    queryFn: () =>
+    fetchNextPage: fetchMoreSuppliers,
+    hasNextPage: hasMoreSuppliers,
+    isFetchingNextPage: fetchingMoreSuppliers,
+  } = useInfiniteQuery({
+    queryKey: ['smart-purchase', 'merchandise-suppliers', debouncedSearch],
+    queryFn: ({ pageParam = 1 }) =>
       suppliersService.getSuppliers({
         query: debouncedSearch || undefined,
         isActive: true,
-        limit: 200,
+        primaryType: SupplierType.MERCHANDISE,
+        page: pageParam as number,
+        limit: SUPPLIERS_PAGE_SIZE,
+        orderBy: 'commercialName',
+        orderDir: 'ASC',
       }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => {
+      const totalPages =
+        last.totalPages ?? Math.ceil((last.total ?? 0) / (last.limit ?? SUPPLIERS_PAGE_SIZE));
+      return last.page < totalPages ? last.page + 1 : undefined;
+    },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const allSuppliers: Supplier[] = useMemo(
+    () => (suppliersData?.pages ?? []).flatMap((p) => p.data ?? []),
+    [suppliersData]
+  );
+  const totalSuppliers = suppliersData?.pages?.[0]?.total ?? 0;
 
   const runAnalysis = useRunAnalysis();
 
@@ -131,10 +159,10 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
     return list;
   }, [analysis, debouncedSearch]);
 
-  const pendingSuppliers: Supplier[] = useMemo(() => {
-    const list = suppliersRes?.data ?? [];
-    return list.filter((s) => !analyzedIds.has(s.id));
-  }, [suppliersRes, analyzedIds]);
+  const pendingSuppliers: Supplier[] = useMemo(
+    () => allSuppliers.filter((s) => !analyzedIds.has(s.id)),
+    [allSuppliers, analyzedIds]
+  );
 
   const handleReanalyzeOne = useCallback(
     async (supplierId: string, supplierName: string) => {
@@ -319,6 +347,25 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
               onRefresh={refetch}
               tintColor={theme.color.brand.primary}
             />
+          }
+          onEndReachedThreshold={0.4}
+          onEndReached={() => {
+            if (tab === 'PENDING' && hasMoreSuppliers && !fetchingMoreSuppliers) {
+              fetchMoreSuppliers();
+            }
+          }}
+          ListFooterComponent={
+            tab === 'PENDING' && fetchingMoreSuppliers ? (
+              <View style={{ paddingVertical: spacing[4], alignItems: 'center' }}>
+                <ActivityIndicator color={theme.color.brand.primary} />
+              </View>
+            ) : tab === 'PENDING' && !hasMoreSuppliers && allSuppliers.length > 0 ? (
+              <View style={{ paddingVertical: spacing[4], alignItems: 'center' }}>
+                <Caption color="muted">
+                  {allSuppliers.length} de {totalSuppliers} proveedor(es) de mercadería
+                </Caption>
+              </View>
+            ) : null
           }
           ListEmptyComponent={
             isError ? (

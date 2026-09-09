@@ -4,6 +4,9 @@
  * Modal cross-platform (web + nativo) para seleccionar 1..N proveedores.
  * Se usa tanto en la creación de un grupo (multi-select) como en la
  * acción "Agregar proveedores" del detalle de grupo.
+ *
+ * Filtra únicamente proveedores de mercadería (`primaryType = MERCHANDISE`)
+ * y usa paginación incremental (infinite scroll) + búsqueda debounced.
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -16,7 +19,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 import {
   Badge,
@@ -32,7 +35,9 @@ import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
 import { useDebounce } from '@/hooks/useDebounce';
 import { suppliersService } from '@/services/api/suppliers';
-import type { Supplier } from '@/types/suppliers';
+import { SupplierType, type Supplier } from '@/types/suppliers';
+
+const PAGE_SIZE = 50;
 
 interface Props {
   visible: boolean;
@@ -72,22 +77,35 @@ export const SupplierPickerModal: React.FC<Props> = ({
 
   const excludeSet = useMemo(() => new Set(excludeIds), [excludeIds]);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['smart-purchase', 'supplier-picker', debouncedSearch],
-    queryFn: () =>
-      suppliersService.getSuppliers({
-        query: debouncedSearch || undefined,
-        isActive: true,
-        limit: 50,
-      }),
-    enabled: visible,
-    staleTime: 60 * 1000,
-  });
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ['smart-purchase', 'supplier-picker', debouncedSearch],
+      queryFn: ({ pageParam = 1 }) =>
+        suppliersService.getSuppliers({
+          query: debouncedSearch || undefined,
+          isActive: true,
+          primaryType: SupplierType.MERCHANDISE,
+          page: pageParam as number,
+          limit: PAGE_SIZE,
+          orderBy: 'commercialName',
+          orderDir: 'ASC',
+        }),
+      initialPageParam: 1,
+      getNextPageParam: (last) => {
+        const totalPages =
+          last.totalPages ?? Math.ceil((last.total ?? 0) / (last.limit ?? PAGE_SIZE));
+        return last.page < totalPages ? last.page + 1 : undefined;
+      },
+      enabled: visible,
+      staleTime: 60 * 1000,
+    });
 
   const items: Supplier[] = useMemo(() => {
-    const list = data?.data ?? [];
-    return list.filter((s) => !excludeSet.has(s.id));
+    const all = (data?.pages ?? []).flatMap((p) => p.data ?? []);
+    return all.filter((s) => !excludeSet.has(s.id));
   }, [data, excludeSet]);
+
+  const total = data?.pages?.[0]?.total ?? 0;
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -117,6 +135,7 @@ export const SupplierPickerModal: React.FC<Props> = ({
           </Body>
           <Caption color="muted">
             {item.code}
+            {item.ruc ? ` · RUC ${item.ruc}` : ''}
             {item.email ? ` · ${item.email}` : ''}
           </Caption>
         </View>
@@ -140,7 +159,10 @@ export const SupplierPickerModal: React.FC<Props> = ({
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.header}>
-            <Title>{title}</Title>
+            <View style={{ flex: 1 }}>
+              <Title>{title}</Title>
+              <Caption color="muted">Solo proveedores de mercadería</Caption>
+            </View>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
               <Ionicons name="close" size={24} color={theme.color.text.body} />
             </TouchableOpacity>
@@ -175,6 +197,27 @@ export const SupplierPickerModal: React.FC<Props> = ({
               renderItem={renderItem}
               contentContainerStyle={{ paddingBottom: spacing[4] }}
               keyboardShouldPersistTaps="handled"
+              onEndReachedThreshold={0.4}
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+              }}
+              ListFooterComponent={
+                isFetchingNextPage ? (
+                  <View style={styles.footerLoader}>
+                    <ActivityIndicator color={theme.color.brand.primary} />
+                  </View>
+                ) : hasNextPage ? (
+                  <TouchableOpacity style={styles.footerLoader} onPress={() => fetchNextPage()}>
+                    <Caption color="muted">Cargar más...</Caption>
+                  </TouchableOpacity>
+                ) : items.length > 0 ? (
+                  <View style={styles.footerLoader}>
+                    <Caption color="muted">
+                      {items.length} de {total} proveedor(es)
+                    </Caption>
+                  </View>
+                ) : null
+              }
             />
           )}
 
@@ -218,6 +261,7 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'space-between',
       paddingHorizontal: spacing[6],
       paddingBottom: spacing[2],
+      gap: spacing[2],
     },
     searchWrap: {
       paddingHorizontal: spacing[6],
@@ -252,6 +296,10 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: 160,
+    },
+    footerLoader: {
+      paddingVertical: spacing[4],
+      alignItems: 'center',
     },
     footer: {
       flexDirection: 'row',

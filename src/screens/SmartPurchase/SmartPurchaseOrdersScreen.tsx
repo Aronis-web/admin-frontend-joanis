@@ -85,7 +85,7 @@ export const SmartPurchaseOrdersScreen: React.FC<Props> = ({ navigation, route }
   // Preload sites once to map siteId → name in the list.
   const { data: sitesRes } = useQuery({
     queryKey: ['smart-purchase', 'orders-sites'],
-    queryFn: () => sitesApi.getSites({ isActive: true, limit: 200 }),
+    queryFn: () => sitesApi.getSites({ isActive: true, limit: 100 }),
     staleTime: 5 * 60 * 1000,
   });
   const siteName = useCallback(

@@ -71,7 +71,7 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
 
   const { data: sitesRes } = useQuery({
     queryKey: ['smart-purchase', 'orders-sites'],
-    queryFn: () => sitesApi.getSites({ isActive: true, limit: 200 }),
+    queryFn: () => sitesApi.getSites({ isActive: true, limit: 100 }),
     staleTime: 5 * 60 * 1000,
     enabled: !!order,
   });
