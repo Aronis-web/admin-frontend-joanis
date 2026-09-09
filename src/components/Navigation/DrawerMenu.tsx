@@ -249,6 +249,31 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.PURCHASES,
         requiredPermissions: ['purchases.read', 'purchases.create', 'purchases.update'],
       },
+      {
+        id: 'smart-purchase-groups',
+        icon: 'people-outline',
+        label: 'Compra Inteligente · Grupos',
+        route: MAIN_ROUTES.SMART_PURCHASE_GROUPS,
+        requiredPermissions: ['smart_purchase.groups.read'],
+      },
+      {
+        id: 'smart-purchase-orders',
+        icon: 'clipboard-outline',
+        label: 'Órdenes sugeridas',
+        route: MAIN_ROUTES.SMART_PURCHASE_ORDERS,
+        requiredPermissions: [
+          'smart_purchase.orders.generate',
+          'smart_purchase.orders.manage',
+          'smart_purchase.orders.export',
+        ],
+      },
+      {
+        id: 'smart-purchase-ranking',
+        icon: 'analytics-outline',
+        label: 'Ranking proveedores',
+        route: MAIN_ROUTES.SMART_PURCHASE_ANALYSIS_RANKING,
+        requiredPermissions: ['smart_purchase.analysis.read'],
+      },
     ],
   },
   // Ventas
@@ -656,6 +681,13 @@ const menuCategories: MenuCategory[] = [
             label: 'Config. Series Cuadre',
             route: MAIN_ROUTES.SERIES_CONFIG,
             requiredPermissions: ['cash_reconciliation.config'],
+          },
+          {
+            id: 'notifications-whatsapp',
+            icon: 'logo-whatsapp',
+            label: 'Notificaciones WhatsApp',
+            route: MAIN_ROUTES.NOTIFICATIONS_WHATSAPP,
+            requiredPermissions: ['notifications.whatsapp.session.manage'],
           },
           {
             id: 'app-versions',
