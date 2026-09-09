@@ -19,5 +19,5 @@ Crea un commit y hace push siguiendo la regla del proyecto: tras cada cambio fun
 
 ## Restricciones
 - **Nunca** hacer `push --force` ni `--no-verify`.
-- **Nunca** push directo a `master` si los cambios son grandes — preguntar al usuario primero.
+- **Rama por defecto: `master`.** Pushea directo a `master` salvo que el usuario pida explícitamente otra rama.
 - No incluir archivos con secretos.

@@ -43,7 +43,8 @@ Panel ERP cross-platform construido con Expo + React Native + React Native Web. 
 - Prohibido acumular múltiples cambios sin versionar, dejar trabajo "para commitear al final" o terminar un turno con cambios sin pushear.
 - Si un cambio rompe el typecheck más allá del baseline, igualmente debe commitearse como WIP (`wip:` prefix) y pushearse — la rama es la fuente de verdad, no el disco local.
 - Mensajes en español, imperativos, concisos (`feat:`, `fix:`, `refactor:`, `chore:`, `wip:`).
-- Rama de feature siempre; nunca push directo a `master` en cambios grandes.
+- **Rama por defecto: `master`.** Trabaja y pushea directo a `master` salvo que el usuario pida explícitamente una rama de feature.
+- Si estás en otra rama al terminar, hacer merge (`--no-ff`) a `master` y `git push origin master` antes de cerrar el turno.
 
 ### Otros
 - No crear archivos `*.md` salvo solicitud explícita.
