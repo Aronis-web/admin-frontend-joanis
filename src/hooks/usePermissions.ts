@@ -9,7 +9,7 @@ import {
 } from '@/utils/permissionHierarchy';
 
 export const usePermissions = () => {
-  const { user, clearInvalidAuth } = useAuthStore();
+  const { user, clearInvalidAuth, updateUser } = useAuthStore();
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +21,9 @@ export const usePermissions = () => {
         setPermissions(user.permissions);
         setLoading(false);
         setError(null);
+        // Refresh in background para reflejar permisos recién asignados en
+        // backend sin obligar al usuario a logout/login. No bloquea la UI.
+        void loadUserPermissions({ silent: true });
       } else {
         // Load permissions from API if not available
         loadUserPermissions();
@@ -39,29 +42,47 @@ export const usePermissions = () => {
     }
   }, [user?.id, user?.permissions?.length, clearInvalidAuth]); // Only trigger when permissions length changes
 
-  const loadUserPermissions = async () => {
+  const loadUserPermissions = async (opts?: { silent?: boolean }) => {
     if (!user?.id || user.id === 'temp-id') {
-      setError('ID de usuario inválido para cargar permisos');
-      setPermissions([]);
-      setLoading(false);
-      clearInvalidAuth();
+      if (!opts?.silent) {
+        setError('ID de usuario inválido para cargar permisos');
+        setPermissions([]);
+        setLoading(false);
+        clearInvalidAuth();
+      }
       return;
     }
 
     try {
-      setLoading(true);
+      if (!opts?.silent) {
+        setLoading(true);
+      }
       setError(null);
       const userPerms = await userPermissionsApi.getUserEffectivePermissions(user.id);
 
       // Double-check that we have a valid array
       if (!Array.isArray(userPerms)) {
-        setError('Respuesta de permisos inválida del servidor');
-        setPermissions([]);
+        if (!opts?.silent) {
+          setError('Respuesta de permisos inválida del servidor');
+          setPermissions([]);
+        }
         return;
       }
 
       setPermissions(userPerms);
+      // Persistir en el auth store para que los próximos arranques ya tengan
+      // los permisos actualizados (evita depender del logout/login).
+      if (
+        user?.permissions?.length !== userPerms.length ||
+        userPerms.some((p) => !user?.permissions?.includes(p))
+      ) {
+        updateUser({ permissions: userPerms });
+      }
     } catch (err: any) {
+      if (opts?.silent) {
+        // No sobreescribir permisos cacheados si el refresh silencioso falla.
+        return;
+      }
       // Handle specific error cases
       if (
         err.message?.includes('invalid input syntax for type uuid') ||
@@ -82,7 +103,9 @@ export const usePermissions = () => {
       // En caso de error, establecer permisos vacíos para evitar bloqueos
       setPermissions([]);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) {
+        setLoading(false);
+      }
     }
   };
 
