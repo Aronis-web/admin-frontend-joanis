@@ -100,22 +100,31 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
 
   const runAnalysis = useRunAnalysis();
 
-  const analyzedIds = useMemo(() => new Set((analysis ?? []).map((r) => r.supplierId)), [analysis]);
+  const analyzedIds = useMemo(
+    () =>
+      new Set(
+        (Array.isArray(analysis) ? analysis : [])
+          .filter((r): r is SupplierAnalysisRow => !!r)
+          .map((r) => r.supplierId)
+      ),
+    [analysis]
+  );
 
   const rankedSorted = useMemo(() => {
-    const list = [...(analysis ?? [])];
+    const raw = Array.isArray(analysis) ? analysis : [];
+    const list = raw.filter((r): r is SupplierAnalysisRow => !!r);
     const rank: Record<SupplierViability, number> = {
       IDEAL: 0,
       VIABLE: 1,
       CONDICIONADO: 2,
       NO_RECOMENDADO: 3,
     };
-    list.sort((a, b) => rank[a.viability] - rank[b.viability]);
+    list.sort((a, b) => (rank[a.viability] ?? 99) - (rank[b.viability] ?? 99));
     if (debouncedSearch) {
       const needle = debouncedSearch.toLowerCase();
       return list.filter(
         (r) =>
-          r.supplierName.toLowerCase().includes(needle) ||
+          (r.supplierName ?? '').toLowerCase().includes(needle) ||
           (r.ruc ?? '').toLowerCase().includes(needle)
       );
     }
@@ -176,10 +185,16 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
           </View>
           <View style={styles.viabilityChip}>
             <View
-              style={[styles.viabilityDot, { backgroundColor: VIABILITY_COLOR[item.viability] }]}
+              style={[
+                styles.viabilityDot,
+                {
+                  backgroundColor:
+                    (item.viability && VIABILITY_COLOR[item.viability]) ?? theme.color.icon.muted,
+                },
+              ]}
             />
             <Body size="small" style={{ fontWeight: '600' }}>
-              {VIABILITY_LABEL[item.viability]}
+              {(item.viability && VIABILITY_LABEL[item.viability]) ?? '—'}
             </Body>
           </View>
         </View>
@@ -207,7 +222,7 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
         </ProtectedView>
       </Card>
     ),
-    [styles, handleReanalyzeOne, reanalyzingId]
+    [styles, theme, handleReanalyzeOne, reanalyzingId]
   );
 
   const renderPendingRow = useCallback(

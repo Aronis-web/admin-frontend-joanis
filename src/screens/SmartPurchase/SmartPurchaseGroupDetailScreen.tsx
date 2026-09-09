@@ -225,16 +225,18 @@ export const SmartPurchaseGroupDetailScreen: React.FC<Props> = ({ navigation, ro
               Agregado {formatDateTime(item.addedAt)}
             </Caption>
           </View>
-          {analysis ? (
+          {analysis && analysis.viability ? (
             <View style={styles.viabilityChip}>
               <View
                 style={[
                   styles.viabilityDot,
-                  { backgroundColor: VIABILITY_COLOR[analysis.viability] },
+                  {
+                    backgroundColor: VIABILITY_COLOR[analysis.viability] ?? theme.color.icon.muted,
+                  },
                 ]}
               />
               <Body size="small" style={{ fontWeight: '600' }}>
-                {VIABILITY_LABEL[analysis.viability]}
+                {VIABILITY_LABEL[analysis.viability] ?? '—'}
               </Body>
             </View>
           ) : (
