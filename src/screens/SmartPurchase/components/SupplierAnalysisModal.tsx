@@ -77,82 +77,121 @@ export const SupplierAnalysisModal: React.FC<Props> = ({
               </TouchableOpacity>
             </View>
           ) : (
-            <ScrollView contentContainerStyle={styles.content}>
-              <View style={styles.currentBlock}>
-                <View style={styles.viabilityRow}>
-                  <View
-                    style={[
-                      styles.viabilityDot,
-                      { backgroundColor: VIABILITY_COLOR[data.supplier.viability] },
-                    ]}
-                  />
-                  <Body style={{ fontWeight: '600' }}>
-                    {VIABILITY_LABEL[data.supplier.viability]}
-                  </Body>
-                  <View style={{ flex: 1 }} />
-                  <Caption color="muted">{formatDateTime(data.supplier.analyzedAt)}</Caption>
-                </View>
-
-                <View style={styles.metricsGrid}>
-                  <Metric label="Compras (60d)" value={formatNumber(data.supplier.purchases60d)} />
-                  <Metric
-                    label="Compras (180d)"
-                    value={formatNumber(data.supplier.purchases180d)}
-                  />
-                  <Metric
-                    label="Días entre compras"
-                    value={
-                      data.supplier.avgDaysBetweenPurchases !== null
-                        ? formatNumber(data.supplier.avgDaysBetweenPurchases, 1)
-                        : '—'
-                    }
-                  />
-                  <Metric
-                    label="Productos activos"
-                    value={formatPct(data.supplier.activeProductsPct)}
-                  />
-                  <Metric
-                    label="Prod. con ventas"
-                    value={formatPct(data.supplier.productsWithSalesPct)}
-                  />
-                  <Metric label="Cobertura" value={formatPct(data.supplier.coveragePct)} />
-                  <Metric label="Duplicados" value={formatPct(data.supplier.duplicateFamilyRate)} />
-                  <Metric label="Ajuste" value={safeFixed(data.supplier.adjustmentRatio, 2)} />
-                  <Metric label="Gasto (60d)" value={formatCents(data.supplier.spendCents60d)} />
-                  <Metric
-                    label="Cobertura recomendada"
-                    value={`${data.supplier.recommendedCoverageDays}d`}
-                  />
-                </View>
-              </View>
-
-              <Divider />
-
-              <View style={{ paddingHorizontal: spacing[6], paddingVertical: spacing[4] }}>
-                <Body style={{ fontWeight: '600', marginBottom: spacing[2] }}>
-                  Historial ({data.history.length})
-                </Body>
-                {data.history.length === 0 ? (
-                  <Caption color="muted">Sin snapshots previos.</Caption>
-                ) : (
-                  data.history.map((snap) => (
-                    <View key={snap.id} style={styles.historyRow}>
+            (() => {
+              const supplier = data.supplier;
+              const history = data.history ?? [];
+              if (!supplier) {
+                return (
+                  <View style={styles.centered}>
+                    <Body color="muted">Este proveedor aún no tiene análisis.</Body>
+                    <Caption color="muted" style={{ marginTop: spacing[2] }}>
+                      Ejecuta un análisis para ver métricas.
+                    </Caption>
+                  </View>
+                );
+              }
+              const viability = supplier.viability;
+              return (
+                <ScrollView contentContainerStyle={styles.content}>
+                  <View style={styles.currentBlock}>
+                    <View style={styles.viabilityRow}>
                       <View
                         style={[
-                          styles.viabilityDotSmall,
-                          { backgroundColor: VIABILITY_COLOR[snap.viability] },
+                          styles.viabilityDot,
+                          {
+                            backgroundColor:
+                              (viability && VIABILITY_COLOR[viability]) ?? theme.color.icon.muted,
+                          },
                         ]}
                       />
-                      <View style={{ flex: 1 }}>
-                        <Body size="small">{VIABILITY_LABEL[snap.viability]}</Body>
-                        <Caption color="muted">{formatDateTime(snap.analyzedAt)}</Caption>
-                      </View>
-                      <Badge variant="default" label={`Cob ${snap.recommendedCoverageDays}d`} />
+                      <Body style={{ fontWeight: '600' }}>
+                        {(viability && VIABILITY_LABEL[viability]) ?? 'Sin viabilidad'}
+                      </Body>
+                      <View style={{ flex: 1 }} />
+                      <Caption color="muted">{formatDateTime(supplier.analyzedAt)}</Caption>
                     </View>
-                  ))
-                )}
-              </View>
-            </ScrollView>
+
+                    <View style={styles.metricsGrid}>
+                      <Metric label="Compras (60d)" value={formatNumber(supplier.purchases60d)} />
+                      <Metric label="Compras (180d)" value={formatNumber(supplier.purchases180d)} />
+                      <Metric
+                        label="Días entre compras"
+                        value={
+                          supplier.avgDaysBetweenPurchases !== null &&
+                          supplier.avgDaysBetweenPurchases !== undefined
+                            ? formatNumber(supplier.avgDaysBetweenPurchases, 1)
+                            : '—'
+                        }
+                      />
+                      <Metric
+                        label="Productos activos"
+                        value={formatPct(supplier.activeProductsPct)}
+                      />
+                      <Metric
+                        label="Prod. con ventas"
+                        value={formatPct(supplier.productsWithSalesPct)}
+                      />
+                      <Metric label="Cobertura" value={formatPct(supplier.coveragePct)} />
+                      <Metric label="Duplicados" value={formatPct(supplier.duplicateFamilyRate)} />
+                      <Metric label="Ajuste" value={safeFixed(supplier.adjustmentRatio, 2)} />
+                      <Metric label="Gasto (60d)" value={formatCents(supplier.spendCents60d)} />
+                      <Metric
+                        label="Cobertura recomendada"
+                        value={
+                          supplier.recommendedCoverageDays != null
+                            ? `${supplier.recommendedCoverageDays}d`
+                            : '—'
+                        }
+                      />
+                    </View>
+                  </View>
+
+                  <Divider />
+
+                  <View style={{ paddingHorizontal: spacing[6], paddingVertical: spacing[4] }}>
+                    <Body style={{ fontWeight: '600', marginBottom: spacing[2] }}>
+                      Historial ({history.length})
+                    </Body>
+                    {history.length === 0 ? (
+                      <Caption color="muted">Sin snapshots previos.</Caption>
+                    ) : (
+                      history.map((snap) => {
+                        const snapViability = snap.viability;
+                        return (
+                          <View key={snap.id} style={styles.historyRow}>
+                            <View
+                              style={[
+                                styles.viabilityDotSmall,
+                                {
+                                  backgroundColor:
+                                    (snapViability && VIABILITY_COLOR[snapViability]) ??
+                                    theme.color.icon.muted,
+                                },
+                              ]}
+                            />
+                            <View style={{ flex: 1 }}>
+                              <Body size="small">
+                                {(snapViability && VIABILITY_LABEL[snapViability]) ??
+                                  'Sin viabilidad'}
+                              </Body>
+                              <Caption color="muted">{formatDateTime(snap.analyzedAt)}</Caption>
+                            </View>
+                            <Badge
+                              variant="default"
+                              label={
+                                snap.recommendedCoverageDays != null
+                                  ? `Cob ${snap.recommendedCoverageDays}d`
+                                  : 'Cob —'
+                              }
+                            />
+                          </View>
+                        );
+                      })
+                    )}
+                  </View>
+                </ScrollView>
+              );
+            })()
           )}
         </Pressable>
       </Pressable>
