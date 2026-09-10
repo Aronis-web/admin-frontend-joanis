@@ -1,0 +1,25 @@
+---
+description: Scripts npm, estilo TS y comandos slash del proyecto. Cargar cuando se vaya a ejecutar tooling, formatear, validar, buildear o correr slash commands.
+alwaysApply: false
+---
+
+# Scripts y estilo
+
+## npm
+- `npm run lint` / `lint:fix` — ESLint sobre `src/**`
+- `npm run typecheck` — `tsc --noEmit`
+- `npm run validate` — typecheck + lint + format:check
+- `npm run format` — Prettier write
+- `npm run check-logs` — busca/limpia `console.log`
+- `npm run build:web:quick` — export web para Electron
+- `npm run build:electron:win` — empaqueta `.exe`
+
+Builds largos (APK, Electron): invocar los slash `/build-apk`, `/build-electron`, no reproducir inline.
+
+## Estilo TS
+- Strict, alias `@/*` → `src/*`. Evitar `any`; tipos en `src/types/`.
+- Sin `console.log`: usar `logger` de `@/utils/logger`.
+- No introducir dependencias sin necesidad clara.
+
+## Slash commands
+`/validate`, `/build-apk`, `/build-electron`, `/commit-push`, `/new-api-module`, `/review-diff`, `/explain-screen`, `/clean-logs`, `/find-usages`, `/split-large-file`, `/run-screen`, `/bump-version`.

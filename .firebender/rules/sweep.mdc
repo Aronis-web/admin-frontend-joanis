@@ -1,36 +1,15 @@
 ---
-description: Reglas base del proyecto (git, documentación, scripts)
+description: Git — regla dura no negociable (commit+push tras cada cambio funcional)
 alwaysApply: true
 ---
 
-# Reglas del proyecto ERP-aio
+# Git (REGLA DURA)
 
-## Git (REGLA DURA — NO NEGOCIABLE)
-- **OBLIGATORIO**: tras CADA cambio funcional concreto, ejecutar `git add` + `git commit` + `git push` **antes** de pasar al siguiente cambio. Sin excepciones.
-- Prohibido acumular múltiples cambios sin versionar, dejar trabajo "para commitear al final" o terminar un turno con cambios sin pushear.
-- Si un cambio rompe el typecheck más allá del baseline, igualmente debe commitearse como WIP (`wip:` prefix) y pushearse — la rama es la fuente de verdad, no el disco local.
-- Mensajes de commit en español, imperativos y concisos (`feat:`, `fix:`, `refactor:`, `chore:`, `wip:`).
-- **Rama por defecto: `master`.** Trabaja y pushea directo a `master` salvo que el usuario pida explícitamente una rama de feature.
-- Si estás en otra rama al terminar, hacer merge (`--no-ff`) a `master` y `git push origin master` antes de cerrar el turno.
+- Tras CADA cambio funcional concreto: `git add` + `git commit` + `git push`. Sin excepciones.
+- Prohibido acumular cambios sin versionar o cerrar turno con trabajo sin pushear.
+- Si algo rompe typecheck más allá del baseline, igual commit como `wip:` y push.
+- Mensajes en español, imperativos, concisos: `feat:`, `fix:`, `refactor:`, `chore:`, `wip:`.
+- Rama por defecto `master`. Si trabajas en otra, merge `--no-ff` a `master` y push antes de cerrar.
+- No crear archivos `*.md` salvo pedido explícito del usuario.
 
-## Documentación
-- **NO crear** archivos `*.md` (README, guías, resúmenes, changelogs) salvo que el usuario lo pida explícitamente.
-- Documentar dentro del código (JSDoc/TSDoc) cuando aporte valor.
-
-## Scripts npm relevantes
-- `npm run lint` — ESLint sobre `src/**`
-- `npm run lint:fix` — ESLint con auto-fix
-- `npm run typecheck` — `tsc --noEmit`
-- `npm run validate` — typecheck + lint + format:check
-- `npm run format` — Prettier write
-- `npm run check-logs` — busca/limpia `console.log`
-- `npm run build:web:quick` — export web para Electron
-- `npm run build:electron:win` — empaqueta `.exe`
-
-## Comandos largos (build APK, etc.)
-Disponibles como comandos slash: `/build-apk`, `/build-electron`. No los reproduzcas inline — invócalos.
-
-## Estilo general
-- TypeScript estricto, alias `@/*` → `src/*`.
-- Evitar `any`; preferir tipos en `src/types/`.
-- No introducir nuevas dependencias sin necesidad clara.
+Scripts npm, estilo TS y comandos slash → ver `project-basics.mdc` (on-demand).
