@@ -10,7 +10,7 @@ globs: "src/screens/Inventory/**, src/components/Inventory/**, src/hooks/api/use
 - Servicio: `src/services/api/inventory.ts` (694 líneas).
 - Hook: `src/hooks/api/useStock.ts` (337 líneas).
 - Componente modal pesado: `src/components/Inventory/ProductImagesModal.tsx` (**2.113 líneas**).
-- Componente nuevo: `src/components/Inventory/StockProductDetailModal.tsx` (sin commitear aún en el repo).
+- Modal de detalle stock: `src/components/Inventory/StockProductDetailModal.tsx`.
 
 ## Convenciones del módulo
 

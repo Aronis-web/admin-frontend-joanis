@@ -16,7 +16,6 @@ globs: "src/screens/Campaigns/**, src/components/Campaigns/**, src/hooks/api/use
 ## Avisos
 
 - `CampaignDetailScreen.tsx`, `DistributionFormModal.tsx`, `CampaignProductBannerModal.tsx`, `AddProductScreen.tsx` superan 1500 líneas. Antes de modificar más de 100 líneas en cualquiera de ellos, evalúa proponer `/split-large-file`.
-- Existe `.firebender/plans/mejoras_campaas_71faf043.plan.md` con deudas conocidas: inconsistencias `removeParticipant/deleteParticipant`, firmas de `useDistributionPreview`/`useGenerateDistribution`, tipos `any` en participantes/productos. Si trabajas en hooks, considera saldarlas.
 
 ## Convenciones del módulo
 
