@@ -193,6 +193,9 @@ const CustomersScreen = lazyLoad(() =>
 const CustomerDetailScreen = lazyLoad(() =>
   import('@/screens/Customers').then((m) => ({ default: m.CustomerDetailScreen }))
 );
+const CustomerLevelsScreen = lazyLoad(() =>
+  import('@/screens/CustomerLevels').then((m) => ({ default: m.CustomerLevelsScreen }))
+);
 
 // Sales Screens - Lazy Loaded
 const SalesScreen = lazyLoad(
@@ -1155,6 +1158,18 @@ const MainStack = React.memo(() => {
           title: 'Detalle de Cliente',
         }}
       />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CUSTOMER_LEVELS}
+        options={{
+          title: 'Niveles de Socia',
+        }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['customer_levels.read']}>
+            <CustomerLevelsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
         name={MAIN_ROUTES.SALES}
         options={{

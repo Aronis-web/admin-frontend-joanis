@@ -125,6 +125,7 @@ export type MainStackParamList = {
   CustomerDetail: {
     customerId?: string;
   };
+  CustomerLevels: undefined;
 
   // Sales
   Sales: undefined;

@@ -61,6 +61,7 @@ export interface Customer {
   status: CustomerStatus;
   isActive: boolean;
   notes?: string;
+  customerLevelId?: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;

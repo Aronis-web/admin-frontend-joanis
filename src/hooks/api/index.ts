@@ -20,4 +20,5 @@ export * from './useChatbotSync';
 export * from './useChatbotSettings';
 export * from './useChatbotTraining';
 export * from './useCustomers';
+export * from './useCustomerLevels';
 export * from './useSmartDesign';

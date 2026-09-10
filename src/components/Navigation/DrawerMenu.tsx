@@ -647,6 +647,13 @@ const menuCategories: MenuCategory[] = [
             route: MAIN_ROUTES.ROLES_PERMISSIONS,
             requiredPermissions: ['roles.read', 'roles.create', 'roles.update', 'permissions.read'],
           },
+          {
+            id: 'customer-levels',
+            icon: 'ribbon-outline',
+            label: 'Niveles de Socia',
+            route: MAIN_ROUTES.CUSTOMER_LEVELS,
+            requiredPermissions: ['customer_levels.read'],
+          },
         ],
       },
       {

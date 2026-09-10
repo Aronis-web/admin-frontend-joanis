@@ -50,6 +50,14 @@ export * from './repartos';
 export * from './transport';
 export * from './users';
 export * from './customers';
+export { customerLevelsApi, customerLevelsService } from './customer-levels';
+export type {
+  CustomerLevel,
+  CreateCustomerLevelRequest,
+  UpdateCustomerLevelRequest,
+  GetCustomerLevelsParams,
+  AssignCustomerLevelRequest,
+} from '@/types/customer-levels';
 export { salesApi } from './sales';
 export { externalSalesApi } from './external-sales';
 export { izipayReportSyncApi } from './izipay-report-sync';

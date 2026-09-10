@@ -10,6 +10,7 @@ import {
   ApiPeruDniResponse,
   ApiPeruRucResponse,
 } from '@/types/customers';
+import type { AssignCustomerLevelRequest } from '@/types/customer-levels';
 
 /**
  * Customers API Service
@@ -77,6 +78,14 @@ class CustomersService {
    */
   async restoreCustomer(id: string): Promise<Customer> {
     return apiClient.post<Customer>(`${this.basePath}/${id}/restore`);
+  }
+
+  /**
+   * Asigna (o limpia con null) el nivel comercial de un cliente.
+   * PATCH /customers/:id/level
+   */
+  async assignLevel(id: string, data: AssignCustomerLevelRequest): Promise<Customer> {
+    return apiClient.patch<Customer>(`${this.basePath}/${id}/level`, data);
   }
 
   // ============================================

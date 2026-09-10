@@ -89,6 +89,7 @@ export const MAIN_ROUTES = {
   // Customers
   CUSTOMERS: 'Customers',
   CUSTOMER_DETAIL: 'CustomerDetail',
+  CUSTOMER_LEVELS: 'CustomerLevels',
 
   // Sales
   SALES: 'Sales',
@@ -352,6 +353,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Customers
   CUSTOMERS: 'customers.read',
   CUSTOMER_DETAIL: 'customers.read',
+  CUSTOMER_LEVELS: 'customer_levels.read',
 
   // Sales
   SALES: 'sales.read',
