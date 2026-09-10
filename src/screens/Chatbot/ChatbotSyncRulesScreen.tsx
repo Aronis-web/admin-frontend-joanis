@@ -42,6 +42,7 @@ import {
   useUpdateSyncRule,
 } from '@/hooks/api/useChatbotSync';
 import { useSiteWarehouses } from '@/hooks/api/useChatbotCatalog';
+import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import type { SyncRule, SyncSummary, UpsertSyncRuleBody } from '@/types/chatbot';
 import Alert from '@/utils/alert';
@@ -136,13 +137,17 @@ export const ChatbotSyncRulesScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
-  // Warehouses de la sede activa (mismo patrón que el catálogo).
+  // Warehouses de la sede activa. Se usa el tenant store con fallback al
+  // auth store para cubrir el caso en que el usuario aún no seleccionó
+  // company/site en el selector superior (recién logueado) — sin el fallback
+  // el hook queda deshabilitado y los chips de almacén salen vacíos.
   const selectedCompany = useTenantStore((s) => s.selectedCompany);
   const selectedSite = useTenantStore((s) => s.selectedSite);
-  const { data: siteWarehouses } = useSiteWarehouses(
-    selectedCompany?.id ?? null,
-    selectedSite?.id ?? null
-  );
+  const authCompany = useAuthStore((s) => s.currentCompany);
+  const authSite = useAuthStore((s) => s.currentSite);
+  const companyId = selectedCompany?.id ?? authCompany?.id ?? null;
+  const siteId = selectedSite?.id ?? authSite?.id ?? null;
+  const { data: siteWarehouses } = useSiteWarehouses(companyId, siteId);
 
   const { data, isLoading, isFetching, isError, refetch } = useSyncRules();
   const rules = useMemo(() => data ?? [], [data]);
