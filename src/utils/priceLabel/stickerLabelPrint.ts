@@ -18,7 +18,7 @@
 import { Platform } from 'react-native';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
-import { code128Svg } from './code128Svg';
+import { code128SvgDetailed } from './code128Svg';
 import { formatLabelPrice } from './priceLabelPrint';
 
 /** Ancho de la fila (3 stickers) y alto del sticker, en milímetros. */
@@ -28,9 +28,22 @@ const ROW_HEIGHT_MM = 20;
 const COLUMN_CENTERS_MM = [19, 52, 85];
 const STICKER_WIDTH_MM = 33;
 const STICKERS_PER_ROW = COLUMN_CENTERS_MM.length;
-/** Ancho del código de barras (mm) y su margen izquierdo para centrarlo. */
-const BARCODE_WIDTH_MM = 22;
-const BARCODE_LEFT_MM = (STICKER_WIDTH_MM - BARCODE_WIDTH_MM) / 2;
+/** Alto del código de barras en mm. */
+const BARCODE_HEIGHT_MM = 6.8;
+/**
+ * Ancho de módulo del Code128 en mm. 0.25mm = 2 dots a 203dpi (resolución de
+ * las Godex). Cualquier valor menor produce barras con anchos irregulares al
+ * rasterizar y los scanners rechazan el código.
+ */
+const MODULE_WIDTH_MM = 0.25;
+/**
+ * Ancho de módulo mínimo (mm) al que reduciremos si el código no entra en el
+ * sticker. 1 dot a 203dpi. En esa resolución el código sigue siendo legible
+ * por scanners de gama media/alta pero puede fallar en gama baja.
+ */
+const MODULE_WIDTH_MM_MIN = 0.125;
+/** Máximo ancho útil del barcode dentro del sticker (deja 1.5mm de margen). */
+const BARCODE_MAX_WIDTH_MM = STICKER_WIDTH_MM - 3;
 
 const BRAND = 'Joanis';
 
@@ -91,19 +104,50 @@ const normalizeProductName = (raw: string | undefined): string => {
   return cleaned.length > MAX ? `${cleaned.slice(0, MAX - 1)}…` : cleaned;
 };
 
+/**
+ * Genera el SVG del barcode con ancho intrínseco en mm (dot-aligned) para que
+ * los scanners lo lean. Intenta primero con 0.25mm/módulo (2 dots @203dpi);
+ * si no cabe en el sticker, prueba con 0.125mm (1 dot); si sigue sin caber,
+ * cae al modo estirado (menos confiable, mejor que nada).
+ */
+const buildBarcodeHtml = (barcodeRaw: string): string => {
+  if (!barcodeRaw) return '';
+
+  // Sólo probamos anchos que sean múltiplo entero de dots @203dpi (0.125mm).
+  // Otros valores generan ratios no consistentes entre módulos → ilegible.
+  const candidates = [MODULE_WIDTH_MM, MODULE_WIDTH_MM_MIN];
+  for (const mw of candidates) {
+    const result = code128SvgDetailed(barcodeRaw, {
+      height: 120,
+      quietZone: 8,
+      moduleWidthMm: mw,
+      heightMm: BARCODE_HEIGHT_MM,
+    });
+    if (result?.widthMm && result.widthMm <= BARCODE_MAX_WIDTH_MM) {
+      // Centramos el SVG intrínseco dentro del contenedor absoluto.
+      return `<div class="barcode"><div class="barcode-inner">${result.svg}</div></div>`;
+    }
+  }
+
+  // Fallback: no entra ni con módulo mínimo. Estiramos al ancho máximo (se
+  // pierde precisión, avisamos por log para que el usuario acorte el código).
+  const stretched = code128SvgDetailed(barcodeRaw, { height: 120, quietZone: 8 });
+  if (!stretched) return '';
+  logger.warn('Barcode demasiado largo para el sticker; se estira al máximo (puede no leerse)', {
+    text: barcodeRaw,
+  });
+  return `<div class="barcode barcode-stretched">${stretched.svg}</div>`;
+};
+
 /** HTML de un sticker individual, posicionado en la columna `centerMm`. */
 const buildSticker = (data: StickerLabelData, centerMm: number): string => {
   const priceText = formatLabelPrice(data.priceCents, data.currency);
   const barcodeRaw = (data.barcodeValue ?? '').trim();
   const skuText = (data.sku ?? '').trim();
   const nameText = normalizeProductName(data.productName);
-  // quietZone 8 módulos por lado: replica exactamente la plantilla calibrada
-  // en la Godex (ancho total del barcode = 22 mm incluyendo zonas de silencio).
-  // Altura del SVG duplicada (120 px) para acompañar el barcode más alto.
-  const svg = barcodeRaw ? code128Svg(barcodeRaw, { height: 120, quietZone: 8 }) : null;
 
   const left = centerMm - STICKER_WIDTH_MM / 2;
-  const barcodeHtml = svg ? `<div class="barcode">${svg}</div>` : '';
+  const barcodeHtml = buildBarcodeHtml(barcodeRaw);
   const skuHtml = skuText ? `<div class="sku">${escapeHtml(skuText)}</div>` : '';
 
   return `
@@ -192,11 +236,17 @@ const buildStickersHtml = (data: StickerLabelData): string => {
   }
   .barcode {
     top: 10.2mm;
-    height: 6.8mm;
-    width: ${BARCODE_WIDTH_MM}mm;
-    left: ${BARCODE_LEFT_MM}mm;
+    height: ${BARCODE_HEIGHT_MM}mm;
+    left: 0;
+    width: ${STICKER_WIDTH_MM}mm;
+    /* Contenedor a ancho de sticker; centramos el SVG intrínseco adentro. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .barcode svg { display: block; width: 100%; height: 100%; }
+  .barcode-inner { display: block; line-height: 0; }
+  .barcode svg { display: block; height: ${BARCODE_HEIGHT_MM}mm; }
+  .barcode-stretched svg { width: ${BARCODE_MAX_WIDTH_MM}mm; }
   .sku {
     top: 17.2mm;
     height: 2.6mm;

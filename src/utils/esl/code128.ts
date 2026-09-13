@@ -132,27 +132,65 @@ interface EncodeResult {
   total: number;
 }
 
-/** Codifica `text` a Code128 (auto B/C). */
-export function encodeCode128(text: string): EncodeResult {
-  const allDigits = /^\d+$/.test(text);
-  const useC = allDigits && text.length >= 4 && text.length % 2 === 0;
+const CODE_B = 100; // switch a Code128B desde otro subset
+const CODE_C = 99; // switch a Code128C desde otro subset
 
+/**
+ * Devuelve los codewords (start + data + switches) para codificar `text`
+ * mezclando Code B y Code C: dígitos pares → C, resto → B. Así 13 dígitos
+ * (EAN13) se codifican como START_C + 6 pairs + CODE_B + 1 dígito, mucho más
+ * compacto que Code B puro.
+ */
+function buildCodewords(text: string): number[] {
   const codes: number[] = [];
-  if (useC) {
-    codes.push(START_C);
-    for (let i = 0; i < text.length; i += 2) {
-      codes.push(parseInt(text.substr(i, 2), 10));
-    }
-  } else {
-    codes.push(START_B);
-    for (const ch of text) {
-      const c = ch.charCodeAt(0);
-      if (c < 32 || c > 126) {
-        throw new Error(`Code128B no soporta el carácter "${ch}"`);
+  let i = 0;
+  let subset: 'B' | 'C' | null = null;
+
+  const isDigit = (c: string) => c >= '0' && c <= '9';
+  const digitRunAt = (from: number) => {
+    let n = 0;
+    while (from + n < text.length && isDigit(text[from + n])) n++;
+    return n;
+  };
+
+  while (i < text.length) {
+    const run = digitRunAt(i);
+    // Umbral estándar: entrar a Code C si arrancamos y hay >=4 dígitos, o si
+    // ya estamos en C y quedan >=2. En medio de la cadena, sólo cambiar a C
+    // si hay >=6 dígitos seguidos (compensa el costo del switch).
+    const wantC =
+      run >= 2 && run % 2 === 0 && (subset === null ? run >= 4 : subset === 'C' ? true : run >= 6);
+
+    if (wantC) {
+      if (subset === null) codes.push(START_C);
+      else if (subset !== 'C') codes.push(CODE_C);
+      subset = 'C';
+      const pairs = run / 2;
+      for (let k = 0; k < pairs; k++) {
+        codes.push(parseInt(text.slice(i + k * 2, i + k * 2 + 2), 10));
       }
-      codes.push(c - 32);
+      i += pairs * 2;
+      continue;
     }
+
+    // Caer a Code B para el siguiente carácter (o para el resto no-dígito).
+    if (subset === null) codes.push(START_B);
+    else if (subset !== 'B') codes.push(CODE_B);
+    subset = 'B';
+    const ch = text[i];
+    const c = ch.charCodeAt(0);
+    if (c < 32 || c > 126) {
+      throw new Error(`Code128B no soporta el carácter "${ch}"`);
+    }
+    codes.push(c - 32);
+    i++;
   }
+  return codes;
+}
+
+/** Codifica `text` a Code128 (auto B/C, con switches en medio). */
+export function encodeCode128(text: string): EncodeResult {
+  const codes = buildCodewords(text);
 
   // Checksum: (start + sum(code_i * (i+1))) % 103
   let sum = codes[0];
@@ -175,6 +213,16 @@ export function encodeCode128(text: string): EncodeResult {
   // El estándar agrega una barra final (módulo extra) sólo si el STOP tiene
   // 7 elementos (sí los tiene en el patrón "2331112").
   return { bars, total };
+}
+
+/**
+ * Estima los módulos que ocuparía el Code128 de `text` (sin quiet zone), sin
+ * generar el bitmap. Útil para dimensionar el contenedor antes de encodear.
+ */
+export function estimateCode128Modules(text: string): number {
+  const codes = buildCodewords(text);
+  // Cada codeword: 11 módulos. STOP: 13 módulos. Checksum: 11 módulos.
+  return codes.length * 11 + 11 + 13;
 }
 
 /**
