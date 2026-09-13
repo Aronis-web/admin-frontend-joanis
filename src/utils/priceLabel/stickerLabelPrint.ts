@@ -79,14 +79,28 @@ const escapeHtml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+/**
+ * Normaliza el nombre para que ocupe siempre una sola línea de ancho estable:
+ * quita espacios extra, pasa a mayúsculas y trunca a un máximo de caracteres
+ * (con ellipsis) para que no descuadre el resto de elementos del sticker.
+ */
+const normalizeProductName = (raw: string | undefined): string => {
+  const cleaned = (raw ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (!cleaned) return '—';
+  const MAX = 28;
+  return cleaned.length > MAX ? `${cleaned.slice(0, MAX - 1)}…` : cleaned;
+};
+
 /** HTML de un sticker individual, posicionado en la columna `centerMm`. */
 const buildSticker = (data: StickerLabelData, centerMm: number): string => {
   const priceText = formatLabelPrice(data.priceCents, data.currency);
   const barcodeRaw = (data.barcodeValue ?? '').trim();
   const skuText = (data.sku ?? '').trim();
+  const nameText = normalizeProductName(data.productName);
   // quietZone 8 módulos por lado: replica exactamente la plantilla calibrada
   // en la Godex (ancho total del barcode = 22 mm incluyendo zonas de silencio).
-  const svg = barcodeRaw ? code128Svg(barcodeRaw, { height: 60, quietZone: 8 }) : null;
+  // Altura del SVG duplicada (120 px) para acompañar el barcode más alto.
+  const svg = barcodeRaw ? code128Svg(barcodeRaw, { height: 120, quietZone: 8 }) : null;
 
   const left = centerMm - STICKER_WIDTH_MM / 2;
   const barcodeHtml = svg ? `<div class="barcode">${svg}</div>` : '';
@@ -95,7 +109,7 @@ const buildSticker = (data: StickerLabelData, centerMm: number): string => {
   return `
     <div class="sticker" style="left:${left}mm">
       <div class="brand">${escapeHtml(BRAND)}</div>
-      <div class="name">${escapeHtml(data.productName || '—')}</div>
+      <div class="name">${escapeHtml(nameText)}</div>
       <div class="price">${escapeHtml(priceText)}</div>
       ${barcodeHtml}
       ${skuHtml}
@@ -152,39 +166,41 @@ const buildStickersHtml = (data: StickerLabelData): string => {
   }
   .brand, .name, .price, .sku { left: 0; width: 100%; }
   .brand {
-    top: 3.3mm;
-    height: 3mm;
-    line-height: 3mm;
+    top: 0.3mm;
+    height: 2.8mm;
+    line-height: 2.8mm;
     font-size: 6.5pt;
     font-weight: 700;
     letter-spacing: 0.3mm;
   }
   .name {
-    top: 6.2mm;
-    height: 3mm;
-    line-height: 3mm;
+    top: 3mm;
+    height: 2.8mm;
+    line-height: 2.8mm;
     font-size: 6.5pt;
     font-weight: 400;
     white-space: nowrap;
+    text-overflow: ellipsis;
+    padding: 0 0.5mm;
   }
   .price {
-    top: 9mm;
-    height: 5mm;
-    line-height: 5mm;
+    top: 5.7mm;
+    height: 4.5mm;
+    line-height: 4.5mm;
     font-size: 12pt;
     font-weight: 700;
   }
   .barcode {
-    top: 13.6mm;
-    height: 3.4mm;
+    top: 10.2mm;
+    height: 6.8mm;
     width: ${BARCODE_WIDTH_MM}mm;
     left: ${BARCODE_LEFT_MM}mm;
   }
   .barcode svg { display: block; width: 100%; height: 100%; }
   .sku {
-    top: 17.4mm;
-    height: 2.2mm;
-    line-height: 2.2mm;
+    top: 17.2mm;
+    height: 2.6mm;
+    line-height: 2.6mm;
     font-size: 5.5pt;
     letter-spacing: 0.2mm;
   }
