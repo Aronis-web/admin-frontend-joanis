@@ -230,6 +230,18 @@ export const MAIN_ROUTES = {
   // Notifications WhatsApp (sesión saliente de notificaciones)
   NOTIFICATIONS_WHATSAPP: 'NotificationsWhatsapp',
 
+  // Payroll (Planilla / Nomina Peru)
+  PAYROLL_EMPLOYEES: 'PayrollEmployees',
+  PAYROLL_EMPLOYEE_DETAIL: 'PayrollEmployeeDetail',
+  PAYROLL_CONFIG: 'PayrollConfig',
+  PAYROLL_VACATIONS: 'PayrollVacations',
+  PAYROLL_ABSENCES: 'PayrollAbsences',
+  PAYROLL_OVERTIME: 'PayrollOvertime',
+  PAYROLL_APPROVALS: 'PayrollApprovals',
+  PAYROLL_PERIODS: 'PayrollPeriods',
+  PAYROLL_PERIOD_DETAIL: 'PayrollPeriodDetail',
+  PAYROLL_SLIP_DETAIL: 'PayrollSlipDetail',
+
   // Chatbot Ventas WhatsApp
   CHATBOT_CHATS: 'ChatbotChats',
   CHATBOT_CHAT_DETAIL: 'ChatbotChatDetail',
@@ -488,6 +500,18 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // Notifications WhatsApp
   NOTIFICATIONS_WHATSAPP: 'notifications.whatsapp.session.manage',
+
+  // Payroll (Planilla / Nomina Peru)
+  PAYROLL_EMPLOYEES: 'payroll.employment.read',
+  PAYROLL_EMPLOYEE_DETAIL: 'payroll.employment.read',
+  PAYROLL_CONFIG: 'payroll.config.manage',
+  PAYROLL_VACATIONS: 'payroll.vacations.manage',
+  PAYROLL_ABSENCES: 'payroll.absences.manage',
+  PAYROLL_OVERTIME: 'payroll.overtime.manage',
+  PAYROLL_APPROVALS: 'payroll.approvals.decide',
+  PAYROLL_PERIODS: 'payroll.periods.manage',
+  PAYROLL_PERIOD_DETAIL: 'payroll.periods.manage',
+  PAYROLL_SLIP_DETAIL: 'payroll.slips.read',
 
   // Chatbot Ventas WhatsApp
   CHATBOT_CHATS: 'chatbot.chats.manage',

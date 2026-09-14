@@ -63,6 +63,20 @@ export const PERMISSIONS = {
     SALARY_DELETE: 'organization.salary.delete',
   },
 
+  // ========== PLANILLA / NOMINA (RRHH) ==========
+  PAYROLL: {
+    EMPLOYMENT_READ: 'payroll.employment.read',
+    EMPLOYMENT_MANAGE: 'payroll.employment.manage',
+    CONFIG_MANAGE: 'payroll.config.manage',
+    PERIODS_MANAGE: 'payroll.periods.manage',
+    CALCULATE: 'payroll.calculate',
+    SLIPS_READ: 'payroll.slips.read',
+    VACATIONS_MANAGE: 'payroll.vacations.manage',
+    ABSENCES_MANAGE: 'payroll.absences.manage',
+    OVERTIME_MANAGE: 'payroll.overtime.manage',
+    APPROVALS_DECIDE: 'payroll.approvals.decide',
+  },
+
   // ========== PRODUCTOS ==========
   PRODUCTS: {
     CREATE: 'products.create',

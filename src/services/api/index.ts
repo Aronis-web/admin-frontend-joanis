@@ -268,6 +268,17 @@ export type {
   DriveChildrenParams,
 } from '@/types/drive';
 
+// Payroll (Planilla / Nomina Peru)
+export { payrollEmploymentApi } from './payroll-employment';
+export { payrollConfigApi } from './payroll-config';
+export { payrollVacationsApi } from './payroll-vacations';
+export { payrollAbsencesApi } from './payroll-absences';
+export { payrollOvertimeApi } from './payroll-overtime';
+export { payrollApprovalsApi } from './payroll-approvals';
+export { payrollPeriodsApi } from './payroll-periods';
+export { payrollSlipsApi } from './payroll-slips';
+export type * from '@/types/payroll';
+
 export { siteContactsApi } from './site-contacts';
 export type {
   SiteContact,

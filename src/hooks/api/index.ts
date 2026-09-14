@@ -22,3 +22,13 @@ export * from './useChatbotTraining';
 export * from './useCustomers';
 export * from './useCustomerLevels';
 export * from './useSmartDesign';
+
+// Payroll (Planilla / Nomina Peru)
+export * from './usePayrollEmployment';
+export * from './usePayrollConfig';
+export * from './usePayrollVacations';
+export * from './usePayrollAbsences';
+export * from './usePayrollOvertime';
+export * from './usePayrollApprovals';
+export * from './usePayrollPeriods';
+export * from './usePayrollSlips';

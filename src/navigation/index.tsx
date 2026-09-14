@@ -643,6 +643,48 @@ const ContaduriaDashboardScreen = lazyLoad(
   'Cargando Dashboard...'
 );
 
+// Payroll (Planilla / Nomina Peru) - Lazy Loaded
+const PayrollEmployeesScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollEmployeesScreen })),
+  'Cargando trabajadores...'
+);
+const PayrollEmployeeDetailScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollEmployeeDetailScreen })),
+  'Cargando trabajador...'
+);
+const PayrollConfigScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollConfigScreen })),
+  'Cargando configuracion...'
+);
+const PayrollVacationsScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollVacationsScreen })),
+  'Cargando vacaciones...'
+);
+const PayrollAbsencesScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollAbsencesScreen })),
+  'Cargando faltas...'
+);
+const PayrollOvertimeScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollOvertimeScreen })),
+  'Cargando horas extra...'
+);
+const PayrollApprovalsInboxScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollApprovalsInboxScreen })),
+  'Cargando aprobaciones...'
+);
+const PayrollPeriodsScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollPeriodsScreen })),
+  'Cargando periodos...'
+);
+const PayrollPeriodDetailScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollPeriodDetailScreen })),
+  'Cargando periodo...'
+);
+const PayrollSlipDetailScreen = lazyLoad(
+  () => import('@/screens/Payroll').then((m) => ({ default: m.PayrollSlipDetailScreen })),
+  'Cargando boleta...'
+);
+
 // Drive Screens - Lazy Loaded
 const DriveHomeScreen = lazyLoad(
   () => import('@/screens/Drive').then((m) => ({ default: m.DriveHomeScreen })),
@@ -2502,6 +2544,110 @@ const MainStack = React.memo(() => {
         {() => (
           <ProtectedRoute requiredPermissions={['transport.transporters.create']}>
             <CreateTransporterScreen />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* ============================================================== */}
+      {/* Payroll (Planilla / Nomina Peru)                                */}
+      {/* ============================================================== */}
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_EMPLOYEES}
+        options={{ title: 'Trabajadores' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.employment.read']}>
+            <PayrollEmployeesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_EMPLOYEE_DETAIL}
+        options={{ title: 'Detalle trabajador' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.employment.read']}>
+            <PayrollEmployeeDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_CONFIG}
+        options={{ title: 'Configuracion planilla' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.config.manage']}>
+            <PayrollConfigScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_VACATIONS}
+        options={{ title: 'Vacaciones' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.vacations.manage']}>
+            <PayrollVacationsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_ABSENCES}
+        options={{ title: 'Faltas / Descanso medico' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.absences.manage']}>
+            <PayrollAbsencesScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_OVERTIME}
+        options={{ title: 'Horas extra' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.overtime.manage']}>
+            <PayrollOvertimeScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_APPROVALS}
+        options={{ title: 'Aprobaciones RRHH' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.approvals.decide']}>
+            <PayrollApprovalsInboxScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_PERIODS}
+        options={{ title: 'Periodos de planilla' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.periods.manage']}>
+            <PayrollPeriodsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_PERIOD_DETAIL}
+        options={{ title: 'Detalle de periodo' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.periods.manage']}>
+            <PayrollPeriodDetailScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.PAYROLL_SLIP_DETAIL}
+        options={{ title: 'Boleta' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['payroll.slips.read']}>
+            <PayrollSlipDetailScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

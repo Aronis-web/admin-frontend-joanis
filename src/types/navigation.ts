@@ -355,6 +355,18 @@ export type MainStackParamList = {
   // Contaduría · Dashboard
   ContaduriaDashboard: undefined;
 
+  // Payroll (Planilla / Nomina Peru)
+  PayrollEmployees: undefined;
+  PayrollEmployeeDetail: { userId: string };
+  PayrollConfig: undefined;
+  PayrollVacations: undefined;
+  PayrollAbsences: undefined;
+  PayrollOvertime: undefined;
+  PayrollApprovals: undefined;
+  PayrollPeriods: undefined;
+  PayrollPeriodDetail: { periodId: string };
+  PayrollSlipDetail: { slipId: string; periodId?: string };
+
   // Transport
   Vehicles: undefined;
   VehicleDetail: {

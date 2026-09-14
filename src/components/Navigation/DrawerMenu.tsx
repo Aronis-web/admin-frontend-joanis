@@ -505,6 +505,9 @@ const menuCategories: MenuCategory[] = [
     requiredPermissions: [
       'organization.positions.company.read',
       'organization.positions.site.read',
+      'payroll.employment.read',
+      'payroll.approvals.decide',
+      'payroll.periods.manage',
     ],
     items: [
       {
@@ -535,6 +538,67 @@ const menuCategories: MenuCategory[] = [
               'organization.positions.company.read',
               'organization.positions.site.read',
             ],
+          },
+        ],
+      },
+      {
+        id: 'rrhh-planilla',
+        icon: 'cash-outline',
+        label: 'Planilla',
+        requiredPermissions: [
+          'payroll.employment.read',
+          'payroll.approvals.decide',
+          'payroll.periods.manage',
+        ],
+        subItems: [
+          {
+            id: 'rrhh-planilla-trabajadores',
+            icon: 'people-outline',
+            label: 'Trabajadores',
+            route: MAIN_ROUTES.PAYROLL_EMPLOYEES,
+            requiredPermissions: ['payroll.employment.read'],
+          },
+          {
+            id: 'rrhh-planilla-config',
+            icon: 'settings-outline',
+            label: 'Configuracion',
+            route: MAIN_ROUTES.PAYROLL_CONFIG,
+            requiredPermissions: ['payroll.config.manage'],
+          },
+          {
+            id: 'rrhh-planilla-vacaciones',
+            icon: 'airplane-outline',
+            label: 'Vacaciones',
+            route: MAIN_ROUTES.PAYROLL_VACATIONS,
+            requiredPermissions: ['payroll.vacations.manage'],
+          },
+          {
+            id: 'rrhh-planilla-faltas',
+            icon: 'medkit-outline',
+            label: 'Faltas / DM',
+            route: MAIN_ROUTES.PAYROLL_ABSENCES,
+            requiredPermissions: ['payroll.absences.manage'],
+          },
+          {
+            id: 'rrhh-planilla-hhee',
+            icon: 'time-outline',
+            label: 'Horas extra',
+            route: MAIN_ROUTES.PAYROLL_OVERTIME,
+            requiredPermissions: ['payroll.overtime.manage'],
+          },
+          {
+            id: 'rrhh-planilla-aprobaciones',
+            icon: 'checkmark-done-outline',
+            label: 'Aprobaciones',
+            route: MAIN_ROUTES.PAYROLL_APPROVALS,
+            requiredPermissions: ['payroll.approvals.decide'],
+          },
+          {
+            id: 'rrhh-planilla-periodos',
+            icon: 'calendar-outline',
+            label: 'Periodos',
+            route: MAIN_ROUTES.PAYROLL_PERIODS,
+            requiredPermissions: ['payroll.periods.manage'],
           },
         ],
       },
