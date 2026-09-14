@@ -15,8 +15,9 @@ import type {
 class PayrollApprovalsService {
   private readonly base = '/payroll/approvals';
 
-  async list(params?: ApprovalListParams, signal?: AbortSignal): Promise<ApiSuccess<Approval>> {
-    return apiClient.get(this.base, { params, signal });
+  async list(params?: ApprovalListParams, signal?: AbortSignal): Promise<Approval[]> {
+    const res = await apiClient.get<ApiSuccess<Approval>>(this.base, { params, signal });
+    return res.items ?? [];
   }
 
   async approve(

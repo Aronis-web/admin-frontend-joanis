@@ -21,24 +21,30 @@ import type { SlipSummary } from '@/types/payroll';
 class PayrollPeriodsService {
   private readonly base = '/payroll/periods';
 
-  async list(params?: PeriodListParams, signal?: AbortSignal): Promise<ApiSuccess<PayrollPeriod>> {
-    return apiClient.get(this.base, { params, signal });
+  async list(params?: PeriodListParams, signal?: AbortSignal): Promise<PayrollPeriod[]> {
+    const res = await apiClient.get<ApiSuccess<PayrollPeriod>>(this.base, { params, signal });
+    return res.items ?? [];
   }
 
-  async getById(id: string): Promise<ApiSuccess<PayrollPeriod>> {
-    return apiClient.get(`${this.base}/${id}`);
+  async getById(id: string): Promise<PayrollPeriod | null> {
+    const res = await apiClient.get<ApiSuccess<PayrollPeriod>>(`${this.base}/${id}`);
+    return (res.item as PayrollPeriod) ?? null;
   }
 
-  async create(data: CreatePeriodDto): Promise<ApiSuccess<PayrollPeriod>> {
-    return apiClient.post(this.base, data);
+  async create(data: CreatePeriodDto): Promise<PayrollPeriod | null> {
+    const res = await apiClient.post<ApiSuccess<PayrollPeriod>>(this.base, data);
+    return (res.item as PayrollPeriod) ?? null;
   }
 
   async aggregateAttendance(id: string): Promise<AggregateAttendanceResponse> {
     return apiClient.post(`${this.base}/${id}/aggregate-attendance`);
   }
 
-  async getInputs(id: string, signal?: AbortSignal): Promise<ApiSuccess<PeriodInput>> {
-    return apiClient.get(`${this.base}/${id}/inputs`, { signal });
+  async getInputs(id: string, signal?: AbortSignal): Promise<PeriodInput[]> {
+    const res = await apiClient.get<ApiSuccess<PeriodInput>>(`${this.base}/${id}/inputs`, {
+      signal,
+    });
+    return res.items ?? [];
   }
 
   async overrideInput(
@@ -53,8 +59,11 @@ class PayrollPeriodsService {
     return apiClient.post(`${this.base}/${id}/calculate`, data ?? {});
   }
 
-  async getSlips(id: string, signal?: AbortSignal): Promise<ApiSuccess<SlipSummary>> {
-    return apiClient.get(`${this.base}/${id}/slips`, { signal });
+  async getSlips(id: string, signal?: AbortSignal): Promise<SlipSummary[]> {
+    const res = await apiClient.get<ApiSuccess<SlipSummary>>(`${this.base}/${id}/slips`, {
+      signal,
+    });
+    return res.items ?? [];
   }
 
   async close(id: string): Promise<{ success: true; status: 'CERRADO' }> {

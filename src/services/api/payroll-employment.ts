@@ -15,57 +15,75 @@ import type {
 
 /**
  * Maestro laboral: /payroll/employment
- * Permiso lectura: payroll.employment.read
- * Permiso escritura: payroll.employment.manage
+ * Todas las respuestas viajan en envelope `{ success, item(s) }` y se
+ * desempaquetan aqui para que los hooks / pantallas consuman datos "planos".
  */
 class PayrollEmploymentService {
   private readonly base = '/payroll/employment';
 
-  async list(
-    params?: EmploymentListParams,
-    signal?: AbortSignal
-  ): Promise<ApiSuccess<EmploymentRecord>> {
-    return apiClient.get(this.base, { params, signal });
+  async list(params?: EmploymentListParams, signal?: AbortSignal): Promise<EmploymentRecord[]> {
+    const res = await apiClient.get<ApiSuccess<EmploymentRecord>>(this.base, { params, signal });
+    return res.items ?? [];
   }
 
-  async getByUser(userId: string): Promise<ApiSuccess<EmploymentRecord>> {
-    return apiClient.get(`${this.base}/${userId}`);
+  async getByUser(userId: string): Promise<EmploymentRecord | null> {
+    const res = await apiClient.get<ApiSuccess<EmploymentRecord>>(`${this.base}/${userId}`);
+    return (res.item as EmploymentRecord) ?? null;
   }
 
-  async create(data: CreateEmploymentDto): Promise<ApiSuccess<EmploymentRecord>> {
-    return apiClient.post(this.base, data);
+  async create(data: CreateEmploymentDto): Promise<EmploymentRecord | null> {
+    const res = await apiClient.post<ApiSuccess<EmploymentRecord>>(this.base, data);
+    return (res.item as EmploymentRecord) ?? null;
   }
 
-  async update(userId: string, data: UpdateEmploymentDto): Promise<ApiSuccess<EmploymentRecord>> {
-    return apiClient.put(`${this.base}/${userId}`, data);
+  async update(userId: string, data: UpdateEmploymentDto): Promise<EmploymentRecord | null> {
+    const res = await apiClient.put<ApiSuccess<EmploymentRecord>>(`${this.base}/${userId}`, data);
+    return (res.item as EmploymentRecord) ?? null;
   }
 
-  async getHistory(userId: string): Promise<ApiSuccess<EmploymentHistoryEntry>> {
-    return apiClient.get(`${this.base}/${userId}/history`);
+  async getHistory(userId: string): Promise<EmploymentHistoryEntry[]> {
+    const res = await apiClient.get<ApiSuccess<EmploymentHistoryEntry>>(
+      `${this.base}/${userId}/history`
+    );
+    return res.items ?? [];
   }
 
-  async getSalaryHistory(userId: string): Promise<ApiSuccess<SalaryHistoryEntry>> {
-    return apiClient.get(`${this.base}/${userId}/salary-history`);
+  async getSalaryHistory(userId: string): Promise<SalaryHistoryEntry[]> {
+    const res = await apiClient.get<ApiSuccess<SalaryHistoryEntry>>(
+      `${this.base}/${userId}/salary-history`
+    );
+    return res.items ?? [];
   }
 
-  async getSchedule(userId: string): Promise<ApiSuccess<WorkSchedule>> {
-    return apiClient.get(`${this.base}/${userId}/schedule`);
+  async getSchedule(userId: string): Promise<WorkSchedule | null> {
+    const res = await apiClient.get<ApiSuccess<WorkSchedule>>(`${this.base}/${userId}/schedule`);
+    return (res.item as WorkSchedule) ?? null;
   }
 
-  async updateSchedule(userId: string, data: UpdateScheduleDto): Promise<ApiSuccess<WorkSchedule>> {
-    return apiClient.put(`${this.base}/${userId}/schedule`, data);
+  async updateSchedule(userId: string, data: UpdateScheduleDto): Promise<WorkSchedule | null> {
+    const res = await apiClient.put<ApiSuccess<WorkSchedule>>(
+      `${this.base}/${userId}/schedule`,
+      data
+    );
+    return (res.item as WorkSchedule) ?? null;
   }
 
-  // ---- Cambios de beneficio (viven bajo /employment/:userId/benefit-changes)
-  async listBenefitChanges(userId: string): Promise<ApiSuccess<BenefitChange>> {
-    return apiClient.get(`${this.base}/${userId}/benefit-changes`);
+  async listBenefitChanges(userId: string): Promise<BenefitChange[]> {
+    const res = await apiClient.get<ApiSuccess<BenefitChange>>(
+      `${this.base}/${userId}/benefit-changes`
+    );
+    return res.items ?? [];
   }
 
   async createBenefitChange(
     userId: string,
     data: CreateBenefitChangeDto
-  ): Promise<ApiSuccess<BenefitChange>> {
-    return apiClient.post(`${this.base}/${userId}/benefit-changes`, data);
+  ): Promise<BenefitChange | null> {
+    const res = await apiClient.post<ApiSuccess<BenefitChange>>(
+      `${this.base}/${userId}/benefit-changes`,
+      data
+    );
+    return (res.item as BenefitChange) ?? null;
   }
 }
 

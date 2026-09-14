@@ -512,21 +512,21 @@ const FieldRow: React.FC<{ label: string; value: string }> = ({ label, value }) 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: theme.color.background.canvas },
-    container: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl },
+    container: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[6] },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
+      gap: spacing[2],
     },
-    tabWrap: { gap: spacing.sm },
-    card: { padding: spacing.md, gap: spacing.xs, marginBottom: spacing.sm },
+    tabWrap: { gap: spacing[2] },
+    card: { padding: spacing[4], gap: spacing[1], marginBottom: spacing[2] },
     cardTitle: { fontSize: 16 },
     rowBetween: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: spacing.sm,
+      gap: spacing[2],
     },
     fieldRow: {
       flexDirection: 'row',

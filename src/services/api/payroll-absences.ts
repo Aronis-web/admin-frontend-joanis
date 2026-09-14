@@ -17,11 +17,9 @@ import type {
 class PayrollAbsencesService {
   private readonly base = '/payroll/absences';
 
-  async list(
-    params?: AbsenceListParams,
-    signal?: AbortSignal
-  ): Promise<ApiSuccess<AbsenceRequest>> {
-    return apiClient.get(this.base, { params, signal });
+  async list(params?: AbsenceListParams, signal?: AbortSignal): Promise<AbsenceRequest[]> {
+    const res = await apiClient.get<ApiSuccess<AbsenceRequest>>(this.base, { params, signal });
+    return res.items ?? [];
   }
 
   /**
@@ -32,9 +30,10 @@ class PayrollAbsencesService {
   async create(
     data: CreateAbsenceDto,
     file?: File | Blob | AbsenceFileInput
-  ): Promise<ApiSuccess<AbsenceRequest>> {
+  ): Promise<AbsenceRequest | null> {
     if (!file) {
-      return apiClient.post(this.base, data);
+      const res = await apiClient.post<ApiSuccess<AbsenceRequest>>(this.base, data);
+      return (res.item as AbsenceRequest) ?? null;
     }
 
     const fd = new FormData();
@@ -63,7 +62,8 @@ class PayrollAbsencesService {
     }
 
     // No fijar Content-Type: axios agrega boundary automaticamente
-    return apiClient.post(this.base, fd);
+    const res = await apiClient.post<ApiSuccess<AbsenceRequest>>(this.base, fd);
+    return (res.item as AbsenceRequest) ?? null;
   }
 }
 

@@ -245,12 +245,12 @@ export const BenefitChangeForm: React.FC<Props> = ({ submitting = false, onSubmi
 };
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.md, gap: spacing.sm },
+  container: { padding: spacing[4], gap: spacing[2] },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
+    gap: spacing[2],
+    marginTop: spacing[5],
   },
   error: { color: '#c0392b', fontSize: 12 },
 });

@@ -290,16 +290,16 @@ const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
 );
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.md, gap: spacing.sm },
-  title: { marginBottom: spacing.sm },
-  section: { marginTop: spacing.md, marginBottom: spacing.xs, fontSize: 16 },
-  afpBox: { gap: spacing.xs, marginTop: spacing.xs },
-  mt: { marginTop: spacing.xs },
+  container: { padding: spacing[4], gap: spacing[2] },
+  title: { marginBottom: spacing[2] },
+  section: { marginTop: spacing[4], marginBottom: spacing[1], fontSize: 16 },
+  afpBox: { gap: spacing[1], marginTop: spacing[1] },
+  mt: { marginTop: spacing[1] },
   error: { color: '#c0392b', fontSize: 12 },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
+    gap: spacing[2],
+    marginTop: spacing[5],
   },
 });

@@ -71,7 +71,7 @@ export const PayrollEmployeesScreen: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, isRefetching, isError, error, refetch } = usePayrollEmployees(params);
   const create = useCreatePayrollEmployee();
 
-  const employees = (data?.items ?? []) as EmploymentRecord[];
+  const employees = (data ?? []) as EmploymentRecord[];
 
   const handleOpenDetail = (record: EmploymentRecord) => {
     navigation.navigate(MAIN_ROUTES.PAYROLL_EMPLOYEE_DETAIL, { userId: record.user_id });
@@ -200,22 +200,22 @@ export const PayrollEmployeesScreen: React.FC<Props> = ({ navigation }) => {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: theme.color.background.canvas },
-    container: { flex: 1, padding: spacing.md, gap: spacing.sm },
+    container: { flex: 1, padding: spacing[4], gap: spacing[2] },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    list: { paddingVertical: spacing.sm, gap: spacing.sm },
+    list: { paddingVertical: spacing[2], gap: spacing[2] },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    card: { padding: spacing.md, marginBottom: spacing.sm, gap: spacing.xs },
+    card: { padding: spacing[4], marginBottom: spacing[2], gap: spacing[1] },
     rowBetween: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: spacing.sm,
+      gap: spacing[2],
     },
-    metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.xs },
+    metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[4], marginTop: spacing[1] },
     name: { fontWeight: '600' },
   });
 

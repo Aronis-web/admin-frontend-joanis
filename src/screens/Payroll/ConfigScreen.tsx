@@ -157,7 +157,7 @@ const UpsertAfpModal: React.FC<{
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
+        <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Tasa AFP</Title>
           <Caption>AFP</Caption>
           <ChipGroup
@@ -235,12 +235,11 @@ const UpsertAfpModal: React.FC<{
 const PARAM_KEYS: PayrollParamKey[] = [
   'UIT',
   'RMV',
-  'ASIGNACION_FAMILIAR',
-  'MOVILIDAD_MAX_INAFECTA',
+  'ASIG_FAMILIAR_AMOUNT',
   'ONP_RATE',
   'ESSALUD_RATE',
-  'GRATIFICACION_BONO_9PCT',
-  'CTS_MESES',
+  'SEGVIDALEY_RATE',
+  'INSURABLE_CAP',
 ];
 
 const ParametersTab: React.FC = () => {
@@ -308,7 +307,7 @@ const UpsertParamModal: React.FC<{
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
+        <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Parametro</Title>
           <Caption>Clave</Caption>
           <ChipGroup
@@ -435,7 +434,7 @@ const UpsertTaxBracketModal: React.FC<{
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
+        <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Tramo {year}</Title>
           <Input
             label="Orden"
@@ -486,7 +485,7 @@ const UpsertTaxBracketModal: React.FC<{
 
 // ---------- Conceptos -----------------------------------------------------
 
-const CONCEPT_TYPES: ConceptType[] = ['INGRESO', 'DESCUENTO', 'APORTE_EMPLEADOR', 'INFORMATIVO'];
+const CONCEPT_TYPES: ConceptType[] = ['INGRESO', 'DESCUENTO', 'APORTE'];
 
 const ConceptsTab: React.FC = () => {
   const styles = useThemedStyles(createStyles);
@@ -494,20 +493,19 @@ const ConceptsTab: React.FC = () => {
   const upsert = useUpsertPayrollConcept();
   const [open, setOpen] = useState(false);
 
-  if (q.isLoading) return <ActivityIndicator style={{ marginTop: 32 }} />;
-  if (q.isError) return <ErrorState onRetry={() => q.refetch()} />;
-
   const concepts = q.data ?? [];
   const grouped = useMemo(() => {
     const g: Record<ConceptType, typeof concepts> = {
       INGRESO: [],
       DESCUENTO: [],
-      APORTE_EMPLEADOR: [],
-      INFORMATIVO: [],
+      APORTE: [],
     };
     for (const c of concepts) g[c.concept_type]?.push(c);
     return g;
   }, [concepts]);
+
+  if (q.isLoading) return <ActivityIndicator style={{ marginTop: 32 }} />;
+  if (q.isError) return <ErrorState onRetry={() => q.refetch()} />;
 
   return (
     <View style={styles.tabWrap}>
@@ -516,7 +514,7 @@ const ConceptsTab: React.FC = () => {
         const list = grouped[type];
         if (!list?.length) return null;
         return (
-          <View key={type} style={{ gap: spacing.xs }}>
+          <View key={type} style={{ gap: spacing[1] }}>
             <Caption>{type}</Caption>
             {list.map((c) => (
               <Card key={c.code} style={styles.card}>
@@ -529,7 +527,7 @@ const ConceptsTab: React.FC = () => {
                     <Badge variant="default" size="small" label="Inactivo" />
                   )}
                 </View>
-                <View style={{ flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' }}>
+                <View style={{ flexDirection: 'row', gap: spacing[4], flexWrap: 'wrap' }}>
                   {c.affects_afp && <Caption>AFP</Caption>}
                   {c.affects_essalud && <Caption>EsSalud</Caption>}
                   {c.affects_income_tax && <Caption>Renta</Caption>}
@@ -579,7 +577,7 @@ const UpsertConceptModal: React.FC<{
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}>
+        <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Concepto</Title>
           <Input
             label="Codigo *"
@@ -659,20 +657,20 @@ const UpsertConceptModal: React.FC<{
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: theme.color.background.canvas },
-    container: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl },
-    tabWrap: { gap: spacing.sm },
-    card: { padding: spacing.md, gap: spacing.xs, marginBottom: spacing.sm },
+    container: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[6] },
+    tabWrap: { gap: spacing[2] },
+    card: { padding: spacing[4], gap: spacing[1], marginBottom: spacing[2] },
     rowBetween: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: spacing.sm,
+      gap: spacing[2],
     },
     actions: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-      gap: spacing.sm,
-      marginTop: spacing.lg,
+      gap: spacing[2],
+      marginTop: spacing[5],
     },
   });
 

@@ -13,41 +13,51 @@ import type {
 
 /**
  * Configuracion global de planilla: /payroll/config/*
- * Permiso: payroll.config.manage
+ * Los `list*` devuelven arrays desempaquetados; los `upsert*` devuelven el item.
  */
 class PayrollConfigService {
   private readonly base = '/payroll/config';
 
-  async listAfpRates(): Promise<ApiSuccess<AfpRate>> {
-    return apiClient.get(`${this.base}/afp-rates`);
+  async listAfpRates(): Promise<AfpRate[]> {
+    const res = await apiClient.get<ApiSuccess<AfpRate>>(`${this.base}/afp-rates`);
+    return res.items ?? [];
   }
 
-  async upsertAfpRate(data: UpsertAfpRateDto): Promise<ApiSuccess<AfpRate>> {
-    return apiClient.put(`${this.base}/afp-rates`, data);
+  async upsertAfpRate(data: UpsertAfpRateDto): Promise<AfpRate | null> {
+    const res = await apiClient.put<ApiSuccess<AfpRate>>(`${this.base}/afp-rates`, data);
+    return (res.item as AfpRate) ?? null;
   }
 
-  async listParameters(): Promise<ApiSuccess<PayrollParameter>> {
-    return apiClient.get(`${this.base}/parameters`);
+  async listParameters(): Promise<PayrollParameter[]> {
+    const res = await apiClient.get<ApiSuccess<PayrollParameter>>(`${this.base}/parameters`);
+    return res.items ?? [];
   }
 
-  async upsertParameter(data: UpsertParameterDto): Promise<ApiSuccess<PayrollParameter>> {
-    return apiClient.put(`${this.base}/parameters`, data);
+  async upsertParameter(data: UpsertParameterDto): Promise<PayrollParameter | null> {
+    const res = await apiClient.put<ApiSuccess<PayrollParameter>>(`${this.base}/parameters`, data);
+    return (res.item as PayrollParameter) ?? null;
   }
 
-  async listTaxBrackets(year: number): Promise<ApiSuccess<TaxBracket>> {
-    return apiClient.get(`${this.base}/tax-brackets`, { params: { year } });
+  async listTaxBrackets(year: number): Promise<TaxBracket[]> {
+    const res = await apiClient.get<ApiSuccess<TaxBracket>>(`${this.base}/tax-brackets`, {
+      params: { year },
+    });
+    return res.items ?? [];
   }
 
-  async upsertTaxBracket(data: UpsertTaxBracketDto): Promise<ApiSuccess<TaxBracket>> {
-    return apiClient.put(`${this.base}/tax-brackets`, data);
+  async upsertTaxBracket(data: UpsertTaxBracketDto): Promise<TaxBracket | null> {
+    const res = await apiClient.put<ApiSuccess<TaxBracket>>(`${this.base}/tax-brackets`, data);
+    return (res.item as TaxBracket) ?? null;
   }
 
-  async listConcepts(): Promise<ApiSuccess<PayrollConcept>> {
-    return apiClient.get(`${this.base}/concepts`);
+  async listConcepts(): Promise<PayrollConcept[]> {
+    const res = await apiClient.get<ApiSuccess<PayrollConcept>>(`${this.base}/concepts`);
+    return res.items ?? [];
   }
 
-  async upsertConcept(data: UpsertConceptDto): Promise<ApiSuccess<PayrollConcept>> {
-    return apiClient.put(`${this.base}/concepts`, data);
+  async upsertConcept(data: UpsertConceptDto): Promise<PayrollConcept | null> {
+    const res = await apiClient.put<ApiSuccess<PayrollConcept>>(`${this.base}/concepts`, data);
+    return (res.item as PayrollConcept) ?? null;
   }
 }
 

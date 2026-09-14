@@ -8,20 +8,18 @@ import type {
 
 /**
  * Horas extra: /payroll/overtime
- * Permiso: payroll.overtime.manage
  */
 class PayrollOvertimeService {
   private readonly base = '/payroll/overtime';
 
-  async list(
-    params?: OvertimeListParams,
-    signal?: AbortSignal
-  ): Promise<ApiSuccess<OvertimeRequest>> {
-    return apiClient.get(this.base, { params, signal });
+  async list(params?: OvertimeListParams, signal?: AbortSignal): Promise<OvertimeRequest[]> {
+    const res = await apiClient.get<ApiSuccess<OvertimeRequest>>(this.base, { params, signal });
+    return res.items ?? [];
   }
 
-  async create(data: CreateOvertimeDto): Promise<ApiSuccess<OvertimeRequest>> {
-    return apiClient.post(this.base, data);
+  async create(data: CreateOvertimeDto): Promise<OvertimeRequest | null> {
+    const res = await apiClient.post<ApiSuccess<OvertimeRequest>>(this.base, data);
+    return (res.item as OvertimeRequest) ?? null;
   }
 }
 
