@@ -39,8 +39,26 @@ export const fooKeys = {
 - `onError`: loguear con `logger.error(...)` de `@/utils/logger`.
 - Comentar el efecto con JSDoc.
 
+## Listas y consumo en componentes
+
+Cuando el hook devuelve una colección (`useXxxList`, `useXxxSearch`, etc.):
+
+- El `queryFn` DEBE delegar en un servicio cuyo retorno sea `Promise<T[]>` normalizado (ver rule `services-api.mdc` → helper `toArray`).
+- Si por compatibilidad el service devuelve un objeto envelope, el hook DEBE aplicar `select: (res) => toArray<T>(res)` para exponer un array garantizado a los consumidores.
+- En el componente consumidor, NUNCA hacer `data.map(...)` a secas dentro de un `useMemo` sin normalizar. Patrón seguro:
+
+```ts
+const items = Array.isArray(data) ? data : [];
+const rows = useMemo(() => items.map(mapRow), [items]);
+```
+
+- Cualquier `useMemo`/`.map` que dependa de datos remotos debe fallar en "vacío", no en runtime.
+
+Este patrón previene el crash `TypeError: e.map is not a function` que ocurre cuando el backend devuelve `{ data: [...] }` en lugar de `{ items: [...] }` (o vice-versa) y el componente asume una forma concreta.
+
 ## Anti-patrones
 - ❌ Strings sueltos como `queryKey`: siempre vía `xxxKeys`.
 - ❌ Llamar a `fetch`/`axios` desde el hook: usar el servicio en `@/services/api`.
 - ❌ Olvidar invalidar la lista después de un create/update/delete.
 - ❌ `refetchOnWindowFocus: true` en listas grandes (causa cargas innecesarias en Electron/web).
+- ❌ Consumir `data` de una query de lista asumiendo `T[]` sin `Array.isArray` cuando el envelope del backend no está garantizado.

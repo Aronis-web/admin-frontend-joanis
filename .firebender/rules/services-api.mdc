@@ -37,8 +37,34 @@ export const fooApi = {
 - Para `responseType: 'blob'` (PDFs, descargas) pasar la opción explícita.
 - Registrar el nuevo servicio en `src/services/api/index.ts` con un `export` nominal evitando colisiones de nombres.
 
+## Endpoints tipo lista → SIEMPRE devolver `T[]` normalizado
+
+Cuando un método devuelva una colección, su firma DEBE ser `Promise<T[]>` y el retorno DEBE tolerar cualquier envelope del backend. Usar un helper `toArray<T>(res)`:
+
+```ts
+const toArray = <T>(res: unknown): T[] => {
+  if (Array.isArray(res)) return res as T[];
+  if (res && typeof res === 'object') {
+    const o = res as Record<string, unknown>;
+    if (Array.isArray(o.items)) return o.items as T[];
+    if (Array.isArray(o.data)) return o.data as T[];
+    if (Array.isArray(o.results)) return o.results as T[];
+  }
+  return [];
+};
+
+async list(): Promise<Foo[]> {
+  const res = await apiClient.get<ApiSuccess<Foo>>('/foos');
+  return toArray<Foo>(res);
+}
+```
+
+Esto elimina la clase de bug `TypeError: e.map is not a function` que aparece cuando el backend cambia el shape (por ejemplo migrar de `{ items }` a `{ data }`) o cuando devuelve error silencioso. Referencia: `src/services/api/payroll-employment.ts`.
+
 ## Anti-patrones
 - ❌ `axios.get(...)` directo
 - ❌ Devolver `any` cuando existe un tipo apropiado
 - ❌ Lanzar excepciones custom desde aquí: el manejo central de errores vive en `client.ts`
 - ❌ Concatenar query strings a mano — usar `{ params }`
+- ❌ `return res.items ?? []` (asume que el envelope siempre es `items`). Usar `toArray<T>(res)`.
+- ❌ Que un método `list*` devuelva `T[] | undefined` — SIEMPRE `T[]` (vacío en el peor caso).

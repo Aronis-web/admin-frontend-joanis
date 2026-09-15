@@ -16,6 +16,22 @@ import type {
 } from '@/types/payroll';
 
 /**
+ * Normaliza la respuesta a un array garantizado.
+ * Tolera envelopes `{ items }`, `{ data }`, `{ results }`, o array plano.
+ * Devuelve `[]` si nada calza (evita `.map is not a function` aguas abajo).
+ */
+const toArray = <T>(res: unknown): T[] => {
+  if (Array.isArray(res)) return res as T[];
+  if (res && typeof res === 'object') {
+    const obj = res as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as T[];
+    if (Array.isArray(obj.data)) return obj.data as T[];
+    if (Array.isArray(obj.results)) return obj.results as T[];
+  }
+  return [];
+};
+
+/**
  * Maestro laboral: /payroll/employment
  * Todas las respuestas viajan en envelope `{ success, item(s) }` y se
  * desempaquetan aqui para que los hooks / pantallas consuman datos "planos".
@@ -25,7 +41,7 @@ class PayrollEmploymentService {
 
   async list(params?: EmploymentListParams, signal?: AbortSignal): Promise<EmploymentRecord[]> {
     const res = await apiClient.get<ApiSuccess<EmploymentRecord>>(this.base, { params, signal });
-    return res.items ?? [];
+    return toArray<EmploymentRecord>(res);
   }
 
   /**
@@ -40,7 +56,7 @@ class PayrollEmploymentService {
       params,
       signal,
     });
-    return res.items ?? [];
+    return toArray<PayrollPosition>(res);
   }
 
   async getByUser(userId: string): Promise<EmploymentRecord | null> {
@@ -62,14 +78,14 @@ class PayrollEmploymentService {
     const res = await apiClient.get<ApiSuccess<EmploymentHistoryEntry>>(
       `${this.base}/${userId}/history`
     );
-    return res.items ?? [];
+    return toArray<EmploymentHistoryEntry>(res);
   }
 
   async getSalaryHistory(userId: string): Promise<SalaryHistoryEntry[]> {
     const res = await apiClient.get<ApiSuccess<SalaryHistoryEntry>>(
       `${this.base}/${userId}/salary-history`
     );
-    return res.items ?? [];
+    return toArray<SalaryHistoryEntry>(res);
   }
 
   async getSchedule(userId: string): Promise<WorkSchedule | null> {
@@ -89,7 +105,7 @@ class PayrollEmploymentService {
     const res = await apiClient.get<ApiSuccess<BenefitChange>>(
       `${this.base}/${userId}/benefit-changes`
     );
-    return res.items ?? [];
+    return toArray<BenefitChange>(res);
   }
 
   async createBenefitChange(
