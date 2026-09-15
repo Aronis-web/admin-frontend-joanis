@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Body, Button, Caption, ChipGroup, Input, Title } from '@/design-system';
 import { spacing } from '@/design-system/tokens';
 import { PayrollDateField } from '@/components/Payroll/PayrollDateField';
 import { UserPicker, type PickedUser } from '@/components/Payroll/UserPicker';
+import { usePayrollEmployees } from '@/hooks/api/usePayrollEmployment';
 import type {
   AfpCode,
   AfpRegime,
@@ -12,6 +13,20 @@ import type {
   PensionSystem,
 } from '@/types/payroll';
 import { parseDecimal } from '@/types/payroll';
+
+/**
+ * Calcula el proximo `employee_code` numerico a partir del listado.
+ * - Ignora codigos no numericos.
+ * - Devuelve el maximo + 1 con padding de 4 digitos (ej: `0001`, `0042`).
+ */
+const computeNextEmployeeCode = (records: EmploymentRecord[]): string => {
+  const nums = records
+    .map((r) => (r.employee_code ?? '').trim())
+    .filter((code) => /^\d+$/.test(code))
+    .map((code) => Number(code));
+  const max = nums.length ? Math.max(...nums) : 0;
+  return String(max + 1).padStart(4, '0');
+};
 
 interface Props {
   initial?: Partial<EmploymentRecord> | null;
@@ -63,6 +78,18 @@ export const PayrollEmployeeForm: React.FC<Props> = ({
       : null
   );
   const [employeeCode, setEmployeeCode] = useState(initial?.employee_code ?? '');
+
+  // Autogenerar codigo interno correlativo cuando estamos creando.
+  const { data: allEmployeesForCode } = usePayrollEmployees({ limit: 500, offset: 0 }, !editMode);
+  const nextCode = useMemo(
+    () => (allEmployeesForCode ? computeNextEmployeeCode(allEmployeesForCode) : ''),
+    [allEmployeesForCode]
+  );
+  useEffect(() => {
+    if (!editMode && !employeeCode && nextCode) {
+      setEmployeeCode(nextCode);
+    }
+  }, [editMode, employeeCode, nextCode]);
   const [hireDate, setHireDate] = useState(initial?.hire_date ?? '');
   const [positionName, setPositionName] = useState(initial?.position_name ?? '');
   const [area, setArea] = useState(initial?.area ?? '');
@@ -160,6 +187,14 @@ export const PayrollEmployeeForm: React.FC<Props> = ({
         placeholder="0001"
         value={employeeCode ?? ''}
         onChangeText={setEmployeeCode}
+        editable={editMode}
+        helperText={
+          editMode
+            ? undefined
+            : nextCode
+              ? 'Se genera automaticamente (correlativo).'
+              : 'Calculando siguiente codigo…'
+        }
       />
       <PayrollDateField
         label="Fecha de ingreso"
