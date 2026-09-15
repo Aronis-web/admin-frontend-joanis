@@ -5,6 +5,8 @@ import type {
   EmploymentHistoryEntry,
   EmploymentListParams,
   EmploymentRecord,
+  PayrollPosition,
+  PayrollPositionListParams,
   SalaryHistoryEntry,
   UpdateEmploymentDto,
   UpdateScheduleDto,
@@ -23,6 +25,21 @@ class PayrollEmploymentService {
 
   async list(params?: EmploymentListParams, signal?: AbortSignal): Promise<EmploymentRecord[]> {
     const res = await apiClient.get<ApiSuccess<EmploymentRecord>>(this.base, { params, signal });
+    return res.items ?? [];
+  }
+
+  /**
+   * Lista los puestos del organigrama disponibles para asignar en planilla.
+   * `GET /payroll/employment/positions`
+   */
+  async listPositions(
+    params?: PayrollPositionListParams,
+    signal?: AbortSignal
+  ): Promise<PayrollPosition[]> {
+    const res = await apiClient.get<ApiSuccess<PayrollPosition>>(`${this.base}/positions`, {
+      params,
+      signal,
+    });
     return res.items ?? [];
   }
 

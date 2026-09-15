@@ -15,36 +15,42 @@ import type { Theme } from '@/design-system/themes';
 import { spacing } from '@/design-system/tokens';
 
 import { useDebounce } from '@/hooks/useDebounce';
-import { usePayrollEmployees } from '@/hooks/api/usePayrollEmployment';
-import type { EmploymentRecord } from '@/types/payroll';
+import { usePayrollPositions } from '@/hooks/api/usePayrollEmployment';
+import type { PayrollPosition } from '@/types/payroll';
+
+export interface PickedPosition {
+  id: string;
+  name: string;
+  code?: string;
+}
 
 interface Props {
   label?: string;
-  value?: string; // userId
-  selected?: Pick<EmploymentRecord, 'user_id' | 'full_name' | 'employee_code'> | null;
-  onChange: (
-    record: Pick<EmploymentRecord, 'user_id' | 'full_name' | 'employee_code'> | null
-  ) => void;
+  value?: string; // positionId
+  selected?: PickedPosition | null;
+  onChange: (position: PickedPosition | null) => void;
   error?: string;
   disabled?: boolean;
   required?: boolean;
   placeholder?: string;
+  /** Filtra por sede del organigrama. */
+  siteId?: string;
 }
 
 /**
- * Buscador inteligente de trabajador (typeahead inline).
- * Muestra sugerencias en un dropdown flotante mientras el usuario escribe.
- * API pública compatible con la versión anterior basada en modal.
+ * Buscador inteligente de puestos del organigrama (typeahead inline).
+ * Golpea `GET /payroll/employment/positions` con `search` para autocompletar.
  */
-export const EmployeePicker: React.FC<Props> = ({
-  label = 'Trabajador',
+export const PositionPicker: React.FC<Props> = ({
+  label = 'Puesto',
   value,
   selected,
   onChange,
   error,
   disabled,
   required,
-  placeholder = 'Buscar por nombre o codigo…',
+  placeholder = 'Buscar puesto…',
+  siteId,
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -54,20 +60,24 @@ export const EmployeePicker: React.FC<Props> = ({
   const blurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const debounced = useDebounce(query, 250).trim();
-  const enabled = focused && debounced.length >= 2 && !selected && !value;
+  const enabled = focused && !selected && !value;
 
   const params = useMemo(
-    () => ({ search: debounced || undefined, isActive: true, limit: 15, offset: 0 }),
-    [debounced]
+    () => ({
+      search: debounced || undefined,
+      siteId,
+      activeOnly: true,
+    }),
+    [debounced, siteId]
   );
 
-  const { data, isFetching } = usePayrollEmployees(params, enabled);
-  const suggestions: EmploymentRecord[] = Array.isArray(data)
-    ? (data as EmploymentRecord[])
+  const { data, isFetching } = usePayrollPositions(params, enabled);
+  const suggestions: PayrollPosition[] = Array.isArray(data)
+    ? (data as PayrollPosition[])
     : Array.isArray((data as any)?.items)
-      ? ((data as any).items as EmploymentRecord[])
+      ? ((data as any).items as PayrollPosition[])
       : Array.isArray((data as any)?.data)
-        ? ((data as any).data as EmploymentRecord[])
+        ? ((data as any).data as PayrollPosition[])
         : [];
 
   useEffect(() => {
@@ -76,12 +86,8 @@ export const EmployeePicker: React.FC<Props> = ({
     };
   }, []);
 
-  const handleSelect = (item: EmploymentRecord) => {
-    onChange({
-      user_id: item.user_id,
-      full_name: item.full_name ?? null,
-      employee_code: item.employee_code,
-    });
+  const handleSelect = (item: PayrollPosition) => {
+    onChange({ id: item.id, name: item.name, code: item.code });
     setQuery('');
     setFocused(false);
   };
@@ -97,13 +103,12 @@ export const EmployeePicker: React.FC<Props> = ({
   };
 
   const handleBlur = () => {
-    // Delay para que el tap en una sugerencia pueda registrarse antes de ocultar.
     if (blurTimeout.current) clearTimeout(blurTimeout.current);
     blurTimeout.current = setTimeout(() => setFocused(false), 180);
   };
 
   const showChip = Boolean(selected || value);
-  const showDropdown = focused && !showChip && debounced.length >= 2;
+  const showDropdown = focused && !showChip;
 
   return (
     <View style={styles.wrapper}>
@@ -116,13 +121,15 @@ export const EmployeePicker: React.FC<Props> = ({
 
       {showChip ? (
         <View style={[styles.chip, error && styles.chipError, disabled && styles.chipDisabled]}>
-          <Ionicons name="person" size={16} color={theme.color.brand.primary} />
+          <Ionicons name="briefcase" size={16} color={theme.color.brand.primary} />
           <View style={{ flex: 1 }}>
             <Body style={styles.chipName} numberOfLines={1}>
-              {selected?.full_name ?? value}
+              {selected?.name ?? value}
             </Body>
-            {selected?.employee_code ? (
-              <Caption style={styles.chipMeta}>Cod. {selected.employee_code}</Caption>
+            {selected?.code ? (
+              <Caption style={styles.chipMeta} numberOfLines={1}>
+                {selected.code}
+              </Caption>
             ) : null}
           </View>
           {!disabled && (
@@ -175,18 +182,18 @@ export const EmployeePicker: React.FC<Props> = ({
                     >
                       <View style={styles.suggestionIcon}>
                         <Ionicons
-                          name="person-circle-outline"
-                          size={22}
+                          name="briefcase-outline"
+                          size={20}
                           color={theme.color.icon.subtle}
                         />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Body style={styles.suggestionName} numberOfLines={1}>
-                          {item.full_name ?? item.user_id}
+                          {item.name}
                         </Body>
                         <Caption numberOfLines={1}>
-                          {(item.employee_code ?? '—') +
-                            (item.position_name ? ` · ${item.position_name}` : '')}
+                          {item.code}
+                          {item.scope_level ? ` · ${item.scope_level}` : ''}
                         </Caption>
                       </View>
                     </TouchableOpacity>
@@ -203,10 +210,9 @@ export const EmployeePicker: React.FC<Props> = ({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    wrapper: { gap: spacing[1], position: 'relative', zIndex: 100 },
+    wrapper: { gap: spacing[1], position: 'relative', zIndex: 90 },
     label: { fontWeight: '600' },
 
-    // Chip (trabajador ya seleccionado)
     chip: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -224,8 +230,7 @@ const createStyles = (theme: Theme) =>
     chipName: { fontWeight: '600', color: theme.color.text.heading },
     chipMeta: { color: theme.color.text.muted },
 
-    // Buscador inline
-    searchWrap: { position: 'relative', zIndex: 100 },
+    searchWrap: { position: 'relative', zIndex: 90 },
 
     dropdown: {
       position: 'absolute',
@@ -244,7 +249,7 @@ const createStyles = (theme: Theme) =>
       shadowOpacity: 0.12,
       shadowRadius: 8,
       elevation: 8,
-      zIndex: 200,
+      zIndex: 180,
     },
     dropdownList: { flexGrow: 0 },
     dropdownState: {
@@ -272,4 +277,4 @@ const createStyles = (theme: Theme) =>
     suggestionName: { fontWeight: '600' },
   });
 
-export default EmployeePicker;
+export default PositionPicker;

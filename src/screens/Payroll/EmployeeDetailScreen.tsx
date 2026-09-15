@@ -221,6 +221,7 @@ export const PayrollEmployeeDetailScreen: React.FC<Props> = ({ navigation, route
                 handleEdit({
                   employeeCode: data.employeeCode,
                   hireDate: data.hireDate,
+                  positionId: data.positionId,
                   positionName: data.positionName,
                   costCenter: data.costCenter,
                   area: data.area,

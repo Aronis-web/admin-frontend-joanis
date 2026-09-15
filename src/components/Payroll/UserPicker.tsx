@@ -75,7 +75,13 @@ export const UserPicker: React.FC<Props> = ({
     staleTime: 30 * 1000,
   });
 
-  const suggestions = (data?.data ?? []) as User[];
+  const suggestions: User[] = Array.isArray((data as any)?.data)
+    ? ((data as any).data as User[])
+    : Array.isArray((data as any)?.items)
+      ? ((data as any).items as User[])
+      : Array.isArray(data)
+        ? (data as unknown as User[])
+        : [];
 
   useEffect(() => {
     return () => {

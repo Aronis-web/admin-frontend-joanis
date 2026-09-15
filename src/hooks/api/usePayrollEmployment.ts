@@ -5,6 +5,7 @@ import type {
   CreateBenefitChangeDto,
   CreateEmploymentDto,
   EmploymentListParams,
+  PayrollPositionListParams,
   UpdateEmploymentDto,
   UpdateScheduleDto,
 } from '@/types/payroll';
@@ -21,7 +22,22 @@ export const payrollEmploymentKeys = {
   schedule: (userId: string) => [...payrollEmploymentKeys.all, 'schedule', userId] as const,
   benefitChanges: (userId: string) =>
     [...payrollEmploymentKeys.all, 'benefit-changes', userId] as const,
+  positions: (p?: PayrollPositionListParams) =>
+    [...payrollEmploymentKeys.all, 'positions', p ?? {}] as const,
 };
+
+/**
+ * Lista los puestos del organigrama para asignar en planilla.
+ * `GET /payroll/employment/positions`
+ */
+export const usePayrollPositions = (params?: PayrollPositionListParams, enabled = true) =>
+  useQuery({
+    queryKey: payrollEmploymentKeys.positions(params),
+    queryFn: ({ signal }) => payrollEmploymentApi.listPositions(params, signal),
+    enabled,
+    staleTime: 5 * 60 * 1000, // catalogo estable, cache 5min
+    placeholderData: keepPreviousData,
+  });
 
 export const usePayrollEmployees = (params?: EmploymentListParams, enabled = true) =>
   useQuery({

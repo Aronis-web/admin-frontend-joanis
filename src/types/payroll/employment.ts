@@ -10,6 +10,11 @@ export interface EmploymentRecord {
   employee_code: string | null;
   full_name?: string | null;
   hire_date?: string | null;
+  /** Id del puesto del organigrama vinculado (nullable si es legacy). */
+  position_id?: string | null;
+  /** Code del puesto del organigrama (snapshot devuelto por el backend). */
+  position_code?: string | null;
+  /** Nombre del puesto (snapshot / fallback). Sincronizado con `position_id`. */
   position_name?: string | null;
   cost_center?: string | null;
   area?: string | null;
@@ -44,6 +49,9 @@ export interface CreateEmploymentDto {
   userId: string;
   employeeCode?: string;
   hireDate?: string; // YYYY-MM-DD
+  /** Puesto del organigrama (preferido). */
+  positionId?: string;
+  /** Nombre libre (snapshot/fallback). Se sincroniza con `positionId` si viene. */
   positionName?: string;
   costCenter?: string;
   area?: string;
@@ -66,6 +74,9 @@ export interface CreateEmploymentDto {
 export interface UpdateEmploymentDto {
   employeeCode?: string;
   hireDate?: string;
+  /** Puesto del organigrama (preferido). */
+  positionId?: string;
+  /** Nombre libre (snapshot/fallback). */
   positionName?: string;
   costCenter?: string;
   area?: string;
@@ -107,6 +118,25 @@ export interface WorkSchedule {
   entry_time: string;
   exit_time: string;
   effective_from: string;
+}
+
+/**
+ * Puesto del organigrama disponible para asignar en planilla.
+ * Viene de `GET /payroll/employment/positions`.
+ */
+export interface PayrollPosition {
+  id: string;
+  code: string;
+  name: string;
+  scope_level?: 'GLOBAL' | 'SITE' | string;
+  site_id?: string | null;
+  is_active: boolean;
+}
+
+export interface PayrollPositionListParams {
+  siteId?: string;
+  activeOnly?: boolean;
+  search?: string;
 }
 
 export interface UpdateScheduleDto {

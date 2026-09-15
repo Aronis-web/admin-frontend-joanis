@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Body, Button, Caption, ChipGroup, Input, Title } from '@/design-system';
 import { spacing } from '@/design-system/tokens';
 import { PayrollDateField } from '@/components/Payroll/PayrollDateField';
+import { PositionPicker, type PickedPosition } from '@/components/Payroll/PositionPicker';
 import { UserPicker, type PickedUser } from '@/components/Payroll/UserPicker';
 import { usePayrollEmployees } from '@/hooks/api/usePayrollEmployment';
 import type {
@@ -18,10 +19,18 @@ import { parseDecimal } from '@/types/payroll';
  * Calcula el proximo `employee_code` numerico a partir del listado.
  * - Ignora codigos no numericos.
  * - Devuelve el maximo + 1 con padding de 4 digitos (ej: `0001`, `0042`).
+ * - Tolera respuestas que no sean array (envuelve en `{ items: [] }`, etc).
  */
-const computeNextEmployeeCode = (records: EmploymentRecord[]): string => {
-  const nums = records
-    .map((r) => (r.employee_code ?? '').trim())
+const computeNextEmployeeCode = (records: unknown): string => {
+  const list: EmploymentRecord[] = Array.isArray(records)
+    ? (records as EmploymentRecord[])
+    : Array.isArray((records as any)?.items)
+      ? ((records as any).items as EmploymentRecord[])
+      : Array.isArray((records as any)?.data)
+        ? ((records as any).data as EmploymentRecord[])
+        : [];
+  const nums = list
+    .map((r) => (r?.employee_code ?? '').toString().trim())
     .filter((code) => /^\d+$/.test(code))
     .map((code) => Number(code));
   const max = nums.length ? Math.max(...nums) : 0;
@@ -91,7 +100,16 @@ export const PayrollEmployeeForm: React.FC<Props> = ({
     }
   }, [editMode, employeeCode, nextCode]);
   const [hireDate, setHireDate] = useState(initial?.hire_date ?? '');
-  const [positionName, setPositionName] = useState(initial?.position_name ?? '');
+  const [positionId, setPositionId] = useState<string>(initial?.position_id ?? '');
+  const [pickedPosition, setPickedPosition] = useState<PickedPosition | null>(
+    initial?.position_id
+      ? {
+          id: initial.position_id,
+          name: initial.position_name ?? '',
+          code: initial.position_code ?? undefined,
+        }
+      : null
+  );
   const [area, setArea] = useState(initial?.area ?? '');
   const [costCenter, setCostCenter] = useState(initial?.cost_center ?? '');
   const [siteId, setSiteId] = useState(initial?.site_id ?? '');
@@ -143,7 +161,7 @@ export const PayrollEmployeeForm: React.FC<Props> = ({
       userId: userId.trim(),
       employeeCode: employeeCode?.trim() || undefined,
       hireDate: hireDate?.trim() || undefined,
-      positionName: positionName?.trim() || undefined,
+      positionId: positionId?.trim() || undefined,
       costCenter: costCenter?.trim() || undefined,
       area: area?.trim() || undefined,
       siteId: siteId?.trim() || undefined,
@@ -205,11 +223,15 @@ export const PayrollEmployeeForm: React.FC<Props> = ({
       />
 
       <SectionHeader title="Puesto" />
-      <Input
-        label="Puesto"
-        value={positionName ?? ''}
-        onChangeText={setPositionName}
-        placeholder="Vendedor"
+      <PositionPicker
+        label="Puesto (organigrama)"
+        value={positionId || undefined}
+        selected={pickedPosition}
+        onChange={(p) => {
+          setPickedPosition(p);
+          setPositionId(p?.id ?? '');
+        }}
+        siteId={siteId?.trim() || undefined}
       />
       <Input label="Area" value={area ?? ''} onChangeText={setArea} />
       <Input label="Centro de costo" value={costCenter ?? ''} onChangeText={setCostCenter} />
