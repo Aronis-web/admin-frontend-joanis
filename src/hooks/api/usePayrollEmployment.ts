@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { payrollEmploymentApi } from '@/services/api/payroll-employment';
+import { useTenantStore } from '@/store/tenant';
 import { logger } from '@/utils/logger';
 import type {
   CreateBenefitChangeDto,
@@ -28,16 +29,27 @@ export const payrollEmploymentKeys = {
 
 /**
  * Lista los puestos del organigrama para asignar en planilla.
- * `GET /payroll/employment/positions`
+ *
+ * Consume `organizationApi.getCompanyPositions(companyId)` (+ opcional
+ * `getSitePositions(siteId)`) desde el service, ya que el backend no expone un
+ * endpoint dedicado `/payroll/employment/positions`. El `companyId` se toma del
+ * `useTenantStore` si no se pasa explicitamente.
  */
-export const usePayrollPositions = (params?: PayrollPositionListParams, enabled = true) =>
-  useQuery({
-    queryKey: payrollEmploymentKeys.positions(params),
-    queryFn: ({ signal }) => payrollEmploymentApi.listPositions(params, signal),
-    enabled,
+export const usePayrollPositions = (params?: PayrollPositionListParams, enabled = true) => {
+  const activeCompanyId = useTenantStore((s) => s.selectedCompany?.id);
+  const merged: PayrollPositionListParams = {
+    activeOnly: true,
+    ...params,
+    companyId: params?.companyId ?? activeCompanyId,
+  };
+  return useQuery({
+    queryKey: payrollEmploymentKeys.positions(merged),
+    queryFn: () => payrollEmploymentApi.listPositions(merged),
+    enabled: enabled && !!merged.companyId,
     staleTime: 5 * 60 * 1000, // catalogo estable, cache 5min
     placeholderData: keepPreviousData,
   });
+};
 
 export const usePayrollEmployees = (params?: EmploymentListParams, enabled = true) =>
   useQuery({

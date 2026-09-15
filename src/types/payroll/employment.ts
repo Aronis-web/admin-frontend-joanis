@@ -128,12 +128,15 @@ export interface PayrollPosition {
   id: string;
   code: string;
   name: string;
-  scope_level?: 'GLOBAL' | 'SITE' | string;
+  scope_level?: 'COMPANY' | 'SITE' | 'GLOBAL' | string;
   site_id?: string | null;
   is_active: boolean;
 }
 
 export interface PayrollPositionListParams {
+  /** Requerido: id de la empresa activa (viene del `useTenantStore`). */
+  companyId?: string;
+  /** Opcional: si viene, se agregan tambien los puestos scope SITE de esa sede. */
   siteId?: string;
   activeOnly?: boolean;
   search?: string;

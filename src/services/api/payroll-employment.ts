@@ -1,4 +1,6 @@
 import { apiClient } from './client';
+import { organizationApi } from './organization';
+import type { OrganizationPosition } from '@/types/organization';
 import type {
   ApiSuccess,
   CreateEmploymentDto,
@@ -46,17 +48,54 @@ class PayrollEmploymentService {
 
   /**
    * Lista los puestos del organigrama disponibles para asignar en planilla.
-   * `GET /payroll/employment/positions`
+   *
+   * Nota: El backend NO expone `/payroll/employment/positions` (colisiona con la ruta
+   * `/payroll/employment/:userId`). Se consume directo el organigrama:
+   *  - `GET /organization/companies/:companyId/positions`
+   *  - `GET /organization/sites/:siteId/positions` (opcional si hay siteId)
+   *
+   * El filtrado por `search` y `activeOnly` se aplica en cliente (los endpoints del
+   * organigrama devuelven la lista completa por scope). La respuesta se normaliza al
+   * shape snake_case `PayrollPosition` que consumen los pickers.
    */
-  async listPositions(
-    params?: PayrollPositionListParams,
-    signal?: AbortSignal
-  ): Promise<PayrollPosition[]> {
-    const res = await apiClient.get<ApiSuccess<PayrollPosition>>(`${this.base}/positions`, {
-      params,
-      signal,
-    });
-    return toArray<PayrollPosition>(res);
+  async listPositions(params?: PayrollPositionListParams): Promise<PayrollPosition[]> {
+    const { companyId, siteId, search, activeOnly = true } = params ?? {};
+    if (!companyId) return [];
+
+    const [companyPositions, sitePositions] = await Promise.all([
+      organizationApi.getCompanyPositions(companyId).catch(() => [] as OrganizationPosition[]),
+      siteId
+        ? organizationApi.getSitePositions(siteId).catch(() => [] as OrganizationPosition[])
+        : Promise.resolve([] as OrganizationPosition[]),
+    ]);
+
+    const raw = [
+      ...(Array.isArray(companyPositions) ? companyPositions : []),
+      ...(Array.isArray(sitePositions) ? sitePositions : []),
+    ];
+
+    const seen = new Set<string>();
+    const q = (search ?? '').trim().toLowerCase();
+
+    return raw
+      .filter((p) => {
+        if (!p || seen.has(p.id)) return false;
+        seen.add(p.id);
+        if (activeOnly && p.isActive === false) return false;
+        if (q) {
+          const hay = `${p.name ?? ''} ${p.code ?? ''}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      })
+      .map<PayrollPosition>((p) => ({
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        scope_level: p.scopeLevel,
+        site_id: p.siteId,
+        is_active: p.isActive,
+      }));
   }
 
   async getByUser(userId: string): Promise<EmploymentRecord | null> {
