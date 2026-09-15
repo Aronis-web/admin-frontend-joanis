@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Body, Button, Caption, ChipGroup, Input, Title } from '@/design-system';
 import { spacing } from '@/design-system/tokens';
 import { PayrollDateField } from '@/components/Payroll/PayrollDateField';
+import { UserPicker, type PickedUser } from '@/components/Payroll/UserPicker';
 import type {
   AfpCode,
   AfpRegime,
@@ -53,6 +54,14 @@ export const PayrollEmployeeForm: React.FC<Props> = ({
   onCancel,
 }) => {
   const [userId, setUserId] = useState(initial?.user_id ?? '');
+  const [pickedUser, setPickedUser] = useState<PickedUser | null>(
+    initial?.user_id
+      ? {
+          id: initial.user_id,
+          name: initial.full_name ?? initial.user_id,
+        }
+      : null
+  );
   const [employeeCode, setEmployeeCode] = useState(initial?.employee_code ?? '');
   const [hireDate, setHireDate] = useState(initial?.hire_date ?? '');
   const [positionName, setPositionName] = useState(initial?.position_name ?? '');
@@ -134,13 +143,16 @@ export const PayrollEmployeeForm: React.FC<Props> = ({
 
       <SectionHeader title="Identificacion" />
       {!editMode && (
-        <Input
-          label="User ID *"
-          placeholder="uuid del usuario"
+        <UserPicker
+          label="Usuario"
+          required
           value={userId}
-          onChangeText={setUserId}
+          selected={pickedUser}
+          onChange={(u) => {
+            setPickedUser(u);
+            setUserId(u?.id ?? '');
+          }}
           error={errors.userId}
-          autoCapitalize="none"
         />
       )}
       <Input
