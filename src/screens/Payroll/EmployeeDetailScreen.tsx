@@ -42,6 +42,7 @@ import { PayrollTabs } from '@/components/Payroll/PayrollTabs';
 import { PayrollEmployeeForm } from '@/components/Payroll/PayrollEmployeeForm';
 import { BenefitChangeForm } from '@/components/Payroll/BenefitChangeForm';
 import { ApprovalStatusChip } from '@/components/Payroll/ApprovalStatusChip';
+import { PayrollDateField } from '@/components/Payroll/PayrollDateField';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 
@@ -428,11 +429,11 @@ const ScheduleTab: React.FC<{
         />
         <Input label="Hora de entrada (HH:mm)" value={entryTime} onChangeText={setEntryTime} />
         <Input label="Hora de salida (HH:mm)" value={exitTime} onChangeText={setExitTime} />
-        <Input
-          label="Vigente desde (YYYY-MM-DD)"
+        <PayrollDateField
+          label="Vigente desde"
           value={effectiveFrom}
-          onChangeText={setEffectiveFrom}
-          autoCapitalize="none"
+          onChange={setEffectiveFrom}
+          title="Vigente desde"
         />
         <Button
           title="Guardar jornada"

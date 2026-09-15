@@ -1,16 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
-  Modal,
+  Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Body, Button, Caption, Card, EmptyState, ErrorState, Input, Title } from '@/design-system';
+import { Body, Caption, Input } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { spacing } from '@/design-system/tokens';
@@ -29,11 +28,13 @@ interface Props {
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  placeholder?: string;
 }
 
 /**
- * Selector de trabajador con modal de busqueda.
- * Reutiliza `usePayrollEmployees` para listar/filtrar.
+ * Buscador inteligente de trabajador (typeahead inline).
+ * Muestra sugerencias en un dropdown flotante mientras el usuario escribe.
+ * API pública compatible con la versión anterior basada en modal.
  */
 export const EmployeePicker: React.FC<Props> = ({
   label = 'Trabajador',
@@ -43,20 +44,31 @@ export const EmployeePicker: React.FC<Props> = ({
   error,
   disabled,
   required,
+  placeholder = 'Buscar por nombre o codigo…',
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const debounced = useDebounce(search, 300).trim();
+
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const blurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debounced = useDebounce(query, 250).trim();
+  const enabled = focused && debounced.length >= 2 && !selected && !value;
 
   const params = useMemo(
-    () => ({ search: debounced || undefined, isActive: true, limit: 30, offset: 0 }),
+    () => ({ search: debounced || undefined, isActive: true, limit: 15, offset: 0 }),
     [debounced]
   );
 
-  const { data, isLoading, isError, refetch } = usePayrollEmployees(params, open);
-  const employees = (data ?? []) as EmploymentRecord[];
+  const { data, isFetching } = usePayrollEmployees(params, enabled);
+  const suggestions = (data ?? []) as EmploymentRecord[];
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeout.current) clearTimeout(blurTimeout.current);
+    };
+  }, []);
 
   const handleSelect = (item: EmploymentRecord) => {
     onChange({
@@ -64,9 +76,28 @@ export const EmployeePicker: React.FC<Props> = ({
       full_name: item.full_name ?? null,
       employee_code: item.employee_code,
     });
-    setOpen(false);
-    setSearch('');
+    setQuery('');
+    setFocused(false);
   };
+
+  const handleClear = () => {
+    onChange(null);
+    setQuery('');
+  };
+
+  const handleFocus = () => {
+    if (blurTimeout.current) clearTimeout(blurTimeout.current);
+    setFocused(true);
+  };
+
+  const handleBlur = () => {
+    // Delay para que el tap en una sugerencia pueda registrarse antes de ocultar.
+    if (blurTimeout.current) clearTimeout(blurTimeout.current);
+    blurTimeout.current = setTimeout(() => setFocused(false), 180);
+  };
+
+  const showChip = Boolean(selected || value);
+  const showDropdown = focused && !showChip && debounced.length >= 2;
 
   return (
     <View style={styles.wrapper}>
@@ -76,119 +107,163 @@ export const EmployeePicker: React.FC<Props> = ({
           {required ? ' *' : ''}
         </Caption>
       ) : null}
-      <TouchableOpacity
-        style={[styles.field, error && styles.fieldError, disabled && styles.fieldDisabled]}
-        activeOpacity={0.7}
-        onPress={() => !disabled && setOpen(true)}
-      >
-        {selected || value ? (
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Body style={styles.name}>{selected?.full_name ?? value}</Body>
-              {selected?.employee_code ? <Caption>Cod. {selected.employee_code}</Caption> : null}
-            </View>
-            {!disabled && (
-              <TouchableOpacity onPress={() => onChange(null)} hitSlop={8}>
-                <Ionicons name="close-circle" size={20} color={theme.color.icon.subtle} />
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <View style={styles.row}>
-            <Ionicons name="person-outline" size={18} color={theme.color.icon.subtle} />
-            <Caption style={styles.placeholder}>Seleccionar trabajador…</Caption>
-          </View>
-        )}
-      </TouchableOpacity>
-      {error ? <Caption style={styles.errorText}>{error}</Caption> : null}
 
-      <Modal
-        visible={open}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setOpen(false)}
-      >
-        <SafeAreaView style={styles.safe}>
-          <View style={styles.modalHeader}>
-            <Title>Buscar trabajador</Title>
-            <Button title="Cerrar" variant="ghost" size="small" onPress={() => setOpen(false)} />
+      {showChip ? (
+        <View style={[styles.chip, error && styles.chipError, disabled && styles.chipDisabled]}>
+          <Ionicons name="person" size={16} color={theme.color.brand.primary} />
+          <View style={{ flex: 1 }}>
+            <Body style={styles.chipName} numberOfLines={1}>
+              {selected?.full_name ?? value}
+            </Body>
+            {selected?.employee_code ? (
+              <Caption style={styles.chipMeta}>Cod. {selected.employee_code}</Caption>
+            ) : null}
           </View>
-          <View style={{ paddingHorizontal: spacing[4] }}>
-            <Input
-              placeholder="Nombre o codigo"
-              value={search}
-              onChangeText={setSearch}
-              leftIcon="search-outline"
-              size="small"
-              autoFocus
-            />
-          </View>
-          {isLoading ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color={theme.color.brand.accent} />
-            </View>
-          ) : isError ? (
-            <ErrorState onRetry={() => refetch()} />
-          ) : employees.length === 0 ? (
-            <EmptyState
-              icon="people-outline"
-              title="Sin resultados"
-              description="Ajusta la busqueda."
-            />
-          ) : (
-            <FlatList
-              data={employees}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.list}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => handleSelect(item)} activeOpacity={0.7}>
-                  <Card style={styles.card}>
-                    <Body style={styles.name}>{item.full_name ?? item.user_id}</Body>
-                    <Caption>
-                      {(item.employee_code ?? '—') +
-                        (item.position_name ? ` · ${item.position_name}` : '')}
-                    </Caption>
-                  </Card>
-                </TouchableOpacity>
-              )}
-            />
+          {!disabled && (
+            <TouchableOpacity onPress={handleClear} hitSlop={8} accessibilityLabel="Quitar">
+              <Ionicons name="close-circle" size={20} color={theme.color.icon.subtle} />
+            </TouchableOpacity>
           )}
-        </SafeAreaView>
-      </Modal>
+        </View>
+      ) : (
+        <View style={styles.searchWrap}>
+          <Input
+            placeholder={placeholder}
+            value={query}
+            onChangeText={setQuery}
+            leftIcon="search-outline"
+            size="small"
+            editable={!disabled}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            error={error}
+          />
+
+          {showDropdown && (
+            <Pressable style={styles.dropdown} onPress={(e) => e.stopPropagation()}>
+              {isFetching ? (
+                <View style={styles.dropdownState}>
+                  <ActivityIndicator size="small" color={theme.color.brand.accent} />
+                  <Caption style={styles.dropdownStateText}>Buscando…</Caption>
+                </View>
+              ) : suggestions.length === 0 ? (
+                <View style={styles.dropdownState}>
+                  <Ionicons name="search-outline" size={18} color={theme.color.icon.subtle} />
+                  <Caption style={styles.dropdownStateText}>Sin resultados</Caption>
+                </View>
+              ) : (
+                <ScrollView
+                  style={styles.dropdownList}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator
+                >
+                  {suggestions.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.suggestion}
+                      activeOpacity={0.7}
+                      onPress={() => handleSelect(item)}
+                    >
+                      <View style={styles.suggestionIcon}>
+                        <Ionicons
+                          name="person-circle-outline"
+                          size={22}
+                          color={theme.color.icon.subtle}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Body style={styles.suggestionName} numberOfLines={1}>
+                          {item.full_name ?? item.user_id}
+                        </Body>
+                        <Caption numberOfLines={1}>
+                          {(item.employee_code ?? '—') +
+                            (item.position_name ? ` · ${item.position_name}` : '')}
+                        </Caption>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </Pressable>
+          )}
+        </View>
+      )}
     </View>
   );
 };
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    wrapper: { gap: spacing[1] },
+    wrapper: { gap: spacing[1], position: 'relative', zIndex: 100 },
     label: { fontWeight: '600' },
-    field: {
-      borderWidth: 1,
-      borderColor: theme.color.border.default,
-      borderRadius: theme.radii.lg,
-      paddingHorizontal: spacing[3],
-      paddingVertical: spacing[3],
-      backgroundColor: theme.color.surface.subtle,
-      minHeight: 48,
-      justifyContent: 'center',
-    },
-    fieldError: { borderColor: theme.color.border.error },
-    fieldDisabled: { opacity: 0.5 },
-    row: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
-    placeholder: { color: theme.color.text.placeholder },
-    name: { fontWeight: '600' },
-    errorText: { color: theme.color.text.danger },
-    safe: { flex: 1, backgroundColor: theme.color.background.canvas },
-    modalHeader: {
+
+    // Chip (trabajador ya seleccionado)
+    chip: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: spacing[4],
+      gap: spacing[2],
+      borderWidth: 1,
+      borderColor: theme.color.brand.primary,
+      backgroundColor: theme.color.brand.primarySoft,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      minHeight: 48,
     },
-    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    list: { padding: spacing[4], gap: spacing[2] },
-    card: { padding: spacing[3], marginBottom: spacing[2], gap: 2 },
+    chipError: { borderColor: theme.color.border.error },
+    chipDisabled: { opacity: 0.5 },
+    chipName: { fontWeight: '600', color: theme.color.text.heading },
+    chipMeta: { color: theme.color.text.muted },
+
+    // Buscador inline
+    searchWrap: { position: 'relative', zIndex: 100 },
+
+    dropdown: {
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      marginTop: spacing[1],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      maxHeight: 260,
+      overflow: 'hidden',
+      shadowColor: theme.color.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      elevation: 8,
+      zIndex: 200,
+    },
+    dropdownList: { flexGrow: 0 },
+    dropdownState: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[3],
+    },
+    dropdownStateText: { color: theme.color.text.muted },
+
+    suggestion: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      paddingHorizontal: spacing[3],
+      paddingVertical: spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    suggestionIcon: {
+      width: 28,
+      alignItems: 'center',
+    },
+    suggestionName: { fontWeight: '600' },
   });
 
 export default EmployeePicker;

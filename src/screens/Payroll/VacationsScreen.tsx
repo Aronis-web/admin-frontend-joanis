@@ -38,6 +38,7 @@ import type {
 import { ApprovalStatusChip } from '@/components/Payroll/ApprovalStatusChip';
 import { EmployeePicker } from '@/components/Payroll/EmployeePicker';
 import { VacationBalanceCard } from '@/components/Payroll/VacationBalanceCard';
+import { PayrollDateRangeField } from '@/components/Payroll/PayrollDateField';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 import type { RootStackParamList } from '@/types/navigation';
@@ -247,19 +248,17 @@ const VacationForm: React.FC<FormProps> = ({ initialUser, submitting, onSubmit, 
         size="small"
       />
 
-      <Input
-        label="Inicio (YYYY-MM-DD)"
-        value={startDate}
-        onChangeText={setStartDate}
-        autoCapitalize="none"
-        error={errors.startDate}
-      />
-      <Input
-        label="Fin (YYYY-MM-DD)"
-        value={endDate}
-        onChangeText={setEndDate}
-        autoCapitalize="none"
-        error={errors.endDate}
+      <PayrollDateRangeField
+        label="Rango de vacaciones"
+        startValue={startDate}
+        endValue={endDate}
+        onChange={(s, e) => {
+          setStartDate(s);
+          setEndDate(e);
+        }}
+        startError={errors.startDate}
+        endError={errors.endDate}
+        title="Seleccionar rango de vacaciones"
       />
       <Input
         label="Dias"

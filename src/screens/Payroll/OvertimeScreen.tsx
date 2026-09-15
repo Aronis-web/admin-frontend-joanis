@@ -31,6 +31,7 @@ import { spacing } from '@/design-system/tokens';
 import { useCreatePayrollOvertime, usePayrollOvertime } from '@/hooks/api/usePayrollOvertime';
 import { ApprovalStatusChip } from '@/components/Payroll/ApprovalStatusChip';
 import { EmployeePicker } from '@/components/Payroll/EmployeePicker';
+import { PayrollDateField } from '@/components/Payroll/PayrollDateField';
 import type {
   ApprovalStatus,
   CreateOvertimeDto,
@@ -252,12 +253,12 @@ const OvertimeForm: React.FC<FormProps> = ({ initialUser, submitting, onSubmit, 
       />
       <Caption>Factor aplicado: x{OVERTIME_FACTORS[rateCode]}</Caption>
 
-      <Input
-        label="Fecha (YYYY-MM-DD)"
+      <PayrollDateField
+        label="Fecha"
         value={workDate}
-        onChangeText={setWorkDate}
-        autoCapitalize="none"
+        onChange={setWorkDate}
         error={errors.workDate}
+        title="Fecha de trabajo"
       />
       {previewFortnight ? <Caption>Quincena estimada: {previewFortnight}</Caption> : null}
 

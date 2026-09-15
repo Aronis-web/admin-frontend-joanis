@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Body, Button, Caption, ChipGroup, Input, Title } from '@/design-system';
 import { spacing } from '@/design-system/tokens';
+import { PayrollDateField } from '@/components/Payroll/PayrollDateField';
 import type {
   AfpCode,
   AfpRegime,
@@ -148,12 +149,12 @@ export const PayrollEmployeeForm: React.FC<Props> = ({
         value={employeeCode ?? ''}
         onChangeText={setEmployeeCode}
       />
-      <Input
+      <PayrollDateField
         label="Fecha de ingreso"
-        placeholder="YYYY-MM-DD"
         value={hireDate ?? ''}
-        onChangeText={setHireDate}
-        autoCapitalize="none"
+        onChange={setHireDate}
+        title="Fecha de ingreso"
+        maximumDate={new Date()}
       />
 
       <SectionHeader title="Puesto" />

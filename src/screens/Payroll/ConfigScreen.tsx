@@ -44,6 +44,7 @@ import type {
 import { parseDecimal } from '@/types/payroll';
 import { formatDecimal, formatPen, formatRate } from '@/utils/payrollFormat';
 import { PayrollTabs } from '@/components/Payroll/PayrollTabs';
+import { PayrollDateField } from '@/components/Payroll/PayrollDateField';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 
@@ -199,11 +200,11 @@ const UpsertAfpModal: React.FC<{
             onChangeText={setInsurableCap}
             keyboardType="decimal-pad"
           />
-          <Input
-            label="Vigente desde (YYYY-MM-DD)"
+          <PayrollDateField
+            label="Vigente desde"
             value={effectiveFrom}
-            onChangeText={setEffectiveFrom}
-            autoCapitalize="none"
+            onChange={setEffectiveFrom}
+            title="Vigente desde"
           />
           <View style={styles.actions}>
             <Button title="Cancelar" variant="ghost" onPress={onClose} disabled={saving} />
@@ -323,11 +324,11 @@ const UpsertParamModal: React.FC<{
             onChangeText={setNumericValue}
             keyboardType="decimal-pad"
           />
-          <Input
-            label="Vigente desde (YYYY-MM-DD)"
+          <PayrollDateField
+            label="Vigente desde"
             value={effectiveFrom}
-            onChangeText={setEffectiveFrom}
-            autoCapitalize="none"
+            onChange={setEffectiveFrom}
+            title="Vigente desde"
           />
           <Input label="Descripcion" value={description} onChangeText={setDescription} multiline />
           <View style={styles.actions}>

@@ -31,6 +31,7 @@ import { spacing } from '@/design-system/tokens';
 import { useCreatePayrollAbsence, usePayrollAbsences } from '@/hooks/api/usePayrollAbsences';
 import { ApprovalStatusChip } from '@/components/Payroll/ApprovalStatusChip';
 import { EmployeePicker } from '@/components/Payroll/EmployeePicker';
+import { PayrollDateRangeField } from '@/components/Payroll/PayrollDateField';
 import {
   AbsenceUploadField,
   type AbsenceUploadValue,
@@ -273,19 +274,17 @@ const AbsenceForm: React.FC<FormProps> = ({ initialUser, submitting, onSubmit, o
           : 'Este tipo se considera remunerado.'}
       </Caption>
 
-      <Input
-        label="Inicio (YYYY-MM-DD)"
-        value={startDate}
-        onChangeText={setStartDate}
-        autoCapitalize="none"
-        error={errors.startDate}
-      />
-      <Input
-        label="Fin (YYYY-MM-DD)"
-        value={endDate}
-        onChangeText={setEndDate}
-        autoCapitalize="none"
-        error={errors.endDate}
+      <PayrollDateRangeField
+        label="Rango de faltas"
+        startValue={startDate}
+        endValue={endDate}
+        onChange={(s, e) => {
+          setStartDate(s);
+          setEndDate(e);
+        }}
+        startError={errors.startDate}
+        endError={errors.endDate}
+        title="Seleccionar rango de faltas"
       />
       <Input
         label="Dias"

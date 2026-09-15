@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Body, Button, Caption, ChipGroup, Input, Title } from '@/design-system';
 import { spacing } from '@/design-system/tokens';
+import { PayrollDateField } from '@/components/Payroll/PayrollDateField';
 import type {
   AfpCode,
   AfpRegime,
@@ -134,13 +135,12 @@ export const BenefitChangeForm: React.FC<Props> = ({ submitting = false, onSubmi
         size="small"
       />
 
-      <Input
+      <PayrollDateField
         label="Fecha efectiva *"
-        placeholder="YYYY-MM-DD"
         value={effectiveDate}
-        onChangeText={setEffectiveDate}
+        onChange={setEffectiveDate}
         error={errors.effectiveDate}
-        autoCapitalize="none"
+        title="Fecha efectiva"
       />
 
       {(changeType === 'SUELDO' || changeType === 'MOVILIDAD') && (
