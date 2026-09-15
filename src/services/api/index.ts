@@ -195,7 +195,8 @@ export type {
   UpdateAccountReceivableRequest,
 } from '@/types/accounts-receivable';
 
-export { attendanceTerminalsApi } from './attendance';
+export { attendanceTerminalsApi, attendanceReportsApi } from './attendance';
+export type { WorkedHoursReportParams } from './attendance';
 export type {
   AttendanceTerminal,
   TerminalStatus,

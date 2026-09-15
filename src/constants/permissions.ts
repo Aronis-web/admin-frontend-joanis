@@ -415,6 +415,7 @@ export const PERMISSIONS = {
     READ_OWN: 'attendance.read.own',
     READ_ALL: 'attendance.read.all',
     REPORTS: 'attendance.reports',
+    EXPORT: 'attendance.reports.export',
     EVENT_TYPES: {
       READ: 'attendance.event-types.read',
       MANAGE: 'attendance.event-types.manage',

@@ -26,6 +26,9 @@ import {
   getTodayLimaDate,
 } from '@/hooks/api/useAttendanceWorkers';
 import { AttendanceEvidenceModal } from '@/components/Attendance/AttendanceEvidenceModal';
+import { AttendanceExportModal } from '@/components/Attendance/AttendanceExportModal';
+import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { PERMISSIONS } from '@/constants/permissions';
 
 interface AttendanceScreenProps {
   navigation: any;
@@ -74,6 +77,7 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
   const [selectedSiteId, setSelectedSiteId] = useState<string>(currentSite?.id ?? '');
   const [activeTab, setActiveTab] = useState<TabKey>('active');
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [evidenceRecord, setEvidenceRecord] = useState<{
     recordId: string;
     title: string;
@@ -415,7 +419,25 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
             )}
           </ScrollView>
         )}
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'download-outline',
+              label: 'Descargar horas trabajadas',
+              onPress: () => setShowExportModal(true),
+              requiredPermissions: [PERMISSIONS.ATTENDANCE.EXPORT],
+            },
+          ]}
+        />
       </SafeAreaView>
+
+      <AttendanceExportModal
+        visible={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        companyId={currentCompany?.id}
+        userId={user?.id}
+        defaultSiteId={selectedSiteId}
+      />
 
       <AttendanceEvidenceModal
         visible={!!evidenceRecord}

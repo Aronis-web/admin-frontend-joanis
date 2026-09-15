@@ -178,3 +178,36 @@ export const attendanceRecordsApi = {
     });
   },
 };
+
+/**
+ * Servicio de reportes de asistencia.
+ * Prefijo backend: /attendance/reports
+ */
+export interface WorkedHoursReportParams {
+  /** Una o varias sedes; se envían separadas por coma. */
+  siteIds: string[];
+  /** YYYY-MM-DD */
+  startDate: string;
+  /** YYYY-MM-DD */
+  endDate: string;
+}
+
+export const attendanceReportsApi = {
+  /**
+   * GET /attendance/reports/worked-hours
+   * Devuelve un .xlsx (Blob) con las horas trabajadas por trabajador
+   * en el rango de fechas y sedes indicadas.
+   * Permiso requerido: attendance.reports.export
+   */
+  async exportWorkedHours(params: WorkedHoursReportParams): Promise<Blob> {
+    return apiClient.get<Blob>('/attendance/reports/worked-hours', {
+      params: {
+        siteIds: params.siteIds.join(','),
+        startDate: params.startDate,
+        endDate: params.endDate,
+      },
+      responseType: 'blob',
+      timeout: 0,
+    });
+  },
+};
