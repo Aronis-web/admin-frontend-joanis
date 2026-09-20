@@ -628,6 +628,10 @@ const ChatbotCatalogScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotCatalogScreen })),
   'Cargando Catálogo...'
 );
+const ChatbotCrateScreen = lazyLoad(
+  () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotCrateScreen })),
+  'Cargando Venta por cajón...'
+);
 const ChatbotSyncRulesScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSyncRulesScreen })),
   'Cargando Reglas...'
@@ -2379,6 +2383,13 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
             <ChatbotCatalogScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotCrate" options={{ title: 'Venta por cajón' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
+            <ChatbotCrateScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotOrdersApi } from '@/services/api';
 import type {
   ChatbotOrder,
+  ExtendChatbotOrderBody,
+  ExtendChatbotOrderResponse,
   GetChatbotOrdersParams,
   RejectChatbotOrderBody,
   ValidateChatbotOrderResponse,
@@ -53,6 +55,20 @@ export const useRejectChatbotOrder = () => {
   const queryClient = useQueryClient();
   return useMutation<ChatbotOrder, Error, { id: string; body?: RejectChatbotOrderBody }>({
     mutationFn: ({ id, body }) => chatbotOrdersApi.reject(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
+    },
+  });
+};
+
+export const useExtendChatbotOrderHold = () => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ExtendChatbotOrderResponse,
+    Error,
+    { id: string; body?: ExtendChatbotOrderBody }
+  >({
+    mutationFn: ({ id, body }) => chatbotOrdersApi.extendHold(id, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
     },

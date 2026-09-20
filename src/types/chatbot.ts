@@ -45,7 +45,8 @@ export type ChatbotOrderStatus =
   | 'VALIDATED'
   | 'EMITTED'
   | 'REJECTED'
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'CANCELLED';
 
 // ============================================
 // Sesión WhatsApp
@@ -200,6 +201,13 @@ export interface ChatbotOrder {
   rejectedReason: string | null;
   validatedBy: string | null;
   validatedAt: string | null;
+  /**
+   * Datos de entrega informados durante el onboarding (modo cajón).
+   * Se adjuntan en las notas del pedido/venta al hacer checkout.
+   */
+  deliveryInLima?: boolean | null;
+  deliveryAgency?: 'SHALOM' | 'FLORES' | 'MARVISUR' | null;
+  deliveryAddress?: string | null;
   companyOwnerId: string;
   createdAt: string;
   updatedAt: string;
@@ -218,6 +226,18 @@ export interface ValidateChatbotOrderResponse {
 
 export interface RejectChatbotOrderBody {
   reason?: string;
+}
+
+/** Body para extender la vigencia del apartado de stock de un pedido. */
+export interface ExtendChatbotOrderBody {
+  hours?: number;
+}
+
+/** Respuesta de `POST /chatbot/orders/:id/extend-hold`. */
+export interface ExtendChatbotOrderResponse {
+  status: 'EXTENDED';
+  hours: number;
+  holds: number;
 }
 
 // ============================================
@@ -465,6 +485,8 @@ export interface BotSettings {
   maxLines: number;
   faqKeywords: BotFaqRule[];
   isActive: boolean;
+  /** Modo "Venta por cajón": catálogo curado a precio fijo, sin gate de nivel. */
+  crateMode: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -472,6 +494,50 @@ export interface BotSettings {
 export type UpdateBotSettingsBody = Partial<
   Omit<BotSettings, 'id' | 'companyOwnerId' | 'createdAt' | 'updatedAt'>
 >;
+
+// ============================================
+// Venta por cajón (catálogo curado + precio fijo)
+// ============================================
+/**
+ * Fila de la tabla `chatbot_crate_products`. Define un producto con su
+ * almacén de origen, presentación única de venta, tope vendible y precio
+ * manual fijo (igual para todos, sin niveles/tiers/margen).
+ *
+ * `maxSellableQty` y `priceCents` viajan como string (columnas numeric/bigint).
+ * `priceCents` está en centavos (`1500` = S/ 15.00).
+ */
+export interface ChatbotCrateProduct {
+  id: string;
+  productId: string;
+  variantId: string | null;
+  warehouseId: string;
+  presentationId: string | null;
+  maxSellableQty: string;
+  priceCents: string;
+  label: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  companyOwnerId: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+/** Body para crear (POST) o actualizar (PATCH) un producto de cajón. */
+export interface UpsertCrateProductBody {
+  productId: string;
+  variantId?: string | null;
+  warehouseId: string;
+  presentationId?: string | null;
+  maxSellableQty: number;
+  /** Precio manual fijo, entero > 0 (en centavos). */
+  priceCents: number;
+  label?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export type UpdateCrateProductBody = Partial<UpsertCrateProductBody>;
 
 // ============================================
 // Entrenamiento (casos + base de conocimiento)

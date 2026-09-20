@@ -35,6 +35,7 @@ import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
 import {
   useChatbotOrdersList,
+  useExtendChatbotOrderHold,
   useRejectChatbotOrder,
   useValidateChatbotOrder,
 } from '@/hooks/api/useChatbotOrders';
@@ -51,6 +52,7 @@ const STATUS_OPTIONS: Array<{ label: string; value: ChatbotOrderStatus }> = [
   { label: 'Emitido', value: 'EMITTED' },
   { label: 'Rechazado', value: 'REJECTED' },
   { label: 'Expirado', value: 'EXPIRED' },
+  { label: 'Cancelado', value: 'CANCELLED' },
 ];
 
 const STATUS_BADGE: Record<ChatbotOrderStatus, { variant: BadgeVariant; label: string }> = {
@@ -59,6 +61,7 @@ const STATUS_BADGE: Record<ChatbotOrderStatus, { variant: BadgeVariant; label: s
   EMITTED: { variant: 'success', label: 'Emitido' },
   REJECTED: { variant: 'danger', label: 'Rechazado' },
   EXPIRED: { variant: 'default', label: 'Expirado' },
+  CANCELLED: { variant: 'default', label: 'Cancelado' },
 };
 
 const resolveVoucherUrl = (url: string | null): string | null => {
@@ -66,6 +69,26 @@ const resolveVoucherUrl = (url: string | null): string | null => {
   if (/^https?:\/\//i.test(url)) return url;
   const base = (config.API_URL ?? '').replace(/\/$/, '');
   return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
+const AGENCY_LABEL: Record<string, string> = {
+  SHALOM: 'Shalom',
+  FLORES: 'Flores',
+  MARVISUR: 'Marvisur',
+};
+
+/** Etiqueta legible de los datos de entrega del pedido (modo cajón). */
+const resolveDeliveryLabel = (order: ChatbotOrder): string | null => {
+  const parts: string[] = [];
+  if (order.deliveryInLima === true) {
+    parts.push('Entrega a domicilio (Lima)');
+  } else if (order.deliveryAgency) {
+    parts.push(`Agencia ${AGENCY_LABEL[order.deliveryAgency] ?? order.deliveryAgency}`);
+  }
+  if (order.deliveryAddress) {
+    parts.push(order.deliveryAddress);
+  }
+  return parts.length > 0 ? `Entrega: ${parts.join(' · ')}` : null;
 };
 
 export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
@@ -76,6 +99,8 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ChatbotOrder | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [extendTarget, setExtendTarget] = useState<ChatbotOrder | null>(null);
+  const [extendHours, setExtendHours] = useState('72');
 
   const { data, isLoading, isFetching, isError, refetch } = useChatbotOrdersList(
     { status },
@@ -85,6 +110,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
 
   const validateMutation = useValidateChatbotOrder();
   const rejectMutation = useRejectChatbotOrder();
+  const extendMutation = useExtendChatbotOrderHold();
 
   const handleValidate = (order: ChatbotOrder) => {
     Alert.alert(
@@ -116,6 +142,27 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const openReject = (order: ChatbotOrder) => {
     setRejectTarget(order);
     setRejectReason('');
+  };
+
+  const openExtend = (order: ChatbotOrder) => {
+    setExtendTarget(order);
+    setExtendHours('72');
+  };
+
+  const confirmExtend = () => {
+    if (!extendTarget) return;
+    const hours = Number.parseInt(extendHours, 10);
+    extendMutation.mutate(
+      { id: extendTarget.id, body: Number.isFinite(hours) && hours > 0 ? { hours } : undefined },
+      {
+        onSuccess: (res) => {
+          setExtendTarget(null);
+          Alert.alert('Apartado extendido', `${res.hours} h · ${res.holds} holds`);
+        },
+        onError: (err: any) =>
+          Alert.alert('Error', err?.message ?? 'No se pudo extender el apartado'),
+      }
+    );
   };
 
   const confirmReject = () => {
@@ -220,6 +267,12 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       </Body>
                     ) : null}
 
+                    {resolveDeliveryLabel(order) ? (
+                      <Caption color={theme.color.text.muted}>
+                        {resolveDeliveryLabel(order)}
+                      </Caption>
+                    ) : null}
+
                     {order.saleIds && order.saleIds.length > 0 ? (
                       <Caption color={theme.color.text.muted}>
                         Ventas: {order.saleIds.join(', ')}
@@ -228,6 +281,12 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
 
                     {order.status === 'PENDING_PAYMENT' ? (
                       <View style={styles.actionsRow}>
+                        <Button
+                          title="Extender"
+                          variant="ghost"
+                          leftIcon="timer-outline"
+                          onPress={() => openExtend(order)}
+                        />
                         <Button
                           title="Rechazar"
                           variant="outline"
@@ -287,6 +346,35 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                   onPress={confirmReject}
                   loading={rejectMutation.isPending}
                   leftIcon="close-circle-outline"
+                />
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        {/* Extend-hold modal */}
+        <Modal visible={!!extendTarget} transparent animationType="fade">
+          <Pressable style={styles.previewBackdrop} onPress={() => setExtendTarget(null)}>
+            <Pressable style={styles.rejectCard} onPress={(e) => e.stopPropagation()}>
+              <Title>Extender apartado</Title>
+              <Caption color={theme.color.text.muted}>
+                Extiende la vigencia del stock reservado. Si se deja vacío se usa 72 h.
+              </Caption>
+              <TextInput
+                value={extendHours}
+                onChangeText={(v) => setExtendHours(v.replace(/[^0-9]/g, ''))}
+                placeholder="Horas (ej. 72)"
+                placeholderTextColor={theme.color.text.muted}
+                style={styles.rejectInput}
+                keyboardType="number-pad"
+              />
+              <View style={styles.rejectActions}>
+                <Button title="Cancelar" variant="outline" onPress={() => setExtendTarget(null)} />
+                <Button
+                  title="Extender"
+                  onPress={confirmExtend}
+                  loading={extendMutation.isPending}
+                  leftIcon="timer-outline"
                 />
               </View>
             </Pressable>

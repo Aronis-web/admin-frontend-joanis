@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { photoCampaignsApi } from '@/services/api';
@@ -7,6 +8,20 @@ import type {
   SmartPriceTemplate,
 } from '@/types/photo-campaigns';
 import { logger } from '@/utils/logger';
+
+/**
+ * Número de consultas consecutivas (con un refetch cada 4s) sin que el progreso
+ * del trabajo en background cambie, tras el cual lo consideramos estancado.
+ *
+ * El backend NO expone un flag "running" en los endpoints de estado: solo
+ * devuelve contadores (`pending`, `processing`, `withPrice`, `withoutPrice`).
+ * Si un job se cuelga o no llega a arrancar, esos contadores se quedan
+ * clavados y la UI mostraría "Generando..." / "Aplicando precio..." para
+ * siempre. Al detectar estancamiento, limpiamos la señal de "ocupado" para
+ * que la UI deje de cargar indefinidamente.
+ */
+const DESIGN_STALL_REFETCHES = 20; // ~80 segundos (Smart Design genera varias imágenes por producto)
+const PRICE_STALL_REFETCHES = 15; // ~60 segundos
 
 /**
  * Query keys para el flujo Smart Design (generación automática de diseños con IA).
@@ -24,19 +39,50 @@ export const smartDesignKeys = {
  * - Cuando ya no hay trabajo pendiente, deja de hacer polling.
  */
 export const useSmartDesignStatus = (photoCampaignId: string | undefined, enabled = true) => {
-  return useQuery<SmartDesignStatus>({
+  const queryClient = useQueryClient();
+  const stallRef = useRef({ value: -1, unchanged: 0 });
+
+  const query = useQuery<SmartDesignStatus>({
     queryKey: smartDesignKeys.status(photoCampaignId || ''),
     queryFn: () => photoCampaignsApi.getSmartDesignStatus(photoCampaignId as string),
     enabled: enabled && !!photoCampaignId,
     staleTime: 0,
     refetchOnWindowFocus: false,
-    refetchInterval: (query) => {
-      const data = query.state.data as SmartDesignStatus | undefined;
+    refetchInterval: (q) => {
+      const data = q.state.data as SmartDesignStatus | undefined;
       if (!data || !data.enabled) return false;
       const busy = (data.counts?.pending || 0) + (data.counts?.processing || 0) > 0;
       return busy ? 4000 : false;
     },
   });
+
+  // Detección de estancamiento. Si el trabajo pendiente (pending + processing)
+  // deja de reducirse durante varias consultas, el job quedó colgado. Ponemos
+  // los contadores a 0 en caché para que la UI deje de mostrar "Generando...".
+  useEffect(() => {
+    const data = query.data;
+    if (!data || !data.enabled) {
+      stallRef.current = { value: -1, unchanged: 0 };
+      return;
+    }
+    const remaining = (data.counts?.pending || 0) + (data.counts?.processing || 0);
+    if (remaining <= 0) {
+      stallRef.current = { value: -1, unchanged: 0 };
+      return;
+    }
+    const prev = stallRef.current;
+    const unchanged = remaining === prev.value ? prev.unchanged + 1 : 0;
+    stallRef.current = { value: remaining, unchanged };
+    if (unchanged >= DESIGN_STALL_REFETCHES) {
+      stallRef.current = { value: -1, unchanged: 0 };
+      queryClient.setQueryData(smartDesignKeys.status(photoCampaignId || ''), {
+        ...data,
+        counts: { ...data.counts, pending: 0, processing: 0 },
+      });
+    }
+  }, [query.data, queryClient, photoCampaignId]);
+
+  return query;
 };
 
 /**
@@ -105,17 +151,19 @@ export const useSmartPriceActive = (photoCampaignId: string | undefined): boolea
  */
 export const useSmartPriceStatus = (photoCampaignId: string | undefined, enabled = true) => {
   const queryClient = useQueryClient();
-  return useQuery<SmartPriceStatus>({
+  const stallRef = useRef({ value: -1, unchanged: 0 });
+
+  const query = useQuery<SmartPriceStatus>({
     queryKey: smartPriceKeys.status(photoCampaignId || ''),
     queryFn: () => photoCampaignsApi.getSmartPriceStatus(photoCampaignId as string),
     enabled: enabled && !!photoCampaignId,
     staleTime: 0,
     refetchOnWindowFocus: false,
-    refetchInterval: (query) => {
+    refetchInterval: (q) => {
       if (!photoCampaignId) return false;
       const active = queryClient.getQueryData<boolean>(smartPriceKeys.active(photoCampaignId));
       if (!active) return false;
-      const data = query.state.data as SmartPriceStatus | undefined;
+      const data = q.state.data as SmartPriceStatus | undefined;
       if (data && data.withoutPrice === 0) {
         // Trabajo terminado: apagamos la bandera y dejamos de refetchear.
         queryClient.setQueryData(smartPriceKeys.active(photoCampaignId), false);
@@ -124,6 +172,32 @@ export const useSmartPriceStatus = (photoCampaignId: string | undefined, enabled
       return 4000;
     },
   });
+
+  // Detección de estancamiento. Si la aplicación masiva está "activa" pero
+  // `withPrice` no avanza durante varias consultas, el job quedó colgado (o
+  // nunca arrancó). Apagamos `active` para que la UI deje de mostrar
+  // "Aplicando precio..." de forma indefinida.
+  useEffect(() => {
+    if (!photoCampaignId) {
+      return;
+    }
+    const active = queryClient.getQueryData<boolean>(smartPriceKeys.active(photoCampaignId));
+    const data = query.data;
+    if (!active || !data) {
+      stallRef.current = { value: -1, unchanged: 0 };
+      return;
+    }
+    const withPrice = data.withPrice ?? 0;
+    const prev = stallRef.current;
+    const unchanged = withPrice === prev.value ? prev.unchanged + 1 : 0;
+    stallRef.current = { value: withPrice, unchanged };
+    if (unchanged >= PRICE_STALL_REFETCHES) {
+      stallRef.current = { value: -1, unchanged: 0 };
+      queryClient.setQueryData(smartPriceKeys.active(photoCampaignId), false);
+    }
+  }, [query.data, queryClient, photoCampaignId]);
+
+  return query;
 };
 
 /**

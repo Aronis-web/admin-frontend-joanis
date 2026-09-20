@@ -1,6 +1,8 @@
 import { apiClient } from './client';
 import type {
   ChatbotOrder,
+  ExtendChatbotOrderBody,
+  ExtendChatbotOrderResponse,
   GetChatbotOrdersParams,
   RejectChatbotOrderBody,
   ValidateChatbotOrderResponse,
@@ -24,6 +26,13 @@ class ChatbotOrdersService {
 
   async reject(id: string, body?: RejectChatbotOrderBody): Promise<ChatbotOrder> {
     return apiClient.post<ChatbotOrder>(`${this.basePath}/${id}/reject`, body ?? {});
+  }
+
+  async extendHold(id: string, body?: ExtendChatbotOrderBody): Promise<ExtendChatbotOrderResponse> {
+    return apiClient.post<ExtendChatbotOrderResponse>(
+      `${this.basePath}/${id}/extend-hold`,
+      body ?? {}
+    );
   }
 }
 

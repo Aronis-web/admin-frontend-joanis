@@ -28,8 +28,27 @@ class PhotoCampaignsApi {
   private readonly basePath = '/admin/photo-campaigns';
   private readonly geminiEditorPath = '/admin/gemini-image-editor/edit';
 
-  getCampaigns(): Promise<PhotoCampaign[]> {
-    return apiClient.get<PhotoCampaign[]>(this.basePath);
+  /**
+   * Normaliza la respuesta de un endpoint de listado. El backend lista las
+   * campañas de fotos en formato OData (`{ value: [...], Count: N }`) en lugar
+   * de un array plano. El resto de endpoints del módulo sí devuelven arrays
+   * directos, así que solo se desenvuelve `.value` cuando existe.
+   */
+  private static unwrapList<T>(response: T[] | { value?: T[] } | null | undefined): T[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (response && Array.isArray((response as { value?: T[] }).value)) {
+      return (response as { value: T[] }).value;
+    }
+    return [];
+  }
+
+  async getCampaigns(): Promise<PhotoCampaign[]> {
+    const response = await apiClient.get<PhotoCampaign[] | { value?: PhotoCampaign[] }>(
+      this.basePath
+    );
+    return PhotoCampaignsApi.unwrapList(response);
   }
 
   getCampaignById(id: string): Promise<PhotoCampaign> {

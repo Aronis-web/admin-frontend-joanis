@@ -435,8 +435,8 @@ const menuCategories: MenuCategory[] = [
       },
       {
         id: 'chatbot-orders',
-        icon: 'cart-outline',
-        label: 'Pedidos',
+        icon: 'receipt-outline',
+        label: 'Vouchers',
         route: MAIN_ROUTES.CHATBOT_ORDERS,
         requiredPermissions: ['chatbot.orders.validate'],
       },
@@ -445,6 +445,13 @@ const menuCategories: MenuCategory[] = [
         icon: 'pricetags-outline',
         label: 'Catálogo',
         route: MAIN_ROUTES.CHATBOT_CATALOG,
+        requiredPermissions: ['chatbot.catalog.manage'],
+      },
+      {
+        id: 'chatbot-crate',
+        icon: 'cube-outline',
+        label: 'Venta por cajón',
+        route: MAIN_ROUTES.CHATBOT_CRATE,
         requiredPermissions: ['chatbot.catalog.manage'],
       },
       {

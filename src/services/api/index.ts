@@ -30,6 +30,7 @@ export {
 } from './chatbot-conversations';
 export { chatbotOrdersApi } from './chatbot-orders';
 export { chatbotCatalogApi } from './chatbot-catalog';
+export { chatbotCrateApi } from './chatbot-crate';
 export { chatbotSyncApi } from './chatbot-sync';
 export { chatbotSettingsApi } from './chatbot-settings';
 export { chatbotTrainingApi } from './chatbot-training';
