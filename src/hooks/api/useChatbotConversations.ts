@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { chatbotConversationsApi } from '@/services/api';
 import type {
   ConversationSearchItem,
+  ConversationVoucher,
   GetChatMessagesParams,
   GetConversationsParams,
   HandoffBody,
@@ -23,6 +24,8 @@ export const chatbotConversationsKeys = {
     [...chatbotConversationsKeys.all, 'search', params] as const,
   messages: (conversationId: string, params?: GetChatMessagesParams) =>
     [...chatbotConversationsKeys.all, 'messages', conversationId, params] as const,
+  vouchers: (conversationId: string) =>
+    [...chatbotConversationsKeys.all, 'vouchers', conversationId] as const,
 };
 
 const CONVERSATIONS_STALE_TIME = 15 * 1000; // 15s (chat activo)
@@ -105,6 +108,23 @@ export const useConversationMessages = (
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchInterval: options?.refetchIntervalMs ?? false,
+  });
+};
+
+/**
+ * Vouchers (comprobantes de pago) de una conversación.
+ * Deshabilitado mientras no haya `conversationId`.
+ */
+export const useConversationVouchers = (
+  conversationId: string | undefined,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery<ConversationVoucher[]>({
+    queryKey: chatbotConversationsKeys.vouchers(conversationId ?? ''),
+    queryFn: () => chatbotConversationsApi.getVouchers(conversationId as string),
+    enabled: (options?.enabled ?? true) && !!conversationId,
+    staleTime: 15 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 

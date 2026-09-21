@@ -19,6 +19,7 @@ export * from './useChatbotCatalog';
 export * from './useChatbotCrate';
 export * from './useChatbotSync';
 export * from './useChatbotSettings';
+export * from './useChatbotMetrics';
 export * from './useChatbotTraining';
 export * from './useCustomers';
 export * from './useCustomerLevels';

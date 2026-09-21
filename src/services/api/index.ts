@@ -33,6 +33,7 @@ export { chatbotCatalogApi } from './chatbot-catalog';
 export { chatbotCrateApi } from './chatbot-crate';
 export { chatbotSyncApi } from './chatbot-sync';
 export { chatbotSettingsApi } from './chatbot-settings';
+export { chatbotMetricsApi } from './chatbot-metrics';
 export { chatbotTrainingApi } from './chatbot-training';
 export { notificationsWhatsappApi } from './notifications-whatsapp';
 export type {

@@ -42,11 +42,29 @@ export type ChatbotMessageScanStatus = 'clean' | 'infected' | 'pending' | 'skipp
 export type BotEmojiLevel = 'none' | 'low' | 'high';
 export type ChatbotOrderStatus =
   | 'PENDING_PAYMENT'
+  | 'AWAITING_BALANCE'
   | 'VALIDATED'
   | 'EMITTED'
   | 'REJECTED'
-  | 'EXPIRED'
-  | 'CANCELLED';
+  | 'EXPIRED';
+
+/**
+ * Estado de conciliación de un voucher (comprobante de pago) frente al pedido.
+ * - `PENDING` — aún sin conciliar.
+ * - `MATCHED` — monto coincide con el saldo esperado.
+ * - `MISMATCH_LESS` / `MISMATCH_MORE` — pagó de menos / de más.
+ * - `ORPHAN` — sin pedido asociado.
+ * - `DUPLICATE` — número de operación repetido.
+ * - `REJECTED` — descartado por un operador.
+ */
+export type VoucherStatus =
+  | 'PENDING'
+  | 'MATCHED'
+  | 'MISMATCH_LESS'
+  | 'MISMATCH_MORE'
+  | 'ORPHAN'
+  | 'DUPLICATE'
+  | 'REJECTED';
 
 // ============================================
 // Sesión WhatsApp
@@ -197,7 +215,15 @@ export interface ChatbotOrder {
   status: ChatbotOrderStatus;
   stockReservationIds: string[] | null;
   saleIds: string[] | null;
+  /** Total del pedido en centavos (llega como string). */
   totalCents: string;
+  /** Monto ya acreditado por vouchers conciliados, en centavos (string). */
+  paidCents: string;
+  /**
+   * Saldo restante en centavos: `total - pagado`. Llega como número.
+   * `> 0` falta pagar; `0` cubierto; `< 0` pagó de más.
+   */
+  balanceCents: number;
   rejectedReason: string | null;
   validatedBy: string | null;
   validatedAt: string | null;
@@ -214,7 +240,14 @@ export interface ChatbotOrder {
 }
 
 export interface GetChatbotOrdersParams {
-  status?: ChatbotOrderStatus;
+  /**
+   * Filtra por estado del pedido. Acepta uno o varios estados:
+   * - Omitido → el backend devuelve TODOS los pedidos.
+   * - `ChatbotOrderStatus` → un solo estado.
+   * - `ChatbotOrderStatus[]` → varios estados (se serializan como
+   *   `?status=PENDING_PAYMENT,AWAITING_BALANCE`).
+   */
+  status?: ChatbotOrderStatus | ChatbotOrderStatus[];
 }
 
 export interface ValidateChatbotOrderResponse {
@@ -226,6 +259,39 @@ export interface ValidateChatbotOrderResponse {
 
 export interface RejectChatbotOrderBody {
   reason?: string;
+  /**
+   * Si se envía, la acción aplica a un voucher específico del pedido en vez de
+   * cancelar el pedido completo.
+   */
+  voucherId?: string;
+  /**
+   * - `request` — descarta el voucher y vuelve a pedir el comprobante
+   *   (el pedido regresa a `AWAITING_BALANCE`).
+   * - `cancel` — cancela/rechaza el pedido completo.
+   */
+  action?: 'request' | 'cancel';
+}
+
+/**
+ * Voucher (comprobante de pago) asociado a una conversación / pedido.
+ * `GET /chatbot/conversations/:id/vouchers`.
+ */
+export interface ConversationVoucher {
+  id: string;
+  conversationId: string;
+  orderId: string | null;
+  imageUrl: string | null;
+  bank: string | null;
+  operationNumber: string | null;
+  operationDate: string | null;
+  operationTime: string | null;
+  /** Monto detectado en el voucher, en centavos. */
+  amountCents: number | null;
+  currency: string | null;
+  beneficiaryName: string | null;
+  status: VoucherStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** Body para extender la vigencia del apartado de stock de un pedido. */
@@ -494,6 +560,46 @@ export interface BotSettings {
 export type UpdateBotSettingsBody = Partial<
   Omit<BotSettings, 'id' | 'companyOwnerId' | 'createdAt' | 'updatedAt'>
 >;
+
+// ============================================
+// Términos y condiciones
+// ============================================
+/**
+ * Términos y condiciones del bot (`GET/PUT /chatbot/settings/terms`).
+ * `html` es el contenido enriquecido; `null` restaura el default del sistema.
+ */
+export interface BotTerms {
+  html: string | null;
+  updatedAt?: string | null;
+}
+
+export interface BotTermsBody {
+  /** HTML de los T&C. Enviar `null` para restaurar el default. */
+  html: string | null;
+}
+
+// ============================================
+// Métricas
+// ============================================
+/** Rango temporal opcional para los endpoints de métricas. */
+export interface ChatbotMetricsParams {
+  /** ISO date inicial (inclusive). */
+  from?: string;
+  /** ISO date final (inclusive). */
+  to?: string;
+}
+
+/**
+ * Métricas del embudo de compra (`GET /chatbot/metrics/funnel`).
+ * El shape exacto lo define el backend; se tipa flexible para no acoplar.
+ */
+export type ChatbotFunnelMetrics = Record<string, unknown>;
+
+/**
+ * Métricas de uso / consumo de tokens (`GET /chatbot/metrics/usage`).
+ * El shape exacto lo define el backend; se tipa flexible para no acoplar.
+ */
+export type ChatbotUsageMetrics = Record<string, unknown>;
 
 // ============================================
 // Venta por cajón (catálogo curado + precio fijo)

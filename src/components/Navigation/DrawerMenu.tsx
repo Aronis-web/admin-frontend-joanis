@@ -475,6 +475,13 @@ const menuCategories: MenuCategory[] = [
           'chatbot.chats.manage',
         ],
       },
+      {
+        id: 'chatbot-metrics',
+        icon: 'bar-chart-outline',
+        label: 'Métricas',
+        route: MAIN_ROUTES.CHATBOT_METRICS,
+        requiredPermissions: ['chatbot.chats.manage'],
+      },
     ],
   },
   // Asistencia

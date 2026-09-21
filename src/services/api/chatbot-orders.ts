@@ -17,7 +17,16 @@ class ChatbotOrdersService {
   private readonly basePath = '/chatbot/orders';
 
   async list(params?: GetChatbotOrdersParams): Promise<ChatbotOrder[]> {
-    return apiClient.get<ChatbotOrder[]>(this.basePath, { params });
+    // El backend acepta `status` como lista separada por comas. Si llega un
+    // array lo serializamos aquí; si es un solo estado o `undefined` se pasa
+    // tal cual (sin `status` = todos los pedidos).
+    const query =
+      params?.status !== undefined
+        ? {
+            status: Array.isArray(params.status) ? params.status.join(',') : params.status,
+          }
+        : undefined;
+    return apiClient.get<ChatbotOrder[]>(this.basePath, { params: query });
   }
 
   async validate(id: string): Promise<ValidateChatbotOrderResponse> {

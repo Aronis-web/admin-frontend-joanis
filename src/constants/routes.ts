@@ -248,6 +248,7 @@ export const MAIN_ROUTES = {
   CHATBOT_ORDERS: 'ChatbotOrders',
   CHATBOT_CATALOG: 'ChatbotCatalog',
   CHATBOT_CRATE: 'ChatbotCrate',
+  CHATBOT_METRICS: 'ChatbotMetrics',
   CHATBOT_SYNC_RULES: 'ChatbotSyncRules',
   CHATBOT_TRAINING: 'ChatbotTraining',
 } as const;
@@ -520,6 +521,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   CHATBOT_ORDERS: 'chatbot.orders.validate',
   CHATBOT_CATALOG: 'chatbot.catalog.manage',
   CHATBOT_CRATE: 'chatbot.catalog.manage',
+  CHATBOT_METRICS: 'chatbot.chats.manage',
   CHATBOT_SYNC_RULES: 'chatbot.catalog.manage',
   CHATBOT_TRAINING: 'chatbot.training.manage',
 };

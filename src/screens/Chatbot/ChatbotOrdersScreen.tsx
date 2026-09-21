@@ -33,35 +33,58 @@ import {
 import type { BadgeVariant } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
+import { useConversationVouchers } from '@/hooks/api/useChatbotConversations';
 import {
   useChatbotOrdersList,
   useExtendChatbotOrderHold,
   useRejectChatbotOrder,
   useValidateChatbotOrder,
 } from '@/hooks/api/useChatbotOrders';
-import type { ChatbotOrder, ChatbotOrderStatus } from '@/types/chatbot';
+import type {
+  ChatbotOrder,
+  ChatbotOrderStatus,
+  ConversationVoucher,
+  VoucherStatus,
+} from '@/types/chatbot';
 import Alert from '@/utils/alert';
 import { config } from '@/utils/config';
 import { formatDateTime, formatSolesFromCents } from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotOrders'>;
 
-const STATUS_OPTIONS: Array<{ label: string; value: ChatbotOrderStatus }> = [
+/**
+ * Valor del filtro. `MANAGE` = bandeja por defecto (sin `status`): el backend
+ * devuelve los pedidos accionables (`PENDING_PAYMENT` + `AWAITING_BALANCE`).
+ */
+type OrderFilter = ChatbotOrderStatus | 'MANAGE';
+
+const STATUS_OPTIONS: Array<{ label: string; value: OrderFilter }> = [
+  { label: 'Por gestionar', value: 'MANAGE' },
   { label: 'Pendiente', value: 'PENDING_PAYMENT' },
+  { label: 'Falta saldo', value: 'AWAITING_BALANCE' },
   { label: 'Validado', value: 'VALIDATED' },
   { label: 'Emitido', value: 'EMITTED' },
   { label: 'Rechazado', value: 'REJECTED' },
   { label: 'Expirado', value: 'EXPIRED' },
-  { label: 'Cancelado', value: 'CANCELLED' },
 ];
 
 const STATUS_BADGE: Record<ChatbotOrderStatus, { variant: BadgeVariant; label: string }> = {
   PENDING_PAYMENT: { variant: 'warning', label: 'Pendiente pago' },
+  AWAITING_BALANCE: { variant: 'pending', label: 'Falta saldo' },
   VALIDATED: { variant: 'info', label: 'Validado' },
   EMITTED: { variant: 'success', label: 'Emitido' },
   REJECTED: { variant: 'danger', label: 'Rechazado' },
   EXPIRED: { variant: 'default', label: 'Expirado' },
-  CANCELLED: { variant: 'default', label: 'Cancelado' },
+};
+
+const VOUCHER_BADGE: Record<VoucherStatus, { variant: BadgeVariant; label: string }> = {
+  PENDING: { variant: 'pending', label: 'Sin conciliar' },
+  MATCHED: { variant: 'success', label: 'Conciliado' },
+  MISMATCH_LESS: { variant: 'warning', label: 'Pagó de menos' },
+  MISMATCH_MORE: { variant: 'info', label: 'Pagó de más' },
+  ORPHAN: { variant: 'default', label: 'Sin pedido' },
+  DUPLICATE: { variant: 'default', label: 'Duplicado' },
+  REJECTED: { variant: 'danger', label: 'Descartado' },
 };
 
 const resolveVoucherUrl = (url: string | null): string | null => {
@@ -91,52 +114,72 @@ const resolveDeliveryLabel = (order: ChatbotOrder): string | null => {
   return parts.length > 0 ? `Entrega: ${parts.join(' · ')}` : null;
 };
 
+/** Estados accionables que componen la bandeja "Por gestionar". */
+const ACTIONABLE_STATUSES: ChatbotOrderStatus[] = ['PENDING_PAYMENT', 'AWAITING_BALANCE'];
+
+/** Estados en los que el pedido sigue siendo accionable (falta pago/saldo). */
+const isActionable = (status: ChatbotOrderStatus): boolean => ACTIONABLE_STATUSES.includes(status);
+
 export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
-  const [status, setStatus] = useState<ChatbotOrderStatus>('PENDING_PAYMENT');
+  const [filter, setFilter] = useState<OrderFilter>('MANAGE');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ChatbotOrder | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [extendTarget, setExtendTarget] = useState<ChatbotOrder | null>(null);
   const [extendHours, setExtendHours] = useState('72');
 
-  const { data, isLoading, isFetching, isError, refetch } = useChatbotOrdersList(
-    { status },
-    { refetchIntervalMs: status === 'PENDING_PAYMENT' ? 20000 : undefined }
-  );
-  const orders = useMemo(() => data ?? [], [data]);
+  const isManage = filter === 'MANAGE';
+  // "Por gestionar" pide explícitamente los estados accionables porque el
+  // backend, sin `status`, devuelve TODOS los pedidos.
+  const listParams = isManage ? { status: ACTIONABLE_STATUSES } : { status: filter };
+  const isPolling = isManage || isActionable(filter as ChatbotOrderStatus);
+  const { data, isLoading, isFetching, isError, refetch } = useChatbotOrdersList(listParams, {
+    refetchIntervalMs: isPolling ? 20000 : undefined,
+  });
+  const orders = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
   const validateMutation = useValidateChatbotOrder();
   const rejectMutation = useRejectChatbotOrder();
   const extendMutation = useExtendChatbotOrderHold();
 
   const handleValidate = (order: ChatbotOrder) => {
+    if (order.balanceCents > 0) {
+      Alert.alert(
+        'Saldo pendiente',
+        `Aún falta ${formatSolesFromCents(String(order.balanceCents))} por cubrir. ¿Validar de todas formas?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Validar igual', onPress: () => runValidate(order) },
+        ]
+      );
+      return;
+    }
     Alert.alert(
       'Validar pago',
       'Se confirmará el pago y se intentará emitir el comprobante en el POS.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Validar',
-          onPress: () =>
-            validateMutation.mutate(order.id, {
-              onSuccess: (res) => {
-                if (res.status === 'EMITTED') {
-                  Alert.alert('Emitido', `Ventas: ${res.saleIds?.join(', ') ?? '-'}`);
-                } else if (res.error) {
-                  Alert.alert('Validado sin emisión', res.error);
-                } else if (res.note) {
-                  Alert.alert('Validado', res.note);
-                }
-              },
-              onError: (err: any) =>
-                Alert.alert('Error', err?.message ?? 'No se pudo validar el pago'),
-            }),
-        },
+        { text: 'Validar', onPress: () => runValidate(order) },
       ]
     );
+  };
+
+  const runValidate = (order: ChatbotOrder) => {
+    validateMutation.mutate(order.id, {
+      onSuccess: (res) => {
+        if (res.status === 'EMITTED') {
+          Alert.alert('Emitido', `Ventas: ${res.saleIds?.join(', ') ?? '-'}`);
+        } else if (res.error) {
+          Alert.alert('Validado sin emisión', res.error);
+        } else if (res.note) {
+          Alert.alert('Validado', res.note);
+        }
+      },
+      onError: (err: any) => Alert.alert('Error', err?.message ?? 'No se pudo validar el pago'),
+    });
   };
 
   const openReject = (order: ChatbotOrder) => {
@@ -147,6 +190,28 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const openExtend = (order: ChatbotOrder) => {
     setExtendTarget(order);
     setExtendHours('72');
+  };
+
+  const handleDiscardVoucher = (order: ChatbotOrder, voucher: ConversationVoucher) => {
+    Alert.alert(
+      'Descartar voucher',
+      'Se descartará este comprobante y se le pedirá al cliente uno nuevo. El pedido quedará a la espera de saldo.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Descartar',
+          style: 'destructive',
+          onPress: () =>
+            rejectMutation.mutate(
+              { id: order.id, body: { voucherId: voucher.id, action: 'request' } },
+              {
+                onError: (err: any) =>
+                  Alert.alert('Error', err?.message ?? 'No se pudo descartar el voucher'),
+              }
+            ),
+        },
+      ]
+    );
   };
 
   const confirmExtend = () => {
@@ -168,7 +233,10 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const confirmReject = () => {
     if (!rejectTarget) return;
     rejectMutation.mutate(
-      { id: rejectTarget.id, body: rejectReason ? { reason: rejectReason } : undefined },
+      {
+        id: rejectTarget.id,
+        body: { action: 'cancel', ...(rejectReason ? { reason: rejectReason } : {}) },
+      },
       {
         onSuccess: () => {
           setRejectTarget(null);
@@ -191,12 +259,12 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.headerTitleContainer}>
             <View style={styles.headerIconRow}>
               <View style={styles.headerIconContainer}>
-                <Ionicons name="cart-outline" size={22} color={theme.color.brand.onHeader} />
+                <Ionicons name="receipt-outline" size={22} color={theme.color.brand.onHeader} />
               </View>
-              <Text style={styles.headerTitle}>Pedidos WhatsApp</Text>
+              <Text style={styles.headerTitle}>Vouchers WhatsApp</Text>
             </View>
             <Text style={styles.headerSubtitle}>
-              Validación de vouchers y emisión de comprobantes
+              Conciliación de pagos, saldo y emisión de comprobantes
             </Text>
           </View>
         </LinearGradient>
@@ -210,8 +278,8 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
         >
           <ChipGroup
             options={STATUS_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
-            selected={[status]}
-            onChange={(sel) => sel[0] && setStatus(sel[0] as ChatbotOrderStatus)}
+            selected={[filter]}
+            onChange={(sel) => sel[0] && setFilter(sel[0] as OrderFilter)}
             multiple={false}
           />
 
@@ -227,7 +295,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
             />
           ) : orders.length === 0 ? (
             <EmptyState
-              icon="cart-outline"
+              icon="receipt-outline"
               title="Sin pedidos"
               description="No hay pedidos en este estado."
             />
@@ -236,6 +304,13 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               {orders.map((order) => {
                 const badge = STATUS_BADGE[order.status];
                 const voucher = resolveVoucherUrl(order.voucherUrl);
+                const balancePositive = order.balanceCents > 0;
+                const balanceColor =
+                  order.balanceCents > 0
+                    ? theme.color.text.danger
+                    : order.balanceCents < 0
+                      ? theme.color.text.warning
+                      : theme.color.text.success;
                 return (
                   <Card key={order.id} style={styles.orderCard}>
                     <View style={styles.orderHeader}>
@@ -248,6 +323,26 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       <Badge variant={badge.variant} label={badge.label} />
                     </View>
 
+                    {/* Resumen de saldo */}
+                    <View style={styles.balanceRow}>
+                      <View style={styles.balanceCell}>
+                        <Caption color={theme.color.text.muted}>Total</Caption>
+                        <Body>{formatSolesFromCents(order.totalCents)}</Body>
+                      </View>
+                      <View style={styles.balanceCell}>
+                        <Caption color={theme.color.text.muted}>Pagado</Caption>
+                        <Body>{formatSolesFromCents(order.paidCents)}</Body>
+                      </View>
+                      <View style={styles.balanceCell}>
+                        <Caption color={theme.color.text.muted}>
+                          {balancePositive ? 'Falta' : order.balanceCents < 0 ? 'A favor' : 'Saldo'}
+                        </Caption>
+                        <Body color={balanceColor}>
+                          {formatSolesFromCents(String(Math.abs(order.balanceCents)))}
+                        </Body>
+                      </View>
+                    </View>
+
                     {voucher ? (
                       <Pressable onPress={() => setPreviewUrl(voucher)} style={styles.voucherBox}>
                         <Image
@@ -257,9 +352,19 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                         />
                         <Caption color={theme.color.text.muted}>Toca para ampliar</Caption>
                       </Pressable>
-                    ) : (
-                      <Caption color={theme.color.text.muted}>Sin voucher adjunto</Caption>
-                    )}
+                    ) : null}
+
+                    {/* Vouchers conciliados de la conversación */}
+                    {isActionable(order.status) ? (
+                      <OrderVouchersSection
+                        order={order}
+                        styles={styles}
+                        theme={theme}
+                        onPreview={setPreviewUrl}
+                        onDiscard={handleDiscardVoucher}
+                        discardPending={rejectMutation.isPending}
+                      />
+                    ) : null}
 
                     {order.rejectedReason ? (
                       <Body color={theme.color.text.muted}>
@@ -279,7 +384,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       </Caption>
                     ) : null}
 
-                    {order.status === 'PENDING_PAYMENT' ? (
+                    {isActionable(order.status) ? (
                       <View style={styles.actionsRow}>
                         <Button
                           title="Extender"
@@ -288,7 +393,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                           onPress={() => openExtend(order)}
                         />
                         <Button
-                          title="Rechazar"
+                          title="Cancelar"
                           variant="outline"
                           leftIcon="close-circle-outline"
                           onPress={() => openReject(order)}
@@ -323,26 +428,26 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
           </Pressable>
         </Modal>
 
-        {/* Reject modal */}
+        {/* Reject / cancel order modal */}
         <Modal visible={!!rejectTarget} transparent animationType="fade">
           <Pressable style={styles.previewBackdrop} onPress={() => setRejectTarget(null)}>
             <Pressable style={styles.rejectCard} onPress={(e) => e.stopPropagation()}>
-              <Title>Rechazar pedido</Title>
+              <Title>Cancelar pedido</Title>
               <Caption color={theme.color.text.muted}>
                 Se liberará el stock reservado. El motivo es opcional.
               </Caption>
               <TextInput
                 value={rejectReason}
                 onChangeText={setRejectReason}
-                placeholder="Motivo (ej. voucher ilegible)"
+                placeholder="Motivo (ej. cliente desistió)"
                 placeholderTextColor={theme.color.text.muted}
                 style={styles.rejectInput}
                 multiline
               />
               <View style={styles.rejectActions}>
-                <Button title="Cancelar" variant="outline" onPress={() => setRejectTarget(null)} />
+                <Button title="Volver" variant="outline" onPress={() => setRejectTarget(null)} />
                 <Button
-                  title="Rechazar"
+                  title="Cancelar pedido"
                   onPress={confirmReject}
                   loading={rejectMutation.isPending}
                   leftIcon="close-circle-outline"
@@ -382,6 +487,96 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
         </Modal>
       </SafeAreaView>
     </ScreenLayout>
+  );
+};
+
+// ============================================
+// Vouchers de la conversación (por pedido)
+// ============================================
+interface OrderVouchersSectionProps {
+  order: ChatbotOrder;
+  styles: ReturnType<typeof createStyles>;
+  theme: Theme;
+  onPreview: (url: string | null) => void;
+  onDiscard: (order: ChatbotOrder, voucher: ConversationVoucher) => void;
+  discardPending: boolean;
+}
+
+const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
+  order,
+  styles,
+  theme,
+  onPreview,
+  onDiscard,
+  discardPending,
+}) => {
+  const { data, isLoading } = useConversationVouchers(order.conversationId);
+  const vouchers = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.vouchersLoading}>
+        <ActivityIndicator size="small" color={theme.color.brand.accent} />
+      </View>
+    );
+  }
+
+  if (vouchers.length === 0) {
+    return <Caption color={theme.color.text.muted}>Sin vouchers registrados aún.</Caption>;
+  }
+
+  return (
+    <View style={styles.vouchersBox}>
+      <Caption color={theme.color.text.muted}>Comprobantes ({vouchers.length})</Caption>
+      {vouchers.map((v) => {
+        const vbadge = VOUCHER_BADGE[v.status] ?? VOUCHER_BADGE.PENDING;
+        const img = resolveVoucherUrl(v.imageUrl);
+        const isRejected = v.status === 'REJECTED';
+        return (
+          <View key={v.id} style={styles.voucherItem}>
+            <View style={styles.voucherItemHeader}>
+              <View style={{ flex: 1 }}>
+                <Body>
+                  {v.bank ?? 'Banco -'}
+                  {v.operationNumber ? ` · Op. ${v.operationNumber}` : ''}
+                </Body>
+                <Caption color={theme.color.text.muted}>
+                  {formatSolesFromCents(
+                    v.amountCents === null || v.amountCents === undefined
+                      ? null
+                      : String(v.amountCents)
+                  )}
+                  {v.operationDate ? ` · ${v.operationDate}` : ''}
+                  {v.operationTime ? ` ${v.operationTime}` : ''}
+                </Caption>
+              </View>
+              <Badge variant={vbadge.variant} label={vbadge.label} />
+            </View>
+            <View style={styles.voucherItemActions}>
+              {img ? (
+                <Button
+                  title="Ver"
+                  variant="ghost"
+                  size="small"
+                  leftIcon="image-outline"
+                  onPress={() => onPreview(img)}
+                />
+              ) : null}
+              {!isRejected ? (
+                <Button
+                  title="Descartar"
+                  variant="outline"
+                  size="small"
+                  leftIcon="close-circle-outline"
+                  onPress={() => onDiscard(order, v)}
+                  disabled={discardPending}
+                />
+              ) : null}
+            </View>
+          </View>
+        );
+      })}
+    </View>
   );
 };
 
@@ -450,6 +645,17 @@ const createStyles = (theme: Theme) =>
       alignItems: 'flex-start',
       gap: spacing[2],
     },
+    balanceRow: {
+      flexDirection: 'row',
+      gap: spacing[2],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      padding: spacing[2],
+    },
+    balanceCell: {
+      flex: 1,
+      gap: spacing[1] / 2,
+    },
     voucherBox: {
       alignItems: 'center',
       gap: spacing[1],
@@ -459,6 +665,32 @@ const createStyles = (theme: Theme) =>
       height: 180,
       borderRadius: borderRadius.md,
       backgroundColor: theme.color.background.subtle,
+    },
+    vouchersLoading: {
+      paddingVertical: spacing[2],
+      alignItems: 'flex-start',
+    },
+    vouchersBox: {
+      gap: spacing[2],
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.default,
+      paddingTop: spacing[2],
+    },
+    voucherItem: {
+      gap: spacing[1],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.md,
+      padding: spacing[2],
+    },
+    voucherItemHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing[2],
+    },
+    voucherItemActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: spacing[2],
     },
     actionsRow: {
       flexDirection: 'row',

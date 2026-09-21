@@ -7,6 +7,7 @@ import type {
   ChatConversation,
   ChatMessage,
   ConversationSearchItem,
+  ConversationVoucher,
   GetChatMessagesParams,
   GetConversationsParams,
   HandoffBody,
@@ -179,6 +180,19 @@ class ChatbotConversationsService {
     const url = `${config.API_URL}${this.basePath}/${conversationId}/messages/${messageId}/media`;
     const blob = await downloadWithAuth(url);
     return URL.createObjectURL(blob);
+  }
+
+  /**
+   * Vouchers (comprobantes de pago) detectados en una conversación.
+   * `GET /chatbot/conversations/:id/vouchers`. Normaliza el shape legacy
+   * (array plano) por compatibilidad.
+   */
+  async getVouchers(id: string): Promise<ConversationVoucher[]> {
+    const res = await apiClient.get<ConversationVoucher[] | { items: ConversationVoucher[] }>(
+      `${this.basePath}/${id}/vouchers`
+    );
+    if (Array.isArray(res)) return res;
+    return res?.items ?? [];
   }
 
   async handoff(id: string, body: HandoffBody): Promise<{ ok: boolean }> {

@@ -15,7 +15,12 @@ import type { BadgeVariant } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
 import { useBotStatus, useToggleBot } from '@/hooks/api/useChatbotSession';
-import { useBotSettings, useUpdateBotSettings } from '@/hooks/api/useChatbotSettings';
+import {
+  useBotSettings,
+  useBotTerms,
+  useUpdateBotSettings,
+  useUpdateBotTerms,
+} from '@/hooks/api/useChatbotSettings';
 import type { BotEmojiLevel, BotFaqRule, UpdateBotSettingsBody } from '@/types/chatbot';
 import Alert from '@/utils/alert';
 
@@ -24,7 +29,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = 'estado' | 'personalidad' | 'faq';
+type Tab = 'estado' | 'personalidad' | 'faq' | 'terminos';
 
 /** Fila editable de FAQ en el UI (usa string CSV de keywords). */
 interface FaqRow {
@@ -175,6 +180,56 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
     setFaq((prev) => prev.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
   const removeFaqRow = (idx: number) => setFaq((prev) => prev.filter((_, i) => i !== idx));
 
+  // ---------- Términos y condiciones ----------
+  const termsQuery = useBotTerms({ enabled: visible && tab === 'terminos' });
+  const updateTermsMutation = useUpdateBotTerms();
+  const [termsHtml, setTermsHtml] = useState('');
+
+  useEffect(() => {
+    if (termsQuery.data) setTermsHtml(termsQuery.data.html ?? '');
+  }, [termsQuery.data]);
+
+  const termsDirty = useMemo(
+    () => (termsQuery.data?.html ?? '') !== termsHtml,
+    [termsQuery.data, termsHtml]
+  );
+
+  const handleSaveTerms = () => {
+    updateTermsMutation.mutate(
+      { html: termsHtml.trim() ? termsHtml : null },
+      {
+        onSuccess: () => Alert.alert('Guardado', 'Términos y condiciones actualizados.'),
+        onError: (err: any) =>
+          Alert.alert('Error', err?.message ?? 'No se pudieron guardar los términos'),
+      }
+    );
+  };
+
+  const handleRestoreTerms = () => {
+    Alert.alert(
+      'Restaurar términos',
+      'Se restaurará el texto por defecto del sistema. ¿Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Restaurar',
+          style: 'destructive',
+          onPress: () =>
+            updateTermsMutation.mutate(
+              { html: null },
+              {
+                onSuccess: (data) => {
+                  setTermsHtml(data.html ?? '');
+                  Alert.alert('Restaurado', 'Se restauró el texto por defecto.');
+                },
+                onError: (err: any) => Alert.alert('Error', err?.message ?? 'No se pudo restaurar'),
+              }
+            ),
+        },
+      ]
+    );
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
@@ -203,7 +258,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
 
           {/* Tabs */}
           <View style={styles.tabs}>
-            {(['estado', 'personalidad', 'faq'] as Tab[]).map((t) => (
+            {(['estado', 'personalidad', 'faq', 'terminos'] as Tab[]).map((t) => (
               <Pressable
                 key={t}
                 onPress={() => setTab(t)}
@@ -213,7 +268,13 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                   color={tab === t ? theme.color.text.heading : theme.color.text.muted}
                   style={tab === t ? styles.tabTextActive : undefined}
                 >
-                  {t === 'estado' ? 'Estado' : t === 'personalidad' ? 'Personalidad' : 'FAQ'}
+                  {t === 'estado'
+                    ? 'Estado'
+                    : t === 'personalidad'
+                      ? 'Personalidad'
+                      : t === 'faq'
+                        ? 'FAQ'
+                        : 'Términos'}
                 </Caption>
               </Pressable>
             ))}
@@ -360,7 +421,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                   />
                 </View>
               </View>
-            ) : (
+            ) : tab === 'faq' ? (
               <View style={{ gap: spacing[3] }}>
                 <Caption color={theme.color.text.muted}>
                   Respuestas exactas por palabras clave. Si el mensaje del cliente contiene alguna
@@ -413,6 +474,49 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                     onPress={handleSaveSettings}
                     disabled={!dirty}
                     loading={updateMutation.isPending}
+                    leftIcon="save-outline"
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: spacing[3] }}>
+                <Caption color={theme.color.text.muted}>
+                  Términos y condiciones que el bot comparte con el cliente. Acepta HTML básico.
+                  Déjalo vacío y usa Restaurar para volver al texto por defecto del sistema.
+                </Caption>
+
+                {termsQuery.isLoading ? (
+                  <ActivityIndicator color={theme.color.text.muted} />
+                ) : (
+                  <TextInput
+                    style={[styles.input, styles.termsInput]}
+                    value={termsHtml}
+                    onChangeText={setTermsHtml}
+                    placeholder="<p>Al comprar aceptas...</p>"
+                    placeholderTextColor={theme.color.text.muted}
+                    multiline
+                  />
+                )}
+
+                {termsQuery.data?.updatedAt ? (
+                  <Caption color={theme.color.text.muted}>
+                    Última actualización: {termsQuery.data.updatedAt}
+                  </Caption>
+                ) : null}
+
+                <View style={styles.actionsRow}>
+                  <Button
+                    title="Restaurar"
+                    variant="outline"
+                    onPress={handleRestoreTerms}
+                    loading={updateTermsMutation.isPending}
+                    leftIcon="refresh-outline"
+                  />
+                  <Button
+                    title="Guardar términos"
+                    onPress={handleSaveTerms}
+                    disabled={!termsDirty}
+                    loading={updateTermsMutation.isPending}
                     leftIcon="save-outline"
                   />
                 </View>
@@ -547,6 +651,11 @@ const createStyles = (theme: Theme) =>
     inputMulti: {
       minHeight: 72,
       textAlignVertical: 'top',
+    },
+    termsInput: {
+      minHeight: 220,
+      textAlignVertical: 'top',
+      fontFamily: 'monospace',
     },
     chipsRow: {
       flexDirection: 'row',
