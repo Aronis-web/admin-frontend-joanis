@@ -435,8 +435,8 @@ const menuCategories: MenuCategory[] = [
       },
       {
         id: 'chatbot-orders',
-        icon: 'receipt-outline',
-        label: 'Vouchers',
+        icon: 'cart-outline',
+        label: 'Pedidos',
         route: MAIN_ROUTES.CHATBOT_ORDERS,
         requiredPermissions: ['chatbot.orders.validate'],
       },

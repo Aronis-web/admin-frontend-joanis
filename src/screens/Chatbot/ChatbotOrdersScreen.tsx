@@ -259,13 +259,11 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.headerTitleContainer}>
             <View style={styles.headerIconRow}>
               <View style={styles.headerIconContainer}>
-                <Ionicons name="receipt-outline" size={22} color={theme.color.brand.onHeader} />
+                <Ionicons name="cart-outline" size={22} color={theme.color.brand.onHeader} />
               </View>
-              <Text style={styles.headerTitle}>Vouchers WhatsApp</Text>
+              <Text style={styles.headerTitle}>Pedidos WhatsApp</Text>
             </View>
-            <Text style={styles.headerSubtitle}>
-              Conciliación de pagos, saldo y emisión de comprobantes
-            </Text>
+            <Text style={styles.headerSubtitle}>Pedidos, saldo y validación de vouchers</Text>
           </View>
         </LinearGradient>
 
@@ -315,7 +313,10 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                   <Card key={order.id} style={styles.orderCard}>
                     <View style={styles.orderHeader}>
                       <View style={{ flex: 1 }}>
-                        <Title>{formatSolesFromCents(order.totalCents)}</Title>
+                        <View style={styles.orderTitleRow}>
+                          <Ionicons name="cart-outline" size={16} color={theme.color.text.muted} />
+                          <Title>Pedido #{order.id.slice(0, 8)}</Title>
+                        </View>
                         <Caption color={theme.color.text.muted}>
                           {formatDateTime(order.createdAt)}
                         </Caption>
@@ -354,17 +355,16 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       </Pressable>
                     ) : null}
 
-                    {/* Vouchers conciliados de la conversación */}
-                    {isActionable(order.status) ? (
-                      <OrderVouchersSection
-                        order={order}
-                        styles={styles}
-                        theme={theme}
-                        onPreview={setPreviewUrl}
-                        onDiscard={handleDiscardVoucher}
-                        discardPending={rejectMutation.isPending}
-                      />
-                    ) : null}
+                    {/* Vouchers (comprobantes) del pedido */}
+                    <OrderVouchersSection
+                      order={order}
+                      styles={styles}
+                      theme={theme}
+                      onPreview={setPreviewUrl}
+                      onDiscard={handleDiscardVoucher}
+                      discardPending={rejectMutation.isPending}
+                      allowDiscard={isActionable(order.status)}
+                    />
 
                     {order.rejectedReason ? (
                       <Body color={theme.color.text.muted}>
@@ -500,6 +500,8 @@ interface OrderVouchersSectionProps {
   onPreview: (url: string | null) => void;
   onDiscard: (order: ChatbotOrder, voucher: ConversationVoucher) => void;
   discardPending: boolean;
+  /** Solo permite descartar vouchers cuando el pedido sigue siendo accionable. */
+  allowDiscard: boolean;
 }
 
 const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
@@ -509,6 +511,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
   onPreview,
   onDiscard,
   discardPending,
+  allowDiscard,
 }) => {
   const { data, isLoading } = useConversationVouchers(order.conversationId);
   const vouchers = useMemo(() => (Array.isArray(data) ? data : []), [data]);
@@ -562,7 +565,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
                   onPress={() => onPreview(img)}
                 />
               ) : null}
-              {!isRejected ? (
+              {allowDiscard && !isRejected ? (
                 <Button
                   title="Descartar"
                   variant="outline"
@@ -644,6 +647,11 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing[2],
+    },
+    orderTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
     },
     balanceRow: {
       flexDirection: 'row',
