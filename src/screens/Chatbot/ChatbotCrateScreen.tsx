@@ -58,7 +58,11 @@ import type {
 } from '@/types/chatbot';
 import Alert from '@/utils/alert';
 import { computeStockRowsForProduct } from './stockRows';
-import { formatSolesFromCents, getPresentationUnitPriceCents } from './utils';
+import {
+  formatSolesFromCents,
+  getPresentationUnitPriceCents,
+  mergeAutocompleteIntoProduct,
+} from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotCrate'>;
 
@@ -197,12 +201,13 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
     setPendingProductId(item.id);
     try {
       const full = await productsApi.getProductById(item.id);
-      setSelectedProduct(full ?? null);
+      const product = mergeAutocompleteIntoProduct(item, full);
+      setSelectedProduct(product);
       const defaultPresentation =
-        full?.presentations?.find((p) => p.isBase) ?? full?.presentations?.[0] ?? null;
+        product.presentations?.find((p) => p.isBase) ?? product.presentations?.[0] ?? null;
       const defaultPresentationId = defaultPresentation?.presentationId ?? '';
       // Precio por defecto: precio real por unidad de la presentación elegida.
-      const defaultPrice = getPresentationUnitPriceCents(full, defaultPresentationId);
+      const defaultPrice = getPresentationUnitPriceCents(product, defaultPresentationId);
       // Stock disponible: endpoint específico del producto con fallback al global.
       const productRows = computeStockRowsForProduct(item.id, productStock, siteWarehouseIds);
       const rows =
@@ -527,28 +532,32 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
                       </TouchableOpacity>
                       {presentations.map((p) => {
                         const active = form.presentationId === p.presentationId;
+                        const price = getPresentationUnitPriceCents(
+                          selectedProduct,
+                          p.presentationId
+                        );
                         return (
                           <TouchableOpacity
                             key={p.presentationId}
                             style={[styles.chip, active && styles.chipActive]}
-                            onPress={() => {
-                              const price = getPresentationUnitPriceCents(
-                                selectedProduct,
-                                p.presentationId
-                              );
+                            onPress={() =>
                               setForm((f) => ({
                                 ...f,
                                 presentationId: p.presentationId,
                                 priceCents:
                                   typeof price === 'number' ? String(price) : f.priceCents,
-                              }));
-                            }}
+                              }))
+                            }
                           >
                             <Text
                               style={[styles.chipText, active && styles.chipTextActive]}
                               numberOfLines={1}
                             >
                               {p.presentation?.name ?? p.presentationId.slice(0, 6)}
+                              {p.factorToBase && p.factorToBase !== 1
+                                ? ` · x${p.factorToBase}`
+                                : ''}
+                              {typeof price === 'number' ? ` · S/ ${(price / 100).toFixed(2)}` : ''}
                               {p.isBase ? ' · base' : ''}
                             </Text>
                           </TouchableOpacity>

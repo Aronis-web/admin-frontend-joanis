@@ -3,7 +3,12 @@
  */
 import type { BadgeVariant } from '@/design-system';
 import type { PurchaseStage } from '@/types/chatbot';
-import type { Product } from '@/services/api/products';
+import type {
+  Product,
+  ProductAutocompleteItem,
+  ProductPresentation,
+  ProductSalePrice,
+} from '@/services/api/products';
 
 /** Etiqueta legible del estado de compra (embudo). */
 export const PURCHASE_STAGE_LABEL: Record<PurchaseStage, string> = {
@@ -74,6 +79,65 @@ export const getPresentationUnitPriceCents = (
     (p) => p.presentationId === presentationId && typeof p.priceCents === 'number'
   );
   return sp ? sp.priceCents : null;
+};
+
+/**
+ * Combina el item del autocomplete (que SIEMPRE trae `presentations` con
+ * `factorToBase` y `priceProfiles` con precios por presentación) dentro de un
+ * objeto `Product`. `GET /admin/products/:id` puede no devolver
+ * `presentations`/`salePrices`, así que aquí se prioriza el dato confiable del
+ * buscador y se conserva lo demás de `full` (foto, título, stock, etc.).
+ */
+export const mergeAutocompleteIntoProduct = (
+  item: ProductAutocompleteItem,
+  full: Product | null | undefined
+): Product => {
+  const presentations: ProductPresentation[] = (item.presentations ?? []).map((p) => ({
+    productId: item.id,
+    presentationId: p.id,
+    isBase: p.isBase,
+    factorToBase: p.factorToBase,
+    minOrderQty: 0,
+    orderStep: 1,
+    presentation: {
+      id: p.id,
+      code: p.code,
+      name: p.name,
+      isBase: p.isBase,
+      createdAt: '',
+      updatedAt: '',
+    },
+  }));
+
+  const salePrices: ProductSalePrice[] = [];
+  for (const profile of item.priceProfiles ?? []) {
+    for (const price of profile.prices ?? []) {
+      if (price.presentationId && typeof price.priceCents === 'number') {
+        salePrices.push({
+          productId: item.id,
+          presentationId: price.presentationId,
+          profileId: profile.profileId,
+          priceCents: price.priceCents,
+          currency: price.currency ?? full?.currency ?? 'PEN',
+          isOverridden: price.isOverridden,
+        });
+      }
+    }
+  }
+
+  return {
+    ...(full ?? {}),
+    id: item.id,
+    title: full?.title ?? item.title,
+    sku: full?.sku ?? item.sku,
+    correlativeNumber: full?.correlativeNumber ?? item.correlativeNumber,
+    barcode: full?.barcode ?? item.barcode ?? '',
+    costCents: full?.costCents ?? item.costCents,
+    currency: full?.currency ?? item.currency,
+    photos: full?.photos ?? item.photos ?? [],
+    presentations: presentations.length > 0 ? presentations : (full?.presentations ?? []),
+    salePrices: salePrices.length > 0 ? salePrices : (full?.salePrices ?? []),
+  } as Product;
 };
 
 export const formatDateTime = (iso: string | null | undefined): string => {

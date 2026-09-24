@@ -51,7 +51,7 @@ import type { Product, ProductAutocompleteItem } from '@/services/api/products';
 import { productsApi } from '@/services/api/products';
 import { useTenantStore } from '@/store/tenant';
 import { computeStockRowsForProduct } from './stockRows';
-import { getPresentationUnitPriceCents } from './utils';
+import { getPresentationUnitPriceCents, mergeAutocompleteIntoProduct } from './utils';
 import type {
   CreateSellableProductBody,
   SellableProduct,
@@ -223,14 +223,15 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     // Dispara la query de stock específica del producto.
     setPendingProductId(item.id);
     try {
-      // getProductById devuelve la entidad admin con presentaciones + stockItems
-      // completos (más rico que el endpoint de batch v2).
+      // getProductById trae foto/título/stock; las presentaciones y precios se
+      // toman del item del autocomplete (siempre confiable) vía merge.
       const full = await productsApi.getProductById(item.id);
-      setSelectedProduct(full ?? null);
+      const product = mergeAutocompleteIntoProduct(item, full);
+      setSelectedProduct(product);
 
       // Presentación por defecto: la base o la primera.
       const defaultPresentation =
-        full?.presentations?.find((p) => p.isBase) ?? full?.presentations?.[0] ?? null;
+        product.presentations?.find((p) => p.isBase) ?? product.presentations?.[0] ?? null;
       // Stock disponible: intentamos con el endpoint específico del producto,
       // filtrando por warehouses de la sede si están disponibles. Fallback al
       // stock global si el específico aún no llegó.
@@ -242,7 +243,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
       const defaultRow = rows[0];
       // Precio por defecto: precio real por unidad de la presentación elegida.
       const defaultPresentationId = defaultPresentation?.presentationId ?? '';
-      const defaultPrice = getPresentationUnitPriceCents(full, defaultPresentationId);
+      const defaultPrice = getPresentationUnitPriceCents(product, defaultPresentationId);
       const defaultProfile = item.priceProfiles?.[0];
 
       setForm((f) => ({
@@ -620,28 +621,32 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                     <View style={styles.chipRow}>
                       {presentations.map((p) => {
                         const active = form.presentationId === p.presentationId;
+                        const price = getPresentationUnitPriceCents(
+                          selectedProduct,
+                          p.presentationId
+                        );
                         return (
                           <TouchableOpacity
                             key={p.presentationId}
                             style={[styles.chip, active && styles.chipActive]}
-                            onPress={() => {
-                              const price = getPresentationUnitPriceCents(
-                                selectedProduct,
-                                p.presentationId
-                              );
+                            onPress={() =>
                               setForm((f) => ({
                                 ...f,
                                 presentationId: p.presentationId,
                                 priceOverrideCents:
                                   typeof price === 'number' ? String(price) : f.priceOverrideCents,
-                              }));
-                            }}
+                              }))
+                            }
                           >
                             <Text
                               style={[styles.chipText, active && styles.chipTextActive]}
                               numberOfLines={1}
                             >
                               {p.presentation?.name ?? p.presentationId.slice(0, 6)}
+                              {p.factorToBase && p.factorToBase !== 1
+                                ? ` · x${p.factorToBase}`
+                                : ''}
+                              {typeof price === 'number' ? ` · S/ ${(price / 100).toFixed(2)}` : ''}
                               {p.isBase ? ' · base' : ''}
                             </Text>
                           </TouchableOpacity>
