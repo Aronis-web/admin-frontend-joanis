@@ -41,7 +41,12 @@ import {
   useDeleteCrateProduct,
   useUpdateCrateProduct,
 } from '@/hooks/api/useChatbotCrate';
-import { useProductsByIdsBatch, useSiteWarehouses } from '@/hooks/api/useChatbotCatalog';
+import {
+  useProductStockByAreas,
+  useProductsByIdsBatch,
+  useSiteStock,
+  useSiteWarehouses,
+} from '@/hooks/api/useChatbotCatalog';
 import { useBotSettings, useUpdateBotSettings } from '@/hooks/api/useChatbotSettings';
 import type { Product, ProductAutocompleteItem } from '@/services/api/products';
 import { productsApi } from '@/services/api/products';
@@ -52,13 +57,15 @@ import type {
   UpsertCrateProductBody,
 } from '@/types/chatbot';
 import Alert from '@/utils/alert';
-import { formatSolesFromCents } from './utils';
+import { computeStockRowsForProduct } from './stockRows';
+import { formatSolesFromCents, getPresentationUnitPriceCents } from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotCrate'>;
 
 interface CrateFormState {
   productId: string;
   warehouseId: string;
+  areaId: string;
   presentationId: string;
   maxSellableQty: string;
   priceCents: string;
@@ -70,6 +77,7 @@ interface CrateFormState {
 const emptyForm: CrateFormState = {
   productId: '',
   warehouseId: '',
+  areaId: '',
   presentationId: '',
   maxSellableQty: '',
   priceCents: '',
@@ -81,6 +89,7 @@ const emptyForm: CrateFormState = {
 const toForm = (item: ChatbotCrateProduct): CrateFormState => ({
   productId: item.productId,
   warehouseId: item.warehouseId,
+  areaId: item.areaId ?? '',
   presentationId: item.presentationId ?? '',
   maxSellableQty: item.maxSellableQty ?? '',
   priceCents: item.priceCents ?? '',
@@ -93,6 +102,7 @@ const buildBody = (form: CrateFormState): UpsertCrateProductBody => ({
   productId: form.productId.trim(),
   variantId: null,
   warehouseId: form.warehouseId.trim(),
+  areaId: form.areaId.trim() || null,
   presentationId: form.presentationId.trim() || null,
   maxSellableQty: Number(form.maxSellableQty || '0'),
   priceCents: Math.trunc(Number(form.priceCents || '0')),
@@ -115,6 +125,13 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
     () => (Array.isArray(siteWarehouses) ? siteWarehouses : []),
     [siteWarehouses]
   );
+
+  // Stock global de la sede (fallback) y stock específico del producto.
+  const { data: siteStock } = useSiteStock(selectedSite?.id ?? null);
+  const [pendingProductId, setPendingProductId] = useState<string | null>(null);
+  const { data: productStock } = useProductStockByAreas(pendingProductId);
+
+  const siteWarehouseIds = useMemo(() => new Set(warehouses.map((w) => w.id)), [warehouses]);
 
   // Toggle global "Venta por cajón".
   const settingsQuery = useBotSettings();
@@ -146,6 +163,7 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
     setEditing(null);
     setSearchQuery('');
     setSelectedProduct(null);
+    setPendingProductId(null);
     setCreating(true);
   };
 
@@ -154,6 +172,7 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
     setEditing(item);
     setCreating(false);
     setSearchQuery('');
+    setPendingProductId(item.productId);
     setLoadingProduct(true);
     productsApi
       .getProductById(item.productId)
@@ -168,22 +187,38 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
     setForm(emptyForm);
     setSearchQuery('');
     setSelectedProduct(null);
+    setPendingProductId(null);
   };
 
   const handleSelectProduct = async (item: ProductAutocompleteItem) => {
     setSearchFocused(false);
     setSearchQuery(`#${item.correlativeNumber} ${item.sku} — ${item.title}`);
     setLoadingProduct(true);
+    setPendingProductId(item.id);
     try {
       const full = await productsApi.getProductById(item.id);
       setSelectedProduct(full ?? null);
       const defaultPresentation =
         full?.presentations?.find((p) => p.isBase) ?? full?.presentations?.[0] ?? null;
+      const defaultPresentationId = defaultPresentation?.presentationId ?? '';
+      // Precio por defecto: precio real por unidad de la presentación elegida.
+      const defaultPrice = getPresentationUnitPriceCents(full, defaultPresentationId);
+      // Stock disponible: endpoint específico del producto con fallback al global.
+      const productRows = computeStockRowsForProduct(item.id, productStock, siteWarehouseIds);
+      const rows =
+        productRows.length > 0
+          ? productRows
+          : computeStockRowsForProduct(item.id, siteStock, siteWarehouseIds);
+      const defaultRow = rows[0];
+
       setForm((f) => ({
         ...f,
         productId: item.id,
-        presentationId: defaultPresentation?.presentationId ?? '',
-        warehouseId: warehouses[0]?.id ?? '',
+        presentationId: defaultPresentationId,
+        warehouseId: defaultRow?.warehouseId ?? '',
+        areaId: defaultRow?.areaId ?? '',
+        maxSellableQty: defaultRow ? String(Math.max(0, defaultRow.available)) : '',
+        priceCents: typeof defaultPrice === 'number' ? String(defaultPrice) : f.priceCents,
         label: item.title,
       }));
     } catch (err: any) {
@@ -247,6 +282,22 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const isFormOpen = creating || !!editing;
   const presentations = selectedProduct?.presentations ?? [];
+
+  const stockRows = useMemo(() => {
+    const id = selectedProduct?.id ?? null;
+    let rows = computeStockRowsForProduct(id, productStock, siteWarehouseIds);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, siteWarehouseIds);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, productStock, null);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, null);
+    return rows;
+  }, [selectedProduct, productStock, siteStock, siteWarehouseIds]);
+  const siteTotalAvailable = useMemo(
+    () => stockRows.reduce((acc, r) => acc + r.available, 0),
+    [stockRows]
+  );
+  const selectedStockRow = stockRows.find(
+    (r) => r.warehouseId === form.warehouseId && (r.areaId ?? '') === form.areaId
+  );
 
   const pricePreview = useMemo(() => {
     const cents = Math.trunc(Number(form.priceCents || '0'));
@@ -314,7 +365,10 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
                 const product = productsById?.get(item.productId);
                 const thumb = product?.photos?.[0] ?? product?.imageUrl;
                 const wh = warehouses.find((w) => w.id === item.warehouseId);
-                const sourceLabel = wh ? wh.name : `Almacén ${item.warehouseId.slice(0, 6)}…`;
+                const area = item.areaId ? wh?.areas?.find((a) => a.id === item.areaId) : null;
+                const sourceLabel = wh
+                  ? `${wh.name}${area?.name ? ` · ${area.name}` : ''}`
+                  : `Almacén ${item.warehouseId.slice(0, 6)}…`;
                 const presentation = product?.presentations?.find(
                   (p) => p.presentationId === item.presentationId
                 );
@@ -397,7 +451,16 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
                         setSearchFocused(true);
                         if (selectedProduct) {
                           setSelectedProduct(null);
-                          setForm((f) => ({ ...f, productId: '', presentationId: '' }));
+                          setPendingProductId(null);
+                          setForm((f) => ({
+                            ...f,
+                            productId: '',
+                            warehouseId: '',
+                            areaId: '',
+                            presentationId: '',
+                            maxSellableQty: '',
+                            priceCents: '',
+                          }));
                         }
                       }}
                       onFocus={() => setSearchFocused(true)}
@@ -468,9 +531,18 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
                           <TouchableOpacity
                             key={p.presentationId}
                             style={[styles.chip, active && styles.chipActive]}
-                            onPress={() =>
-                              setForm((f) => ({ ...f, presentationId: p.presentationId }))
-                            }
+                            onPress={() => {
+                              const price = getPresentationUnitPriceCents(
+                                selectedProduct,
+                                p.presentationId
+                              );
+                              setForm((f) => ({
+                                ...f,
+                                presentationId: p.presentationId,
+                                priceCents:
+                                  typeof price === 'number' ? String(price) : f.priceCents,
+                              }));
+                            }}
                           >
                             <Text
                               style={[styles.chipText, active && styles.chipTextActive]}
@@ -486,36 +558,89 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
                   </View>
                 )}
 
-                <View>
-                  <Caption color={theme.color.text.muted} style={styles.groupLabel}>
-                    Almacén de origen
-                  </Caption>
-                  {warehouses.length === 0 ? (
-                    <Caption color={theme.color.text.muted}>
-                      Sin almacenes en la sede activa.
-                    </Caption>
-                  ) : (
-                    <View style={styles.chipRow}>
-                      {warehouses.map((w) => {
-                        const active = form.warehouseId === w.id;
-                        return (
-                          <TouchableOpacity
-                            key={w.id}
-                            style={[styles.chip, active && styles.chipActive]}
-                            onPress={() => setForm((f) => ({ ...f, warehouseId: w.id }))}
-                          >
-                            <Text
-                              style={[styles.chipText, active && styles.chipTextActive]}
-                              numberOfLines={1}
-                            >
-                              {w.name}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                {selectedProduct ? (
+                  <View>
+                    <View style={styles.stockHeader}>
+                      <Caption color={theme.color.text.muted} style={styles.groupLabel}>
+                        Dónde sacar stock ({selectedSite?.name ?? 'sede activa'})
+                      </Caption>
+                      <Caption color={theme.color.text.muted}>Total: {siteTotalAvailable}</Caption>
                     </View>
-                  )}
-                </View>
+                    {stockRows.length === 0 ? (
+                      <Caption color={theme.color.text.muted}>
+                        Sin stock en las bodegas de esta sede.
+                      </Caption>
+                    ) : (
+                      <View style={styles.chipRow}>
+                        {stockRows.map((r) => {
+                          const active =
+                            form.warehouseId === r.warehouseId && (r.areaId ?? '') === form.areaId;
+                          return (
+                            <TouchableOpacity
+                              key={`${r.warehouseId}-${r.areaId ?? 'none'}`}
+                              style={[styles.chip, active && styles.chipActive]}
+                              onPress={() =>
+                                setForm((f) => ({
+                                  ...f,
+                                  warehouseId: r.warehouseId,
+                                  areaId: r.areaId ?? '',
+                                  maxSellableQty:
+                                    f.maxSellableQty && Number(f.maxSellableQty) > 0
+                                      ? f.maxSellableQty
+                                      : String(Math.max(0, r.available)),
+                                }))
+                              }
+                            >
+                              <Text
+                                style={[styles.chipText, active && styles.chipTextActive]}
+                                numberOfLines={1}
+                              >
+                                {r.warehouseName} · {r.areaName} · {r.available}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                    {selectedStockRow && (
+                      <Caption color={theme.color.text.muted} style={styles.stockPickedHint}>
+                        Vendible desde: {selectedStockRow.warehouseName} ·{' '}
+                        {selectedStockRow.areaName} (disp. {selectedStockRow.available})
+                      </Caption>
+                    )}
+                  </View>
+                ) : (
+                  <View>
+                    <Caption color={theme.color.text.muted} style={styles.groupLabel}>
+                      Almacén de origen
+                    </Caption>
+                    {warehouses.length === 0 ? (
+                      <Caption color={theme.color.text.muted}>
+                        Sin almacenes en la sede activa.
+                      </Caption>
+                    ) : (
+                      <View style={styles.chipRow}>
+                        {warehouses.map((w) => {
+                          const active = form.warehouseId === w.id;
+                          return (
+                            <TouchableOpacity
+                              key={w.id}
+                              style={[styles.chip, active && styles.chipActive]}
+                              onPress={() => setForm((f) => ({ ...f, warehouseId: w.id }))}
+                            >
+                              <Text
+                                style={[styles.chipText, active && styles.chipTextActive]}
+                                numberOfLines={1}
+                              >
+                                {w.name}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                )}
 
                 <Input
                   label="Máximo vendible"
@@ -705,6 +830,14 @@ const createStyles = (theme: Theme) =>
     },
     groupLabel: {
       marginBottom: spacing[2],
+    },
+    stockHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    stockPickedHint: {
+      marginTop: spacing[2],
     },
     chipRow: {
       flexDirection: 'row',

@@ -49,8 +49,9 @@ import { usePinSellable } from '@/hooks/api/useChatbotSync';
 import { MAIN_ROUTES } from '@/constants/routes';
 import type { Product, ProductAutocompleteItem } from '@/services/api/products';
 import { productsApi } from '@/services/api/products';
-import type { StockItemResponse } from '@/services/api/inventory';
 import { useTenantStore } from '@/store/tenant';
+import { computeStockRowsForProduct } from './stockRows';
+import { getPresentationUnitPriceCents } from './utils';
 import type {
   CreateSellableProductBody,
   SellableProduct,
@@ -116,58 +117,6 @@ const buildBody = (form: FormState): CreateSellableProductBody => ({
   sortOrder: Number(form.sortOrder || '0'),
   isActive: form.isActive,
 });
-
-/**
- * Fila de stock por (warehouse, area) dentro de la sede activa.
- * areaId puede ser null (stock a nivel de warehouse sin área específica).
- */
-interface StockRow {
-  warehouseId: string;
-  warehouseName: string;
-  areaId: string | null;
-  areaName: string;
-  available: number;
-}
-
-/**
- * Deriva las filas de stock disponible para un producto dentro de la sede
- * activa, agrupadas por (warehouse, area). La fuente de verdad es la lista
- * global de stock items de la sede (`inventoryApi.getAllStock`), el mismo
- * patrón que usa Campañas → `AddProductScreen`.
- */
-const computeStockRowsForProduct = (
-  productId: string | null | undefined,
-  siteStock: StockItemResponse[] | undefined,
-  siteWarehouseIds?: Set<string> | null
-): StockRow[] => {
-  if (!productId) return [];
-  const list = Array.isArray(siteStock) ? siteStock : [];
-  if (list.length === 0) return [];
-  const rows = new Map<string, StockRow>();
-  list.forEach((si) => {
-    if (si.productId !== productId) return;
-    if (siteWarehouseIds && siteWarehouseIds.size > 0 && !siteWarehouseIds.has(si.warehouseId)) {
-      return;
-    }
-    const key = `${si.warehouseId}::${si.areaId ?? 'none'}`;
-    const available = Number(si.availableQuantityBase ?? si.quantityBase ?? 0);
-    const warehouseName = si.warehouse?.name ?? si.warehouseId.slice(0, 6);
-    const areaName = si.area?.name ?? (si.areaId ? si.areaId.slice(0, 6) : 'Sin área');
-    const prev = rows.get(key);
-    if (prev) {
-      prev.available += available;
-    } else {
-      rows.set(key, {
-        warehouseId: si.warehouseId,
-        warehouseName,
-        areaId: si.areaId,
-        areaName,
-        available,
-      });
-    }
-  });
-  return Array.from(rows.values()).sort((a, b) => b.available - a.available);
-};
 
 export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
@@ -291,15 +240,16 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
           ? productRows
           : computeStockRowsForProduct(item.id, siteStock, siteWarehouseIds);
       const defaultRow = rows[0];
-      // Precio sugerido (perfil por defecto de la lista de precios).
+      // Precio por defecto: precio real por unidad de la presentación elegida.
+      const defaultPresentationId = defaultPresentation?.presentationId ?? '';
+      const defaultPrice = getPresentationUnitPriceCents(full, defaultPresentationId);
       const defaultProfile = item.priceProfiles?.[0];
-      const defaultPrice = defaultProfile?.prices?.[0]?.priceCents;
 
       setForm((f) => ({
         ...f,
         productId: item.id,
         variantId: '',
-        presentationId: defaultPresentation?.presentationId ?? '',
+        presentationId: defaultPresentationId,
         warehouseId: defaultRow?.warehouseId ?? '',
         areaId: defaultRow?.areaId ?? '',
         label: item.title,
@@ -674,9 +624,18 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                           <TouchableOpacity
                             key={p.presentationId}
                             style={[styles.chip, active && styles.chipActive]}
-                            onPress={() =>
-                              setForm((f) => ({ ...f, presentationId: p.presentationId }))
-                            }
+                            onPress={() => {
+                              const price = getPresentationUnitPriceCents(
+                                selectedProduct,
+                                p.presentationId
+                              );
+                              setForm((f) => ({
+                                ...f,
+                                presentationId: p.presentationId,
+                                priceOverrideCents:
+                                  typeof price === 'number' ? String(price) : f.priceOverrideCents,
+                              }));
+                            }}
                           >
                             <Text
                               style={[styles.chipText, active && styles.chipTextActive]}
@@ -773,7 +732,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                   keyboardType="numeric"
                 />
                 <Input
-                  label="Precio override (centavos, opcional)"
+                  label="Precio de venta (centavos)"
                   value={form.priceOverrideCents}
                   onChangeText={(v) => setForm((f) => ({ ...f, priceOverrideCents: v }))}
                   keyboardType="numeric"

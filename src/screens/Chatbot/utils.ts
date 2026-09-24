@@ -3,6 +3,7 @@
  */
 import type { BadgeVariant } from '@/design-system';
 import type { PurchaseStage } from '@/types/chatbot';
+import type { Product } from '@/services/api/products';
 
 /** Etiqueta legible del estado de compra (embudo). */
 export const PURCHASE_STAGE_LABEL: Record<PurchaseStage, string> = {
@@ -57,6 +58,22 @@ export const formatSolesFromCents = (cents: string | null | undefined): string =
   } catch {
     return `S/ ${num.toFixed(2)}`;
   }
+};
+
+/**
+ * Precio de venta real (en centavos) de una presentación del producto.
+ * Busca en `Product.salePrices` la primera entrada que coincida con la
+ * presentación; devuelve `null` si no hay precio configurado.
+ */
+export const getPresentationUnitPriceCents = (
+  product: Product | null | undefined,
+  presentationId: string
+): number | null => {
+  if (!product || !presentationId) return null;
+  const sp = product.salePrices?.find(
+    (p) => p.presentationId === presentationId && typeof p.priceCents === 'number'
+  );
+  return sp ? sp.priceCents : null;
 };
 
 export const formatDateTime = (iso: string | null | undefined): string => {

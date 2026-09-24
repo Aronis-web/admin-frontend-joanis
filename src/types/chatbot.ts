@@ -617,6 +617,8 @@ export interface ChatbotCrateProduct {
   productId: string;
   variantId: string | null;
   warehouseId: string;
+  /** Área del almacén (bin/estante) de la cual se toma el stock vendible. */
+  areaId?: string | null;
   presentationId: string | null;
   maxSellableQty: string;
   priceCents: string;
@@ -634,6 +636,8 @@ export interface UpsertCrateProductBody {
   productId: string;
   variantId?: string | null;
   warehouseId: string;
+  /** Área del almacén (opcional). Si no se envía, aplica al almacén completo. */
+  areaId?: string | null;
   presentationId?: string | null;
   maxSellableQty: number;
   /** Precio manual fijo, entero > 0 (en centavos). */
