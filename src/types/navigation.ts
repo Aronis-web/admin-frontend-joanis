@@ -183,6 +183,12 @@ export type MainStackParamList = {
     repartoId: string;
   };
 
+  // Pre-ventas de Campaña
+  CampaignPreSales: undefined;
+  CampaignPreSaleDetail: {
+    preSaleId: string;
+  };
+
   // Users & Permissions
   Users: undefined;
   RolesPermissions: undefined;

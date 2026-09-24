@@ -49,6 +49,15 @@ export * from './suppliers';
 export * from './transfers';
 export * from './campaigns';
 export * from './repartos';
+export { campaignPreSalesService } from './campaign-pre-sales';
+export type {
+  CampaignPreSale,
+  CampaignPreSaleItem,
+  CampaignPreSaleStatus,
+  CampaignPreSalesResponse,
+  QueryCampaignPreSalesParams,
+  UpdateCampaignPreSaleStatusRequest,
+} from '@/types/campaign-pre-sales';
 export * from './transport';
 export * from './users';
 export * from './customers';

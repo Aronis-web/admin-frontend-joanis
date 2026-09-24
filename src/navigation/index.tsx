@@ -325,6 +325,15 @@ const RepartoParticipantDetailScreen = lazyLoad(() =>
   import('@/screens/Repartos').then((m) => ({ default: m.RepartoParticipantDetailScreen }))
 );
 
+// Campaign Pre-Sales Screens - Lazy Loaded
+const CampaignPreSalesScreen = lazyLoad(
+  () => import('@/screens/CampaignPreSales').then((m) => ({ default: m.CampaignPreSalesScreen })),
+  'Cargando pre-ventas...'
+);
+const CampaignPreSaleDetailScreen = lazyLoad(() =>
+  import('@/screens/CampaignPreSales').then((m) => ({ default: m.CampaignPreSaleDetailScreen }))
+);
+
 // Balances Screens - Lazy Loaded
 const BalancesScreen = lazyLoad(() =>
   import('@/screens/Balances').then((m) => ({ default: m.BalancesScreen }))
@@ -1585,6 +1594,20 @@ const MainStack = React.memo(() => {
         component={RepartoDetailScreen}
         options={{
           title: 'Detalle de Reparto',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CAMPAIGN_PRE_SALES}
+        component={CampaignPreSalesScreen}
+        options={{
+          title: 'Pre-ventas',
+        }}
+      />
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.CAMPAIGN_PRE_SALE_DETAIL}
+        component={CampaignPreSaleDetailScreen}
+        options={{
+          title: 'Detalle de Pre-venta',
         }}
       />
       <MainStackNavigator.Screen

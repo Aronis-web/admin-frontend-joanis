@@ -112,6 +112,10 @@ export const MAIN_ROUTES = {
   REPARTOS: 'Repartos',
   REPARTO_DETAIL: 'RepartoDetail',
 
+  // Pre-ventas de Campaña
+  CAMPAIGN_PRE_SALES: 'CampaignPreSales',
+  CAMPAIGN_PRE_SALE_DETAIL: 'CampaignPreSaleDetail',
+
   // Users & Permissions
   USERS: 'Users',
   ROLES_PERMISSIONS: 'RolesPermissions',
@@ -387,6 +391,10 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Repartos
   REPARTOS: 'campaigns.read',
   REPARTO_DETAIL: 'campaigns.read',
+
+  // Pre-ventas de Campaña
+  CAMPAIGN_PRE_SALES: 'repartos.read',
+  CAMPAIGN_PRE_SALE_DETAIL: 'repartos.read',
 
   // Users & Permissions
   USERS: 'users.read',

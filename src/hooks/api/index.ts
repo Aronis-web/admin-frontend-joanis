@@ -7,6 +7,7 @@ export * from './useStock';
 export * from './usePurchases';
 export * from './useExpenses';
 export * from './useRepartos';
+export * from './useCampaignPreSales';
 export * from './useReports';
 export * from './useSireCompras';
 export * from './useSireVentas';

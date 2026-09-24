@@ -333,6 +333,13 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.REPARTOS,
         requiredPermissions: ['campaigns.read'],
       },
+      {
+        id: 'campaign-pre-sales',
+        icon: 'cart-outline',
+        label: 'Pre-ventas',
+        route: MAIN_ROUTES.CAMPAIGN_PRE_SALES,
+        requiredPermissions: ['repartos.read'],
+      },
     ],
   },
   // Traslados

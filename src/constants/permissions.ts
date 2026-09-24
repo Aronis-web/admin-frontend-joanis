@@ -275,6 +275,7 @@ export const PERMISSIONS = {
     EXPORT: 'repartos.export',
     REPORTS: 'repartos.reports',
     GENERATE_TRANSFER: 'repartos.generate_transfer',
+    PRE_SALE: 'repartos.pre_sale',
   },
 
   // ========== BALANCES ==========
