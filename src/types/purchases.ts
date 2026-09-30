@@ -510,6 +510,8 @@ export interface PurchaseValidatedVariantInput {
 export interface CheckRecurrenceRequest {
   sku: string;
   barcode?: string;
+  /** Codigos extra a cruzar (SKU/barcode de variantes). */
+  extraCodes?: string[];
 }
 
 /**

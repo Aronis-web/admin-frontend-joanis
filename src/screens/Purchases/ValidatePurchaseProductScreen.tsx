@@ -551,9 +551,16 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
     setRecurrentCandidates([]);
 
     try {
+      // Codigos de variante: tambien cuentan para detectar el producto existente.
+      const extraCodes = multiVariantMode
+        ? variantRows
+            .flatMap((r) => [r.variantSku?.trim(), r.variantBarcode?.trim()])
+            .filter((c): c is string => !!c)
+        : [];
       const response = await purchasesService.checkRecurrence(purchaseId, productId, {
         sku: sku.trim(),
         barcode: barcode.trim() || undefined,
+        ...(extraCodes.length > 0 ? { extraCodes } : {}),
       });
 
       setRecurrentCandidates(response.candidates || []);
