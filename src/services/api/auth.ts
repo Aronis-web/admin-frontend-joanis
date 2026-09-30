@@ -6,13 +6,6 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-  phone?: string;
-}
-
 export interface AuthResponse {
   accessToken: string;
   accessTokenExpiresIn: number;
@@ -51,10 +44,6 @@ export const authApi = {
     return response;
   },
 
-  register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    return apiClient.post<AuthResponse>('/auth/register', data);
-  },
-
   logout: async (): Promise<void> => {
     return apiClient.post<void>('/auth/logout');
   },
@@ -64,7 +53,6 @@ export const authApi = {
   },
 
   getCurrentUser: async (): Promise<User> => {
-    console.log('Testing /auth/me endpoint with current token...');
     const user = await apiClient.get<User>('/auth/me');
 
     // If user doesn't have permissions array, fetch them
@@ -86,23 +74,12 @@ export const authApi = {
     return user;
   },
 
-  updateProfile: async (data: Partial<User>): Promise<User> => {
-    return apiClient.put<User>('/auth/profile', data);
-  },
-
   changePassword: async (oldPassword: string, newPassword: string): Promise<void> => {
+    // El backend (ChangePasswordDto) espera { currentPassword, newPassword }.
     return apiClient.post<void>('/auth/change-password', {
-      oldPassword,
+      currentPassword: oldPassword,
       newPassword,
     });
-  },
-
-  resetPassword: async (email: string): Promise<void> => {
-    return apiClient.post<void>('/auth/reset-password', { email });
-  },
-
-  verifyEmail: async (token: string): Promise<void> => {
-    return apiClient.post<void>('/auth/verify-email', { token });
   },
 };
 

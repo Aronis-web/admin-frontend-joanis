@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { config } from '@/utils/config';
 import secureStorage from '@/utils/secureStorage';
 import {
@@ -176,13 +177,22 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      // Call logout endpoint (best effort)
+      // Enviar el refreshToken en el body para que el backend revoque la sesion
+      // server-side; si no, el refresh token sigue valido hasta expirar.
+      // La web con cookies HttpOnly no tiene el token en JS: usa credentials
+      // 'include' y el backend lo lee de la cookie.
+      const useCookies = config.USE_COOKIE_AUTH_WEB && Platform.OS === 'web';
       await fetch(`${this.baseUrl}/auth/logout`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'X-App-Id': this.appId,
           'X-App-Version': this.appVersion,
         },
+        body: JSON.stringify(
+          this.refreshTokenValue ? { refreshToken: this.refreshTokenValue } : {}
+        ),
+        credentials: useCookies ? 'include' : 'same-origin',
       });
     } catch (error) {
       // Continue with local logout even if server call fails

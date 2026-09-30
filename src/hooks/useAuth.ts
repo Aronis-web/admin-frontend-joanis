@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { authApi, LoginRequest, RegisterRequest } from '@/services/api/auth';
-import { extractUserFromToken } from '@/utils/jwt';
+import { authApi, LoginRequest } from '@/services/api/auth';
 
 export const useAuth = () => {
-  const { user, token, isAuthenticated, isLoading, error, login, logout, updateUser, setError } =
+  const { user, token, isAuthenticated, isLoading, error, login, logout, setError } =
     useAuthStore();
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -14,15 +13,11 @@ export const useAuth = () => {
       setError(null);
       const response = await authApi.login(credentials);
 
-      console.log('🔍 Login response:', JSON.stringify(response, null, 2));
-
       if (!response.accessToken) {
         throw new Error('No access token received from server');
       }
 
       const user = response.user;
-
-      console.log('👤 User data:', JSON.stringify(user, null, 2));
 
       // Validate that we have a valid user ID
       if (!user || !user.id) {
@@ -30,42 +25,11 @@ export const useAuth = () => {
         throw new Error('Invalid user data received from server');
       }
 
-      console.log('✅ Calling login with user:', user.id);
       await login(user, response.accessToken);
       return { success: true };
     } catch (err: any) {
       console.error('❌ Login error in useAuth:', err);
       const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleRegister = async (data: RegisterRequest) => {
-    try {
-      setActionLoading(true);
-      setError(null);
-      const response = await authApi.register(data);
-
-      // Debug logging eliminado para reducir ruido
-
-      if (!response.accessToken) {
-        throw new Error('No access token received from server');
-      }
-
-      const user = response.user;
-
-      // Validate that we have a valid user ID
-      if (!user || !user.id) {
-        throw new Error('Invalid user data received from server');
-      }
-
-      await login(user, response.accessToken);
-      return { success: true };
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -88,22 +52,6 @@ export const useAuth = () => {
     }
   };
 
-  const handleUpdateProfile = async (data: any) => {
-    try {
-      setActionLoading(true);
-      setError(null);
-      const updatedUser = await authApi.updateProfile(data);
-      updateUser(updatedUser as any);
-      return { success: true };
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to update profile.';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleChangePassword = async (oldPassword: string, newPassword: string) => {
     try {
       setActionLoading(true);
@@ -112,21 +60,6 @@ export const useAuth = () => {
       return { success: true };
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Failed to change password.';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (email: string) => {
-    try {
-      setActionLoading(true);
-      setError(null);
-      await authApi.resetPassword(email);
-      return { success: true };
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to send reset email.';
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -156,11 +89,8 @@ export const useAuth = () => {
     isLoading: isLoading || actionLoading,
     error,
     login: handleLogin,
-    register: handleRegister,
     logout: handleLogout,
-    updateProfile: handleUpdateProfile,
     changePassword: handleChangePassword,
-    resetPassword: handleResetPassword,
     // testAuth,
     // testAuthMe,
   };

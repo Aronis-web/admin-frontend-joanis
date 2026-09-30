@@ -19,7 +19,6 @@ import { linking } from '@/navigation/linking';
 
 // Auth Screens (always needed immediately)
 import LoginScreen from '@/screens/Auth/LoginScreen';
-import RegisterScreen from '@/screens/Auth/RegisterScreen';
 
 // Selection Screens (needed after login)
 import { CompanySelectionScreen } from '@/screens/Selection/CompanySelectionScreen';
@@ -790,7 +789,6 @@ const AuthStack = React.memo(() => {
       initialRouteName={initialRouteName}
     >
       <AuthStackNavigator.Screen name={AUTH_ROUTES.LOGIN} component={LoginScreen} />
-      <AuthStackNavigator.Screen name={AUTH_ROUTES.REGISTER} component={RegisterScreen} />
       <AuthStackNavigator.Screen
         name={AUTH_ROUTES.COMPANY_SELECTION}
         component={CompanySelectionScreen}
