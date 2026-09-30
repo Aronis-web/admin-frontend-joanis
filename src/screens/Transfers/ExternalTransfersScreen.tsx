@@ -20,6 +20,9 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import Alert from '@/utils/alert';
 
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { TransfersHeader } from '@/components/Transfers/TransfersHeader';
+import { TransfersFilterChips } from '@/components/Transfers/TransfersFilterChips';
 import { TransferCard } from '@/components/Transfers/TransferCard';
 import { TransferItemsList } from '@/components/Transfers/TransferItemsList';
 import { ProductAutocomplete } from '@/components/Transfers/ProductAutocomplete';
@@ -850,617 +853,597 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Traslados Externos</Text>
-          <Text style={styles.headerSubtitle}>
-            Entre sedes diferentes • {filteredTransfers.length} traslado
-            {filteredTransfers.length !== 1 ? 's' : ''}
-          </Text>
-        </View>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por número, almacén..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={theme.color.text.placeholder}
+    <ScreenLayout navigation={navigation}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <TransfersHeader
+          icon="git-compare"
+          title="Traslados Externos"
+          subtitle={effectiveSite?.name ? `Entre sedes • ${effectiveSite.name}` : 'Entre sedes'}
+          stat={{ value: totalItems, label: 'Total' }}
+          search={{
+            value: searchQuery,
+            onChangeText: setSearchQuery,
+            placeholder: 'Buscar por número, almacén...',
+          }}
         />
-      </View>
 
-      {/* Status Filters */}
-      <View style={styles.filtersContainer}>
-        <View style={styles.filtersContent}>
-          {statusFilters.map((filter) => (
-            <TouchableOpacity
-              key={filter.key}
-              style={[
-                styles.filterChip,
-                selectedStatus === filter.key && {
-                  backgroundColor: filter.color,
-                  borderColor: filter.color,
-                },
-              ]}
-              onPress={() => setSelectedStatus(filter.key as TransferStatus | 'ALL')}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  selectedStatus === filter.key && styles.filterTextActive,
-                ]}
+        <TransfersFilterChips
+          options={statusFilters.map((filter) => ({ key: filter.key, label: filter.label }))}
+          selected={selectedStatus}
+          onSelect={(key) => setSelectedStatus(key as TransferStatus | 'ALL')}
+        />
+
+        {/* Content */}
+        {renderContent()}
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={PAGE_SIZE}
+            onPageChange={setPage}
+            loading={loading || refreshing}
+          />
+        )}
+
+        {/* Create Button */}
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'swap-horizontal-outline',
+              label: 'Crear Transferencia',
+              onPress: handleCreateTransfer,
+              requiredPermissions: ['transfers.create'],
+            },
+          ]}
+        />
+
+        {/* Create Transfer Modal */}
+        <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
+          <SafeAreaView style={styles.modalContainer} edges={['top']}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Nuevo Traslado Externo</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowCreateModal(false);
+                  resetCreateForm();
+                }}
+                style={styles.closeButton}
               >
-                {filter.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-      {/* Content */}
-      {renderContent()}
-
-      {/* Pagination */}
-      {totalItems > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          itemsPerPage={PAGE_SIZE}
-          onPageChange={setPage}
-          loading={loading || refreshing}
-        />
-      )}
-
-      {/* Create Button */}
-      <ProtectedFAB
-        actions={[
-          {
-            icon: 'swap-horizontal-outline',
-            label: 'Crear Transferencia',
-            onPress: handleCreateTransfer,
-            requiredPermissions: ['transfers.create'],
-          },
-        ]}
-      />
-
-      {/* Create Transfer Modal */}
-      <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.modalContainer} edges={['top']}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Nuevo Traslado Externo</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setShowCreateModal(false);
-                resetCreateForm();
-              }}
-              style={styles.closeButton}
+            <ScrollView
+              style={styles.modalContent}
+              contentContainerStyle={styles.modalScrollContent}
             >
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalScrollContent}>
-            {/* Sede Origen (solo informativa) */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📤 Sede de Origen</Text>
-              <View style={styles.infoBox}>
-                <Text style={styles.infoBoxText}>{effectiveSite?.name || 'No seleccionada'}</Text>
-              </View>
-            </View>
-
-            {/* Items Section - PRIMERO */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>📦 Productos</Text>
-                <TouchableOpacity onPress={addTransferItem} style={styles.addItemButton}>
-                  <Text style={styles.addItemButtonText}>+ Agregar Producto</Text>
-                </TouchableOpacity>
-              </View>
-
-              {transferItems.map((item, index) => (
-                <View key={index} style={styles.itemContainer}>
-                  <View style={styles.itemHeader}>
-                    <Text style={styles.itemNumber}>Producto {index + 1}</Text>
-                    {transferItems.length > 1 && (
-                      <TouchableOpacity onPress={() => removeTransferItem(index)}>
-                        <Text style={styles.removeItemText}>✕ Eliminar</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <Text style={styles.label}>Producto *</Text>
-                  <ProductAutocomplete
-                    products={products}
-                    selectedProductId={item.productId}
-                    onSelectProduct={(product) => updateTransferItemProduct(index, product)}
-                    placeholder="Buscar producto por nombre, SKU o código de barras..."
-                  />
-
-                  {/* Mostrar foto del producto si existe */}
-                  {item.product && item.product.imageUrl && (
-                    <View style={styles.productImageContainer}>
-                      <Text style={styles.productImageLabel}>Producto:</Text>
-                      <View style={styles.productImageWrapper}>
-                        <Image
-                          source={{ uri: item.product.imageUrl }}
-                          style={styles.productImage}
-                          resizeMode="cover"
-                        />
-                        <Text style={styles.productImageTitle} numberOfLines={2}>
-                          {item.product.title}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Mostrar ubicaciones disponibles del producto */}
-                  {item.product && (
-                    <View style={styles.formGroup}>
-                      <Text style={styles.label}>Ubicación de Origen *</Text>
-                      <Text style={styles.formHint}>
-                        Selecciona de dónde deseas trasladar este producto (solo de tu sede actual)
-                      </Text>
-
-                      {item.product.stockItems && item.product.stockItems.length > 0 ? (
-                        item.product.stockItems.map((stockItem, stockIndex) => {
-                          const isSelected =
-                            item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
-                            item.selectedStockLocation?.areaId === stockItem.areaId;
-
-                          // Usar availableQuantityBase (stock disponible = total - reservado)
-                          const availableStock =
-                            stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
-                          const parsedStock =
-                            typeof availableStock === 'number'
-                              ? availableStock
-                              : parseFloat(availableStock) || 0;
-                          const totalStock =
-                            typeof stockItem.quantityBase === 'number'
-                              ? stockItem.quantityBase
-                              : parseFloat(stockItem.quantityBase || '0') || 0;
-                          const reservedStock =
-                            typeof stockItem.reservedQuantityBase === 'number'
-                              ? stockItem.reservedQuantityBase
-                              : parseFloat(stockItem.reservedQuantityBase || '0') || 0;
-
-                          return (
-                            <TouchableOpacity
-                              key={stockIndex}
-                              style={[
-                                styles.locationCard,
-                                isSelected && styles.locationCardSelected,
-                                parsedStock === 0 && styles.locationCardDisabled,
-                              ]}
-                              onPress={() => {
-                                if (parsedStock > 0) {
-                                  updateTransferItemLocation(index, stockItem);
-                                }
-                              }}
-                              disabled={parsedStock === 0}
-                            >
-                              <View style={styles.locationInfo}>
-                                <Text style={styles.locationWarehouse}>
-                                  📦 Almacén: {stockItem.warehouse?.name || 'Sin nombre'}
-                                </Text>
-                                <Text style={styles.locationArea}>
-                                  📍 Área: {stockItem.area?.name || 'Sin área asignada'}
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.locationStock,
-                                    parsedStock === 0 && styles.locationStockZero,
-                                  ]}
-                                >
-                                  ✅ Disponible: {parsedStock.toFixed(2)}
-                                </Text>
-                                {reservedStock > 0 && (
-                                  <Text style={styles.locationReserved}>
-                                    🔒 Reservado: {reservedStock.toFixed(2)} | Total:{' '}
-                                    {totalStock.toFixed(2)}
-                                  </Text>
-                                )}
-                              </View>
-                              {isSelected && <Text style={styles.locationSelectedIcon}>✓</Text>}
-                            </TouchableOpacity>
-                          );
-                        })
-                      ) : (
-                        <View style={styles.noStockContainer}>
-                          <Text style={styles.noStockIcon}>⚠️</Text>
-                          <Text style={styles.noStockText}>
-                            {item.product.stockItems && item.product.stockItems.length > 0
-                              ? 'Este producto no tiene stock disponible en tu sede actual'
-                              : 'Este producto no tiene stock disponible en ninguna ubicación'}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-
-                  {/* Cantidad - solo habilitado si se seleccionó ubicación */}
-                  <View>
-                    <Text style={styles.label}>Cantidad *</Text>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        !item.selectedStockLocation && styles.inputDisabled,
-                        item.selectedStockLocation &&
-                          item.quantity &&
-                          parseFloat(item.quantity) > item.selectedStockLocation.availableStock &&
-                          styles.inputError,
-                      ]}
-                      placeholder={
-                        item.selectedStockLocation
-                          ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})`
-                          : 'Selecciona ubicación primero'
-                      }
-                      keyboardType="numeric"
-                      value={item.quantity}
-                      onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
-                      placeholderTextColor={theme.color.text.placeholder}
-                      editable={!!item.selectedStockLocation}
-                    />
-                    {item.selectedStockLocation &&
-                      item.quantity &&
-                      parseFloat(item.quantity) > item.selectedStockLocation.availableStock && (
-                        <Text style={styles.errorText}>
-                          ⚠️ La cantidad excede el stock disponible (
-                          {item.selectedStockLocation.availableStock})
-                        </Text>
-                      )}
-                  </View>
-
-                  <Text style={styles.label}>Notas (Opcional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Notas del producto..."
-                    value={item.notes}
-                    onChangeText={(value) => updateTransferItem(index, 'notes', value)}
-                    placeholderTextColor={theme.color.text.placeholder}
-                  />
+              {/* Sede Origen (solo informativa) */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>📤 Sede de Origen</Text>
+                <View style={styles.infoBox}>
+                  <Text style={styles.infoBoxText}>{effectiveSite?.name || 'No seleccionada'}</Text>
                 </View>
-              ))}
-            </View>
-
-            {/* Destination Section - AL FINAL */}
-            <View style={styles.sectionDivider}>
-              <Text style={styles.sectionTitle}>📍 Destino del Traslado</Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.label}>Sede Destino *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={destinationSiteId}
-                  onValueChange={handleDestinationSiteChange}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Seleccionar sede..." value="" />
-                  {sites.map((site) => (
-                    <Picker.Item key={site.id} label={site.name} value={site.id} />
-                  ))}
-                </Picker>
               </View>
 
-              <Text style={styles.label}>Almacén Destino *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={destinationWarehouseId}
-                  onValueChange={handleDestinationWarehouseChange}
-                  style={styles.picker}
-                  enabled={destinationWarehouses.length > 0}
-                >
-                  <Picker.Item label="Seleccionar almacén..." value="" />
-                  {destinationWarehouses.map((warehouse) => (
-                    <Picker.Item key={warehouse.id} label={warehouse.name} value={warehouse.id} />
-                  ))}
-                </Picker>
-              </View>
-
-              <Text style={styles.label}>Área Destino (Opcional)</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={destinationAreaId}
-                  onValueChange={setDestinationAreaId}
-                  style={styles.picker}
-                  enabled={destinationAreas.length > 0}
-                >
-                  <Picker.Item label="Seleccionar área..." value="" />
-                  {destinationAreas.map((area) => (
-                    <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            {/* Notes Section */}
-            <View style={styles.section}>
-              <Text style={styles.label}>Notas del Traslado (Opcional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Notas generales del traslado..."
-                value={transferNotes}
-                onChangeText={setTransferNotes}
-                multiline
-                numberOfLines={4}
-                placeholderTextColor={theme.color.text.placeholder}
-              />
-            </View>
-
-            {/* Create Button */}
-            <TouchableOpacity
-              style={styles.modalCreateButton}
-              onPress={handleCreateExternalTransfer}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.modalCreateButtonText}>Crear Traslado Externo</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Detail Modal */}
-      <Modal visible={showDetailModal} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.modalContainer} edges={['top']}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{selectedTransfer?.transferNumber || 'Detalle'}</Text>
-            <TouchableOpacity onPress={() => setShowDetailModal(false)} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalScrollContent}>
-            {selectedTransfer && (
-              <>
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Estado</Text>
-                  <Text style={styles.detailValue}>{selectedTransfer.status}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Origen</Text>
-                  <Text style={styles.detailValue}>{selectedTransfer.originWarehouse?.name}</Text>
-                  <Text style={styles.detailSubvalue}>{selectedTransfer.originSite?.name}</Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Destino</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedTransfer.destinationWarehouse?.name}
-                  </Text>
-                  <Text style={styles.detailSubvalue}>
-                    {selectedTransfer.destinationSite?.name}
-                  </Text>
-                </View>
-
-                {selectedTransfer.expectedArrivalDate && (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailLabel}>Fecha Estimada de Llegada</Text>
-                    <Text style={styles.detailValue}>{selectedTransfer.expectedArrivalDate}</Text>
-                  </View>
-                )}
-
-                {selectedTransfer.notes && (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailLabel}>Notas</Text>
-                    <Text style={styles.detailValue}>{selectedTransfer.notes}</Text>
-                  </View>
-                )}
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Guía de remisión</Text>
-                  {selectedTransfer.remissionGuide ? (
-                    <>
-                      <Text style={styles.detailValue}>
-                        {selectedTransfer.remissionGuide.number}
-                      </Text>
-                      <Text style={styles.detailSubvalue}>
-                        Estado: {selectedTransfer.remissionGuide.status}
-                        {selectedTransfer.remissionGuide.isDevelopment ? ' • Desarrollo' : ''}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={styles.detailSubvalue}>
-                      Este traslado aún no tiene guía de remisión.
-                    </Text>
-                  )}
-                  <TouchableOpacity
-                    disabled={downloadingGuideId === selectedTransfer.id}
-                    style={[
-                      styles.guideActionButton,
-                      selectedTransfer.remissionGuide
-                        ? styles.downloadGuideButton
-                        : styles.createGuideButton,
-                      downloadingGuideId === selectedTransfer.id &&
-                        styles.guideActionButtonDisabled,
-                    ]}
-                    onPress={() => void handleRemissionGuidePress(selectedTransfer)}
-                  >
-                    <Text style={styles.guideActionButtonText}>
-                      {downloadingGuideId === selectedTransfer.id
-                        ? 'Descargando guía...'
-                        : selectedTransfer.remissionGuide
-                          ? 'Descargar guía'
-                          : 'Crear guía'}
-                    </Text>
+              {/* Items Section - PRIMERO */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>📦 Productos</Text>
+                  <TouchableOpacity onPress={addTransferItem} style={styles.addItemButton}>
+                    <Text style={styles.addItemButtonText}>+ Agregar Producto</Text>
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.sectionTitle}>Productos</Text>
-                  {selectedTransfer.items && selectedTransfer.items.length > 0 && (
-                    <TransferItemsList items={selectedTransfer.items} transfer={selectedTransfer} />
-                  )}
+                {transferItems.map((item, index) => (
+                  <View key={index} style={styles.itemContainer}>
+                    <View style={styles.itemHeader}>
+                      <Text style={styles.itemNumber}>Producto {index + 1}</Text>
+                      {transferItems.length > 1 && (
+                        <TouchableOpacity onPress={() => removeTransferItem(index)}>
+                          <Text style={styles.removeItemText}>✕ Eliminar</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    <Text style={styles.label}>Producto *</Text>
+                    <ProductAutocomplete
+                      products={products}
+                      selectedProductId={item.productId}
+                      onSelectProduct={(product) => updateTransferItemProduct(index, product)}
+                      placeholder="Buscar producto por nombre, SKU o código de barras..."
+                    />
+
+                    {/* Mostrar foto del producto si existe */}
+                    {item.product && item.product.imageUrl && (
+                      <View style={styles.productImageContainer}>
+                        <Text style={styles.productImageLabel}>Producto:</Text>
+                        <View style={styles.productImageWrapper}>
+                          <Image
+                            source={{ uri: item.product.imageUrl }}
+                            style={styles.productImage}
+                            resizeMode="cover"
+                          />
+                          <Text style={styles.productImageTitle} numberOfLines={2}>
+                            {item.product.title}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Mostrar ubicaciones disponibles del producto */}
+                    {item.product && (
+                      <View style={styles.formGroup}>
+                        <Text style={styles.label}>Ubicación de Origen *</Text>
+                        <Text style={styles.formHint}>
+                          Selecciona de dónde deseas trasladar este producto (solo de tu sede
+                          actual)
+                        </Text>
+
+                        {item.product.stockItems && item.product.stockItems.length > 0 ? (
+                          item.product.stockItems.map((stockItem, stockIndex) => {
+                            const isSelected =
+                              item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
+                              item.selectedStockLocation?.areaId === stockItem.areaId;
+
+                            // Usar availableQuantityBase (stock disponible = total - reservado)
+                            const availableStock =
+                              stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
+                            const parsedStock =
+                              typeof availableStock === 'number'
+                                ? availableStock
+                                : parseFloat(availableStock) || 0;
+                            const totalStock =
+                              typeof stockItem.quantityBase === 'number'
+                                ? stockItem.quantityBase
+                                : parseFloat(stockItem.quantityBase || '0') || 0;
+                            const reservedStock =
+                              typeof stockItem.reservedQuantityBase === 'number'
+                                ? stockItem.reservedQuantityBase
+                                : parseFloat(stockItem.reservedQuantityBase || '0') || 0;
+
+                            return (
+                              <TouchableOpacity
+                                key={stockIndex}
+                                style={[
+                                  styles.locationCard,
+                                  isSelected && styles.locationCardSelected,
+                                  parsedStock === 0 && styles.locationCardDisabled,
+                                ]}
+                                onPress={() => {
+                                  if (parsedStock > 0) {
+                                    updateTransferItemLocation(index, stockItem);
+                                  }
+                                }}
+                                disabled={parsedStock === 0}
+                              >
+                                <View style={styles.locationInfo}>
+                                  <Text style={styles.locationWarehouse}>
+                                    📦 Almacén: {stockItem.warehouse?.name || 'Sin nombre'}
+                                  </Text>
+                                  <Text style={styles.locationArea}>
+                                    📍 Área: {stockItem.area?.name || 'Sin área asignada'}
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.locationStock,
+                                      parsedStock === 0 && styles.locationStockZero,
+                                    ]}
+                                  >
+                                    ✅ Disponible: {parsedStock.toFixed(2)}
+                                  </Text>
+                                  {reservedStock > 0 && (
+                                    <Text style={styles.locationReserved}>
+                                      🔒 Reservado: {reservedStock.toFixed(2)} | Total:{' '}
+                                      {totalStock.toFixed(2)}
+                                    </Text>
+                                  )}
+                                </View>
+                                {isSelected && <Text style={styles.locationSelectedIcon}>✓</Text>}
+                              </TouchableOpacity>
+                            );
+                          })
+                        ) : (
+                          <View style={styles.noStockContainer}>
+                            <Text style={styles.noStockIcon}>⚠️</Text>
+                            <Text style={styles.noStockText}>
+                              {item.product.stockItems && item.product.stockItems.length > 0
+                                ? 'Este producto no tiene stock disponible en tu sede actual'
+                                : 'Este producto no tiene stock disponible en ninguna ubicación'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Cantidad - solo habilitado si se seleccionó ubicación */}
+                    <View>
+                      <Text style={styles.label}>Cantidad *</Text>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          !item.selectedStockLocation && styles.inputDisabled,
+                          item.selectedStockLocation &&
+                            item.quantity &&
+                            parseFloat(item.quantity) > item.selectedStockLocation.availableStock &&
+                            styles.inputError,
+                        ]}
+                        placeholder={
+                          item.selectedStockLocation
+                            ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})`
+                            : 'Selecciona ubicación primero'
+                        }
+                        keyboardType="numeric"
+                        value={item.quantity}
+                        onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
+                        placeholderTextColor={theme.color.text.placeholder}
+                        editable={!!item.selectedStockLocation}
+                      />
+                      {item.selectedStockLocation &&
+                        item.quantity &&
+                        parseFloat(item.quantity) > item.selectedStockLocation.availableStock && (
+                          <Text style={styles.errorText}>
+                            ⚠️ La cantidad excede el stock disponible (
+                            {item.selectedStockLocation.availableStock})
+                          </Text>
+                        )}
+                    </View>
+
+                    <Text style={styles.label}>Notas (Opcional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Notas del producto..."
+                      value={item.notes}
+                      onChangeText={(value) => updateTransferItem(index, 'notes', value)}
+                      placeholderTextColor={theme.color.text.placeholder}
+                    />
+                  </View>
+                ))}
+              </View>
+
+              {/* Destination Section - AL FINAL */}
+              <View style={styles.sectionDivider}>
+                <Text style={styles.sectionTitle}>📍 Destino del Traslado</Text>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.label}>Sede Destino *</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={destinationSiteId}
+                    onValueChange={handleDestinationSiteChange}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Seleccionar sede..." value="" />
+                    {sites.map((site) => (
+                      <Picker.Item key={site.id} label={site.name} value={site.id} />
+                    ))}
+                  </Picker>
                 </View>
 
-                {/* Action Buttons */}
-                <View style={styles.actionButtons}>
-                  {selectedTransfer.status === TransferStatus.DRAFT && (
-                    <>
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.approveButton]}
-                        onPress={() => handleApproveTransfer(selectedTransfer.id)}
-                      >
-                        <Text style={styles.actionButtonText}>✓ Aprobar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.cancelButton]}
-                        onPress={() => handleCancelTransfer(selectedTransfer.id)}
-                      >
-                        <Text style={styles.actionButtonText}>✕ Cancelar</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-                  {selectedTransfer.status === TransferStatus.APPROVED && (
-                    <>
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.shipButton]}
-                        onPress={() => handleShipTransfer(selectedTransfer)}
-                      >
-                        <Text style={styles.actionButtonText}>📦 Despachar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.cancelButton]}
-                        onPress={() => handleCancelTransfer(selectedTransfer.id)}
-                      >
-                        <Text style={styles.actionButtonText}>✕ Cancelar</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-                  {selectedTransfer.status === TransferStatus.IN_TRANSIT && (
-                    <View style={styles.infoBox}>
-                      <Text style={styles.infoText}>
-                        ℹ️ Este traslado está en tránsito. El stock ya fue trasladado al almacén
-                        destino y está disponible para venta. En la sede destino se debe confirmar
-                        la recepción y registrar diferencias (faltante/dañado) si las hay.
-                      </Text>
-                    </View>
-                  )}
-
-                  {selectedTransfer.status === TransferStatus.RECEIVED && (
-                    <View style={styles.infoBox}>
-                      <Text style={styles.infoText}>
-                        ℹ️ Este traslado ha sido recibido y está pendiente de validación.
-                      </Text>
-                    </View>
-                  )}
-
-                  {selectedTransfer.status === TransferStatus.COMPLETED && (
-                    <View style={styles.successBox}>
-                      <Text style={styles.successText}>✓ Traslado completado exitosamente</Text>
-                    </View>
-                  )}
+                <Text style={styles.label}>Almacén Destino *</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={destinationWarehouseId}
+                    onValueChange={handleDestinationWarehouseChange}
+                    style={styles.picker}
+                    enabled={destinationWarehouses.length > 0}
+                  >
+                    <Picker.Item label="Seleccionar almacén..." value="" />
+                    {destinationWarehouses.map((warehouse) => (
+                      <Picker.Item key={warehouse.id} label={warehouse.name} value={warehouse.id} />
+                    ))}
+                  </Picker>
                 </View>
-              </>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
 
-      <TransportSelectionModal
-        visible={showTransportModal}
-        onClose={handleTransportModalClose}
-        onConfirm={handleTransportConfirm}
-      />
+                <Text style={styles.label}>Área Destino (Opcional)</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={destinationAreaId}
+                    onValueChange={setDestinationAreaId}
+                    style={styles.picker}
+                    enabled={destinationAreas.length > 0}
+                  >
+                    <Picker.Item label="Seleccionar área..." value="" />
+                    {destinationAreas.map((area) => (
+                      <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
 
-      <Modal
-        visible={showBultosModal}
-        animationType="fade"
-        transparent
-        onRequestClose={() => {
-          setShowBultosModal(false);
-          setPendingTransportData(null);
-        }}
-      >
-        <View style={styles.shipModalOverlay}>
-          <View style={styles.shipModalContainer}>
-            <Text style={styles.shipModalTitle}>Cantidad de bultos</Text>
-            <Text style={styles.shipModalSubtitle}>
-              Ingresa la cantidad de bultos para la guía de remisión.
-            </Text>
+              {/* Notes Section */}
+              <View style={styles.section}>
+                <Text style={styles.label}>Notas del Traslado (Opcional)</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Notas generales del traslado..."
+                  value={transferNotes}
+                  onChangeText={setTransferNotes}
+                  multiline
+                  numberOfLines={4}
+                  placeholderTextColor={theme.color.text.placeholder}
+                />
+              </View>
 
-            <Text style={styles.label}>Número de bultos *</Text>
-            <TextInput
-              style={styles.input}
-              value={numeroBultos}
-              onChangeText={setNumeroBultos}
-              keyboardType="numeric"
-              placeholder="Ej: 10"
-              placeholderTextColor={theme.color.text.placeholder}
-            />
-
-            <View style={styles.shipModalButtons}>
+              {/* Create Button */}
               <TouchableOpacity
-                style={[styles.shipModalButton, styles.shipModalCancelButton]}
-                onPress={() => {
-                  setShowBultosModal(false);
-                  setPendingTransportData(null);
-                }}
+                style={styles.modalCreateButton}
+                onPress={handleCreateExternalTransfer}
+                activeOpacity={0.8}
               >
-                <Text style={styles.shipModalCancelButtonText}>Cancelar</Text>
+                <Text style={styles.modalCreateButtonText}>Crear Traslado Externo</Text>
               </TouchableOpacity>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
+        {/* Detail Modal */}
+        <Modal visible={showDetailModal} animationType="slide" presentationStyle="pageSheet">
+          <SafeAreaView style={styles.modalContainer} edges={['top']}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedTransfer?.transferNumber || 'Detalle'}</Text>
               <TouchableOpacity
-                style={[styles.shipModalButton, styles.shipModalConfirmButton]}
-                onPress={handleGenerateGuideConfirm}
-                disabled={generatingRemissionGuide}
+                onPress={() => setShowDetailModal(false)}
+                style={styles.closeButton}
               >
-                <Text style={styles.shipModalConfirmButtonText}>
-                  {generatingRemissionGuide ? 'Generando...' : 'Continuar'}
-                </Text>
+                <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
 
-      {/* Ship Modal */}
-      <Modal visible={showShipModal} animationType="slide" transparent>
-        <View style={styles.shipModalOverlay}>
-          <View style={styles.shipModalContainer}>
-            <Text style={styles.shipModalTitle}>Despachar Traslado</Text>
-            <Text style={styles.shipModalSubtitle}>
-              Se despachará el traslado {selectedTransfer?.transferNumber}
-            </Text>
+            <ScrollView
+              style={styles.modalContent}
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              {selectedTransfer && (
+                <>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Estado</Text>
+                    <Text style={styles.detailValue}>{selectedTransfer.status}</Text>
+                  </View>
 
-            <Text style={styles.label}>Notas de Envío (Opcional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Ej: Enviado con transportista XYZ - Guía #12345"
-              value={shippingNotes}
-              onChangeText={setShippingNotes}
-              multiline
-              numberOfLines={3}
-              placeholderTextColor={theme.color.text.placeholder}
-            />
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Origen</Text>
+                    <Text style={styles.detailValue}>{selectedTransfer.originWarehouse?.name}</Text>
+                    <Text style={styles.detailSubvalue}>{selectedTransfer.originSite?.name}</Text>
+                  </View>
 
-            <View style={styles.shipModalButtons}>
-              <TouchableOpacity
-                style={[styles.shipModalButton, styles.shipModalCancelButton]}
-                onPress={() => setShowShipModal(false)}
-              >
-                <Text style={styles.shipModalCancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.shipModalButton, styles.shipModalConfirmButton]}
-                onPress={handleConfirmShip}
-              >
-                <Text style={styles.shipModalConfirmButtonText}>Confirmar Despacho</Text>
-              </TouchableOpacity>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Destino</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedTransfer.destinationWarehouse?.name}
+                    </Text>
+                    <Text style={styles.detailSubvalue}>
+                      {selectedTransfer.destinationSite?.name}
+                    </Text>
+                  </View>
+
+                  {selectedTransfer.expectedArrivalDate && (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Fecha Estimada de Llegada</Text>
+                      <Text style={styles.detailValue}>{selectedTransfer.expectedArrivalDate}</Text>
+                    </View>
+                  )}
+
+                  {selectedTransfer.notes && (
+                    <View style={styles.detailSection}>
+                      <Text style={styles.detailLabel}>Notas</Text>
+                      <Text style={styles.detailValue}>{selectedTransfer.notes}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Guía de remisión</Text>
+                    {selectedTransfer.remissionGuide ? (
+                      <>
+                        <Text style={styles.detailValue}>
+                          {selectedTransfer.remissionGuide.number}
+                        </Text>
+                        <Text style={styles.detailSubvalue}>
+                          Estado: {selectedTransfer.remissionGuide.status}
+                          {selectedTransfer.remissionGuide.isDevelopment ? ' • Desarrollo' : ''}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.detailSubvalue}>
+                        Este traslado aún no tiene guía de remisión.
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      disabled={downloadingGuideId === selectedTransfer.id}
+                      style={[
+                        styles.guideActionButton,
+                        selectedTransfer.remissionGuide
+                          ? styles.downloadGuideButton
+                          : styles.createGuideButton,
+                        downloadingGuideId === selectedTransfer.id &&
+                          styles.guideActionButtonDisabled,
+                      ]}
+                      onPress={() => void handleRemissionGuidePress(selectedTransfer)}
+                    >
+                      <Text style={styles.guideActionButtonText}>
+                        {downloadingGuideId === selectedTransfer.id
+                          ? 'Descargando guía...'
+                          : selectedTransfer.remissionGuide
+                            ? 'Descargar guía'
+                            : 'Crear guía'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>Productos</Text>
+                    {selectedTransfer.items && selectedTransfer.items.length > 0 && (
+                      <TransferItemsList
+                        items={selectedTransfer.items}
+                        transfer={selectedTransfer}
+                      />
+                    )}
+                  </View>
+
+                  {/* Action Buttons */}
+                  <View style={styles.actionButtons}>
+                    {selectedTransfer.status === TransferStatus.DRAFT && (
+                      <>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.approveButton]}
+                          onPress={() => handleApproveTransfer(selectedTransfer.id)}
+                        >
+                          <Text style={styles.actionButtonText}>✓ Aprobar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.cancelButton]}
+                          onPress={() => handleCancelTransfer(selectedTransfer.id)}
+                        >
+                          <Text style={styles.actionButtonText}>✕ Cancelar</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+
+                    {selectedTransfer.status === TransferStatus.APPROVED && (
+                      <>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.shipButton]}
+                          onPress={() => handleShipTransfer(selectedTransfer)}
+                        >
+                          <Text style={styles.actionButtonText}>📦 Despachar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.cancelButton]}
+                          onPress={() => handleCancelTransfer(selectedTransfer.id)}
+                        >
+                          <Text style={styles.actionButtonText}>✕ Cancelar</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+
+                    {selectedTransfer.status === TransferStatus.IN_TRANSIT && (
+                      <View style={styles.infoBox}>
+                        <Text style={styles.infoText}>
+                          ℹ️ Este traslado está en tránsito. El stock ya fue trasladado al almacén
+                          destino y está disponible para venta. En la sede destino se debe confirmar
+                          la recepción y registrar diferencias (faltante/dañado) si las hay.
+                        </Text>
+                      </View>
+                    )}
+
+                    {selectedTransfer.status === TransferStatus.RECEIVED && (
+                      <View style={styles.infoBox}>
+                        <Text style={styles.infoText}>
+                          ℹ️ Este traslado ha sido recibido y está pendiente de validación.
+                        </Text>
+                      </View>
+                    )}
+
+                    {selectedTransfer.status === TransferStatus.COMPLETED && (
+                      <View style={styles.successBox}>
+                        <Text style={styles.successText}>✓ Traslado completado exitosamente</Text>
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
+        <TransportSelectionModal
+          visible={showTransportModal}
+          onClose={handleTransportModalClose}
+          onConfirm={handleTransportConfirm}
+        />
+
+        <Modal
+          visible={showBultosModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => {
+            setShowBultosModal(false);
+            setPendingTransportData(null);
+          }}
+        >
+          <View style={styles.shipModalOverlay}>
+            <View style={styles.shipModalContainer}>
+              <Text style={styles.shipModalTitle}>Cantidad de bultos</Text>
+              <Text style={styles.shipModalSubtitle}>
+                Ingresa la cantidad de bultos para la guía de remisión.
+              </Text>
+
+              <Text style={styles.label}>Número de bultos *</Text>
+              <TextInput
+                style={styles.input}
+                value={numeroBultos}
+                onChangeText={setNumeroBultos}
+                keyboardType="numeric"
+                placeholder="Ej: 10"
+                placeholderTextColor={theme.color.text.placeholder}
+              />
+
+              <View style={styles.shipModalButtons}>
+                <TouchableOpacity
+                  style={[styles.shipModalButton, styles.shipModalCancelButton]}
+                  onPress={() => {
+                    setShowBultosModal(false);
+                    setPendingTransportData(null);
+                  }}
+                >
+                  <Text style={styles.shipModalCancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.shipModalButton, styles.shipModalConfirmButton]}
+                  onPress={handleGenerateGuideConfirm}
+                  disabled={generatingRemissionGuide}
+                >
+                  <Text style={styles.shipModalConfirmButtonText}>
+                    {generatingRemissionGuide ? 'Generando...' : 'Continuar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+
+        {/* Ship Modal */}
+        <Modal visible={showShipModal} animationType="slide" transparent>
+          <View style={styles.shipModalOverlay}>
+            <View style={styles.shipModalContainer}>
+              <Text style={styles.shipModalTitle}>Despachar Traslado</Text>
+              <Text style={styles.shipModalSubtitle}>
+                Se despachará el traslado {selectedTransfer?.transferNumber}
+              </Text>
+
+              <Text style={styles.label}>Notas de Envío (Opcional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Ej: Enviado con transportista XYZ - Guía #12345"
+                value={shippingNotes}
+                onChangeText={setShippingNotes}
+                multiline
+                numberOfLines={3}
+                placeholderTextColor={theme.color.text.placeholder}
+              />
+
+              <View style={styles.shipModalButtons}>
+                <TouchableOpacity
+                  style={[styles.shipModalButton, styles.shipModalCancelButton]}
+                  onPress={() => setShowShipModal(false)}
+                >
+                  <Text style={styles.shipModalCancelButtonText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.shipModalButton, styles.shipModalConfirmButton]}
+                  onPress={handleConfirmShip}
+                >
+                  <Text style={styles.shipModalConfirmButtonText}>Confirmar Despacho</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
@@ -1469,84 +1452,6 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.color.surface.subtle,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-    },
-    backButtonText: {
-      fontSize: 20,
-      color: theme.color.text.body,
-    },
-    headerTitleContainer: {
-      flex: 1,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-    },
-    headerSubtitle: {
-      fontSize: 12,
-      color: theme.color.text.muted,
-      marginTop: 2,
-    },
-    searchContainer: {
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    searchInput: {
-      height: 44,
-      backgroundColor: theme.color.background.subtle,
-      borderRadius: 8,
-      paddingHorizontal: 16,
-      fontSize: 14,
-      color: theme.color.text.heading,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-    },
-    filtersContainer: {
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-    },
-    filtersContent: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    filterChip: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-      backgroundColor: theme.color.surface.base,
-    },
-    filterText: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: theme.color.text.body,
-    },
-    filterTextActive: {
-      color: theme.color.text.inverse,
     },
     scrollView: {
       flex: 1,

@@ -20,6 +20,8 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import Alert from '@/utils/alert';
 
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { TransfersHeader } from '@/components/Transfers/TransfersHeader';
 import { TransferCard } from '@/components/Transfers/TransferCard';
 import { TransferItemsList } from '@/components/Transfers/TransferItemsList';
 import { ProductAutocomplete } from '@/components/Transfers/ProductAutocomplete';
@@ -97,7 +99,13 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
 
   const [transferNotes, setTransferNotes] = useState('');
   const [transferItems, setTransferItems] = useState<TransferItemInput[]>([
-    { productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined },
+    {
+      productId: '',
+      quantity: '',
+      notes: '',
+      product: undefined,
+      selectedStockLocation: undefined,
+    },
   ]);
 
   // Detail modal
@@ -267,13 +275,27 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     setDestinationAreaId('');
     setDestinationAreas([]);
     setTransferNotes('');
-    setTransferItems([{ productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined }]);
+    setTransferItems([
+      {
+        productId: '',
+        quantity: '',
+        notes: '',
+        product: undefined,
+        selectedStockLocation: undefined,
+      },
+    ]);
   };
 
   const addTransferItem = () => {
     setTransferItems([
       ...transferItems,
-      { productId: '', quantity: '', notes: '', product: undefined, selectedStockLocation: undefined },
+      {
+        productId: '',
+        quantity: '',
+        notes: '',
+        product: undefined,
+        selectedStockLocation: undefined,
+      },
     ]);
   };
 
@@ -316,7 +338,8 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
     const newItems = [...transferItems];
     // Usar availableQuantityBase (stock disponible = total - reservado)
     const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
-    const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
+    const parsedStock =
+      typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
 
     newItems[index] = {
       ...newItems[index],
@@ -372,13 +395,17 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
         );
         return false;
       }
-      if (item.productId && item.selectedStockLocation && parseFloat(item.quantity) > item.selectedStockLocation.availableStock) {
+      if (
+        item.productId &&
+        item.selectedStockLocation &&
+        parseFloat(item.quantity) > item.selectedStockLocation.availableStock
+      ) {
         Alert.alert(
           'Error de Validación',
           `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\n\n` +
-          `Cantidad ingresada: ${parseFloat(item.quantity).toFixed(2)}\n` +
-          `Stock disponible: ${item.selectedStockLocation.availableStock.toFixed(2)}\n\n` +
-          `La cantidad excede el stock disponible`
+            `Cantidad ingresada: ${parseFloat(item.quantity).toFixed(2)}\n` +
+            `Stock disponible: ${item.selectedStockLocation.availableStock.toFixed(2)}\n\n` +
+            `La cantidad excede el stock disponible`
         );
         return false;
       }
@@ -404,7 +431,9 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
       const itemsByOrigin = new Map<string, typeof transferItems>();
 
       transferItems
-        .filter((item) => item.productId && item.selectedStockLocation && parseFloat(item.quantity) > 0)
+        .filter(
+          (item) => item.productId && item.selectedStockLocation && parseFloat(item.quantity) > 0
+        )
         .forEach((item) => {
           const key = `${item.selectedStockLocation!.warehouseId}-${item.selectedStockLocation!.areaId || 'null'}`;
           if (!itemsByOrigin.has(key)) {
@@ -610,744 +639,709 @@ export const InternalTransfersScreen: React.FC<InternalTransfersScreenProps> = (
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Traslados Internos</Text>
-          <Text style={styles.headerSubtitle}>{effectiveSite?.name || 'Todas las sedes'}</Text>
-        </View>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por número, almacén..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={theme.color.text.placeholder}
+    <ScreenLayout navigation={navigation}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <TransfersHeader
+          icon="swap-vertical"
+          title="Traslados Internos"
+          subtitle={effectiveSite?.name || 'Todas las sedes'}
+          stat={{ value: totalItems, label: 'Total' }}
+          search={{
+            value: searchQuery,
+            onChangeText: setSearchQuery,
+            placeholder: 'Buscar por número, almacén...',
+          }}
         />
-      </View>
 
-      {/* Content */}
-      {renderContent()}
+        {/* Content */}
+        {renderContent()}
 
-      {/* Pagination */}
-      {totalItems > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          itemsPerPage={PAGE_SIZE}
-          onPageChange={setPage}
-          loading={loading || refreshing}
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={PAGE_SIZE}
+            onPageChange={setPage}
+            loading={loading || refreshing}
+          />
+        )}
+
+        {/* Create Button */}
+        <ProtectedFAB
+          actions={[
+            {
+              icon: 'swap-vertical-outline',
+              label: 'Crear Transferencia',
+              onPress: openCreateModal,
+              requiredPermissions: ['transfers.create'],
+            },
+          ]}
         />
-      )}
 
-      {/* Create Button */}
-      <ProtectedFAB
-        actions={[
-          {
-            icon: 'swap-vertical-outline',
-            label: 'Crear Transferencia',
-            onPress: openCreateModal,
-            requiredPermissions: ['transfers.create'],
-          },
-        ]}
-      />
+        {/* Create Transfer Modal */}
+        <Modal
+          visible={isCreateModalVisible}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={closeCreateModal}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={closeCreateModal}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Nuevo Traslado Interno</Text>
+              <View style={{ width: 24 }} />
+            </View>
 
-      {/* Create Transfer Modal */}
-      <Modal
-        visible={isCreateModalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={closeCreateModal}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={closeCreateModal}>
-              <Text style={styles.modalCloseText}>✕</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Nuevo Traslado Interno</Text>
-            <View style={{ width: 24 }} />
-          </View>
+            <ScrollView style={styles.modalContent}>
+              {/* Items - PRIMERO */}
+              <View style={styles.formGroup}>
+                <View style={styles.itemsHeader}>
+                  <Text style={styles.formLabel}>Productos *</Text>
+                  <TouchableOpacity onPress={addTransferItem} style={styles.addItemButton}>
+                    <Text style={styles.addItemButtonText}>+ Agregar</Text>
+                  </TouchableOpacity>
+                </View>
 
-          <ScrollView style={styles.modalContent}>
-            {/* Items - PRIMERO */}
-            <View style={styles.formGroup}>
-              <View style={styles.itemsHeader}>
-                <Text style={styles.formLabel}>Productos *</Text>
-                <TouchableOpacity onPress={addTransferItem} style={styles.addItemButton}>
-                  <Text style={styles.addItemButtonText}>+ Agregar</Text>
-                </TouchableOpacity>
-              </View>
-
-              {transferItems.map((item, index) => (
-                <View key={index} style={styles.itemRow}>
-                  <View style={styles.itemRowHeader}>
-                    <Text style={styles.itemRowTitle}>Producto {index + 1}</Text>
-                    {transferItems.length > 1 && (
-                      <TouchableOpacity onPress={() => removeTransferItem(index)}>
-                        <Text style={styles.removeItemText}>✕</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <ProductAutocomplete
-                    products={products}
-                    selectedProductId={item.productId}
-                    onSelectProduct={(product) => updateTransferItemProduct(index, product)}
-                    placeholder="Buscar producto por nombre, SKU o código de barras..."
-                  />
-
-                  {/* Mostrar foto del producto si existe */}
-                  {item.product && item.product.imageUrl && (
-                    <View style={styles.productImageContainer}>
-                      <Text style={styles.productImageLabel}>Producto:</Text>
-                      <View style={styles.productImageWrapper}>
-                        <Image
-                          source={{ uri: item.product.imageUrl }}
-                          style={styles.productImage}
-                          resizeMode="cover"
-                        />
-                        <Text style={styles.productImageTitle} numberOfLines={2}>
-                          {item.product.title}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Mostrar ubicaciones disponibles del producto */}
-                  {item.product && (
-                    <View style={styles.formGroup}>
-                      <Text style={styles.formLabel}>Ubicación de Origen *</Text>
-                      <Text style={styles.formHint}>Selecciona de dónde deseas trasladar este producto</Text>
-
-                      {item.product.stockItems && item.product.stockItems.length > 0 ? (
-                        item.product.stockItems.map((stockItem, stockIndex) => {
-                          const isSelected =
-                            item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
-                            item.selectedStockLocation?.areaId === stockItem.areaId;
-
-                          // Usar availableQuantityBase (stock disponible = total - reservado)
-                          const availableStock = stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
-                          const parsedStock = typeof availableStock === 'number' ? availableStock : parseFloat(availableStock) || 0;
-                          const totalStock = typeof stockItem.quantityBase === 'number' ? stockItem.quantityBase : parseFloat(stockItem.quantityBase) || 0;
-                          const reservedStock = typeof stockItem.reservedQuantityBase === 'number' ? stockItem.reservedQuantityBase : parseFloat(stockItem.reservedQuantityBase || '0') || 0;
-
-                          return (
-                            <TouchableOpacity
-                              key={stockIndex}
-                              style={[
-                                styles.locationCard,
-                                isSelected && styles.locationCardSelected,
-                                parsedStock === 0 && styles.locationCardDisabled,
-                              ]}
-                              onPress={() => {
-                                if (parsedStock > 0) {
-                                  updateTransferItemLocation(index, stockItem);
-                                }
-                              }}
-                              disabled={parsedStock === 0}
-                            >
-                              <View style={styles.locationInfo}>
-                                <Text style={styles.locationWarehouse}>
-                                  📦 Almacén: {stockItem.warehouse?.name || 'Sin nombre'}
-                                </Text>
-                                <Text style={styles.locationArea}>
-                                  📍 Área: {stockItem.area?.name || 'Sin área asignada'}
-                                </Text>
-                                <Text style={[
-                                  styles.locationStock,
-                                  parsedStock === 0 && styles.locationStockZero,
-                                ]}>
-                                  ✅ Disponible: {parsedStock.toFixed(2)}
-                                </Text>
-                                {reservedStock > 0 && (
-                                  <Text style={styles.locationReserved}>
-                                    🔒 Reservado: {reservedStock.toFixed(2)} | Total: {totalStock.toFixed(2)}
-                                  </Text>
-                                )}
-                              </View>
-                              {isSelected && (
-                                <Text style={styles.locationSelectedIcon}>✓</Text>
-                              )}
-                            </TouchableOpacity>
-                          );
-                        })
-                      ) : (
-                        <View style={styles.noStockContainer}>
-                          <Text style={styles.noStockIcon}>⚠️</Text>
-                          <Text style={styles.noStockText}>
-                            Este producto no tiene stock disponible en ninguna ubicación
-                          </Text>
-                        </View>
+                {transferItems.map((item, index) => (
+                  <View key={index} style={styles.itemRow}>
+                    <View style={styles.itemRowHeader}>
+                      <Text style={styles.itemRowTitle}>Producto {index + 1}</Text>
+                      {transferItems.length > 1 && (
+                        <TouchableOpacity onPress={() => removeTransferItem(index)}>
+                          <Text style={styles.removeItemText}>✕</Text>
+                        </TouchableOpacity>
                       )}
                     </View>
-                  )}
 
-                  {/* Cantidad - solo habilitado si se seleccionó ubicación */}
-                  <View>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        !item.selectedStockLocation && styles.inputDisabled,
-                        item.selectedStockLocation &&
-                        item.quantity &&
-                        parseFloat(item.quantity) > item.selectedStockLocation.availableStock &&
-                        styles.inputError
-                      ]}
-                      placeholder={item.selectedStockLocation ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})` : 'Selecciona ubicación primero'}
-                      value={item.quantity}
-                      onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
-                      keyboardType="numeric"
-                      editable={!!item.selectedStockLocation}
+                    <ProductAutocomplete
+                      products={products}
+                      selectedProductId={item.productId}
+                      onSelectProduct={(product) => updateTransferItemProduct(index, product)}
+                      placeholder="Buscar producto por nombre, SKU o código de barras..."
                     />
-                    {item.selectedStockLocation &&
-                     item.quantity &&
-                     parseFloat(item.quantity) > item.selectedStockLocation.availableStock && (
-                      <Text style={styles.errorText}>
-                        ⚠️ La cantidad excede el stock disponible ({item.selectedStockLocation.availableStock})
-                      </Text>
+
+                    {/* Mostrar foto del producto si existe */}
+                    {item.product && item.product.imageUrl && (
+                      <View style={styles.productImageContainer}>
+                        <Text style={styles.productImageLabel}>Producto:</Text>
+                        <View style={styles.productImageWrapper}>
+                          <Image
+                            source={{ uri: item.product.imageUrl }}
+                            style={styles.productImage}
+                            resizeMode="cover"
+                          />
+                          <Text style={styles.productImageTitle} numberOfLines={2}>
+                            {item.product.title}
+                          </Text>
+                        </View>
+                      </View>
                     )}
+
+                    {/* Mostrar ubicaciones disponibles del producto */}
+                    {item.product && (
+                      <View style={styles.formGroup}>
+                        <Text style={styles.formLabel}>Ubicación de Origen *</Text>
+                        <Text style={styles.formHint}>
+                          Selecciona de dónde deseas trasladar este producto
+                        </Text>
+
+                        {item.product.stockItems && item.product.stockItems.length > 0 ? (
+                          item.product.stockItems.map((stockItem, stockIndex) => {
+                            const isSelected =
+                              item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
+                              item.selectedStockLocation?.areaId === stockItem.areaId;
+
+                            // Usar availableQuantityBase (stock disponible = total - reservado)
+                            const availableStock =
+                              stockItem.availableQuantityBase ?? stockItem.quantityBase ?? 0;
+                            const parsedStock =
+                              typeof availableStock === 'number'
+                                ? availableStock
+                                : parseFloat(availableStock) || 0;
+                            const totalStock =
+                              typeof stockItem.quantityBase === 'number'
+                                ? stockItem.quantityBase
+                                : parseFloat(stockItem.quantityBase) || 0;
+                            const reservedStock =
+                              typeof stockItem.reservedQuantityBase === 'number'
+                                ? stockItem.reservedQuantityBase
+                                : parseFloat(stockItem.reservedQuantityBase || '0') || 0;
+
+                            return (
+                              <TouchableOpacity
+                                key={stockIndex}
+                                style={[
+                                  styles.locationCard,
+                                  isSelected && styles.locationCardSelected,
+                                  parsedStock === 0 && styles.locationCardDisabled,
+                                ]}
+                                onPress={() => {
+                                  if (parsedStock > 0) {
+                                    updateTransferItemLocation(index, stockItem);
+                                  }
+                                }}
+                                disabled={parsedStock === 0}
+                              >
+                                <View style={styles.locationInfo}>
+                                  <Text style={styles.locationWarehouse}>
+                                    📦 Almacén: {stockItem.warehouse?.name || 'Sin nombre'}
+                                  </Text>
+                                  <Text style={styles.locationArea}>
+                                    📍 Área: {stockItem.area?.name || 'Sin área asignada'}
+                                  </Text>
+                                  <Text
+                                    style={[
+                                      styles.locationStock,
+                                      parsedStock === 0 && styles.locationStockZero,
+                                    ]}
+                                  >
+                                    ✅ Disponible: {parsedStock.toFixed(2)}
+                                  </Text>
+                                  {reservedStock > 0 && (
+                                    <Text style={styles.locationReserved}>
+                                      🔒 Reservado: {reservedStock.toFixed(2)} | Total:{' '}
+                                      {totalStock.toFixed(2)}
+                                    </Text>
+                                  )}
+                                </View>
+                                {isSelected && <Text style={styles.locationSelectedIcon}>✓</Text>}
+                              </TouchableOpacity>
+                            );
+                          })
+                        ) : (
+                          <View style={styles.noStockContainer}>
+                            <Text style={styles.noStockIcon}>⚠️</Text>
+                            <Text style={styles.noStockText}>
+                              Este producto no tiene stock disponible en ninguna ubicación
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Cantidad - solo habilitado si se seleccionó ubicación */}
+                    <View>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          !item.selectedStockLocation && styles.inputDisabled,
+                          item.selectedStockLocation &&
+                            item.quantity &&
+                            parseFloat(item.quantity) > item.selectedStockLocation.availableStock &&
+                            styles.inputError,
+                        ]}
+                        placeholder={
+                          item.selectedStockLocation
+                            ? `Cantidad (máx: ${item.selectedStockLocation.availableStock})`
+                            : 'Selecciona ubicación primero'
+                        }
+                        value={item.quantity}
+                        onChangeText={(value) => updateTransferItem(index, 'quantity', value)}
+                        keyboardType="numeric"
+                        editable={!!item.selectedStockLocation}
+                      />
+                      {item.selectedStockLocation &&
+                        item.quantity &&
+                        parseFloat(item.quantity) > item.selectedStockLocation.availableStock && (
+                          <Text style={styles.errorText}>
+                            ⚠️ La cantidad excede el stock disponible (
+                            {item.selectedStockLocation.availableStock})
+                          </Text>
+                        )}
+                    </View>
+
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Notas (opcional)"
+                      value={item.notes}
+                      onChangeText={(value) => updateTransferItem(index, 'notes', value)}
+                      multiline
+                    />
                   </View>
-
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Notas (opcional)"
-                    value={item.notes}
-                    onChangeText={(value) => updateTransferItem(index, 'notes', value)}
-                    multiline
-                  />
-                </View>
-              ))}
-            </View>
-
-            {/* Destination Warehouse and Area - AL FINAL */}
-            <View style={styles.sectionDivider}>
-              <Text style={styles.sectionTitle}>📍 Destino del Traslado</Text>
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Almacén de Destino *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={destinationWarehouseId}
-                  onValueChange={(value) => {
-                    setDestinationWarehouseId(value);
-                    setDestinationAreaId('');
-                    if (value) {
-                      loadDestinationAreas(value);
-                    } else {
-                      setDestinationAreas([]);
-                    }
-                  }}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Seleccionar almacén..." value="" />
-                  {warehouses.map((wh) => (
-                    <Picker.Item key={wh.id} label={wh.name} value={wh.id} />
-                  ))}
-                </Picker>
+                ))}
               </View>
-            </View>
 
-            {destinationWarehouseId && (
+              {/* Destination Warehouse and Area - AL FINAL */}
+              <View style={styles.sectionDivider}>
+                <Text style={styles.sectionTitle}>📍 Destino del Traslado</Text>
+              </View>
+
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Área de Destino *</Text>
+                <Text style={styles.formLabel}>Almacén de Destino *</Text>
                 <View style={styles.pickerContainer}>
                   <Picker
-                    selectedValue={destinationAreaId}
-                    onValueChange={setDestinationAreaId}
+                    selectedValue={destinationWarehouseId}
+                    onValueChange={(value) => {
+                      setDestinationWarehouseId(value);
+                      setDestinationAreaId('');
+                      if (value) {
+                        loadDestinationAreas(value);
+                      } else {
+                        setDestinationAreas([]);
+                      }
+                    }}
                     style={styles.picker}
-                    enabled={!loadingDestinationAreas}
                   >
-                    <Picker.Item
-                      label={loadingDestinationAreas ? 'Cargando áreas...' : 'Seleccionar área...'}
-                      value=""
-                    />
-                    {destinationAreas.map((area) => (
-                      <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
+                    <Picker.Item label="Seleccionar almacén..." value="" />
+                    {warehouses.map((wh) => (
+                      <Picker.Item key={wh.id} label={wh.name} value={wh.id} />
                     ))}
                   </Picker>
                 </View>
               </View>
-            )}
 
-            {/* Notes */}
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Notas del Traslado</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Notas generales..."
-                value={transferNotes}
-                onChangeText={setTransferNotes}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            {/* Create Button */}
-            <TouchableOpacity
-              style={[styles.submitButton, creating && styles.submitButtonDisabled]}
-              onPress={handleCreateTransfer}
-              disabled={creating}
-            >
-              {creating ? (
-                <ActivityIndicator color={theme.color.text.inverse} />
-              ) : (
-                <Text style={styles.submitButtonText}>Crear Traslado</Text>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Detail Modal */}
-      <Modal
-        visible={isDetailModalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setIsDetailModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setIsDetailModalVisible(false)}>
-              <Text style={styles.modalCloseText}>✕</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>{selectedTransfer?.transferNumber || 'Detalle'}</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          {selectedTransfer && (
-            <ScrollView style={styles.modalContent}>
-              <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>Estado</Text>
-                <Text style={styles.detailValue}>{selectedTransfer.status}</Text>
-              </View>
-
-              <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>Origen</Text>
-                <Text style={styles.detailValue}>{selectedTransfer.originWarehouse?.name}</Text>
-                <Text style={styles.detailSubvalue}>{selectedTransfer.originSite?.name}</Text>
-              </View>
-
-              <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>Destino</Text>
-                <Text style={styles.detailValue}>
-                  {selectedTransfer.destinationWarehouse?.name}
-                </Text>
-                <Text style={styles.detailSubvalue}>{selectedTransfer.destinationSite?.name}</Text>
-              </View>
-
-              {selectedTransfer.notes && (
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Notas</Text>
-                  <Text style={styles.detailValue}>{selectedTransfer.notes}</Text>
+              {destinationWarehouseId && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Área de Destino *</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={destinationAreaId}
+                      onValueChange={setDestinationAreaId}
+                      style={styles.picker}
+                      enabled={!loadingDestinationAreas}
+                    >
+                      <Picker.Item
+                        label={
+                          loadingDestinationAreas ? 'Cargando áreas...' : 'Seleccionar área...'
+                        }
+                        value=""
+                      />
+                      {destinationAreas.map((area) => (
+                        <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
+                      ))}
+                    </Picker>
+                  </View>
                 </View>
               )}
 
-              <View style={styles.detailSection}>
-                <Text style={styles.detailLabel}>Items</Text>
-                {selectedTransfer.items && selectedTransfer.items.length > 0 && (
-                  <TransferItemsList items={selectedTransfer.items} transfer={selectedTransfer} />
-                )}
+              {/* Notes */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Notas del Traslado</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Notas generales..."
+                  value={transferNotes}
+                  onChangeText={setTransferNotes}
+                  multiline
+                  numberOfLines={3}
+                />
               </View>
 
-              {selectedTransfer.status === TransferStatus.DRAFT && (
-                <TouchableOpacity style={styles.executeButton} onPress={handleExecuteFromDetail}>
-                  <Text style={styles.executeButtonText}>⚡ Ejecutar Traslado</Text>
-                </TouchableOpacity>
-              )}
+              {/* Create Button */}
+              <TouchableOpacity
+                style={[styles.submitButton, creating && styles.submitButtonDisabled]}
+                onPress={handleCreateTransfer}
+                disabled={creating}
+              >
+                {creating ? (
+                  <ActivityIndicator color={theme.color.text.inverse} />
+                ) : (
+                  <Text style={styles.submitButtonText}>Crear Traslado</Text>
+                )}
+              </TouchableOpacity>
             </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
+          </SafeAreaView>
+        </Modal>
+
+        {/* Detail Modal */}
+        <Modal
+          visible={isDetailModalVisible}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setIsDetailModalVisible(false)}
+        >
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setIsDetailModalVisible(false)}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>{selectedTransfer?.transferNumber || 'Detalle'}</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            {selectedTransfer && (
+              <ScrollView style={styles.modalContent}>
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Estado</Text>
+                  <Text style={styles.detailValue}>{selectedTransfer.status}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Origen</Text>
+                  <Text style={styles.detailValue}>{selectedTransfer.originWarehouse?.name}</Text>
+                  <Text style={styles.detailSubvalue}>{selectedTransfer.originSite?.name}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Destino</Text>
+                  <Text style={styles.detailValue}>
+                    {selectedTransfer.destinationWarehouse?.name}
+                  </Text>
+                  <Text style={styles.detailSubvalue}>
+                    {selectedTransfer.destinationSite?.name}
+                  </Text>
+                </View>
+
+                {selectedTransfer.notes && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Notas</Text>
+                    <Text style={styles.detailValue}>{selectedTransfer.notes}</Text>
+                  </View>
+                )}
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Items</Text>
+                  {selectedTransfer.items && selectedTransfer.items.length > 0 && (
+                    <TransferItemsList items={selectedTransfer.items} transfer={selectedTransfer} />
+                  )}
+                </View>
+
+                {selectedTransfer.status === TransferStatus.DRAFT && (
+                  <TouchableOpacity style={styles.executeButton} onPress={handleExecuteFromDetail}>
+                    <Text style={styles.executeButtonText}>⚡ Ejecutar Traslado</Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+            )}
+          </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: theme.color.text.body,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  searchContainer: {
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  searchInput: {
-    height: 44,
-    backgroundColor: theme.color.background.subtle,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: theme.color.text.heading,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: theme.color.text.muted,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.color.text.body,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    textAlign: 'center',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  modalCloseText: {
-    fontSize: 24,
-    color: theme.color.text.muted,
-    width: 24,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  modalContent: {
-    flex: 1,
-    padding: 16,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  formLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.body,
-    marginBottom: 8,
-  },
-  sectionDivider: {
-    marginTop: 24,
-    marginBottom: 16,
-    paddingTop: 16,
-    borderTopWidth: 2,
-    borderTopColor: theme.color.border.subtle,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: 8,
-  },
-  pickerContainer: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    color: theme.color.text.heading,
-  },
-  input: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: theme.color.text.heading,
-    marginTop: 8,
-  },
-  inputDisabled: {
-    backgroundColor: theme.color.surface.subtle,
-    color: theme.color.text.placeholder,
-  },
-  inputError: {
-    borderColor: theme.color.state.danger.border,
-    borderWidth: 2,
-    backgroundColor: theme.color.state.danger.background,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.color.state.danger.text,
-    marginTop: 4,
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  formHint: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  productImageContainer: {
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  productImageLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-    marginBottom: 6,
-  },
-  productImageWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.background.subtle,
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  productImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  productImageTitle: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.color.text.body,
-  },
-  locationCard: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: theme.color.border.subtle,
-    padding: 12,
-    marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  locationCardSelected: {
-    borderColor: theme.color.brand.accent,
-    backgroundColor: theme.color.brand.accentSoft,
-  },
-  locationCardDisabled: {
-    opacity: 0.5,
-    backgroundColor: theme.color.background.subtle,
-  },
-  locationInfo: {
-    flex: 1,
-  },
-  locationWarehouse: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.color.text.heading,
-    marginBottom: 4,
-  },
-  locationArea: {
-    fontSize: 13,
-    color: theme.color.text.muted,
-    marginBottom: 4,
-  },
-  locationStock: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.color.state.success.text,
-  },
-  locationStockZero: {
-    color: theme.color.state.danger.text,
-  },
-  locationReserved: {
-    fontSize: 11,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  locationSelectedIcon: {
-    fontSize: 24,
-    color: theme.color.brand.accent,
-    fontWeight: 'bold',
-  },
-  noStockContainer: {
-    backgroundColor: theme.color.state.danger.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.color.state.danger.border,
-    padding: 16,
-    alignItems: 'center',
-  },
-  noStockIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  noStockText: {
-    fontSize: 13,
-    color: theme.color.state.danger.text,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  itemsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  addItemButton: {
-    backgroundColor: theme.color.brand.accent,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  addItemButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  itemRow: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  itemRowHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  itemRowTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.color.text.body,
-  },
-  removeItemText: {
-    fontSize: 18,
-    color: theme.color.state.danger.text,
-  },
-  submitButton: {
-    backgroundColor: theme.color.brand.accent,
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 32,
-  },
-  submitButtonDisabled: {
-    backgroundColor: theme.color.text.placeholder,
-  },
-  submitButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  detailSection: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-  },
-  detailLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.color.text.heading,
-  },
-  detailSubvalue: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginTop: 4,
-  },
-  executeButton: {
-    backgroundColor: theme.color.state.success.text,
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 32,
-  },
-  executeButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 100,
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      textAlign: 'center',
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    modalCloseText: {
+      fontSize: 24,
+      color: theme.color.text.muted,
+      width: 24,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+    },
+    modalContent: {
+      flex: 1,
+      padding: 16,
+    },
+    formGroup: {
+      marginBottom: 20,
+    },
+    formLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.body,
+      marginBottom: 8,
+    },
+    sectionDivider: {
+      marginTop: 24,
+      marginBottom: 16,
+      paddingTop: 16,
+      borderTopWidth: 2,
+      borderTopColor: theme.color.border.subtle,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    pickerContainer: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      overflow: 'hidden',
+    },
+    picker: {
+      height: 50,
+      color: theme.color.text.heading,
+    },
+    input: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 14,
+      color: theme.color.text.heading,
+      marginTop: 8,
+    },
+    inputDisabled: {
+      backgroundColor: theme.color.surface.subtle,
+      color: theme.color.text.placeholder,
+    },
+    inputError: {
+      borderColor: theme.color.state.danger.border,
+      borderWidth: 2,
+      backgroundColor: theme.color.state.danger.background,
+    },
+    errorText: {
+      fontSize: 12,
+      color: theme.color.state.danger.text,
+      marginTop: 4,
+      marginLeft: 4,
+      fontWeight: '500',
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    formHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginBottom: 8,
+      fontStyle: 'italic',
+    },
+    productImageContainer: {
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    productImageLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 6,
+    },
+    productImageWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.color.background.subtle,
+      padding: 8,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    productImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 8,
+    },
+    productImageTitle: {
+      flex: 1,
+      marginLeft: 12,
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.body,
+    },
+    locationCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+      padding: 12,
+      marginBottom: 8,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    locationCardSelected: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accentSoft,
+    },
+    locationCardDisabled: {
+      opacity: 0.5,
+      backgroundColor: theme.color.background.subtle,
+    },
+    locationInfo: {
+      flex: 1,
+    },
+    locationWarehouse: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    locationArea: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginBottom: 4,
+    },
+    locationStock: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.success.text,
+    },
+    locationStockZero: {
+      color: theme.color.state.danger.text,
+    },
+    locationReserved: {
+      fontSize: 11,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    locationSelectedIcon: {
+      fontSize: 24,
+      color: theme.color.brand.accent,
+      fontWeight: 'bold',
+    },
+    noStockContainer: {
+      backgroundColor: theme.color.state.danger.background,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.color.state.danger.border,
+      padding: 16,
+      alignItems: 'center',
+    },
+    noStockIcon: {
+      fontSize: 32,
+      marginBottom: 8,
+    },
+    noStockText: {
+      fontSize: 13,
+      color: theme.color.state.danger.text,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    itemsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    addItemButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 6,
+    },
+    addItemButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    itemRow: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    itemRowHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    itemRowTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    removeItemText: {
+      fontSize: 18,
+      color: theme.color.state.danger.text,
+    },
+    submitButton: {
+      backgroundColor: theme.color.brand.accent,
+      borderRadius: 8,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 8,
+      marginBottom: 32,
+    },
+    submitButtonDisabled: {
+      backgroundColor: theme.color.text.placeholder,
+    },
+    submitButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    detailSection: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 16,
+      marginBottom: 12,
+    },
+    detailLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+      marginBottom: 8,
+    },
+    detailValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.color.text.heading,
+    },
+    detailSubvalue: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginTop: 4,
+    },
+    executeButton: {
+      backgroundColor: theme.color.state.success.text,
+      borderRadius: 8,
+      paddingVertical: 16,
+      alignItems: 'center',
+      marginTop: 8,
+      marginBottom: 32,
+    },
+    executeButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+  });
 
 export default InternalTransfersScreen;

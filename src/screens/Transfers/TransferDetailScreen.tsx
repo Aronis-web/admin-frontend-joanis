@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/auth';
 import Alert from '@/utils/alert';
 
 import { TransferStatusBadge } from '@/components/Transfers/TransferStatusBadge';
+import { TransfersHeader } from '@/components/Transfers/TransfersHeader';
 import { TransferItemsList } from '@/components/Transfers/TransferItemsList';
 import { transfersApi } from '@/services/api/transfers';
 import { downloadRemissionGuidePdf } from '@/utils/remissionGuideDownload';
@@ -127,12 +128,15 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
     pendingBultosModalRef.current = false;
   }, []);
 
-  const handleTransportConfirm = useCallback((vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
-    setPendingTransportData({ vehicle, driver, transporter });
-    setNumeroBultos('1');
-    pendingBultosModalRef.current = true;
-    setShowTransportModal(false);
-  }, []);
+  const handleTransportConfirm = useCallback(
+    (vehicle: Vehicle | null, driver: Driver | null, transporter: Transporter | null) => {
+      setPendingTransportData({ vehicle, driver, transporter });
+      setNumeroBultos('1');
+      pendingBultosModalRef.current = true;
+      setShowTransportModal(false);
+    },
+    []
+  );
 
   const handleGenerateGuideConfirm = async () => {
     if (!transfer || !pendingTransportData) {
@@ -187,13 +191,16 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
             await loadTransferDetail();
             Alert.alert(
               'Éxito',
-              response.message || `Guía ${response.remissionGuide.serieNumero || response.remissionGuide.number || ''} generada exitosamente`
+              response.message ||
+                `Guía ${response.remissionGuide.serieNumero || response.remissionGuide.number || ''} generada exitosamente`
             );
           } catch (error: any) {
             console.error('Error generating remission guide:', error);
             Alert.alert(
               'Error',
-              error.response?.data?.message || error.message || 'No se pudo generar la guía de remisión'
+              error.response?.data?.message ||
+                error.message ||
+                'No se pudo generar la guía de remisión'
             );
           } finally {
             setGeneratingRemissionGuide(false);
@@ -276,17 +283,13 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation?.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{transfer.transferNumber}</Text>
-          <Text style={styles.headerSubtitle}>{getTransferTypeLabel(transfer.transferType)}</Text>
-        </View>
-        <TransferStatusBadge status={transfer.status} size="medium" />
-      </View>
+      <TransfersHeader
+        icon="swap-horizontal"
+        title={transfer.transferNumber}
+        subtitle={getTransferTypeLabel(transfer.transferType)}
+        onBack={() => navigation?.goBack()}
+        right={<TransferStatusBadge status={transfer.status} size="medium" />}
+      />
 
       {/* Content */}
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -491,342 +494,309 @@ export const TransferDetailScreen = ({ navigation, route }: any) => {
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: theme.color.text.body,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: theme.color.text.muted,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.color.text.body,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: 12,
-  },
-  infoCard: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.color.text.muted,
-  },
-  infoValue: {
-    fontSize: 13,
-    color: theme.color.text.heading,
-    fontWeight: '500',
-    textAlign: 'right',
-    flex: 1,
-    marginLeft: 12,
-  },
-  locationCard: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  locationSection: {
-    marginBottom: 16,
-  },
-  locationTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.color.text.muted,
-    marginBottom: 8,
-  },
-  locationWarehouse: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: 4,
-  },
-  locationSite: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginBottom: 4,
-  },
-  locationArea: {
-    fontSize: 12,
-    color: theme.color.text.placeholder,
-  },
-  locationDivider: {
-    height: 1,
-    backgroundColor: theme.color.border.subtle,
-    marginBottom: 16,
-  },
-  notesCard: {
-    backgroundColor: theme.color.state.warning.background,
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.color.state.warning.border,
-  },
-  notesText: {
-    fontSize: 14,
-    color: theme.color.state.warning.text,
-    lineHeight: 20,
-  },
-  guideCard: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  guideNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: 4,
-  },
-  guideMeta: {
-    fontSize: 13,
-    color: theme.color.text.muted,
-  },
-  guideButton: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  downloadGuideButton: {
-    backgroundColor: theme.color.brand.accent,
-  },
-  createGuideButton: {
-    backgroundColor: theme.color.state.warning.border,
-  },
-  guideButtonDisabled: {
-    opacity: 0.7,
-  },
-  guideButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: theme.color.overlay.medium,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  bultosModalCard: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 16,
-    padding: 20,
-  },
-  bultosModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: 8,
-  },
-  bultosModalSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: theme.color.text.body,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: theme.color.border.default,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: theme.color.text.heading,
-  },
-  bultosModalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
-  },
-  bultosModalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  bultosCancelButton: {
-    backgroundColor: theme.color.surface.subtle,
-  },
-  bultosConfirmButton: {
-    backgroundColor: theme.color.brand.accent,
-  },
-  bultosCancelButtonText: {
-    color: theme.color.text.body,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  bultosConfirmButtonText: {
-    color: theme.color.text.inverse,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  timeline: {
-    marginTop: 8,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  timelineIconContainer: {
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  timelineIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.color.border.subtle,
-  },
-  timelineIconActive: {
-    backgroundColor: theme.color.brand.accentSoft,
-    borderColor: theme.color.brand.accent,
-  },
-  timelineIconText: {
-    fontSize: 18,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: theme.color.border.subtle,
-    marginTop: 4,
-  },
-  timelineContent: {
-    flex: 1,
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  timelineHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  timelineDate: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-  },
-  timelineUser: {
-    fontSize: 12,
-    color: theme.color.text.body,
-    marginBottom: 4,
-  },
-  timelineNotes: {
-    fontSize: 13,
-    color: theme.color.text.muted,
-    fontStyle: 'italic',
-  },
-  receptionCard: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  warningBox: {
-    backgroundColor: theme.color.state.warning.background,
-    borderRadius: 6,
-    padding: 12,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: theme.color.state.warning.border,
-  },
-  warningText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.color.state.warning.text,
-    textAlign: 'center',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 100,
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: theme.color.text.muted,
+    },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.color.text.body,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 12,
+    },
+    infoCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    infoLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+    },
+    infoValue: {
+      fontSize: 13,
+      color: theme.color.text.heading,
+      fontWeight: '500',
+      textAlign: 'right',
+      flex: 1,
+      marginLeft: 12,
+    },
+    locationCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    locationSection: {
+      marginBottom: 16,
+    },
+    locationTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      marginBottom: 8,
+    },
+    locationWarehouse: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    locationSite: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 4,
+    },
+    locationArea: {
+      fontSize: 12,
+      color: theme.color.text.placeholder,
+    },
+    locationDivider: {
+      height: 1,
+      backgroundColor: theme.color.border.subtle,
+      marginBottom: 16,
+    },
+    notesCard: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: 8,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    notesText: {
+      fontSize: 14,
+      color: theme.color.state.warning.text,
+      lineHeight: 20,
+    },
+    guideCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    guideNumber: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 4,
+    },
+    guideMeta: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+    },
+    guideButton: {
+      marginTop: 12,
+      padding: 12,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    downloadGuideButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    createGuideButton: {
+      backgroundColor: theme.color.state.warning.border,
+    },
+    guideButtonDisabled: {
+      opacity: 0.7,
+    },
+    guideButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.color.overlay.medium,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+    },
+    bultosModalCard: {
+      width: '100%',
+      maxWidth: 420,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 16,
+      padding: 20,
+    },
+    bultosModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.text.heading,
+      marginBottom: 8,
+    },
+    bultosModalSubtitle: {
+      fontSize: 14,
+      color: theme.color.text.muted,
+      marginBottom: 16,
+    },
+    inputLabel: {
+      fontSize: 14,
+      color: theme.color.text.body,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: theme.color.text.heading,
+    },
+    bultosModalActions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 20,
+    },
+    bultosModalButton: {
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 10,
+      alignItems: 'center',
+    },
+    bultosCancelButton: {
+      backgroundColor: theme.color.surface.subtle,
+    },
+    bultosConfirmButton: {
+      backgroundColor: theme.color.brand.accent,
+    },
+    bultosCancelButtonText: {
+      color: theme.color.text.body,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    bultosConfirmButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    timeline: {
+      marginTop: 8,
+    },
+    timelineItem: {
+      flexDirection: 'row',
+      marginBottom: 16,
+    },
+    timelineIconContainer: {
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    timelineIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.color.surface.subtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.color.border.subtle,
+    },
+    timelineIconActive: {
+      backgroundColor: theme.color.brand.accentSoft,
+      borderColor: theme.color.brand.accent,
+    },
+    timelineIconText: {
+      fontSize: 18,
+    },
+    timelineLine: {
+      width: 2,
+      flex: 1,
+      backgroundColor: theme.color.border.subtle,
+      marginTop: 4,
+    },
+    timelineContent: {
+      flex: 1,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    timelineHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    timelineDate: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+    },
+    timelineUser: {
+      fontSize: 12,
+      color: theme.color.text.body,
+      marginBottom: 4,
+    },
+    timelineNotes: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      fontStyle: 'italic',
+    },
+    receptionCard: {
+      backgroundColor: theme.color.surface.base,
+      borderRadius: 8,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    warningBox: {
+      backgroundColor: theme.color.state.warning.background,
+      borderRadius: 6,
+      padding: 12,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: theme.color.state.warning.border,
+    },
+    warningText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.color.state.warning.text,
+      textAlign: 'center',
+    },
+  });
 
 export default TransferDetailScreen;

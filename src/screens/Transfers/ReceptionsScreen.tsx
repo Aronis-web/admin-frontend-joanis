@@ -15,10 +15,10 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { TransfersHeader } from '@/components/Transfers/TransfersHeader';
+import { TransfersFilterChips } from '@/components/Transfers/TransfersFilterChips';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { transfersApi } from '@/services/api/transfers';
@@ -1075,58 +1075,26 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <LinearGradient
-          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <View style={styles.headerTop}>
-            <View style={styles.headerTitleContainer}>
-              <View style={styles.headerIconRow}>
-                <View style={styles.headerIconContainer}>
-                  <Ionicons name="download" size={22} color={theme.color.brand.onHeader} />
-                </View>
-                <Text style={styles.headerTitle}>Recepciones</Text>
-              </View>
-              <Text style={styles.headerSubtitle}>
-                {effectiveSite?.name
-                  ? `Traslados recibidos en ${effectiveSite.name}`
-                  : 'Traslados recibidos'}
-              </Text>
-            </View>
-
-            <View style={styles.statHeaderItem}>
-              <Text style={styles.statHeaderValue}>{totalReceptions}</Text>
-              <Text style={styles.statHeaderLabel}>Recepciones</Text>
-            </View>
-          </View>
-        </LinearGradient>
+        <TransfersHeader
+          icon="download"
+          title="Recepciones"
+          subtitle={
+            effectiveSite?.name
+              ? `Traslados recibidos en ${effectiveSite.name}`
+              : 'Traslados recibidos'
+          }
+          stat={{ value: totalReceptions, label: 'Total' }}
+        />
 
         {originSiteOptions.length > 0 && (
-          <View style={styles.filtersContainer}>
-            <Text style={styles.filterLabel}>Sede de origen</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filtersContent}
-            >
-              {[{ id: '', name: 'Todas' }, ...originSiteOptions].map((site) => {
-                const isActive = originSiteFilter === site.id;
-                return (
-                  <TouchableOpacity
-                    key={site.id || 'all'}
-                    style={[styles.filterChip, isActive && styles.filterChipActive]}
-                    onPress={() => setOriginSiteFilter(site.id)}
-                  >
-                    <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
-                      {site.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
+          <TransfersFilterChips
+            options={[
+              { key: '', label: 'Todas las sedes' },
+              ...originSiteOptions.map((site) => ({ key: site.id, label: site.name })),
+            ]}
+            selected={originSiteFilter}
+            onSelect={setOriginSiteFilter}
+          />
         )}
 
         {loading ? (
@@ -1594,101 +1562,6 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
-    },
-    headerGradient: {
-      paddingHorizontal: theme.space[5],
-      paddingTop: theme.space[4],
-      paddingBottom: theme.space[4],
-    },
-    headerTop: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-    },
-    headerTitleContainer: {
-      flex: 1,
-    },
-    headerIconRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: theme.space[1],
-    },
-    headerIconContainer: {
-      width: 36,
-      height: 36,
-      borderRadius: theme.radii.lg,
-      backgroundColor: theme.color.brand.headerBadge,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: theme.space[3],
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: '700',
-      color: theme.color.brand.onHeader,
-      letterSpacing: 0.3,
-    },
-    headerSubtitle: {
-      fontSize: 14,
-      color: theme.color.brand.onHeaderMuted,
-      fontWeight: '500',
-      marginLeft: theme.space[12],
-    },
-    statHeaderItem: {
-      alignItems: 'center',
-      backgroundColor: theme.color.brand.headerBadge,
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[2],
-      borderRadius: theme.radii.lg,
-    },
-    statHeaderValue: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.brand.onHeader,
-    },
-    statHeaderLabel: {
-      fontSize: 11,
-      color: theme.color.brand.onHeaderMuted,
-      fontWeight: '500',
-      textTransform: 'uppercase',
-    },
-    filtersContainer: {
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      paddingVertical: 12,
-    },
-    filterLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: theme.color.text.muted,
-      marginBottom: 8,
-      paddingHorizontal: 16,
-    },
-    filtersContent: {
-      flexDirection: 'row',
-      gap: 8,
-      paddingHorizontal: 16,
-    },
-    filterChip: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-      backgroundColor: theme.color.surface.base,
-    },
-    filterChipActive: {
-      backgroundColor: theme.color.brand.accent,
-      borderColor: theme.color.brand.accent,
-    },
-    filterText: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: theme.color.text.body,
-    },
-    filterTextActive: {
-      color: theme.color.text.inverse,
     },
     scrollView: {
       flex: 1,
