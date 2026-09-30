@@ -535,6 +535,7 @@ export interface ReceptionFilters {
   siteId?: string;
   warehouseId?: string;
   currentSiteId?: string;
+  originSiteId?: string;
   status?: ReceptionStatus;
   page?: number;
   limit?: number;

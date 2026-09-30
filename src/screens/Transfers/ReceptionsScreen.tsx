@@ -21,6 +21,8 @@ import { useTenantStore } from '@/store/tenant';
 import { transfersApi } from '@/services/api/transfers';
 import { TransportSelectionModal } from '@/components/Transport';
 import { warehousesApi, warehouseAreasApi } from '@/services/api';
+import { sitesApi } from '@/services/api/sites';
+import type { Site } from '@/types/sites';
 import { downloadRemissionGuidePdf } from '@/utils/remissionGuideDownload';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { Driver, Transporter, Vehicle } from '@/types/transport';
@@ -122,6 +124,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [areasByWarehouse, setAreasByWarehouse] = useState<Record<string, WarehouseArea[]>>({});
 
+  const [originSites, setOriginSites] = useState<Site[]>([]);
+  const [originSiteFilter, setOriginSiteFilter] = useState('');
+
   const effectiveSite = selectedSite || currentSite;
 
   const loadData = useCallback(
@@ -132,6 +137,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
         const response = await transfersApi.getPendingReceptions({
           currentSiteId,
+          originSiteId: originSiteFilter || undefined,
           page,
           limit: pageSize,
         });
@@ -159,8 +165,21 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         setLoading(false);
       }
     },
-    [currentPage, effectiveSite?.id, pageSize]
+    [currentPage, effectiveSite?.id, originSiteFilter, pageSize]
   );
+
+  useEffect(() => {
+    const loadOriginSites = async () => {
+      try {
+        const response = await sitesApi.getSites({ limit: 100, orderBy: 'name', orderDir: 'ASC' });
+        setOriginSites(response.data || []);
+      } catch (error) {
+        console.error('Error loading sites:', error);
+        setOriginSites([]);
+      }
+    };
+    void loadOriginSites();
+  }, []);
 
   const loadWarehouseAreas = useCallback(
     async (warehouseId: string): Promise<WarehouseArea[]> => {
@@ -207,7 +226,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [effectiveSite?.id]);
+  }, [effectiveSite?.id, originSiteFilter]);
 
   useEffect(() => {
     if (!showTransportModal && pendingBultosModalRef.current) {
@@ -797,7 +816,11 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>📥</Text>
           <Text style={styles.emptyText}>No hay recepciones</Text>
-          <Text style={styles.emptySubtext}>No se encontraron recepciones para esta sede</Text>
+          <Text style={styles.emptySubtext}>
+            {originSiteFilter
+              ? 'No se encontraron recepciones provenientes de la sede seleccionada'
+              : 'No se encontraron recepciones para esta sede'}
+          </Text>
         </View>
       );
     }
@@ -1042,6 +1065,23 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Recepciones</Text>
           <Text style={styles.headerSubtitle}>Lista única paginada</Text>
+        </View>
+      </View>
+
+      <View style={styles.filtersBar}>
+        <Text style={styles.filterLabel}>Sede de origen</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={originSiteFilter}
+            onValueChange={(value) => setOriginSiteFilter(String(value))}
+          >
+            <Picker.Item label="Todas las sedes" value="" />
+            {originSites
+              .filter((site) => site.id !== effectiveSite?.id)
+              .map((site) => (
+                <Picker.Item key={site.id} label={site.name} value={site.id} />
+              ))}
+          </Picker>
         </View>
       </View>
 
@@ -1543,6 +1583,19 @@ const createStyles = (theme: Theme) =>
       fontSize: 12,
       color: theme.color.text.muted,
       marginTop: 2,
+    },
+    filtersBar: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      backgroundColor: theme.color.surface.base,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
+    },
+    filterLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.color.text.muted,
+      marginBottom: 6,
     },
     scrollView: {
       flex: 1,
