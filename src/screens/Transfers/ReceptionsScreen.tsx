@@ -85,8 +85,8 @@ const getReceptionFormStorageKey = (transferId: string) => `reception-form:${tra
 export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
-  const { currentSite } = useAuthStore();
-  const { selectedSite } = useTenantStore();
+  const { currentSite, currentCompany } = useAuthStore();
+  const { selectedSite, selectedCompany } = useTenantStore();
 
   const [receptions, setReceptions] = useState<TransferReception[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -128,6 +128,8 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   const [originSiteFilter, setOriginSiteFilter] = useState('');
 
   const effectiveSite = selectedSite || currentSite;
+  const effectiveCompany = selectedCompany || currentCompany;
+  const originSiteOptions = originSites.filter((site) => site.id !== effectiveSite?.id);
 
   const loadData = useCallback(
     async (page = currentPage) => {
@@ -169,9 +171,20 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   );
 
   useEffect(() => {
+    setOriginSiteFilter('');
+    if (!effectiveCompany?.id) {
+      setOriginSites([]);
+      return;
+    }
+
     const loadOriginSites = async () => {
       try {
-        const response = await sitesApi.getSites({ limit: 100, orderBy: 'name', orderDir: 'ASC' });
+        const response = await sitesApi.getSites({
+          companyId: effectiveCompany.id,
+          limit: 100,
+          orderBy: 'name',
+          orderDir: 'ASC',
+        });
         setOriginSites(response.data || []);
       } catch (error) {
         console.error('Error loading sites:', error);
@@ -179,7 +192,7 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
       }
     };
     void loadOriginSites();
-  }, []);
+  }, [effectiveCompany?.id]);
 
   const loadWarehouseAreas = useCallback(
     async (warehouseId: string): Promise<WarehouseArea[]> => {
@@ -1068,22 +1081,31 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
         </View>
       </View>
 
-      <View style={styles.filtersBar}>
-        <Text style={styles.filterLabel}>Sede de origen</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={originSiteFilter}
-            onValueChange={(value) => setOriginSiteFilter(String(value))}
+      {originSiteOptions.length > 0 && (
+        <View style={styles.filtersContainer}>
+          <Text style={styles.filterLabel}>Sede de origen</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtersContent}
           >
-            <Picker.Item label="Todas las sedes" value="" />
-            {originSites
-              .filter((site) => site.id !== effectiveSite?.id)
-              .map((site) => (
-                <Picker.Item key={site.id} label={site.name} value={site.id} />
-              ))}
-          </Picker>
+            {[{ id: '', name: 'Todas' }, ...originSiteOptions].map((site) => {
+              const isActive = originSiteFilter === site.id;
+              return (
+                <TouchableOpacity
+                  key={site.id || 'all'}
+                  style={[styles.filterChip, isActive && styles.filterChipActive]}
+                  onPress={() => setOriginSiteFilter(site.id)}
+                >
+                  <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                    {site.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
-      </View>
+      )}
 
       {loading ? (
         <View style={styles.centerContainer}>
@@ -1584,18 +1606,43 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.muted,
       marginTop: 2,
     },
-    filtersBar: {
-      paddingHorizontal: 16,
-      paddingVertical: 10,
+    filtersContainer: {
       backgroundColor: theme.color.surface.base,
       borderBottomWidth: 1,
       borderBottomColor: theme.color.border.subtle,
+      paddingVertical: 12,
     },
     filterLabel: {
       fontSize: 12,
       fontWeight: '600',
       color: theme.color.text.muted,
-      marginBottom: 6,
+      marginBottom: 8,
+      paddingHorizontal: 16,
+    },
+    filtersContent: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 16,
+    },
+    filterChip: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.base,
+    },
+    filterChipActive: {
+      backgroundColor: theme.color.brand.accent,
+      borderColor: theme.color.brand.accent,
+    },
+    filterText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.color.text.body,
+    },
+    filterTextActive: {
+      color: theme.color.text.inverse,
     },
     scrollView: {
       flex: 1,
