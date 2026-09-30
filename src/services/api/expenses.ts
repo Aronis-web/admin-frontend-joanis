@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { apiClient } from './client';
 import {
   Expense,
@@ -46,7 +47,7 @@ class ExpensesService {
   private readonly paymentsBasePath = '/admin/expenses'; // Payments endpoints use /admin prefix
   private readonly categoriesPath = '/admin/expense-categories';
   private readonly templatesPath = '/admin/expense-templates';
-  private readonly projectionsPath = '/admin/expense-projections';
+  private readonly projectionsPath = '/expense-projections';
   private readonly projectsPath = '/admin/expense-projects';
 
   // ============================================
@@ -158,7 +159,9 @@ class ExpensesService {
    * Get active categories
    */
   async getActiveCategories(): Promise<ExpenseCategory[]> {
-    return apiClient.get<ExpenseCategory[]>(`${this.categoriesPath}/active`);
+    // No existe /active en el backend: se filtra en cliente
+    const categories = await apiClient.get<ExpenseCategory[]>(this.categoriesPath);
+    return (Array.isArray(categories) ? categories : []).filter((c) => c.isActive !== false);
   }
 
   /**
@@ -224,7 +227,7 @@ class ExpensesService {
    */
   async getExpense(id: string): Promise<Expense> {
     return apiClient.get<Expense>(`${this.basePath}/${id}`, {
-      params: { includeAccountPayable: true }
+      params: { includeAccountPayable: true },
     });
   }
 
@@ -236,10 +239,10 @@ class ExpensesService {
   }
 
   /**
-   * Update an expense
+   * Update an expense (el backend expone PUT con actualización parcial)
    */
   async updateExpense(id: string, data: UpdateExpenseRequest): Promise<Expense> {
-    return apiClient.patch<Expense>(`${this.basePath}/${id}`, data);
+    return apiClient.put<Expense>(`${this.basePath}/${id}`, data);
   }
 
   /**
@@ -253,7 +256,15 @@ class ExpensesService {
    * Change status of an expense
    */
   async changeStatus(id: string, data: ChangeStatusRequest): Promise<Expense> {
-    return apiClient.patch<Expense>(`${this.basePath}/${id}/status`, data);
+    // No existe /status en el backend: el estado se actualiza con PUT /expenses/:id
+    return apiClient.put<Expense>(`${this.basePath}/${id}`, { status: data.status });
+  }
+
+  /**
+   * Activate a DRAFT expense (crea la cuenta por pagar vinculada)
+   */
+  async activateExpense(id: string): Promise<Expense> {
+    return apiClient.post<Expense>(`${this.basePath}/${id}/activate`);
   }
 
   /**
@@ -267,9 +278,11 @@ class ExpensesService {
    * Get expenses by period
    */
   async getByPeriod(startDate: string, endDate: string): Promise<Expense[]> {
-    return apiClient.get<Expense[]>(`${this.basePath}/period`, {
-      params: { startDate, endDate },
+    // No existe /expenses/period: se usa el listado con filtros de vencimiento
+    const response = await apiClient.get<ExpensesResponse>(this.basePath, {
+      params: { dateFrom: startDate, dateTo: endDate, limit: 1000, includeAccountPayable: true },
     });
+    return response?.data ?? [];
   }
 
   /**
@@ -284,6 +297,32 @@ class ExpensesService {
   // ============================================
   // Payment Reconciliation
   // ============================================
+
+  /**
+   * Adjunta un archivo al FormData según la plataforma.
+   * En web el objeto `{ uri, type, name }` de React Native se serializa como
+   * "[object Object]" y el comprobante se perdía; allí se envía un Blob real.
+   */
+  private async appendFile(
+    formData: FormData,
+    fileUri: string,
+    filename: string,
+    mimeType: string
+  ): Promise<void> {
+    if (Platform.OS === 'web') {
+      const response = await fetch(fileUri);
+      const blob = await response.blob();
+      const typed = blob.type ? blob : new Blob([blob], { type: mimeType });
+      formData.append('file', typed, filename);
+      return;
+    }
+
+    formData.append('file', {
+      uri: fileUri,
+      type: mimeType,
+      name: filename,
+    } as any);
+  }
 
   /**
    * Create a payment for an expense
@@ -305,11 +344,7 @@ class ExpensesService {
     const formData = new FormData();
 
     // Append file
-    formData.append('file', {
-      uri: fileUri,
-      type: mimeType,
-      name: filename,
-    } as any);
+    await this.appendFile(formData, fileUri, filename, mimeType);
 
     // Append payment data
     formData.append('amountCents', data.amountCents.toString());
@@ -356,11 +391,7 @@ class ExpensesService {
     const formData = new FormData();
 
     // Append file
-    formData.append('file', {
-      uri: fileUri,
-      type: mimeType,
-      name: filename,
-    } as any);
+    await this.appendFile(formData, fileUri, filename, mimeType);
 
     // Append payment data
     formData.append('amountCents', data.amountCents.toString());
@@ -375,7 +406,10 @@ class ExpensesService {
     }
 
     // Don't set Content-Type manually - let axios set it with the boundary
-    return apiClient.post(`${this.paymentsBasePath}/${expenseId}/payments/partial/with-file`, formData);
+    return apiClient.post(
+      `${this.paymentsBasePath}/${expenseId}/payments/partial/with-file`,
+      formData
+    );
   }
 
   /**
@@ -403,7 +437,7 @@ class ExpensesService {
    * Get payment completion report
    */
   async getPaymentCompletionReport(companyId?: string): Promise<PaymentCompletionReportItem[]> {
-    return apiClient.get(`${this.basePath}/reports/payment-completion`, {
+    return apiClient.get(`${this.paymentsBasePath}/reports/payment-completion`, {
       params: companyId ? { companyId } : undefined,
     });
   }
@@ -412,7 +446,7 @@ class ExpensesService {
    * Get pending payments report
    */
   async getPendingPaymentsReport(companyId?: string): Promise<PendingPaymentReportItem[]> {
-    return apiClient.get(`${this.basePath}/reports/pending-payments`, {
+    return apiClient.get(`${this.paymentsBasePath}/reports/pending-payments`, {
       params: companyId ? { companyId } : undefined,
     });
   }
@@ -433,7 +467,8 @@ class ExpensesService {
    * Get active templates
    */
   async getActiveTemplates(): Promise<ExpenseTemplate[]> {
-    return apiClient.get<ExpenseTemplate[]>(`${this.templatesPath}/active`);
+    // GET /admin/expense-templates devuelve solo activas por defecto (no existe /active)
+    return apiClient.get<ExpenseTemplate[]>(this.templatesPath);
   }
 
   /**
@@ -528,7 +563,7 @@ class ExpensesService {
    * Get projections by period
    */
   async getProjectionsByPeriod(startDate: string, endDate: string): Promise<ExpenseProjection[]> {
-    return apiClient.get<ExpenseProjection[]>(`${this.projectionsPath}/period`, {
+    return apiClient.get<ExpenseProjection[]>(`${this.projectionsPath}/by-period`, {
       params: { startDate, endDate },
     });
   }
@@ -702,10 +737,9 @@ class ExpensesService {
   async getTrends(
     params: import('@/types/expenses').TrendsQueryParams
   ): Promise<import('@/types/expenses').TrendsResponse> {
-    return apiClient.get<import('@/types/expenses').TrendsResponse>(
-      '/expenses/summary/trends',
-      { params }
-    );
+    return apiClient.get<import('@/types/expenses').TrendsResponse>('/expenses/summary/trends', {
+      params,
+    });
   }
 
   /**

@@ -425,7 +425,8 @@ export const CreateExpenseScreen: React.FC<CreateExpenseScreenProps> = ({ naviga
           dueDate,
           expenseType,
           costType: 'FIXED', // Siempre enviar FIXED
-          // Note: status is set automatically by backend (ACTIVE by default)
+          // Se crea ACTIVE: el backend genera la cuenta por pagar vinculada (el default del backend es DRAFT)
+          status: 'ACTIVE',
         };
 
         // Only add optional fields if they have values
