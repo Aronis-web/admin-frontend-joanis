@@ -12,6 +12,8 @@ interface LazyLoadFallbackProps {
   onRetry?: () => void;
   /** Fuerza el modo error aunque no haya `onRetry`. */
   isError?: boolean;
+  /** Mensaje técnico del error, para diagnosticar en dispositivos sin consola. */
+  errorDetail?: string;
 }
 
 /**
@@ -22,6 +24,7 @@ export const LazyLoadFallback: React.FC<LazyLoadFallbackProps> = ({
   message = 'Cargando...',
   onRetry,
   isError = false,
+  errorDetail,
 }) => {
   const showError = isError || !!onRetry;
 
@@ -38,6 +41,11 @@ export const LazyLoadFallback: React.FC<LazyLoadFallbackProps> = ({
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
         )}
+        {errorDetail ? (
+          <Text style={styles.errorDetail} selectable>
+            {errorDetail}
+          </Text>
+        ) : null}
       </View>
     );
   }
@@ -73,6 +81,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.neutral[700],
     fontWeight: '700',
+    textAlign: 'center',
+  },
+  errorDetail: {
+    marginTop: spacing[5],
+    fontSize: 12,
+    color: colors.neutral[500],
     textAlign: 'center',
   },
   retryButton: {

@@ -244,7 +244,12 @@ class LazyErrorBoundary extends React.Component<
   render() {
     if (this.state.error) {
       return (
-        <LazyLoadFallback message={this.props.fallbackMessage} isError onRetry={this.handleRetry} />
+        <LazyLoadFallback
+          message={this.props.fallbackMessage}
+          isError
+          onRetry={this.handleRetry}
+          errorDetail={`${this.state.error.name}: ${this.state.error.message}`}
+        />
       );
     }
     return this.props.children;
