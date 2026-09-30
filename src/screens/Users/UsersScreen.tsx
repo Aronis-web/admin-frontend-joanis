@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { useAuthStore } from '@/store/auth';
 import { ProtectedElement } from '@/components/auth/ProtectedRoute';
 import { usersApi, User, GetUsersParams } from '@/services/api';
 import { CreateUserModal } from '@/components/users/CreateUserModal';
@@ -23,8 +22,6 @@ import { UsersBulkModal, UsersBulkMode } from '@/components/users/UsersBulkModal
 import { Pagination } from '@/design-system';
 import { MAIN_ROUTES } from '@/constants/routes';
 import Alert from '@/utils/alert';
-
-import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 
 interface UsersScreenProps {
@@ -32,7 +29,6 @@ interface UsersScreenProps {
 }
 
 export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
-  const { user, logout } = useAuthStore();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const [users, setUsers] = useState<User[]>([]);
@@ -51,19 +47,20 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
     total: 0,
     totalPages: 0,
   });
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
-  const [chatBadge] = useState(3);
-  const [notificationsBadge] = useState(7);
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
 
-  // Load users on mount and when page or search changes
+  const { width, height } = useWindowDimensions();
+  const isTablet = width >= 768 || height >= 768;
+  const trimmedQuery = searchQuery.trim();
+  const isSearchPending = trimmedQuery.length >= 3 && trimmedQuery !== appliedSearch;
+
+  // Load users on mount and when page or applied search changes
   useEffect(() => {
     loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.page, appliedSearch]);
 
-  // Autocompletado: dispara la búsqueda automáticamente cuando el usuario
-  // escribe más de dos letras (>=3). Se limpia al vaciar o quedar con <=2.
+  // Autocompletado: dispara la busqueda automaticamente cuando el usuario
+  // escribe mas de dos letras (>=3). Se limpia al vaciar o quedar con <=2.
   useEffect(() => {
     const trimmed = searchQuery.trim();
     if (trimmed.length === 0) {
@@ -100,12 +97,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
       const response = await usersApi.getUsers(params);
 
-      // Ensure response.data is an array before setting
       const usersData = Array.isArray(response.data) ? response.data : [];
-      console.log('UsersScreen - Loaded users:', usersData.length);
-      if (usersData.length > 0) {
-        console.log('UsersScreen - First user has_biometric:', usersData[0]?.has_biometric);
-      }
       setUsers(usersData);
       setPagination((prev) => ({
         ...prev,
@@ -122,31 +114,11 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
     }
   }, [pagination.page, pagination.limit, appliedSearch]);
 
-  // Handle search submit
-  const handleSearch = useCallback(() => {
-    setAppliedSearch(searchQuery);
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [searchQuery]);
-
-  // Handle clear search
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
     setAppliedSearch('');
     setPagination((prev) => ({ ...prev, page: 1 }));
   }, []);
-
-  // Pagination handlers
-  const handlePreviousPage = useCallback(() => {
-    if (pagination.page > 1) {
-      setPagination((prev) => ({ ...prev, page: prev.page - 1 }));
-    }
-  }, [pagination.page]);
-
-  const handleNextPage = useCallback(() => {
-    if (pagination.page < pagination.totalPages) {
-      setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
-    }
-  }, [pagination.page, pagination.totalPages]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -156,25 +128,12 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
   const handleUserPress = async (userId: string) => {
     try {
-      // Fetch user details and roles separately
       const [userDetails, userRoles] = await Promise.all([
         usersApi.getUserById(userId),
         usersApi.getUserRoles(userId),
       ]);
 
-      console.log('UsersScreen - User details from API:', userDetails);
-      console.log('UsersScreen - User roles from API:', userRoles);
-      console.log('UsersScreen - User details is_active:', userDetails.is_active);
-      console.log('UsersScreen - User details status:', userDetails.status);
-
-      // Merge roles into user object
-      const userWithRoles = {
-        ...userDetails,
-        roles: userRoles,
-      };
-
-      console.log('UsersScreen - User with roles merged:', userWithRoles);
-      setSelectedUser(userWithRoles);
+      setSelectedUser({ ...userDetails, roles: userRoles });
       setShowDetailModal(true);
     } catch (error: any) {
       console.error('Error loading user details:', error);
@@ -247,35 +206,6 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
     [navigation]
   );
 
-  const handleMenuToggle = () => {
-    setIsMenuVisible(!isMenuVisible);
-  };
-
-  const handleMenuClose = () => {
-    setIsMenuVisible(false);
-  };
-
-  // Use the shared navigation hook for consistent menu navigation
-  const navigateFromMenu = useMenuNavigation(navigation);
-
-  const handleMenuSelect = (menuId: string) => {
-    setIsMenuVisible(false);
-    navigateFromMenu(menuId);
-  };
-
-  const handleLogout = async () => {
-    setIsMenuVisible(false);
-    await logout();
-  };
-
-  const handleChatPress = () => {
-    console.log('Abrir chat');
-  };
-
-  const handleNotificationsPress = () => {
-    console.log('Abrir notificaciones');
-  };
-
   const getStatusColor = (status: string) => {
     return status === 'active' ? theme.color.state.success.border : theme.color.state.danger.border;
   };
@@ -285,42 +215,46 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   };
 
   const renderUserItem = (user: User) => {
-    // Determine status from either status field or is_active field
     const userStatus = user.status || (user.is_active ? 'active' : 'inactive');
     const displayName =
       user.first_name && user.last_name
         ? `${user.first_name} ${user.last_name}`
         : user.username || user.name || user.email;
+    const statusColor = getStatusColor(userStatus);
 
     return (
       <TouchableOpacity
         key={user.id}
-        style={styles.userItem}
+        style={[styles.userCard, isTablet && styles.userCardTablet]}
         onPress={() => handleUserPress(user.id)}
         activeOpacity={0.7}
       >
+        <View style={styles.userAvatar}>
+          <Text style={styles.avatarText}>{(displayName || 'U').charAt(0).toUpperCase()}</Text>
+        </View>
         <View style={styles.userInfo}>
-          <View style={styles.userAvatar}>
-            <Text style={styles.avatarText}>{(displayName || 'U').charAt(0).toUpperCase()}</Text>
-          </View>
-          <View style={styles.userDetails}>
-            <View style={styles.userNameRow}>
-              <Text style={styles.userName}>{displayName}</Text>
-              {user.has_biometric && (
-                <View style={styles.biometricBadge}>
-                  <Text style={styles.biometricBadgeText}>🔐</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.userEmail}>{user.email}</Text>
-            {user.roles && Array.isArray(user.roles) && user.roles.length > 0 && (
-              <Text style={styles.userRoles}>{user.roles.map((role) => role.name).join(', ')}</Text>
+          <View style={styles.userNameRow}>
+            <Text style={[styles.userName, isTablet && styles.userNameTablet]} numberOfLines={1}>
+              {displayName}
+            </Text>
+            {user.has_biometric && (
+              <View style={styles.biometricBadge}>
+                <Text style={styles.biometricBadgeText}>🔐</Text>
+              </View>
             )}
           </View>
+          <Text style={[styles.userEmail, isTablet && styles.userEmailTablet]} numberOfLines={1}>
+            {user.email}
+          </Text>
+          {user.roles && Array.isArray(user.roles) && user.roles.length > 0 && (
+            <Text style={styles.userRoles} numberOfLines={1}>
+              {user.roles.map((role) => role.name).join(', ')}
+            </Text>
+          )}
         </View>
-        <View style={styles.userStatus}>
-          <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(userStatus) }]} />
-          <Text style={[styles.statusText, { color: getStatusColor(userStatus) }]}>
+        <View style={[styles.statusPill, { backgroundColor: statusColor + '1A' }]}>
+          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+          <Text style={[styles.statusText, { color: statusColor }]}>
             {getStatusText(userStatus)}
           </Text>
         </View>
@@ -328,91 +262,82 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
     );
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Gestión de Usuarios</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Cargando usuarios...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isTablet && styles.headerTablet]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestión de Usuarios</Text>
+        <View style={styles.headerTitles}>
+          <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Usuarios</Text>
+          <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
+            Gestión de accesos y roles
+          </Text>
+        </View>
         <View style={styles.headerSpacer} />
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar usuarios..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch}
-            placeholderTextColor={theme.color.text.placeholder}
-            keyboardType="default"
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
-              <Text style={styles.clearButtonText}>✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-          <Text style={styles.searchButtonText}>🔍</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Applied search indicator */}
-      {appliedSearch && (
-        <View style={styles.searchIndicator}>
-          <Text style={styles.searchIndicatorText}>Búsqueda: "{appliedSearch}"</Text>
-          <TouchableOpacity onPress={handleClearSearch}>
-            <Text style={styles.searchIndicatorClear}>Limpiar</Text>
+      <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={[styles.searchInput, isTablet && styles.searchInputTablet]}
+          placeholder="Buscar por nombre, usuario o correo..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor={theme.color.text.placeholder}
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
+            <Text style={styles.clearButtonText}>✕</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        )}
+        {isSearchPending && (
+          <ActivityIndicator
+            size="small"
+            color={theme.color.brand.accent}
+            style={styles.searchLoader}
+          />
+        )}
+      </View>
 
       {/* Users List */}
       <ScrollView
-        style={[styles.usersList, isLandscape && styles.usersListLandscape]}
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {loading && !refreshing ? (
-          <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.color.brand.accent} />
+            <Text style={styles.loadingText}>Cargando usuarios...</Text>
           </View>
         ) : users.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              {appliedSearch ? 'No se encontraron usuarios' : 'No hay usuarios registrados'}
+            <Text style={styles.emptyIcon}>👥</Text>
+            <Text style={[styles.emptyText, isTablet && styles.emptyTextTablet]}>
+              {appliedSearch
+                ? 'No se encontraron usuarios con esa búsqueda'
+                : 'No hay usuarios registrados'}
             </Text>
+            {!appliedSearch && (
+              <ProtectedElement requiredPermissions={['users.create']} fallback={null}>
+                <TouchableOpacity style={styles.emptyButton} onPress={handleCreateUser}>
+                  <Text style={styles.emptyButtonText}>Crear primer usuario</Text>
+                </TouchableOpacity>
+              </ProtectedElement>
+            )}
           </View>
         ) : (
-          users.map(renderUserItem)
+          <View style={styles.usersList}>{users.map(renderUserItem)}</View>
         )}
       </ScrollView>
 
       {/* Pagination Controls */}
-      {pagination.totalPages > 0 && (
+      {!loading && pagination.totalPages > 0 && (
         <Pagination
           currentPage={pagination.page}
           totalPages={pagination.totalPages}
@@ -448,7 +373,7 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
         onUserUpdated={handleUserUpdated}
       />
 
-      {/* Bulk Users Modal (creación / actualización masiva) */}
+      {/* Bulk Users Modal (creacion / actualizacion masiva) */}
       <UsersBulkModal
         visible={bulkMode !== null}
         mode={bulkMode ?? 'create'}
@@ -489,20 +414,24 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.color.background.subtle,
     },
+    // Header
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       paddingHorizontal: theme.space[5],
       paddingVertical: theme.space[4],
       backgroundColor: theme.color.surface.base,
       borderBottomWidth: 1,
       borderBottomColor: theme.color.border.subtle,
     },
+    headerTablet: {
+      paddingHorizontal: theme.space[8],
+      paddingVertical: theme.space[5],
+    },
     backButton: {
       width: 40,
       height: 40,
-      borderRadius: 20,
+      borderRadius: theme.radii.lg,
       backgroundColor: theme.color.surface.muted,
       justifyContent: 'center',
       alignItems: 'center',
@@ -512,117 +441,95 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.muted,
       fontWeight: '600',
     },
+    headerTitles: {
+      flex: 1,
+      marginLeft: theme.space[4],
+    },
     headerTitle: {
       fontSize: 20,
       fontWeight: '700',
       color: theme.color.text.heading,
     },
+    headerTitleTablet: {
+      fontSize: 24,
+    },
+    headerSubtitle: {
+      fontSize: 13,
+      color: theme.color.text.muted,
+      marginTop: 2,
+    },
+    headerSubtitleTablet: {
+      fontSize: 15,
+    },
     headerSpacer: {
       width: 40,
     },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    loadingText: {
-      fontSize: 16,
-      color: theme.color.text.muted,
-    },
+    // Search
     searchContainer: {
       flexDirection: 'row',
-      paddingHorizontal: theme.space[5],
-      paddingVertical: theme.space[4],
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      gap: theme.space[3],
-    },
-    searchInputWrapper: {
-      flex: 1,
-      flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.color.background.subtle,
+      backgroundColor: theme.color.surface.base,
+      marginHorizontal: theme.space[5],
+      marginVertical: theme.space[4],
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[3],
+      borderRadius: theme.radii.lg,
       borderWidth: 1,
       borderColor: theme.color.border.subtle,
-      borderRadius: theme.radii.xl,
-      paddingHorizontal: theme.space[4],
+    },
+    searchContainerTablet: {
+      marginHorizontal: theme.space[8],
+      paddingVertical: theme.space[3.5],
+    },
+    searchIcon: {
+      fontSize: 20,
+      marginRight: theme.space[3],
     },
     searchInput: {
       flex: 1,
-      paddingVertical: theme.space[3],
-      fontSize: 16,
-      color: theme.color.text.heading,
+      fontSize: 15,
+      color: theme.color.text.body,
+      padding: 0,
+    },
+    searchInputTablet: {
+      fontSize: 17,
     },
     clearButton: {
-      padding: theme.space[2],
+      padding: theme.space[1],
     },
     clearButtonText: {
-      fontSize: 16,
+      fontSize: 18,
       color: theme.color.text.placeholder,
     },
-    searchButton: {
-      backgroundColor: theme.color.brand.accent,
-      borderRadius: theme.radii.xl,
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[3],
-      justifyContent: 'center',
-      alignItems: 'center',
+    searchLoader: {
+      marginLeft: theme.space[2],
     },
-    searchButtonText: {
-      fontSize: 18,
-    },
-    searchIndicator: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.space[5],
-      paddingVertical: theme.space[2],
-      backgroundColor: theme.color.brand.accentSoft,
-    },
-    searchIndicatorText: {
-      fontSize: 13,
-      color: theme.color.brand.accent,
-    },
-    searchIndicatorClear: {
-      fontSize: 13,
-      color: theme.color.brand.accent,
-      fontWeight: '600',
-    },
-    loadingOverlay: {
+    // List
+    content: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingVertical: theme.space[10],
     },
-    usersList: {
-      flex: 1,
+    contentContainer: {
       paddingHorizontal: theme.space[5],
       paddingBottom: 100,
     },
-    usersListLandscape: {
-      paddingBottom: 70,
+    contentContainerTablet: {
+      paddingHorizontal: theme.space[8],
     },
-    userItem: {
+    usersList: {
+      gap: theme.space[3],
+    },
+    userCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       backgroundColor: theme.color.surface.base,
-      borderRadius: theme.radii.xl,
+      borderRadius: theme.radii['2xl'],
       padding: theme.space[4],
-      marginBottom: theme.space[3],
       borderWidth: 1,
       borderColor: theme.color.border.subtle,
-      shadowColor: theme.color.shadow,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
+      ...theme.shadow.sm,
     },
-    userInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
+    userCardTablet: {
+      padding: theme.space[5],
     },
     userAvatar: {
       width: 48,
@@ -635,10 +542,10 @@ const createStyles = (theme: Theme) =>
     },
     avatarText: {
       fontSize: 18,
-      fontWeight: '600',
-      color: theme.color.text.onAction,
+      fontWeight: '700',
+      color: theme.color.text.inverse,
     },
-    userDetails: {
+    userInfo: {
       flex: 1,
     },
     userNameRow: {
@@ -647,10 +554,14 @@ const createStyles = (theme: Theme) =>
       gap: theme.space[2],
     },
     userName: {
+      flexShrink: 1,
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '700',
       color: theme.color.text.heading,
       marginBottom: 2,
+    },
+    userNameTablet: {
+      fontSize: 18,
     },
     biometricBadge: {
       backgroundColor: theme.color.state.success.background,
@@ -662,38 +573,78 @@ const createStyles = (theme: Theme) =>
       fontSize: 12,
     },
     userEmail: {
-      fontSize: 14,
+      fontSize: 13,
       color: theme.color.text.muted,
       marginBottom: 2,
+    },
+    userEmailTablet: {
+      fontSize: 14,
     },
     userRoles: {
       fontSize: 12,
       color: theme.color.brand.accent,
-      fontWeight: '500',
+      fontWeight: '600',
     },
-    userStatus: {
+    statusPill: {
+      flexDirection: 'row',
       alignItems: 'center',
+      gap: theme.space[1.5],
+      paddingHorizontal: theme.space[2.5],
+      paddingVertical: theme.space[1],
+      borderRadius: theme.radii.full,
+      marginLeft: theme.space[2],
     },
-    statusIndicator: {
+    statusDot: {
       width: 8,
       height: 8,
       borderRadius: 4,
-      marginBottom: 4,
     },
     statusText: {
       fontSize: 12,
-      fontWeight: '500',
+      fontWeight: '600',
     },
+    // Loading
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    loadingText: {
+      marginTop: theme.space[4],
+      fontSize: 15,
+      color: theme.color.text.muted,
+    },
+    // Empty
     emptyContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
       paddingVertical: 60,
     },
+    emptyIcon: {
+      fontSize: 64,
+      marginBottom: theme.space[4],
+    },
     emptyText: {
       fontSize: 16,
       color: theme.color.text.muted,
+      marginBottom: theme.space[6],
       textAlign: 'center',
+    },
+    emptyTextTablet: {
+      fontSize: 18,
+    },
+    emptyButton: {
+      backgroundColor: theme.color.brand.accent,
+      paddingVertical: theme.space[3.5],
+      paddingHorizontal: theme.space[8],
+      borderRadius: theme.radii.lg,
+    },
+    emptyButtonText: {
+      color: theme.color.text.inverse,
+      fontSize: 15,
+      fontWeight: '600',
     },
   });
 
