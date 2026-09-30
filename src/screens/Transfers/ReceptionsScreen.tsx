@@ -15,7 +15,10 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { transfersApi } from '@/services/api/transfers';
@@ -1070,499 +1073,519 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Recepciones</Text>
-          <Text style={styles.headerSubtitle}>Lista única paginada</Text>
-        </View>
-      </View>
-
-      {originSiteOptions.length > 0 && (
-        <View style={styles.filtersContainer}>
-          <Text style={styles.filterLabel}>Sede de origen</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContent}
-          >
-            {[{ id: '', name: 'Todas' }, ...originSiteOptions].map((site) => {
-              const isActive = originSiteFilter === site.id;
-              return (
-                <TouchableOpacity
-                  key={site.id || 'all'}
-                  style={[styles.filterChip, isActive && styles.filterChipActive]}
-                  onPress={() => setOriginSiteFilter(site.id)}
-                >
-                  <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
-                    {site.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
-
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={theme.color.brand.accent} />
-          <Text style={styles.loadingText}>Cargando recepciones...</Text>
-        </View>
-      ) : (
-        renderList()
-      )}
-
-      {!loading && totalReceptions > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.max(totalPages, 1)}
-          totalItems={totalReceptions}
-          itemsPerPage={pageSize}
-          onPageChange={setCurrentPage}
-          loading={loading}
-        />
-      )}
-
-      <Modal visible={showValidateModal} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={styles.validateModalContainer} edges={['top']}>
-          <View style={styles.validateHeader}>
-            <Text style={styles.validateTitle}>
-              {isReadOnlyMode ? 'Detalle de Recepción' : 'Validar Items Recibidos'}
-            </Text>
-            <TouchableOpacity
-              onPress={() => void handleCloseValidationModal()}
-              style={styles.closeButton}
-            >
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <FlatList
-            data={[...(selectedTransfer?.items || [])]
-              .filter((item) => {
-                const search = productSearchTerm.trim().toLowerCase();
-                if (!search) return true;
-
-                const title = item.product?.title?.toLowerCase() || '';
-                const sku = item.product?.sku?.toLowerCase() || '';
-                const correlative = String(item.product?.correlativeNumber || '').toLowerCase();
-
-                return (
-                  title.includes(search) || sku.includes(search) || correlative.includes(search)
-                );
-              })
-              .sort((a, b) => {
-                const aName = (a.product?.title || a.product?.sku || '').toLowerCase();
-                const bName = (b.product?.title || b.product?.sku || '').toLowerCase();
-                return aName.localeCompare(bName, 'es');
-              })}
-            keyExtractor={(item) => item.id}
-            renderItem={renderValidationItem}
-            style={styles.validateList}
-            contentContainerStyle={styles.validateListContent}
-            initialNumToRender={12}
-            maxToRenderPerBatch={12}
-            windowSize={7}
-            removeClippedSubviews
-            ListHeaderComponent={
-              <>
-                <View style={styles.validateInfo}>
-                  <Text style={styles.validateInfoText}>
-                    📦 Traslado: {selectedTransfer?.transferNumber}
-                  </Text>
-                  <Text style={styles.validateInfoText}>
-                    📥 Recepción: {currentReception?.receptionNumber || currentReception?.id}
-                  </Text>
+    <ScreenLayout navigation={navigation}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <LinearGradient
+          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerTop}>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.headerIconRow}>
+                <View style={styles.headerIconContainer}>
+                  <Ionicons name="download" size={22} color={theme.color.brand.onHeader} />
                 </View>
-
-                <View style={styles.guideDetailCard}>
-                  <Text style={styles.guideDetailTitle}>Guía de remisión</Text>
-                  {selectedTransfer?.remissionGuide ? (
-                    <>
-                      <Text style={styles.guideDetailValue}>
-                        {selectedTransfer.remissionGuide.number}
-                      </Text>
-                      <Text style={styles.guideDetailMeta}>
-                        Estado: {selectedTransfer.remissionGuide.status}
-                        {selectedTransfer.remissionGuide.isDevelopment ? ' • Desarrollo' : ''}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={styles.guideDetailMeta}>
-                      Este traslado aún no tiene guía de remisión.
-                    </Text>
-                  )}
-                  {selectedTransfer?.remissionGuide && (
-                    <TouchableOpacity
-                      disabled={downloadingGuideId === selectedTransfer.id}
-                      style={[
-                        styles.guideActionButton,
-                        styles.downloadGuideButton,
-                        downloadingGuideId === selectedTransfer.id &&
-                          styles.guideActionButtonDisabled,
-                      ]}
-                      onPress={() => void handleRemissionGuidePress(selectedTransfer)}
-                    >
-                      <Text style={styles.guideActionButtonText}>
-                        {downloadingGuideId === selectedTransfer.id
-                          ? 'Descargando guía...'
-                          : 'Descargar guía'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <Text style={styles.sectionTitle}>
-                  {isReadOnlyMode ? 'Productos Recibidos' : 'Productos a Validar'}
-                </Text>
-                <Text style={styles.sectionSubtitle}>
-                  {isReadOnlyMode
-                    ? 'Modo solo lectura para traslados completados'
-                    : 'Valida producto por producto desde el botón de acción'}
-                </Text>
-
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Buscar por nombre, código o correlativo"
-                  value={productSearchTerm}
-                  onChangeText={setProductSearchTerm}
-                  placeholderTextColor={theme.color.text.placeholder}
-                />
-              </>
-            }
-            ListFooterComponent={
-              <View style={styles.qualityCheckSectionInline}>
-                <Text style={styles.label}>Notas de Control de Calidad (Opcional)</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Ej: Todos los productos inspeccionados y en buen estado..."
-                  value={qualityCheckNotes}
-                  onChangeText={setQualityCheckNotes}
-                  multiline
-                  numberOfLines={3}
-                  editable={!isReadOnlyMode}
-                  placeholderTextColor={theme.color.text.placeholder}
-                />
+                <Text style={styles.headerTitle}>Recepciones</Text>
               </View>
-            }
-          />
+              <Text style={styles.headerSubtitle}>
+                {effectiveSite?.name
+                  ? `Traslados recibidos en ${effectiveSite.name}`
+                  : 'Traslados recibidos'}
+              </Text>
+            </View>
 
-          <View style={styles.fixedActionsBar}>
-            <TouchableOpacity
-              style={[styles.fixedActionButton, styles.cancelFixedButton]}
-              onPress={() => void handleCloseValidationModal()}
-            >
-              <Text style={styles.fixedActionText}>Cerrar</Text>
-            </TouchableOpacity>
-
-            {!isReadOnlyMode && allItemsValidated && (
-              <TouchableOpacity
-                style={[styles.fixedActionButton, styles.validateFixedButton]}
-                onPress={handleCompleteReception}
-              >
-                <Text style={styles.fixedActionText}>Completar recepción</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </SafeAreaView>
-      </Modal>
-
-      <TransportSelectionModal
-        visible={showTransportModal}
-        onClose={handleTransportModalClose}
-        onConfirm={handleTransportConfirm}
-      />
-
-      <Modal
-        visible={showBultosModal}
-        animationType="fade"
-        transparent
-        onRequestClose={() => {
-          setShowBultosModal(false);
-          setPendingTransportData(null);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.itemErrorModalCard}>
-            <Text style={styles.itemErrorModalTitle}>Cantidad de bultos</Text>
-            <Text style={styles.viewRowValue}>
-              Ingresa la cantidad de bultos para la guía de remisión.
-            </Text>
-
-            <Text style={styles.label}>Número de bultos *</Text>
-            <TextInput
-              style={styles.input}
-              value={numeroBultos}
-              onChangeText={setNumeroBultos}
-              keyboardType="numeric"
-              placeholder="Ej: 10"
-              placeholderTextColor={theme.color.text.placeholder}
-            />
-
-            <View style={styles.modalActionsRow}>
-              <TouchableOpacity
-                style={[styles.modalActionButton, styles.modalCancelButton]}
-                onPress={() => {
-                  setShowBultosModal(false);
-                  setPendingTransportData(null);
-                }}
-              >
-                <Text style={styles.modalActionTextCancel}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalActionButton, styles.modalSaveButton]}
-                onPress={handleGenerateGuideConfirm}
-                disabled={generatingRemissionGuide}
-              >
-                <Text style={styles.modalActionText}>
-                  {generatingRemissionGuide ? 'Generando...' : 'Continuar'}
-                </Text>
-              </TouchableOpacity>
+            <View style={styles.statHeaderItem}>
+              <Text style={styles.statHeaderValue}>{totalReceptions}</Text>
+              <Text style={styles.statHeaderLabel}>Recepciones</Text>
             </View>
           </View>
-        </View>
-      </Modal>
+        </LinearGradient>
 
-      <Modal visible={showItemErrorModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.itemErrorModalCard}>
-            <Text style={styles.itemErrorModalTitle}>Validar producto</Text>
-
+        {originSiteOptions.length > 0 && (
+          <View style={styles.filtersContainer}>
+            <Text style={styles.filterLabel}>Sede de origen</Text>
             <ScrollView
-              style={styles.itemModalScroll}
-              contentContainerStyle={styles.itemModalScrollContent}
-              showsVerticalScrollIndicator
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filtersContent}
             >
-              <Text style={styles.label}>Cantidad recibida *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                keyboardType="numeric"
-                value={errorModalForm?.quantityReceived || ''}
-                onChangeText={(value) => updateErrorModalForm('quantityReceived', value)}
-                placeholderTextColor={theme.color.text.placeholder}
-              />
+              {[{ id: '', name: 'Todas' }, ...originSiteOptions].map((site) => {
+                const isActive = originSiteFilter === site.id;
+                return (
+                  <TouchableOpacity
+                    key={site.id || 'all'}
+                    style={[styles.filterChip, isActive && styles.filterChipActive]}
+                    onPress={() => setOriginSiteFilter(site.id)}
+                  >
+                    <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                      {site.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
-              <Text style={styles.label}>Almacén destino *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={errorModalForm?.destinationWarehouseId || ''}
-                  onValueChange={(value) => {
-                    const warehouseId = String(value);
-                    updateErrorModalForm('destinationWarehouseId', warehouseId);
-                    updateErrorModalForm('destinationAreaId', '');
-                    void loadWarehouseAreas(warehouseId);
-                  }}
-                >
-                  <Picker.Item label="Seleccione almacén" value="" />
-                  {warehouses.map((warehouse) => (
-                    <Picker.Item key={warehouse.id} label={warehouse.name} value={warehouse.id} />
-                  ))}
-                </Picker>
-              </View>
+        {loading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={theme.color.brand.accent} />
+            <Text style={styles.loadingText}>Cargando recepciones...</Text>
+          </View>
+        ) : (
+          renderList()
+        )}
 
-              <Text style={styles.label}>Área destino *</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={errorModalForm?.destinationAreaId || ''}
-                  onValueChange={(value) =>
-                    updateErrorModalForm('destinationAreaId', String(value))
-                  }
-                >
-                  <Picker.Item label="Seleccione área" value="" />
-                  {(areasByWarehouse[errorModalForm?.destinationWarehouseId || ''] || []).map(
-                    (area) => (
-                      <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
-                    )
-                  )}
-                </Picker>
-              </View>
+        {!loading && totalReceptions > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.max(totalPages, 1)}
+            totalItems={totalReceptions}
+            itemsPerPage={pageSize}
+            onPageChange={setCurrentPage}
+            loading={loading}
+          />
+        )}
 
-              <Text style={styles.label}>Notas del Item (Opcional)</Text>
-              <TextInput
-                style={[styles.input, styles.modalTextArea]}
-                placeholder="Ej: faltaron 2 unidades"
-                value={errorModalForm?.notes || ''}
-                onChangeText={(value) => updateErrorModalForm('notes', value)}
-                multiline
-                numberOfLines={2}
-                placeholderTextColor={theme.color.text.placeholder}
-              />
+        <Modal visible={showValidateModal} animationType="slide" presentationStyle="pageSheet">
+          <SafeAreaView style={styles.validateModalContainer} edges={['top']}>
+            <View style={styles.validateHeader}>
+              <Text style={styles.validateTitle}>
+                {isReadOnlyMode ? 'Detalle de Recepción' : 'Validar Items Recibidos'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => void handleCloseValidationModal()}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-              <View style={styles.damagedToggleRow}>
-                <Text style={styles.damagedToggleLabel}>¿Registrar productos dañados?</Text>
-                <Switch
-                  value={Boolean(errorModalForm?.hasDamaged)}
-                  onValueChange={(value) => {
-                    updateErrorModalForm('hasDamaged', value);
-                    if (!value) {
-                      updateErrorModalForm('quantityDamaged', '0');
-                      updateErrorModalForm('damageNotes', '');
-                      updateErrorModalForm('damagedWarehouseId', '');
-                      updateErrorModalForm('damagedAreaId', '');
-                    }
-                  }}
-                />
-              </View>
+            <FlatList
+              data={[...(selectedTransfer?.items || [])]
+                .filter((item) => {
+                  const search = productSearchTerm.trim().toLowerCase();
+                  if (!search) return true;
 
-              {errorModalForm?.hasDamaged && (
+                  const title = item.product?.title?.toLowerCase() || '';
+                  const sku = item.product?.sku?.toLowerCase() || '';
+                  const correlative = String(item.product?.correlativeNumber || '').toLowerCase();
+
+                  return (
+                    title.includes(search) || sku.includes(search) || correlative.includes(search)
+                  );
+                })
+                .sort((a, b) => {
+                  const aName = (a.product?.title || a.product?.sku || '').toLowerCase();
+                  const bName = (b.product?.title || b.product?.sku || '').toLowerCase();
+                  return aName.localeCompare(bName, 'es');
+                })}
+              keyExtractor={(item) => item.id}
+              renderItem={renderValidationItem}
+              style={styles.validateList}
+              contentContainerStyle={styles.validateListContent}
+              initialNumToRender={12}
+              maxToRenderPerBatch={12}
+              windowSize={7}
+              removeClippedSubviews
+              ListHeaderComponent={
                 <>
-                  <Text style={styles.label}>Cantidad dañada *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    value={errorModalForm?.quantityDamaged || ''}
-                    onChangeText={(value) => updateErrorModalForm('quantityDamaged', value)}
-                    placeholderTextColor={theme.color.text.placeholder}
-                  />
-
-                  <Text style={styles.label}>Almacén de dañados *</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={errorModalForm?.damagedWarehouseId || ''}
-                      onValueChange={(value) => {
-                        const warehouseId = String(value);
-                        updateErrorModalForm('damagedWarehouseId', warehouseId);
-                        updateErrorModalForm('damagedAreaId', '');
-                        void loadWarehouseAreas(warehouseId);
-                      }}
-                    >
-                      <Picker.Item label="Seleccione almacén" value="" />
-                      {warehouses.map((warehouse) => (
-                        <Picker.Item
-                          key={warehouse.id}
-                          label={warehouse.name}
-                          value={warehouse.id}
-                        />
-                      ))}
-                    </Picker>
+                  <View style={styles.validateInfo}>
+                    <Text style={styles.validateInfoText}>
+                      📦 Traslado: {selectedTransfer?.transferNumber}
+                    </Text>
+                    <Text style={styles.validateInfoText}>
+                      📥 Recepción: {currentReception?.receptionNumber || currentReception?.id}
+                    </Text>
                   </View>
 
-                  <Text style={styles.label}>Área de dañados *</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={errorModalForm?.damagedAreaId || ''}
-                      onValueChange={(value) =>
-                        updateErrorModalForm('damagedAreaId', String(value))
-                      }
-                    >
-                      <Picker.Item label="Seleccione área" value="" />
-                      {(areasByWarehouse[errorModalForm?.damagedWarehouseId || ''] || []).map(
-                        (area) => (
-                          <Picker.Item
-                            key={area.id}
-                            label={area.name || area.code}
-                            value={area.id}
-                          />
-                        )
-                      )}
-                    </Picker>
+                  <View style={styles.guideDetailCard}>
+                    <Text style={styles.guideDetailTitle}>Guía de remisión</Text>
+                    {selectedTransfer?.remissionGuide ? (
+                      <>
+                        <Text style={styles.guideDetailValue}>
+                          {selectedTransfer.remissionGuide.number}
+                        </Text>
+                        <Text style={styles.guideDetailMeta}>
+                          Estado: {selectedTransfer.remissionGuide.status}
+                          {selectedTransfer.remissionGuide.isDevelopment ? ' • Desarrollo' : ''}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.guideDetailMeta}>
+                        Este traslado aún no tiene guía de remisión.
+                      </Text>
+                    )}
+                    {selectedTransfer?.remissionGuide && (
+                      <TouchableOpacity
+                        disabled={downloadingGuideId === selectedTransfer.id}
+                        style={[
+                          styles.guideActionButton,
+                          styles.downloadGuideButton,
+                          downloadingGuideId === selectedTransfer.id &&
+                            styles.guideActionButtonDisabled,
+                        ]}
+                        onPress={() => void handleRemissionGuidePress(selectedTransfer)}
+                      >
+                        <Text style={styles.guideActionButtonText}>
+                          {downloadingGuideId === selectedTransfer.id
+                            ? 'Descargando guía...'
+                            : 'Descargar guía'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
 
-                  <Text style={styles.label}>Notas de daños (Opcional)</Text>
+                  <Text style={styles.sectionTitle}>
+                    {isReadOnlyMode ? 'Productos Recibidos' : 'Productos a Validar'}
+                  </Text>
+                  <Text style={styles.sectionSubtitle}>
+                    {isReadOnlyMode
+                      ? 'Modo solo lectura para traslados completados'
+                      : 'Valida producto por producto desde el botón de acción'}
+                  </Text>
+
                   <TextInput
-                    style={[styles.input, styles.modalTextArea]}
-                    placeholder="Ej: caja dañada"
-                    value={errorModalForm?.damageNotes || ''}
-                    onChangeText={(value) => updateErrorModalForm('damageNotes', value)}
-                    multiline
-                    numberOfLines={2}
+                    style={styles.searchInput}
+                    placeholder="Buscar por nombre, código o correlativo"
+                    value={productSearchTerm}
+                    onChangeText={setProductSearchTerm}
                     placeholderTextColor={theme.color.text.placeholder}
                   />
                 </>
-              )}
-            </ScrollView>
+              }
+              ListFooterComponent={
+                <View style={styles.qualityCheckSectionInline}>
+                  <Text style={styles.label}>Notas de Control de Calidad (Opcional)</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="Ej: Todos los productos inspeccionados y en buen estado..."
+                    value={qualityCheckNotes}
+                    onChangeText={setQualityCheckNotes}
+                    multiline
+                    numberOfLines={3}
+                    editable={!isReadOnlyMode}
+                    placeholderTextColor={theme.color.text.placeholder}
+                  />
+                </View>
+              }
+            />
 
-            <View style={styles.modalActionsRow}>
+            <View style={styles.fixedActionsBar}>
               <TouchableOpacity
-                style={[styles.modalActionButton, styles.modalCancelButton]}
+                style={[styles.fixedActionButton, styles.cancelFixedButton]}
+                onPress={() => void handleCloseValidationModal()}
+              >
+                <Text style={styles.fixedActionText}>Cerrar</Text>
+              </TouchableOpacity>
+
+              {!isReadOnlyMode && allItemsValidated && (
+                <TouchableOpacity
+                  style={[styles.fixedActionButton, styles.validateFixedButton]}
+                  onPress={handleCompleteReception}
+                >
+                  <Text style={styles.fixedActionText}>Completar recepción</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </SafeAreaView>
+        </Modal>
+
+        <TransportSelectionModal
+          visible={showTransportModal}
+          onClose={handleTransportModalClose}
+          onConfirm={handleTransportConfirm}
+        />
+
+        <Modal
+          visible={showBultosModal}
+          animationType="fade"
+          transparent
+          onRequestClose={() => {
+            setShowBultosModal(false);
+            setPendingTransportData(null);
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.itemErrorModalCard}>
+              <Text style={styles.itemErrorModalTitle}>Cantidad de bultos</Text>
+              <Text style={styles.viewRowValue}>
+                Ingresa la cantidad de bultos para la guía de remisión.
+              </Text>
+
+              <Text style={styles.label}>Número de bultos *</Text>
+              <TextInput
+                style={styles.input}
+                value={numeroBultos}
+                onChangeText={setNumeroBultos}
+                keyboardType="numeric"
+                placeholder="Ej: 10"
+                placeholderTextColor={theme.color.text.placeholder}
+              />
+
+              <View style={styles.modalActionsRow}>
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.modalCancelButton]}
+                  onPress={() => {
+                    setShowBultosModal(false);
+                    setPendingTransportData(null);
+                  }}
+                >
+                  <Text style={styles.modalActionTextCancel}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.modalSaveButton]}
+                  onPress={handleGenerateGuideConfirm}
+                  disabled={generatingRemissionGuide}
+                >
+                  <Text style={styles.modalActionText}>
+                    {generatingRemissionGuide ? 'Generando...' : 'Continuar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={showItemErrorModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.itemErrorModalCard}>
+              <Text style={styles.itemErrorModalTitle}>Validar producto</Text>
+
+              <ScrollView
+                style={styles.itemModalScroll}
+                contentContainerStyle={styles.itemModalScrollContent}
+                showsVerticalScrollIndicator
+              >
+                <Text style={styles.label}>Cantidad recibida *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={errorModalForm?.quantityReceived || ''}
+                  onChangeText={(value) => updateErrorModalForm('quantityReceived', value)}
+                  placeholderTextColor={theme.color.text.placeholder}
+                />
+
+                <Text style={styles.label}>Almacén destino *</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={errorModalForm?.destinationWarehouseId || ''}
+                    onValueChange={(value) => {
+                      const warehouseId = String(value);
+                      updateErrorModalForm('destinationWarehouseId', warehouseId);
+                      updateErrorModalForm('destinationAreaId', '');
+                      void loadWarehouseAreas(warehouseId);
+                    }}
+                  >
+                    <Picker.Item label="Seleccione almacén" value="" />
+                    {warehouses.map((warehouse) => (
+                      <Picker.Item key={warehouse.id} label={warehouse.name} value={warehouse.id} />
+                    ))}
+                  </Picker>
+                </View>
+
+                <Text style={styles.label}>Área destino *</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={errorModalForm?.destinationAreaId || ''}
+                    onValueChange={(value) =>
+                      updateErrorModalForm('destinationAreaId', String(value))
+                    }
+                  >
+                    <Picker.Item label="Seleccione área" value="" />
+                    {(areasByWarehouse[errorModalForm?.destinationWarehouseId || ''] || []).map(
+                      (area) => (
+                        <Picker.Item key={area.id} label={area.name || area.code} value={area.id} />
+                      )
+                    )}
+                  </Picker>
+                </View>
+
+                <Text style={styles.label}>Notas del Item (Opcional)</Text>
+                <TextInput
+                  style={[styles.input, styles.modalTextArea]}
+                  placeholder="Ej: faltaron 2 unidades"
+                  value={errorModalForm?.notes || ''}
+                  onChangeText={(value) => updateErrorModalForm('notes', value)}
+                  multiline
+                  numberOfLines={2}
+                  placeholderTextColor={theme.color.text.placeholder}
+                />
+
+                <View style={styles.damagedToggleRow}>
+                  <Text style={styles.damagedToggleLabel}>¿Registrar productos dañados?</Text>
+                  <Switch
+                    value={Boolean(errorModalForm?.hasDamaged)}
+                    onValueChange={(value) => {
+                      updateErrorModalForm('hasDamaged', value);
+                      if (!value) {
+                        updateErrorModalForm('quantityDamaged', '0');
+                        updateErrorModalForm('damageNotes', '');
+                        updateErrorModalForm('damagedWarehouseId', '');
+                        updateErrorModalForm('damagedAreaId', '');
+                      }
+                    }}
+                  />
+                </View>
+
+                {errorModalForm?.hasDamaged && (
+                  <>
+                    <Text style={styles.label}>Cantidad dañada *</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="0"
+                      keyboardType="numeric"
+                      value={errorModalForm?.quantityDamaged || ''}
+                      onChangeText={(value) => updateErrorModalForm('quantityDamaged', value)}
+                      placeholderTextColor={theme.color.text.placeholder}
+                    />
+
+                    <Text style={styles.label}>Almacén de dañados *</Text>
+                    <View style={styles.pickerContainer}>
+                      <Picker
+                        selectedValue={errorModalForm?.damagedWarehouseId || ''}
+                        onValueChange={(value) => {
+                          const warehouseId = String(value);
+                          updateErrorModalForm('damagedWarehouseId', warehouseId);
+                          updateErrorModalForm('damagedAreaId', '');
+                          void loadWarehouseAreas(warehouseId);
+                        }}
+                      >
+                        <Picker.Item label="Seleccione almacén" value="" />
+                        {warehouses.map((warehouse) => (
+                          <Picker.Item
+                            key={warehouse.id}
+                            label={warehouse.name}
+                            value={warehouse.id}
+                          />
+                        ))}
+                      </Picker>
+                    </View>
+
+                    <Text style={styles.label}>Área de dañados *</Text>
+                    <View style={styles.pickerContainer}>
+                      <Picker
+                        selectedValue={errorModalForm?.damagedAreaId || ''}
+                        onValueChange={(value) =>
+                          updateErrorModalForm('damagedAreaId', String(value))
+                        }
+                      >
+                        <Picker.Item label="Seleccione área" value="" />
+                        {(areasByWarehouse[errorModalForm?.damagedWarehouseId || ''] || []).map(
+                          (area) => (
+                            <Picker.Item
+                              key={area.id}
+                              label={area.name || area.code}
+                              value={area.id}
+                            />
+                          )
+                        )}
+                      </Picker>
+                    </View>
+
+                    <Text style={styles.label}>Notas de daños (Opcional)</Text>
+                    <TextInput
+                      style={[styles.input, styles.modalTextArea]}
+                      placeholder="Ej: caja dañada"
+                      value={errorModalForm?.damageNotes || ''}
+                      onChangeText={(value) => updateErrorModalForm('damageNotes', value)}
+                      multiline
+                      numberOfLines={2}
+                      placeholderTextColor={theme.color.text.placeholder}
+                    />
+                  </>
+                )}
+              </ScrollView>
+
+              <View style={styles.modalActionsRow}>
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.modalCancelButton]}
+                  onPress={() => {
+                    setShowItemErrorModal(false);
+                    setErrorModalForm(null);
+                  }}
+                >
+                  <Text style={styles.modalActionTextCancel}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.modalSaveButton]}
+                  onPress={validateSingleItem}
+                >
+                  <Text style={styles.modalActionText}>Guardar validación</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={showItemViewModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.itemErrorModalCard}>
+              <Text style={styles.itemErrorModalTitle}>Detalle de validación</Text>
+
+              <Text style={styles.viewRowLabel}>Cantidad recibida</Text>
+              <Text style={styles.viewRowValue}>{errorModalForm?.quantityReceived || '0'}</Text>
+
+              <Text style={styles.viewRowLabel}>Almacén destino</Text>
+              <Text style={styles.viewRowValue}>
+                {warehouses.find((w) => w.id === errorModalForm?.destinationWarehouseId)?.name ||
+                  'N/A'}
+              </Text>
+
+              <Text style={styles.viewRowLabel}>Área destino</Text>
+              <Text style={styles.viewRowValue}>
+                {(areasByWarehouse[errorModalForm?.destinationWarehouseId || ''] || []).find(
+                  (a) => a.id === errorModalForm?.destinationAreaId
+                )?.name || 'N/A'}
+              </Text>
+
+              <Text style={styles.viewRowLabel}>Tiene dañados</Text>
+              <Text style={styles.viewRowValue}>{errorModalForm?.hasDamaged ? 'Sí' : 'No'}</Text>
+
+              {errorModalForm?.hasDamaged && (
+                <>
+                  <Text style={styles.viewRowLabel}>Cantidad dañada</Text>
+                  <Text style={styles.viewRowValue}>{errorModalForm?.quantityDamaged || '0'}</Text>
+
+                  <Text style={styles.viewRowLabel}>Almacén dañados</Text>
+                  <Text style={styles.viewRowValue}>
+                    {warehouses.find((w) => w.id === errorModalForm?.damagedWarehouseId)?.name ||
+                      'N/A'}
+                  </Text>
+
+                  <Text style={styles.viewRowLabel}>Área dañados</Text>
+                  <Text style={styles.viewRowValue}>
+                    {(areasByWarehouse[errorModalForm?.damagedWarehouseId || ''] || []).find(
+                      (a) => a.id === errorModalForm?.damagedAreaId
+                    )?.name || 'N/A'}
+                  </Text>
+
+                  <Text style={styles.viewRowLabel}>Notas de daños</Text>
+                  <Text style={styles.viewRowValue}>{errorModalForm?.damageNotes || '-'}</Text>
+                </>
+              )}
+
+              <Text style={styles.viewRowLabel}>Notas del item</Text>
+              <Text style={styles.viewRowValue}>{errorModalForm?.notes || '-'}</Text>
+
+              <TouchableOpacity
+                style={[styles.modalActionButton, styles.modalSaveButton, { marginTop: 14 }]}
                 onPress={() => {
-                  setShowItemErrorModal(false);
+                  setShowItemViewModal(false);
                   setErrorModalForm(null);
                 }}
               >
-                <Text style={styles.modalActionTextCancel}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalActionButton, styles.modalSaveButton]}
-                onPress={validateSingleItem}
-              >
-                <Text style={styles.modalActionText}>Guardar validación</Text>
+                <Text style={styles.modalActionText}>Cerrar</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </Modal>
-
-      <Modal visible={showItemViewModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.itemErrorModalCard}>
-            <Text style={styles.itemErrorModalTitle}>Detalle de validación</Text>
-
-            <Text style={styles.viewRowLabel}>Cantidad recibida</Text>
-            <Text style={styles.viewRowValue}>{errorModalForm?.quantityReceived || '0'}</Text>
-
-            <Text style={styles.viewRowLabel}>Almacén destino</Text>
-            <Text style={styles.viewRowValue}>
-              {warehouses.find((w) => w.id === errorModalForm?.destinationWarehouseId)?.name ||
-                'N/A'}
-            </Text>
-
-            <Text style={styles.viewRowLabel}>Área destino</Text>
-            <Text style={styles.viewRowValue}>
-              {(areasByWarehouse[errorModalForm?.destinationWarehouseId || ''] || []).find(
-                (a) => a.id === errorModalForm?.destinationAreaId
-              )?.name || 'N/A'}
-            </Text>
-
-            <Text style={styles.viewRowLabel}>Tiene dañados</Text>
-            <Text style={styles.viewRowValue}>{errorModalForm?.hasDamaged ? 'Sí' : 'No'}</Text>
-
-            {errorModalForm?.hasDamaged && (
-              <>
-                <Text style={styles.viewRowLabel}>Cantidad dañada</Text>
-                <Text style={styles.viewRowValue}>{errorModalForm?.quantityDamaged || '0'}</Text>
-
-                <Text style={styles.viewRowLabel}>Almacén dañados</Text>
-                <Text style={styles.viewRowValue}>
-                  {warehouses.find((w) => w.id === errorModalForm?.damagedWarehouseId)?.name ||
-                    'N/A'}
-                </Text>
-
-                <Text style={styles.viewRowLabel}>Área dañados</Text>
-                <Text style={styles.viewRowValue}>
-                  {(areasByWarehouse[errorModalForm?.damagedWarehouseId || ''] || []).find(
-                    (a) => a.id === errorModalForm?.damagedAreaId
-                  )?.name || 'N/A'}
-                </Text>
-
-                <Text style={styles.viewRowLabel}>Notas de daños</Text>
-                <Text style={styles.viewRowValue}>{errorModalForm?.damageNotes || '-'}</Text>
-              </>
-            )}
-
-            <Text style={styles.viewRowLabel}>Notas del item</Text>
-            <Text style={styles.viewRowValue}>{errorModalForm?.notes || '-'}</Text>
-
-            <TouchableOpacity
-              style={[styles.modalActionButton, styles.modalSaveButton, { marginTop: 14 }]}
-              onPress={() => {
-                setShowItemViewModal(false);
-                setErrorModalForm(null);
-              }}
-            >
-              <Text style={styles.modalActionText}>Cerrar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
@@ -1572,39 +1595,62 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.color.background.subtle,
     },
-    header: {
+    headerGradient: {
+      paddingHorizontal: theme.space[5],
+      paddingTop: theme.space[4],
+      paddingBottom: theme.space[4],
+    },
+    headerTop: {
       flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.color.surface.subtle,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-    },
-    backButtonText: {
-      fontSize: 20,
-      color: theme.color.text.body,
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
     },
     headerTitleContainer: {
       flex: 1,
     },
+    headerIconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.space[1],
+    },
+    headerIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: theme.space[3],
+    },
     headerTitle: {
-      fontSize: 20,
+      fontSize: 24,
       fontWeight: '700',
-      color: theme.color.text.heading,
+      color: theme.color.brand.onHeader,
+      letterSpacing: 0.3,
     },
     headerSubtitle: {
-      fontSize: 12,
-      color: theme.color.text.muted,
-      marginTop: 2,
+      fontSize: 14,
+      color: theme.color.brand.onHeaderMuted,
+      fontWeight: '500',
+      marginLeft: theme.space[12],
+    },
+    statHeaderItem: {
+      alignItems: 'center',
+      backgroundColor: theme.color.brand.headerBadge,
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+    },
+    statHeaderValue: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.color.brand.onHeader,
+    },
+    statHeaderLabel: {
+      fontSize: 11,
+      color: theme.color.brand.onHeaderMuted,
+      fontWeight: '500',
+      textTransform: 'uppercase',
     },
     filtersContainer: {
       backgroundColor: theme.color.surface.base,
