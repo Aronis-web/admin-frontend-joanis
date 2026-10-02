@@ -317,6 +317,44 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                     <ActivityIndicator size="small" color={theme.color.text.muted} />
                   ) : null}
                 </View>
+                {/* Modelo de IA del bot (se guarda al elegir) */}
+                <Field
+                  label="Modelo de IA"
+                  hint="Sonnet: máxima calidad. Escalonado: modelo económico al explorar y Sonnet al cerrar. DeepSeek: el más barato (~50x menos), con guardias extra."
+                >
+                  <View style={styles.chipsRow}>
+                    {LLM_MODES.map((m) => {
+                      const selected = llmMode === m.value;
+                      const unavailable = m.value === 'DEEPSEEK' && !deepseekAvailable;
+                      return (
+                        <Pressable
+                          key={m.value}
+                          disabled={unavailable || updateMutation.isPending}
+                          onPress={() => handleLlmMode(m.value)}
+                          style={[
+                            styles.chip,
+                            selected && styles.chipActive,
+                            unavailable && { opacity: 0.4 },
+                          ]}
+                        >
+                          <Caption
+                            color={selected ? theme.color.text.heading : theme.color.text.muted}
+                          >
+                            {selected ? '✓ ' : ''}
+                            {m.label}
+                          </Caption>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {!deepseekAvailable ? (
+                    <Caption color={theme.color.text.muted}>
+                      DeepSeek se habilita cuando el servidor tenga la versión nueva desplegada y su
+                      API key.
+                    </Caption>
+                  ) : null}
+                </Field>
+
                 <View style={styles.stateBox}>
                   <Ionicons
                     name={active ? 'chatbubbles' : 'chatbubbles-outline'}
@@ -353,43 +391,6 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                     />
                   )}
                 </View>
-
-                {/* Modelo de IA del bot (se guarda al elegir) */}
-                <Field
-                  label="Modelo de IA"
-                  hint="Sonnet: máxima calidad. Escalonado: modelo económico al explorar y Sonnet al cerrar. DeepSeek: el más barato (~50x menos), con guardias extra."
-                >
-                  <View style={styles.chipsRow}>
-                    {LLM_MODES.map((m) => {
-                      const selected = llmMode === m.value;
-                      const unavailable = m.value === 'DEEPSEEK' && !deepseekAvailable;
-                      return (
-                        <Pressable
-                          key={m.value}
-                          disabled={unavailable || updateMutation.isPending}
-                          onPress={() => handleLlmMode(m.value)}
-                          style={[
-                            styles.chip,
-                            selected && styles.chipActive,
-                            unavailable && { opacity: 0.4 },
-                          ]}
-                        >
-                          <Caption
-                            color={selected ? theme.color.text.heading : theme.color.text.muted}
-                          >
-                            {selected ? '✓ ' : ''}
-                            {m.label}
-                          </Caption>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  {!deepseekAvailable ? (
-                    <Caption color={theme.color.text.muted}>
-                      DeepSeek no disponible: falta DEEPSEEK_API_KEY en el servidor.
-                    </Caption>
-                  ) : null}
-                </Field>
               </View>
             ) : tab === 'personalidad' ? (
               <View style={{ gap: spacing[3] }}>
