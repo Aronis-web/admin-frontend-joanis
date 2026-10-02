@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotSettingsApi } from '@/services/api';
-import type { BotSettings, BotTerms, BotTermsBody, UpdateBotSettingsBody } from '@/types/chatbot';
+import type {
+  BotFulfillmentSite,
+  BotSettings,
+  BotTerms,
+  BotTermsBody,
+  UpdateBotSettingsBody,
+} from '@/types/chatbot';
 
 // ============================================
 // Query Keys Factory
@@ -9,6 +15,7 @@ export const chatbotSettingsKeys = {
   all: ['chatbot-settings'] as const,
   detail: () => [...chatbotSettingsKeys.all, 'detail'] as const,
   terms: () => [...chatbotSettingsKeys.all, 'terms'] as const,
+  fulfillmentSites: () => [...chatbotSettingsKeys.all, 'fulfillment-sites'] as const,
 };
 
 // ============================================
@@ -36,6 +43,17 @@ export const useUpdateBotSettings = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(chatbotSettingsKeys.detail(), data);
     },
+  });
+};
+
+/** Sedes activas para configurar puntos de recojo y origen del delivery. */
+export const useBotFulfillmentSites = (options?: { enabled?: boolean }) => {
+  return useQuery<BotFulfillmentSite[]>({
+    queryKey: chatbotSettingsKeys.fulfillmentSites(),
+    queryFn: () => chatbotSettingsApi.fulfillmentSites(),
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: options?.enabled ?? true,
   });
 };
 

@@ -52,6 +52,21 @@ import { formatDateTime, formatSolesFromCents } from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotOrders'>;
 
+/** Linea de entrega del pedido (recojo / delivery / agencia) para el asesor. */
+const describeOrderFulfillment = (order: ChatbotOrder): string | null => {
+  const f = order.fulfillment;
+  if (!f) return null;
+  const fee = f.feeCents > 0 ? formatSolesFromCents(String(f.feeCents)) : null;
+  if (f.type === 'PICKUP') {
+    return `🏪 Recojo en ${f.name ?? 'tienda'}${f.address ? ` (${f.address})` : ''}`;
+  }
+  if (f.type === 'DELIVERY_LIMA') {
+    const km = f.distanceKm != null ? ` · ~${f.distanceKm} km` : '';
+    return `🛵 Delivery: ${f.address ?? 'sin dirección'}${km}${fee ? ` · envío ${fee}` : ''}`;
+  }
+  return `🚚 ${f.name ?? 'Agencia'} → ${f.destination ?? 'provincia'}${fee ? ` · envío ${fee}` : ' · pago en destino'}`;
+};
+
 /**
  * Valor del filtro. `MANAGE` = bandeja por defecto (sin `status`): el backend
  * devuelve los pedidos accionables (`PENDING_PAYMENT` + `AWAITING_BALANCE`).
@@ -146,10 +161,11 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const extendMutation = useExtendChatbotOrderHold();
 
   const handleValidate = (order: ChatbotOrder) => {
-    if (order.balanceCents > 0) {
+    // balanceCents = pagado - total: negativo = falta pagar.
+    if (order.balanceCents < 0) {
       Alert.alert(
         'Saldo pendiente',
-        `Aún falta ${formatSolesFromCents(String(order.balanceCents))} por cubrir. ¿Validar de todas formas?`,
+        `Aún falta ${formatSolesFromCents(String(Math.abs(order.balanceCents)))} por cubrir. ¿Validar de todas formas?`,
         [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Validar igual', onPress: () => runValidate(order) },
@@ -302,13 +318,15 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               {orders.map((order) => {
                 const badge = STATUS_BADGE[order.status];
                 const voucher = resolveVoucherUrl(order.voucherUrl);
-                const balancePositive = order.balanceCents > 0;
+                // balanceCents = pagado - total: negativo = falta, positivo = a favor.
+                const balanceMissing = order.balanceCents < 0;
                 const balanceColor =
-                  order.balanceCents > 0
+                  order.balanceCents < 0
                     ? theme.color.text.danger
-                    : order.balanceCents < 0
+                    : order.balanceCents > 0
                       ? theme.color.text.warning
                       : theme.color.text.success;
+                const delivery = describeOrderFulfillment(order);
                 return (
                   <Card key={order.id} style={styles.orderCard}>
                     <View style={styles.orderHeader}>
@@ -336,13 +354,15 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       </View>
                       <View style={styles.balanceCell}>
                         <Caption color={theme.color.text.muted}>
-                          {balancePositive ? 'Falta' : order.balanceCents < 0 ? 'A favor' : 'Saldo'}
+                          {balanceMissing ? 'Falta' : order.balanceCents > 0 ? 'A favor' : 'Saldo'}
                         </Caption>
                         <Body color={balanceColor}>
                           {formatSolesFromCents(String(Math.abs(order.balanceCents)))}
                         </Body>
                       </View>
                     </View>
+
+                    {delivery ? <Caption color={theme.color.text.body}>{delivery}</Caption> : null}
 
                     {voucher ? (
                       <Pressable onPress={() => setPreviewUrl(voucher)} style={styles.voucherBox}>

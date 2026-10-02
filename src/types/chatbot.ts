@@ -206,6 +206,23 @@ export interface SendReplyBody {
 // ============================================
 // Pedidos
 // ============================================
+/** Entrega de un pedido del bot (`chatbot_orders.fulfillment`). */
+export interface ChatbotOrderFulfillment {
+  type: 'PICKUP' | 'DELIVERY_LIMA' | 'AGENCY';
+  siteId?: string | null;
+  /** Punto de recojo o agencia. */
+  name?: string | null;
+  address?: string | null;
+  reference?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  agency?: string | null;
+  /** AGENCY: ciudad / sede de destino. */
+  destination?: string | null;
+  distanceKm?: number | null;
+  feeCents: number;
+}
+
 export interface ChatbotOrder {
   id: string;
   cartId: string;
@@ -220,10 +237,14 @@ export interface ChatbotOrder {
   /** Monto ya acreditado por vouchers conciliados, en centavos (string). */
   paidCents: string;
   /**
-   * Saldo restante en centavos: `total - pagado`. Llega como número.
-   * `> 0` falta pagar; `0` cubierto; `< 0` pagó de más.
+   * Saldo en centavos: `pagado - total` (asi lo calcula el backend). Llega
+   * como número. `< 0` falta pagar; `0` cubierto; `> 0` pagó de más (a favor).
    */
   balanceCents: number;
+  /** Tarifa de envío incluida en `totalCents` (string, "0" = recojo). */
+  deliveryFeeCents?: string;
+  /** Modalidad de entrega elegida al cerrar el pedido (null en pedidos antiguos). */
+  fulfillment?: ChatbotOrderFulfillment | null;
   rejectedReason: string | null;
   validatedBy: string | null;
   validatedAt: string | null;
@@ -553,8 +574,57 @@ export interface BotSettings {
   isActive: boolean;
   /** Modo "Venta por cajón": catálogo curado a precio fijo, sin gate de nivel. */
   crateMode: boolean;
+  /**
+   * Entrega al cerrar el pedido (recojo en tienda / delivery). `null` = el bot
+   * no pregunta la entrega.
+   */
+  fulfillmentConfig?: BotFulfillmentConfig | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// ============================================
+// Entrega (recojo / delivery)
+// ============================================
+/** Tramo de tarifa de delivery en Lima: hasta `upToKm` cuesta `feeCents`. */
+export interface BotDeliveryBand {
+  upToKm: number;
+  feeCents: number;
+}
+
+export interface BotAgencyOption {
+  code: string;
+  name: string;
+  /** 0 = el cliente paga el envío en destino. */
+  feeCents: number;
+  enabled: boolean;
+}
+
+/** `chatbot_settings.fulfillment_config`. */
+export interface BotFulfillmentConfig {
+  /** Sedes habilitadas como punto de recojo (sin costo), en orden. */
+  pickupSiteIds: string[];
+  lima: {
+    enabled: boolean;
+    /** Sede desde la que se despacha (origen para medir la distancia). */
+    originSiteId: string | null;
+    /** Tramos ordenados por km; más allá del último = sin cobertura. */
+    bands: BotDeliveryBand[];
+  };
+  agency: {
+    enabled: boolean;
+    agencies: BotAgencyOption[];
+  };
+}
+
+/** Sede para configurar la entrega (`GET /chatbot/settings/fulfillment/sites`). */
+export interface BotFulfillmentSite {
+  id: string;
+  name: string;
+  district: string | null;
+  address: string | null;
+  /** Sin coordenadas: no hay pin de mapa ni cálculo de distancia. */
+  hasCoords: boolean;
 }
 
 export type UpdateBotSettingsBody = Partial<

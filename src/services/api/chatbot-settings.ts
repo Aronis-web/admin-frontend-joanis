@@ -1,5 +1,11 @@
 import { apiClient } from './client';
-import type { BotSettings, BotTerms, BotTermsBody, UpdateBotSettingsBody } from '@/types/chatbot';
+import type {
+  BotFulfillmentSite,
+  BotSettings,
+  BotTerms,
+  BotTermsBody,
+  UpdateBotSettingsBody,
+} from '@/types/chatbot';
 
 /**
  * Chatbot · Configuración (personalidad + FAQ) API Service
@@ -15,6 +21,11 @@ class ChatbotSettingsService {
 
   async update(body: UpdateBotSettingsBody): Promise<BotSettings> {
     return apiClient.put<BotSettings>(this.basePath, body);
+  }
+
+  /** Sedes activas para configurar la entrega. `GET /chatbot/settings/fulfillment/sites`. */
+  async fulfillmentSites(): Promise<BotFulfillmentSite[]> {
+    return apiClient.get<BotFulfillmentSite[]>(`${this.basePath}/fulfillment/sites`);
   }
 
   /** Términos y condiciones actuales. `GET /chatbot/settings/terms`. */

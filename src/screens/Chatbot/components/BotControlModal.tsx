@@ -23,13 +23,14 @@ import {
 } from '@/hooks/api/useChatbotSettings';
 import type { BotEmojiLevel, BotFaqRule, UpdateBotSettingsBody } from '@/types/chatbot';
 import Alert from '@/utils/alert';
+import { BotFulfillmentPanel } from './BotFulfillmentPanel';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
 }
 
-type Tab = 'estado' | 'personalidad' | 'faq' | 'terminos';
+type Tab = 'estado' | 'personalidad' | 'faq' | 'entrega' | 'terminos';
 
 /** Fila editable de FAQ en el UI (usa string CSV de keywords). */
 interface FaqRow {
@@ -258,7 +259,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
 
           {/* Tabs */}
           <View style={styles.tabs}>
-            {(['estado', 'personalidad', 'faq', 'terminos'] as Tab[]).map((t) => (
+            {(['estado', 'personalidad', 'faq', 'entrega', 'terminos'] as Tab[]).map((t) => (
               <Pressable
                 key={t}
                 onPress={() => setTab(t)}
@@ -274,7 +275,9 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                       ? 'Personalidad'
                       : t === 'faq'
                         ? 'FAQ'
-                        : 'Términos'}
+                        : t === 'entrega'
+                          ? 'Entrega'
+                          : 'Términos'}
                 </Caption>
               </Pressable>
             ))}
@@ -478,6 +481,8 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                   />
                 </View>
               </View>
+            ) : tab === 'entrega' ? (
+              <BotFulfillmentPanel visible={visible} />
             ) : (
               <View style={{ gap: spacing[3] }}>
                 <Caption color={theme.color.text.muted}>
