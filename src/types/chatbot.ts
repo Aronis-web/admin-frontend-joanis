@@ -561,6 +561,9 @@ export interface BotFaqRule {
   reply: string;
 }
 
+/** Modo de LLM del bot. */
+export type BotLlmMode = 'SONNET' | 'TIERED' | 'DEEPSEEK';
+
 export interface BotSettings {
   id?: string;
   companyOwnerId?: string;
@@ -576,6 +579,10 @@ export interface BotSettings {
   crateMode: boolean;
   /** Modelo chico (barato) mientras el cliente saluda/explora; el grande al negociar y cerrar. */
   modelTiering?: boolean;
+  /** Modelo de IA: SONNET | TIERED (economico al explorar) | DEEPSEEK. */
+  llmMode?: BotLlmMode;
+  /** true si el servidor tiene DEEPSEEK_API_KEY (modo DeepSeek disponible). */
+  deepseekAvailable?: boolean;
   /**
    * Entrega al cerrar el pedido (recojo en tienda / delivery). `null` = el bot
    * no pregunta la entrega.
@@ -630,7 +637,7 @@ export interface BotFulfillmentSite {
 }
 
 export type UpdateBotSettingsBody = Partial<
-  Omit<BotSettings, 'id' | 'companyOwnerId' | 'createdAt' | 'updatedAt'>
+  Omit<BotSettings, 'id' | 'companyOwnerId' | 'createdAt' | 'updatedAt' | 'deepseekAvailable'>
 >;
 
 // ============================================

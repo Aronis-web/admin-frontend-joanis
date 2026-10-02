@@ -21,7 +21,7 @@ import {
   useUpdateBotSettings,
   useUpdateBotTerms,
 } from '@/hooks/api/useChatbotSettings';
-import type { BotEmojiLevel, BotFaqRule, UpdateBotSettingsBody } from '@/types/chatbot';
+import type { BotEmojiLevel, BotFaqRule, BotLlmMode, UpdateBotSettingsBody } from '@/types/chatbot';
 import Alert from '@/utils/alert';
 import { BotFulfillmentPanel } from './BotFulfillmentPanel';
 
@@ -51,6 +51,12 @@ const fromFaqRows = (rows: FaqRow[]): BotFaqRule[] =>
       reply: r.reply.trim(),
     }))
     .filter((r) => r.keywords.length > 0 && r.reply.length > 0);
+
+const LLM_MODES: Array<{ value: BotLlmMode; label: string }> = [
+  { value: 'SONNET', label: 'Solo Sonnet' },
+  { value: 'TIERED', label: 'Escalonado' },
+  { value: 'DEEPSEEK', label: 'DeepSeek V4.1 Flash' },
+];
 
 const EMOJI_LEVELS: BotEmojiLevel[] = ['none', 'low', 'high'];
 const EMOJI_LABEL: Record<BotEmojiLevel, string> = {
@@ -122,7 +128,6 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
   const [emojiLevel, setEmojiLevel] = useState<BotEmojiLevel>('low');
   const [maxLines, setMaxLines] = useState('3');
   const [faq, setFaq] = useState<FaqRow[]>([]);
-  const [modelTiering, setModelTiering] = useState(false);
 
   // Rehidrata el formulario cuando llegan settings del backend.
   useEffect(() => {
@@ -135,7 +140,6 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
     setEmojiLevel(s.emojiLevel ?? 'low');
     setMaxLines(String(s.maxLines ?? 3));
     setFaq(toFaqRows(s.faqKeywords));
-    setModelTiering(s.modelTiering ?? false);
   }, [settingsQuery.data]);
 
   const dirty = useMemo(() => {
@@ -148,8 +152,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
       (s.customInstructions ?? '') !== customInstructions ||
       s.emojiLevel !== emojiLevel ||
       String(s.maxLines ?? 3) !== maxLines ||
-      JSON.stringify(s.faqKeywords ?? []) !== JSON.stringify(fromFaqRows(faq)) ||
-      (s.modelTiering ?? false) !== modelTiering
+      JSON.stringify(s.faqKeywords ?? []) !== JSON.stringify(fromFaqRows(faq))
     );
   }, [
     settingsQuery.data,
@@ -160,7 +163,6 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
     emojiLevel,
     maxLines,
     faq,
-    modelTiering,
   ]);
 
   const handleSaveSettings = () => {
@@ -173,12 +175,25 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
       emojiLevel,
       maxLines: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : 3,
       faqKeywords: fromFaqRows(faq),
-      modelTiering,
     };
     updateMutation.mutate(body, {
       onError: (err: any) =>
         Alert.alert('Error', err?.message ?? 'No se pudo guardar la configuración'),
     });
+  };
+
+  // ---------- Modelo de IA ----------
+  const llmMode: BotLlmMode = settingsQuery.data?.llmMode ?? 'SONNET';
+  const deepseekAvailable = settingsQuery.data?.deepseekAvailable ?? false;
+  const handleLlmMode = (mode: BotLlmMode) => {
+    if (mode === llmMode) return;
+    updateMutation.mutate(
+      { llmMode: mode },
+      {
+        onError: (err: any) =>
+          Alert.alert('Error', err?.message ?? 'No se pudo cambiar el modelo de IA'),
+      }
+    );
   };
 
   const addFaqRow = () => setFaq((prev) => [...prev, { keywordsRaw: '', reply: '' }]);
@@ -338,6 +353,43 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                     />
                   )}
                 </View>
+
+                {/* Modelo de IA del bot (se guarda al elegir) */}
+                <Field
+                  label="Modelo de IA"
+                  hint="Sonnet: máxima calidad. Escalonado: modelo económico al explorar y Sonnet al cerrar. DeepSeek: el más barato (~50x menos), con guardias extra."
+                >
+                  <View style={styles.chipsRow}>
+                    {LLM_MODES.map((m) => {
+                      const selected = llmMode === m.value;
+                      const unavailable = m.value === 'DEEPSEEK' && !deepseekAvailable;
+                      return (
+                        <Pressable
+                          key={m.value}
+                          disabled={unavailable || updateMutation.isPending}
+                          onPress={() => handleLlmMode(m.value)}
+                          style={[
+                            styles.chip,
+                            selected && styles.chipActive,
+                            unavailable && { opacity: 0.4 },
+                          ]}
+                        >
+                          <Caption
+                            color={selected ? theme.color.text.heading : theme.color.text.muted}
+                          >
+                            {selected ? '✓ ' : ''}
+                            {m.label}
+                          </Caption>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {!deepseekAvailable ? (
+                    <Caption color={theme.color.text.muted}>
+                      DeepSeek no disponible: falta DEEPSEEK_API_KEY en el servidor.
+                    </Caption>
+                  ) : null}
+                </Field>
               </View>
             ) : tab === 'personalidad' ? (
               <View style={{ gap: spacing[3] }}>
@@ -417,13 +469,6 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                     placeholder="3"
                     placeholderTextColor={theme.color.text.muted}
                   />
-                </Field>
-
-                <Field
-                  label="Modelo económico al explorar"
-                  hint="Usa el modelo chico mientras el cliente saluda o explora y el principal al negociar y cerrar el pedido. Ahorra costo de IA."
-                >
-                  <Switch value={modelTiering} onValueChange={setModelTiering} />
                 </Field>
 
                 <View style={styles.actionsRow}>
