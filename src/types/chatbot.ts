@@ -574,6 +574,8 @@ export interface BotSettings {
   isActive: boolean;
   /** Modo "Venta por cajón": catálogo curado a precio fijo, sin gate de nivel. */
   crateMode: boolean;
+  /** Modelo chico (barato) mientras el cliente saluda/explora; el grande al negociar y cerrar. */
+  modelTiering?: boolean;
   /**
    * Entrega al cerrar el pedido (recojo en tienda / delivery). `null` = el bot
    * no pregunta la entrega.

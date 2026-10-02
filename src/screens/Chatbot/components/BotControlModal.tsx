@@ -122,6 +122,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
   const [emojiLevel, setEmojiLevel] = useState<BotEmojiLevel>('low');
   const [maxLines, setMaxLines] = useState('3');
   const [faq, setFaq] = useState<FaqRow[]>([]);
+  const [modelTiering, setModelTiering] = useState(false);
 
   // Rehidrata el formulario cuando llegan settings del backend.
   useEffect(() => {
@@ -134,6 +135,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
     setEmojiLevel(s.emojiLevel ?? 'low');
     setMaxLines(String(s.maxLines ?? 3));
     setFaq(toFaqRows(s.faqKeywords));
+    setModelTiering(s.modelTiering ?? false);
   }, [settingsQuery.data]);
 
   const dirty = useMemo(() => {
@@ -146,7 +148,8 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
       (s.customInstructions ?? '') !== customInstructions ||
       s.emojiLevel !== emojiLevel ||
       String(s.maxLines ?? 3) !== maxLines ||
-      JSON.stringify(s.faqKeywords ?? []) !== JSON.stringify(fromFaqRows(faq))
+      JSON.stringify(s.faqKeywords ?? []) !== JSON.stringify(fromFaqRows(faq)) ||
+      (s.modelTiering ?? false) !== modelTiering
     );
   }, [
     settingsQuery.data,
@@ -157,6 +160,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
     emojiLevel,
     maxLines,
     faq,
+    modelTiering,
   ]);
 
   const handleSaveSettings = () => {
@@ -169,6 +173,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
       emojiLevel,
       maxLines: Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : 3,
       faqKeywords: fromFaqRows(faq),
+      modelTiering,
     };
     updateMutation.mutate(body, {
       onError: (err: any) =>
@@ -414,6 +419,13 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
                   />
                 </Field>
 
+                <Field
+                  label="Modelo económico al explorar"
+                  hint="Usa el modelo chico mientras el cliente saluda o explora y el principal al negociar y cerrar el pedido. Ahorra costo de IA."
+                >
+                  <Switch value={modelTiering} onValueChange={setModelTiering} />
+                </Field>
+
                 <View style={styles.actionsRow}>
                   <Button
                     title="Guardar configuración"
@@ -551,9 +563,6 @@ const Field: React.FC<{ label: string; hint?: string; children: React.ReactNode 
     </View>
   );
 };
-
-// Silencia unused import cuando el DS no expone Switch por default aún.
-void Switch;
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
