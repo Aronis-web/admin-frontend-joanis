@@ -619,6 +619,24 @@ const SireVentasDeclaredScreen = lazyLoad(
   'Cargando Ventas Declaradas...'
 );
 
+// CPE recibidos (Comprobantes de Pago con detalle de líneas) - Lazy Loaded
+const SunatCpeScreen = lazyLoad(
+  () => import('@/screens/SunatCpe').then((m) => ({ default: m.SunatCpeScreen })),
+  'Cargando CPE recibidos...'
+);
+
+// Honorarios 4ta (RxH) - Lazy Loaded
+const SunatHonorariosScreen = lazyLoad(
+  () => import('@/screens/SunatHonorarios').then((m) => ({ default: m.SunatHonorariosScreen })),
+  'Cargando Honorarios...'
+);
+
+// Guías de Remisión Electrónicas (GRE) - Lazy Loaded
+const SunatGreScreen = lazyLoad(
+  () => import('@/screens/SunatGre').then((m) => ({ default: m.SunatGreScreen })),
+  'Cargando Guías de Remisión...'
+);
+
 // Chatbot Ventas WhatsApp - Lazy Loaded
 const ChatbotChatsScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotChatsScreen })),
@@ -2378,6 +2396,33 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['admin.sire_ventas.declared.read']}>
             <SireVentasDeclaredScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* CPE recibidos (Comprobantes de Pago con detalle de líneas) */}
+      <MainStackNavigator.Screen name="SunatCpe" options={{ title: 'CPE recibidos' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sunat_cpe.invoices.read']}>
+            <SunatCpeScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Honorarios 4ta (RxH) */}
+      <MainStackNavigator.Screen name="SunatHonorarios" options={{ title: 'Honorarios 4ta (RxH)' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sunat_honorarios.invoices.read']}>
+            <SunatHonorariosScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Guías de Remisión Electrónicas (GRE) */}
+      <MainStackNavigator.Screen name="SunatGre" options={{ title: 'Guías de Remisión (GRE)' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['admin.sunat_gre.invoices.read']}>
+            <SunatGreScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

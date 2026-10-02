@@ -347,6 +347,15 @@ export type MainStackParamList = {
   // SIRE Ventas Declaradas (RVIE)
   SireVentasDeclared: undefined;
 
+  // CPE recibidos (Comprobantes de Pago con detalle de líneas)
+  SunatCpe: undefined;
+
+  // Honorarios 4ta (RxH)
+  SunatHonorarios: undefined;
+
+  // Guías de Remisión Electrónicas (GRE)
+  SunatGre: undefined;
+
   // Notifications WhatsApp
   NotificationsWhatsapp: undefined;
 

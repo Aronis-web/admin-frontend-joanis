@@ -406,6 +406,27 @@ const menuCategories: MenuCategory[] = [
         requiredPermissions: ['admin.sire_ventas.invoices.read'],
       },
       {
+        id: 'sunat-cpe',
+        icon: 'receipt-outline',
+        label: 'CPE recibidos (detalle)',
+        route: MAIN_ROUTES.SUNAT_CPE,
+        requiredPermissions: ['admin.sunat_cpe.invoices.read'],
+      },
+      {
+        id: 'sunat-honorarios',
+        icon: 'person-outline',
+        label: 'Honorarios 4ta (RxH)',
+        route: MAIN_ROUTES.SUNAT_HONORARIOS,
+        requiredPermissions: ['admin.sunat_honorarios.invoices.read'],
+      },
+      {
+        id: 'sunat-gre',
+        icon: 'car-outline',
+        label: 'Guías de Remisión (GRE)',
+        route: MAIN_ROUTES.SUNAT_GRE,
+        requiredPermissions: ['admin.sunat_gre.invoices.read'],
+      },
+      {
         id: 'sire-compras-declared',
         icon: 'cloud-done-outline',
         label: 'Compras declaradas a SUNAT',

@@ -176,6 +176,15 @@ export const MAIN_ROUTES = {
   // SIRE Ventas Declaradas (RVIE) - Ventas declaradas a SUNAT
   SIRE_VENTAS_DECLARED: 'SireVentasDeclared',
 
+  // CPE recibidos (Comprobantes de Pago con detalle de líneas)
+  SUNAT_CPE: 'SunatCpe',
+
+  // Honorarios 4ta (RxH)
+  SUNAT_HONORARIOS: 'SunatHonorarios',
+
+  // Guías de Remisión Electrónicas (GRE)
+  SUNAT_GRE: 'SunatGre',
+
   // Contaduría · Dashboard
   CONTADURIA_DASHBOARD: 'ContaduriaDashboard',
 
@@ -453,6 +462,15 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
 
   // SIRE Ventas Declaradas (RVIE)
   SIRE_VENTAS_DECLARED: 'admin.sire_ventas.declared.read',
+
+  // CPE recibidos
+  SUNAT_CPE: 'admin.sunat_cpe.invoices.read',
+
+  // Honorarios 4ta (RxH)
+  SUNAT_HONORARIOS: 'admin.sunat_honorarios.invoices.read',
+
+  // Guías de Remisión Electrónicas (GRE)
+  SUNAT_GRE: 'admin.sunat_gre.invoices.read',
 
   // Contaduría · Dashboard
   CONTADURIA_DASHBOARD: 'admin.sire_compras.invoices.read',
