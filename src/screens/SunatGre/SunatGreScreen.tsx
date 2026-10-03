@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
@@ -43,16 +44,23 @@ export const SunatGreScreen: React.FC<Props> = ({ navigation }) => {
   const [rol, setRol] = useState<RolFilter>('all');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [page, setPage] = useState(1);
 
   const params = useMemo(
-    () => ({ rol: rol === 'all' ? undefined : rol, limit: PAGE_SIZE, offset: 0 }),
-    [rol]
+    () => ({ rol: rol === 'all' ? undefined : rol, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+    [rol, page]
   );
 
   const { data, isLoading, isError, error, refetch, isFetching } = useSunatGre(params);
   const importMut = useImportSunatGre();
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const selectRol = useCallback((id: RolFilter) => {
+    setRol(id);
+    setPage(1);
+  }, []);
 
   const handleImport = useCallback(async () => {
     try {
@@ -115,7 +123,7 @@ export const SunatGreScreen: React.FC<Props> = ({ navigation }) => {
   const renderChip = (id: RolFilter, label: string) => (
     <TouchableOpacity
       style={[styles.chip, rol === id && styles.chipActive]}
-      onPress={() => setRol(id)}
+      onPress={() => selectRol(id)}
     >
       <RNText style={[styles.chipText, rol === id && styles.chipTextActive]}>{label}</RNText>
     </TouchableOpacity>
@@ -179,6 +187,21 @@ export const SunatGreScreen: React.FC<Props> = ({ navigation }) => {
             renderItem={renderRow}
             contentContainerStyle={styles.listContent}
             refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
+            ListFooterComponent={
+              total > PAGE_SIZE ? (
+                <View style={styles.paginationWrap}>
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={total}
+                    itemsPerPage={PAGE_SIZE}
+                    onPageChange={setPage}
+                    loading={isFetching}
+                    variant="full"
+                  />
+                </View>
+              ) : null
+            }
           />
         )}
 
@@ -451,6 +474,7 @@ const createStyles = (theme: Theme) =>
     },
     retryBtnText: { color: theme.color.action.primary.text, fontWeight: '700' },
     listContent: { padding: theme.space[3], gap: theme.space[2] },
+    paginationWrap: { paddingTop: theme.space[3] },
     row: {
       flexDirection: 'row',
       alignItems: 'center',

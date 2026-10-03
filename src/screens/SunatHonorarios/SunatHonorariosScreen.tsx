@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
@@ -52,10 +53,11 @@ export const SunatHonorariosScreen: React.FC<Props> = ({ navigation }) => {
 
   const [periodo, setPeriodo] = useState('');
   const [appliedPeriodo, setAppliedPeriodo] = useState<string | undefined>(undefined);
+  const [page, setPage] = useState(1);
 
   const params = useMemo(
-    () => ({ periodo: appliedPeriodo, limit: PAGE_SIZE, offset: 0 }),
-    [appliedPeriodo]
+    () => ({ periodo: appliedPeriodo, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+    [appliedPeriodo, page]
   );
 
   const { data, isLoading, isError, error, refetch, isFetching } = useSunatHonorarios(params);
@@ -63,8 +65,13 @@ export const SunatHonorariosScreen: React.FC<Props> = ({ navigation }) => {
   const importMut = useImportSunatHonorarios();
 
   const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const apply = useCallback(() => setAppliedPeriodo(normPeriodo(periodo)), [periodo]);
+  const apply = useCallback(() => {
+    setAppliedPeriodo(normPeriodo(periodo));
+    setPage(1);
+  }, [periodo]);
 
   const handleImport = useCallback(async () => {
     try {
@@ -201,6 +208,21 @@ export const SunatHonorariosScreen: React.FC<Props> = ({ navigation }) => {
             renderItem={renderRow}
             contentContainerStyle={styles.listContent}
             refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} />}
+            ListFooterComponent={
+              total > PAGE_SIZE ? (
+                <View style={styles.paginationWrap}>
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={total}
+                    itemsPerPage={PAGE_SIZE}
+                    onPageChange={setPage}
+                    loading={isFetching}
+                    variant="full"
+                  />
+                </View>
+              ) : null
+            }
           />
         )}
       </SafeAreaView>
@@ -276,6 +298,7 @@ const createStyles = (theme: Theme) =>
     },
     retryBtnText: { color: theme.color.action.primary.text, fontWeight: '700' },
     listContent: { padding: theme.space[3], gap: theme.space[2] },
+    paginationWrap: { paddingTop: theme.space[3] },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
