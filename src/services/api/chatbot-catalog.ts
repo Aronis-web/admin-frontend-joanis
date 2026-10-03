@@ -25,6 +25,11 @@ class ChatbotCatalogService {
     return apiClient.patch<SellableProduct>(`${this.basePath}/${id}`, body);
   }
 
+  /** Elimina varias entradas a la vez. `POST /chatbot/catalog/bulk-delete`. */
+  async removeMany(ids: string[]): Promise<{ deleted: number }> {
+    return apiClient.post<{ deleted: number }>(`${this.basePath}/bulk-delete`, { ids });
+  }
+
   async remove(id: string): Promise<void> {
     await apiClient.delete<void>(`${this.basePath}/${id}`);
   }

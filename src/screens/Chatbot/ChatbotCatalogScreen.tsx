@@ -38,6 +38,7 @@ import { spacing, borderRadius } from '@/design-system/tokens';
 import {
   useCreateSellableProduct,
   useDeleteSellableProduct,
+  useBulkDeleteSellableProducts,
   useProductsByIdsBatch,
   useProductStockByAreas,
   useSellableProductsList,
@@ -168,7 +169,48 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   const createMutation = useCreateSellableProduct();
   const updateMutation = useUpdateSellableProduct();
   const deleteMutation = useDeleteSellableProduct();
+  const bulkDeleteMutation = useBulkDeleteSellableProducts();
   const pinMutation = usePinSellable();
+
+  // ---------- Selección múltiple ----------
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const toggleSelected = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+  const inactiveCount = useMemo(() => items.filter((it) => !it.isActive).length, [items]);
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    Alert.alert(
+      'Eliminar seleccionados',
+      `¿Eliminar ${ids.length} producto(s) del catálogo? Salen del bot, de la web y de WhatsApp.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () =>
+            bulkDeleteMutation.mutate(ids, {
+              onSuccess: (r) => {
+                exitSelectMode();
+                Alert.alert('Listo', `Se eliminaron ${r.deleted} producto(s).`);
+              },
+              onError: (err: any) =>
+                Alert.alert('Error', err?.message ?? 'No se pudieron eliminar'),
+            }),
+        },
+      ]
+    );
+  };
 
   const [editing, setEditing] = useState<SellableProduct | null>(null);
   const [creating, setCreating] = useState(false);
@@ -416,6 +458,61 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
             />
           ) : (
             <View style={styles.list}>
+              {/* Barra de selección múltiple */}
+              <View style={styles.bulkBar}>
+                {selectMode ? (
+                  <>
+                    <Caption color={theme.color.text.heading} style={{ fontWeight: '600' }}>
+                      {selectedIds.size} seleccionado(s)
+                    </Caption>
+                    <View style={styles.bulkActions}>
+                      <Button
+                        title="Todos"
+                        variant="ghost"
+                        onPress={() => setSelectedIds(new Set(items.map((it) => it.id)))}
+                      />
+                      {inactiveCount > 0 ? (
+                        <Button
+                          title={`Inactivos (${inactiveCount})`}
+                          variant="ghost"
+                          onPress={() =>
+                            setSelectedIds(
+                              new Set(items.filter((it) => !it.isActive).map((it) => it.id))
+                            )
+                          }
+                        />
+                      ) : null}
+                      <Button
+                        title="Ninguno"
+                        variant="ghost"
+                        onPress={() => setSelectedIds(new Set())}
+                      />
+                      <Button
+                        title={`Eliminar (${selectedIds.size})`}
+                        variant="primary"
+                        leftIcon="trash-outline"
+                        disabled={selectedIds.size === 0}
+                        loading={bulkDeleteMutation.isPending}
+                        onPress={handleBulkDelete}
+                      />
+                      <Button title="Cancelar" variant="outline" onPress={exitSelectMode} />
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Caption color={theme.color.text.muted}>
+                      {items.length} producto(s)
+                      {inactiveCount > 0 ? ` · ${inactiveCount} inactivo(s)` : ''}
+                    </Caption>
+                    <Button
+                      title="Seleccionar"
+                      variant="outline"
+                      leftIcon="checkbox-outline"
+                      onPress={() => setSelectMode(true)}
+                    />
+                  </>
+                )}
+              </View>
               {items.map((item) => {
                 const product = productsById?.get(item.productId);
                 const thumb = product?.photos?.[0] ?? product?.imageUrl;
@@ -425,9 +522,28 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                 const sourceLabel = wh
                   ? `${wh.name}${area?.name ? ` · ${area.name}` : ''}`
                   : `Bodega ${item.warehouseId.slice(0, 6)}…`;
+                const isSelected = selectedIds.has(item.id);
                 return (
-                  <Card key={item.id} style={styles.itemCard}>
-                    <View style={styles.itemHeader}>
+                  <Card
+                    key={item.id}
+                    style={
+                      isSelected
+                        ? { ...styles.itemCard, ...styles.itemCardSelected }
+                        : styles.itemCard
+                    }
+                  >
+                    <Pressable
+                      disabled={!selectMode}
+                      onPress={() => toggleSelected(item.id)}
+                      style={styles.itemHeader}
+                    >
+                      {selectMode ? (
+                        <Ionicons
+                          name={isSelected ? 'checkbox' : 'square-outline'}
+                          size={24}
+                          color={isSelected ? theme.color.brand.accent : theme.color.icon.subtle}
+                        />
+                      ) : null}
                       {thumb ? (
                         <Image source={{ uri: thumb }} style={styles.thumb} resizeMode="cover" />
                       ) : (
@@ -459,7 +575,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                           <Badge variant="warning" label="Baja rotación" />
                         ) : null}
                       </View>
-                    </View>
+                    </Pressable>
                     <View style={styles.itemMeta}>
                       <Caption color={theme.color.text.muted}>
                         Vendible desde: {sourceLabel}
@@ -863,6 +979,22 @@ const createStyles = (theme: Theme) =>
     },
     itemCard: {
       padding: spacing[3],
+      gap: spacing[2],
+    },
+    itemCardSelected: {
+      borderWidth: 2,
+      borderColor: theme.color.brand.accent,
+    },
+    bulkBar: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing[2],
+    },
+    bulkActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: spacing[2],
     },
     itemHeader: {

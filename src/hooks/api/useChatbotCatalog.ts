@@ -185,6 +185,17 @@ export const useUpdateSellableProduct = () => {
   });
 };
 
+/** Elimina varias entradas del catálogo vendible en una sola llamada. */
+export const useBulkDeleteSellableProducts = () => {
+  const queryClient = useQueryClient();
+  return useMutation<{ deleted: number }, Error, string[]>({
+    mutationFn: (ids) => chatbotCatalogApi.removeMany(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatbotCatalogKeys.all });
+    },
+  });
+};
+
 export const useDeleteSellableProduct = () => {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string>({
