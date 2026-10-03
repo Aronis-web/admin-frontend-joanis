@@ -6,6 +6,8 @@ import type {
   SunatCpeListResponse,
   SunatCpeRun,
   SunatCpeRunsListResponse,
+  SunatCpeSyncRangeRequest,
+  SunatCpeSyncRangeResponse,
 } from '@/types/sunatCpe';
 
 export const sunatCpeKeys = {
@@ -49,6 +51,17 @@ export const useImportSunatCpe = () => {
   const queryClient = useQueryClient();
   return useMutation<SunatCpeRun, Error, { file: { uri: string; name: string; type: string } }>({
     mutationFn: ({ file }) => sunatCpeApi.importFile(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sunatCpeKeys.invoices() });
+      queryClient.invalidateQueries({ queryKey: sunatCpeKeys.runs() });
+    },
+  });
+};
+
+export const useSyncRangeSunatCpe = () => {
+  const queryClient = useQueryClient();
+  return useMutation<SunatCpeSyncRangeResponse, Error, SunatCpeSyncRangeRequest>({
+    mutationFn: (body) => sunatCpeApi.syncRange(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sunatCpeKeys.invoices() });
       queryClient.invalidateQueries({ queryKey: sunatCpeKeys.runs() });

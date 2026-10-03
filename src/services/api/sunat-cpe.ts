@@ -5,7 +5,12 @@ import type {
   SunatCpeListResponse,
   SunatCpeRun,
   SunatCpeRunsListResponse,
+  SunatCpeSyncRangeRequest,
+  SunatCpeSyncRangeResponse,
 } from '@/types/sunatCpe';
+
+/** El sync-range headless puede tardar varios minutos (1 request por comprobante). */
+const SYNC_RANGE_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * CPE recibidos (Comprobantes de Pago electronicos con detalle de lineas).
@@ -32,6 +37,13 @@ class SunatCpeService {
 
   async getRuns(params?: { limit?: number; offset?: number }): Promise<SunatCpeRunsListResponse> {
     return apiClient.get<SunatCpeRunsListResponse>(`${this.basePath}/runs`, { params });
+  }
+
+  /** Sincroniza CPE recibidos por rango de periodos (AAAAMM) desde SEE-SOL. */
+  async syncRange(body: SunatCpeSyncRangeRequest): Promise<SunatCpeSyncRangeResponse> {
+    return apiClient.post<SunatCpeSyncRangeResponse>(`${this.basePath}/sync-range`, body, {
+      timeout: SYNC_RANGE_TIMEOUT_MS,
+    });
   }
 
   async getActiveRun(): Promise<{ active: SunatCpeRun | null }> {

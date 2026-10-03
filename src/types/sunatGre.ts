@@ -67,3 +67,13 @@ export interface SunatGreRunsListResponse {
   items: SunatGreRun[];
   total: number;
 }
+
+export interface SunatGreSyncRangeRequest {
+  fechaDesde: string; // YYYY-MM-DD
+  fechaHasta: string; // YYYY-MM-DD
+  rol?: 'emitida' | 'recibida';
+}
+
+export interface SunatGreSyncRangeResponse {
+  runs: SunatGreRun[];
+}

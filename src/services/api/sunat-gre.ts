@@ -5,7 +5,12 @@ import type {
   SunatGreListResponse,
   SunatGreRun,
   SunatGreRunsListResponse,
+  SunatGreSyncRangeRequest,
+  SunatGreSyncRangeResponse,
 } from '@/types/sunatGre';
+
+/** El sync-range headless puede tardar varios minutos (chunks + WAF pauses). */
+const SYNC_RANGE_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * GRE (Guias de Remision Electronicas). Base path: `/sunat-gre`.
@@ -31,6 +36,13 @@ class SunatGreService {
 
   async getRuns(params?: { limit?: number; offset?: number }): Promise<SunatGreRunsListResponse> {
     return apiClient.get<SunatGreRunsListResponse>(`${this.basePath}/runs`, { params });
+  }
+
+  /** Sincroniza GRE por rango de fecha desde SEE-SOL (descarga headless). */
+  async syncRange(body: SunatGreSyncRangeRequest): Promise<SunatGreSyncRangeResponse> {
+    return apiClient.post<SunatGreSyncRangeResponse>(`${this.basePath}/sync-range`, body, {
+      timeout: SYNC_RANGE_TIMEOUT_MS,
+    });
   }
 
   async getRun(id: string): Promise<SunatGreRun> {

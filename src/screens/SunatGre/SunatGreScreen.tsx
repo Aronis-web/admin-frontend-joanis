@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text as RNText,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -22,8 +23,13 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
-import { useSunatGre, useSunatGreInvoice, useImportSunatGre } from '@/hooks/api/useSunatGre';
-import type { SunatGre } from '@/types/sunatGre';
+import {
+  useSunatGre,
+  useSunatGreInvoice,
+  useImportSunatGre,
+  useSyncRangeSunatGre,
+} from '@/hooks/api/useSunatGre';
+import type { SunatGre, SunatGreRun } from '@/types/sunatGre';
 
 type Props = NativeStackScreenProps<any, 'SunatGre'>;
 type RolFilter = 'all' | 'emitida' | 'recibida';
@@ -36,6 +42,7 @@ export const SunatGreScreen: React.FC<Props> = ({ navigation }) => {
 
   const [rol, setRol] = useState<RolFilter>('all');
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const params = useMemo(
     () => ({ rol: rol === 'all' ? undefined : rol, limit: PAGE_SIZE, offset: 0 }),
@@ -129,6 +136,10 @@ export const SunatGreScreen: React.FC<Props> = ({ navigation }) => {
               <RNText style={styles.headerTitle}>Guías de Remisión (GRE)</RNText>
               <RNText style={styles.headerSubtitle}>{total} guías</RNText>
             </View>
+            <TouchableOpacity style={styles.importBtn} onPress={() => setSyncOpen(true)}>
+              <Ionicons name="sync-outline" size={16} color={theme.color.brand.onHeader} />
+              <RNText style={styles.importBtnText}>Sincronizar</RNText>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.importBtn} onPress={handleImport} disabled={importMut.isPending}>
               {importMut.isPending ? (
                 <ActivityIndicator size="small" color={theme.color.brand.onHeader} />
@@ -172,8 +183,165 @@ export const SunatGreScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         <GreDetailModal id={detailId} onClose={() => setDetailId(null)} />
+        <GreSyncModal
+          visible={syncOpen}
+          onClose={() => setSyncOpen(false)}
+          onDone={() => {
+            void refetch();
+          }}
+        />
       </SafeAreaView>
     </ScreenLayout>
+  );
+};
+
+// ============================================================================
+// Sync modal (datos anteriores por rango de fecha, descarga headless SEE-SOL)
+// ============================================================================
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+const summarizeRuns = (runs: SunatGreRun[]): string => {
+  const nuevos = runs.reduce((a, r) => a + (r.newRows || 0), 0);
+  const dup = runs.reduce((a, r) => a + (r.dupRows || 0), 0);
+  const err = runs.reduce((a, r) => a + (r.errorRows || 0), 0);
+  const conError = runs.filter((r) => r.status === 'error').length;
+  let s = `Ventanas: ${runs.length}. Nuevos: ${nuevos} · Dup: ${dup} · Errores: ${err}.`;
+  if (conError > 0) {
+    const msg = runs.find((r) => r.status === 'error')?.errorMsg;
+    s += `\n${conError} ventana(s) con error.${msg ? ` Ej: ${msg.slice(0, 160)}` : ''}`;
+  }
+  return s;
+};
+
+const GreSyncModal: React.FC<{ visible: boolean; onClose: () => void; onDone: () => void }> = ({
+  visible,
+  onClose,
+  onDone,
+}) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const syncMut = useSyncRangeSunatGre();
+
+  const year = new Date().getFullYear();
+  const [desde, setDesde] = useState(`${year}-01-01`);
+  const [hasta, setHasta] = useState(todayIso());
+  const [rol, setRol] = useState<'all' | 'emitida' | 'recibida'>('all');
+
+  const isValidDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s.trim());
+
+  const handleSync = useCallback(async () => {
+    if (!isValidDate(desde) || !isValidDate(hasta)) {
+      Alert.alert('Fechas inválidas', 'Usa el formato AAAA-MM-DD en ambas fechas.');
+      return;
+    }
+    if (desde.trim() > hasta.trim()) {
+      Alert.alert('Rango inválido', 'La fecha desde no puede ser mayor que la fecha hasta.');
+      return;
+    }
+    try {
+      const res = await syncMut.mutateAsync({
+        fechaDesde: desde.trim(),
+        fechaHasta: hasta.trim(),
+        rol: rol === 'all' ? undefined : rol,
+      });
+      Alert.alert('Sincronización completada', summarizeRuns(res.runs ?? []));
+      onDone();
+      onClose();
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'No se pudo sincronizar';
+      const status = e?.response?.status;
+      const stillRunning =
+        status === 524 || status === 504 || e?.code === 'ECONNABORTED' || /timeout|524|504/i.test(String(msg));
+      if (stillRunning) {
+        Alert.alert(
+          'Sincronización en progreso',
+          'Un rango amplio tarda y sigue corriendo en el servidor. Revisa las guías y las corridas en unos minutos.'
+        );
+        onDone();
+        onClose();
+      } else {
+        Alert.alert('Error', Array.isArray(msg) ? msg.join('\n') : String(msg));
+      }
+      logger.error('Error sync GRE', e);
+    }
+  }, [desde, hasta, rol, syncMut, onClose, onDone]);
+
+  const renderRolChip = (id: 'all' | 'emitida' | 'recibida', label: string) => (
+    <TouchableOpacity
+      style={[styles.syncChip, rol === id && styles.syncChipActive]}
+      onPress={() => setRol(id)}
+    >
+      <RNText style={[styles.syncChipText, rol === id && styles.syncChipTextActive]}>{label}</RNText>
+    </TouchableOpacity>
+  );
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <View style={styles.overlay}>
+        <View style={styles.syncModal}>
+          <View style={styles.modalHeader}>
+            <RNText style={styles.modalTitle}>Sincronizar GRE (datos anteriores)</RNText>
+            <TouchableOpacity onPress={onClose} style={{ padding: 6 }} disabled={syncMut.isPending}>
+              <Ionicons name="close" size={22} color={theme.color.icon.subtle} />
+            </TouchableOpacity>
+          </View>
+          <View style={{ padding: theme.space[4], gap: theme.space[3] }}>
+            <RNText style={styles.syncHint}>
+              Descarga desde SEE-SOL por rango de fecha (máx. 30 días por consulta; se trocea
+              automáticamente). Rangos largos pueden tardar varios minutos.
+            </RNText>
+            <View>
+              <RNText style={styles.syncLabel}>Fecha desde</RNText>
+              <TextInput
+                style={styles.syncInput}
+                value={desde}
+                onChangeText={setDesde}
+                placeholder="AAAA-MM-DD"
+                placeholderTextColor={theme.color.text.muted}
+                autoCapitalize="none"
+              />
+            </View>
+            <View>
+              <RNText style={styles.syncLabel}>Fecha hasta</RNText>
+              <TextInput
+                style={styles.syncInput}
+                value={hasta}
+                onChangeText={setHasta}
+                placeholder="AAAA-MM-DD"
+                placeholderTextColor={theme.color.text.muted}
+                autoCapitalize="none"
+              />
+            </View>
+            <View>
+              <RNText style={styles.syncLabel}>Rol</RNText>
+              <View style={styles.syncChipsRow}>
+                {renderRolChip('all', 'Ambas')}
+                {renderRolChip('emitida', 'Emitidas')}
+                {renderRolChip('recibida', 'Recibidas')}
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.syncSubmit, syncMut.isPending && styles.syncSubmitDisabled]}
+              onPress={handleSync}
+              disabled={syncMut.isPending}
+            >
+              {syncMut.isPending ? (
+                <>
+                  <ActivityIndicator size="small" color={theme.color.action.primary.text} />
+                  <RNText style={styles.syncSubmitText}>Sincronizando…</RNText>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="sync-outline" size={18} color={theme.color.action.primary.text} />
+                  <RNText style={styles.syncSubmitText}>Sincronizar</RNText>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 };
 
@@ -324,6 +492,52 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.color.border.subtle,
     },
     modalTitle: { fontSize: 16, fontWeight: '700', color: theme.color.text.heading, flex: 1 },
+    syncModal: {
+      width: '100%',
+      maxWidth: 520,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    syncHint: { fontSize: 12, color: theme.color.text.muted, lineHeight: 17 },
+    syncLabel: { fontSize: 12, fontWeight: '700', color: theme.color.text.heading, marginBottom: 6 },
+    syncInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    syncChipsRow: { flexDirection: 'row', gap: theme.space[2] },
+    syncChip: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: theme.color.surface.subtle,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    syncChipActive: {
+      backgroundColor: theme.color.action.primary.background,
+      borderColor: theme.color.action.primary.background,
+    },
+    syncChipText: { fontSize: 12, fontWeight: '600', color: theme.color.text.body },
+    syncChipTextActive: { color: theme.color.action.primary.text },
+    syncSubmit: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+      backgroundColor: theme.color.action.primary.background,
+      borderRadius: theme.radii.lg,
+      paddingVertical: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    syncSubmitDisabled: { opacity: 0.6 },
+    syncSubmitText: { color: theme.color.action.primary.text, fontWeight: '800', fontSize: 14 },
     detailCard: {
       backgroundColor: theme.color.surface.subtle,
       borderRadius: theme.radii.lg,

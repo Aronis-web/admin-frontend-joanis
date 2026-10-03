@@ -27,8 +27,9 @@ import {
   useSunatCpeInvoices,
   useSunatCpeInvoice,
   useImportSunatCpe,
+  useSyncRangeSunatCpe,
 } from '@/hooks/api/useSunatCpe';
-import type { SunatCpeInvoice } from '@/types/sunatCpe';
+import type { SunatCpeInvoice, SunatCpeRun } from '@/types/sunatCpe';
 
 type Props = NativeStackScreenProps<any, 'SunatCpe'>;
 
@@ -58,6 +59,7 @@ export const SunatCpeScreen: React.FC<Props> = ({ navigation }) => {
   const [rucEmisor, setRucEmisor] = useState('');
   const [appliedRuc, setAppliedRuc] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const params = useMemo(
     () => ({ rucEmisor: appliedRuc || undefined, limit: PAGE_SIZE, offset: 0 }),
@@ -130,6 +132,10 @@ export const SunatCpeScreen: React.FC<Props> = ({ navigation }) => {
               <RNText style={styles.headerTitle}>CPE recibidos</RNText>
               <RNText style={styles.headerSubtitle}>{total} comprobantes · con detalle de líneas</RNText>
             </View>
+            <TouchableOpacity style={styles.importBtn} onPress={() => setSyncOpen(true)}>
+              <Ionicons name="sync-outline" size={16} color={theme.color.brand.onHeader} />
+              <RNText style={styles.importBtnText}>Sincronizar</RNText>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.importBtn}
               onPress={handleImport}
@@ -190,8 +196,152 @@ export const SunatCpeScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         <CpeDetailModal id={detailId} onClose={() => setDetailId(null)} />
+        <CpeSyncModal
+          visible={syncOpen}
+          onClose={() => setSyncOpen(false)}
+          onDone={() => {
+            void refetch();
+          }}
+        />
       </SafeAreaView>
     </ScreenLayout>
+  );
+};
+
+// ============================================================================
+// Sync modal (datos anteriores por rango de periodos AAAAMM, headless SEE-SOL)
+// ============================================================================
+
+const currentPeriod = () => {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const summarizeCpeRuns = (runs: SunatCpeRun[]): string => {
+  const nuevos = runs.reduce((a, r) => a + (r.newRows || 0), 0);
+  const dup = runs.reduce((a, r) => a + (r.dupRows || 0), 0);
+  const err = runs.reduce((a, r) => a + (r.errorRows || 0), 0);
+  const conError = runs.filter((r) => r.status === 'error').length;
+  let s = `Periodos: ${runs.length}. Nuevos: ${nuevos} · Dup: ${dup} · Errores: ${err}.`;
+  if (runs.length === 0) {
+    s = 'No había comprobantes pendientes de detalle en el rango indicado.';
+  }
+  if (conError > 0) {
+    const msg = runs.find((r) => r.status === 'error')?.errorMsg;
+    s += `\n${conError} periodo(s) con error.${msg ? ` Ej: ${msg.slice(0, 160)}` : ''}`;
+  }
+  return s;
+};
+
+const CpeSyncModal: React.FC<{ visible: boolean; onClose: () => void; onDone: () => void }> = ({
+  visible,
+  onClose,
+  onDone,
+}) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const syncMut = useSyncRangeSunatCpe();
+
+  const year = new Date().getFullYear();
+  const [desde, setDesde] = useState(`${year}01`);
+  const [hasta, setHasta] = useState(currentPeriod());
+
+  const isValidPer = (s: string) => /^\d{6}$/.test(s.trim());
+
+  const handleSync = useCallback(async () => {
+    if (!isValidPer(desde) || !isValidPer(hasta)) {
+      Alert.alert('Periodos inválidos', 'Usa el formato AAAAMM (ej. 202401) en ambos campos.');
+      return;
+    }
+    if (desde.trim() > hasta.trim()) {
+      Alert.alert('Rango inválido', 'El periodo desde no puede ser mayor que el periodo hasta.');
+      return;
+    }
+    try {
+      const res = await syncMut.mutateAsync({ perDesde: desde.trim(), perHasta: hasta.trim() });
+      Alert.alert('Sincronización completada', summarizeCpeRuns(res.runs ?? []));
+      onDone();
+      onClose();
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'No se pudo sincronizar';
+      const status = e?.response?.status;
+      const stillRunning =
+        status === 524 || status === 504 || e?.code === 'ECONNABORTED' || /timeout|524|504/i.test(String(msg));
+      if (stillRunning) {
+        Alert.alert(
+          'Sincronización en progreso',
+          'El proceso tarda y sigue corriendo en el servidor. Revisa los comprobantes y las corridas en unos minutos.'
+        );
+        onDone();
+        onClose();
+      } else {
+        Alert.alert('Error', Array.isArray(msg) ? msg.join('\n') : String(msg));
+      }
+      logger.error('Error sync CPE', e);
+    }
+  }, [desde, hasta, syncMut, onClose, onDone]);
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <View style={styles.overlay}>
+        <View style={styles.syncModal}>
+          <View style={styles.modalHeader}>
+            <RNText style={styles.modalTitle}>Sincronizar CPE (datos anteriores)</RNText>
+            <TouchableOpacity onPress={onClose} style={{ padding: 6 }} disabled={syncMut.isPending}>
+              <Ionicons name="close" size={22} color={theme.color.icon.subtle} />
+            </TouchableOpacity>
+          </View>
+          <View style={{ padding: theme.space[4], gap: theme.space[3] }}>
+            <RNText style={styles.syncHint}>
+              Trae el detalle de líneas desde SEE-SOL para los comprobantes que ya están en el
+              registro de compras (RCE) y aún no tienen detalle, mes a mes. Rangos amplios pueden
+              tardar varios minutos.
+            </RNText>
+            <View>
+              <RNText style={styles.syncLabel}>Periodo desde (AAAAMM)</RNText>
+              <TextInput
+                style={styles.syncInput}
+                value={desde}
+                onChangeText={setDesde}
+                placeholder="202401"
+                placeholderTextColor={theme.color.text.muted}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+            <View>
+              <RNText style={styles.syncLabel}>Periodo hasta (AAAAMM)</RNText>
+              <TextInput
+                style={styles.syncInput}
+                value={hasta}
+                onChangeText={setHasta}
+                placeholder="202412"
+                placeholderTextColor={theme.color.text.muted}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.syncSubmit, syncMut.isPending && styles.syncSubmitDisabled]}
+              onPress={handleSync}
+              disabled={syncMut.isPending}
+            >
+              {syncMut.isPending ? (
+                <>
+                  <ActivityIndicator size="small" color={theme.color.action.primary.text} />
+                  <RNText style={styles.syncSubmitText}>Sincronizando…</RNText>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="sync-outline" size={18} color={theme.color.action.primary.text} />
+                  <RNText style={styles.syncSubmitText}>Sincronizar</RNText>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 };
 
@@ -361,6 +511,37 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.color.border.subtle,
     },
     modalTitle: { fontSize: 16, fontWeight: '700', color: theme.color.text.heading, flex: 1 },
+    syncModal: {
+      width: '100%',
+      maxWidth: 520,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    syncHint: { fontSize: 12, color: theme.color.text.muted, lineHeight: 17 },
+    syncLabel: { fontSize: 12, fontWeight: '700', color: theme.color.text.heading, marginBottom: 6 },
+    syncInput: {
+      backgroundColor: theme.color.surface.subtle,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[3],
+      fontSize: 14,
+      color: theme.color.text.heading,
+    },
+    syncSubmit: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.space[2],
+      backgroundColor: theme.color.action.primary.background,
+      borderRadius: theme.radii.lg,
+      paddingVertical: theme.space[3],
+      marginTop: theme.space[2],
+    },
+    syncSubmitDisabled: { opacity: 0.6 },
+    syncSubmitText: { color: theme.color.action.primary.text, fontWeight: '800', fontSize: 14 },
     detailCard: {
       backgroundColor: theme.color.surface.subtle,
       borderRadius: theme.radii.lg,

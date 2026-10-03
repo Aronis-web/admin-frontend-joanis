@@ -6,6 +6,8 @@ import type {
   SunatGreListResponse,
   SunatGreRun,
   SunatGreRunsListResponse,
+  SunatGreSyncRangeRequest,
+  SunatGreSyncRangeResponse,
 } from '@/types/sunatGre';
 
 export const sunatGreKeys = {
@@ -49,6 +51,17 @@ export const useImportSunatGre = () => {
   const queryClient = useQueryClient();
   return useMutation<SunatGreRun, Error, { file: { uri: string; name: string; type: string } }>({
     mutationFn: ({ file }) => sunatGreApi.importFile(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sunatGreKeys.invoices() });
+      queryClient.invalidateQueries({ queryKey: sunatGreKeys.runs() });
+    },
+  });
+};
+
+export const useSyncRangeSunatGre = () => {
+  const queryClient = useQueryClient();
+  return useMutation<SunatGreSyncRangeResponse, Error, SunatGreSyncRangeRequest>({
+    mutationFn: (body) => sunatGreApi.syncRange(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sunatGreKeys.invoices() });
       queryClient.invalidateQueries({ queryKey: sunatGreKeys.runs() });

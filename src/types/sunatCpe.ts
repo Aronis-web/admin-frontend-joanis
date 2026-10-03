@@ -75,3 +75,12 @@ export interface SunatCpeRunsListResponse {
   items: SunatCpeRun[];
   total: number;
 }
+
+export interface SunatCpeSyncRangeRequest {
+  perDesde: string; // AAAAMM
+  perHasta: string; // AAAAMM
+}
+
+export interface SunatCpeSyncRangeResponse {
+  runs: SunatCpeRun[];
+}
