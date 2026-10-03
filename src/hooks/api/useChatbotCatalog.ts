@@ -185,12 +185,23 @@ export const useUpdateSellableProduct = () => {
   });
 };
 
-/** Elimina varias entradas del catálogo vendible en una sola llamada. */
+/** Tope de ids por llamada de `bulk-delete` en el backend. */
+const BULK_DELETE_CHUNK = 1000;
+
+/** Elimina varias entradas del catálogo vendible, en lotes de hasta 1000. */
 export const useBulkDeleteSellableProducts = () => {
   const queryClient = useQueryClient();
   return useMutation<{ deleted: number }, Error, string[]>({
-    mutationFn: (ids) => chatbotCatalogApi.removeMany(ids),
-    onSuccess: () => {
+    mutationFn: async (ids) => {
+      let deleted = 0;
+      for (let i = 0; i < ids.length; i += BULK_DELETE_CHUNK) {
+        const r = await chatbotCatalogApi.removeMany(ids.slice(i, i + BULK_DELETE_CHUNK));
+        deleted += r.deleted;
+      }
+      return { deleted };
+    },
+    // Si falla a mitad, parte ya se borró: refrescar igual.
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: chatbotCatalogKeys.all });
     },
   });

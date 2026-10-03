@@ -62,6 +62,9 @@ import Alert from '@/utils/alert';
 
 type Props = NativeStackScreenProps<any, 'ChatbotCatalog'>;
 
+/** Filas por página (el batch de productos acepta hasta 200 ids). */
+const PAGE_SIZE = 50;
+
 interface FormState {
   productId: string;
   variantId: string;
@@ -162,8 +165,20 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, isFetching, isError, refetch } = useSellableProductsList();
   const items = useMemo(() => data ?? [], [data]);
 
-  // Batch de productos para hidratar la lista con nombre / foto / SKU.
-  const listProductIds = useMemo(() => items.map((it) => it.productId), [items]);
+  // ---------- Paginación (cliente) ----------
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  // Si la lista se achica (borrados), no quedarse en una página vacía.
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+  const pageItems = useMemo(
+    () => items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [items, page]
+  );
+
+  // Batch de productos para hidratar solo la página visible con nombre / foto / SKU.
+  const listProductIds = useMemo(() => pageItems.map((it) => it.productId), [pageItems]);
   const { data: productsById } = useProductsByIdsBatch(listProductIds);
 
   const createMutation = useCreateSellableProduct();
@@ -466,8 +481,21 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                       {selectedIds.size} seleccionado(s)
                     </Caption>
                     <View style={styles.bulkActions}>
+                      {totalPages > 1 ? (
+                        <Button
+                          title="Esta página"
+                          variant="ghost"
+                          onPress={() =>
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              pageItems.forEach((it) => next.add(it.id));
+                              return next;
+                            })
+                          }
+                        />
+                      ) : null}
                       <Button
-                        title="Todos"
+                        title={`Todos (${items.length})`}
                         variant="ghost"
                         onPress={() => setSelectedIds(new Set(items.map((it) => it.id)))}
                       />
@@ -513,7 +541,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                   </>
                 )}
               </View>
-              {items.map((item) => {
+              {pageItems.map((item) => {
                 const product = productsById?.get(item.productId);
                 const thumb = product?.photos?.[0] ?? product?.imageUrl;
                 const whList = Array.isArray(siteWarehouses) ? siteWarehouses : [];
@@ -631,6 +659,28 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                   </Card>
                 );
               })}
+              {totalPages > 1 ? (
+                <View style={styles.pager}>
+                  <Button
+                    title="Anterior"
+                    variant="outline"
+                    leftIcon="chevron-back"
+                    disabled={page <= 1}
+                    onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  />
+                  <Caption color={theme.color.text.muted}>
+                    Página {page} de {totalPages} · {(page - 1) * PAGE_SIZE + 1}–
+                    {Math.min(page * PAGE_SIZE, items.length)} de {items.length}
+                  </Caption>
+                  <Button
+                    title="Siguiente"
+                    variant="outline"
+                    rightIcon="chevron-forward"
+                    disabled={page >= totalPages}
+                    onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  />
+                </View>
+              ) : null}
             </View>
           )}
         </ScrollView>
@@ -976,6 +1026,13 @@ const createStyles = (theme: Theme) =>
     },
     list: {
       gap: spacing[3],
+    },
+    pager: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing[2],
     },
     itemCard: {
       padding: spacing[3],
