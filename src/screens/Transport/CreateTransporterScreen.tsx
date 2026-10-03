@@ -24,6 +24,14 @@ import {
   AuthorizedCode,
 } from '@/types/transport';
 import Alert from '@/utils/alert';
+import {
+  PHONE_MAX_LENGTH,
+  RUC_LENGTH,
+  sanitizeCode,
+  sanitizeDigits,
+  tidyText,
+  validateRuc,
+} from '@/utils/transportValidation';
 
 export const CreateTransporterScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -59,10 +67,9 @@ export const CreateTransporterScreen: React.FC = () => {
     // Campos requeridos según la API
     if (!formData.numeroRuc.trim()) {
       newErrors.numeroRuc = 'El RUC es requerido';
-    } else if (formData.numeroRuc.length !== 11) {
-      newErrors.numeroRuc = 'El RUC debe tener 11 dígitos';
-    } else if (!/^\d+$/.test(formData.numeroRuc)) {
-      newErrors.numeroRuc = 'El RUC debe contener solo números';
+    } else {
+      const rucError = validateRuc(formData.numeroRuc);
+      if (rucError) newErrors.numeroRuc = rucError;
     }
 
     if (!formData.razonSocial.trim()) {
@@ -117,7 +124,7 @@ export const CreateTransporterScreen: React.FC = () => {
       const dataToSend: CreateTransporterRequest = {
         numeroRuc: formData.numeroRuc.trim(),
         tipoDocumento: formData.tipoDocumento,
-        razonSocial: formData.razonSocial.trim(),
+        razonSocial: tidyText(formData.razonSocial),
         numeroRegistroMTC: formData.numeroRegistroMTC?.trim(),
         numeroAutorizacion: formData.numeroAutorizacion?.trim(),
         codigoAutorizado: formData.codigoAutorizado,
@@ -242,11 +249,11 @@ export const CreateTransporterScreen: React.FC = () => {
               <TextInput
                 style={[styles.input, errors.numeroRuc && styles.inputError]}
                 value={formData.numeroRuc}
-                onChangeText={(value) => updateField('numeroRuc', value)}
+                onChangeText={(value) => updateField('numeroRuc', sanitizeDigits(value, RUC_LENGTH))}
                 placeholder="Ingrese el RUC (11 dígitos)"
                 placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="numeric"
-                maxLength={11}
+                maxLength={RUC_LENGTH}
                 editable={!isSubmitting}
               />
               {errors.numeroRuc && <Text style={styles.errorText}>{errors.numeroRuc}</Text>}
@@ -301,7 +308,9 @@ export const CreateTransporterScreen: React.FC = () => {
               <TextInput
                 style={[styles.input, errors.numeroRegistroMTC && styles.inputError]}
                 value={formData.numeroRegistroMTC}
-                onChangeText={(value) => updateField('numeroRegistroMTC', value)}
+                onChangeText={(value) => updateField('numeroRegistroMTC', sanitizeCode(value, 20))}
+                autoCapitalize="characters"
+                maxLength={20}
                 placeholder="Ej: 0215YUIO8548"
                 placeholderTextColor={theme.color.text.placeholder}
                 editable={!isSubmitting}
@@ -319,8 +328,9 @@ export const CreateTransporterScreen: React.FC = () => {
               <TextInput
                 style={[styles.input, errors.numeroAutorizacion && styles.inputError]}
                 value={formData.numeroAutorizacion}
-                onChangeText={(value) => updateField('numeroAutorizacion', value)}
-                placeholder="Ej: 026 5469"
+                onChangeText={(value) => updateField('numeroAutorizacion', sanitizeCode(value, 50))}
+                autoCapitalize="characters"
+                placeholder="Ej: 0265469"
                 placeholderTextColor={theme.color.text.placeholder}
                 editable={!isSubmitting}
               />
@@ -368,10 +378,11 @@ export const CreateTransporterScreen: React.FC = () => {
               <TextInput
                 style={[styles.input, errors.telefono && styles.inputError]}
                 value={formData.telefono}
-                onChangeText={(value) => updateField('telefono', value)}
+                onChangeText={(value) => updateField('telefono', sanitizeDigits(value, PHONE_MAX_LENGTH))}
                 placeholder="Ej: 014567890"
                 placeholderTextColor={theme.color.text.placeholder}
                 keyboardType="phone-pad"
+                maxLength={PHONE_MAX_LENGTH}
                 editable={!isSubmitting}
               />
               {errors.telefono && <Text style={styles.errorText}>{errors.telefono}</Text>}

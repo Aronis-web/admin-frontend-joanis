@@ -25,6 +25,7 @@ import {
   AuthorizedCode,
 } from '@/types/transport';
 import Alert from '@/utils/alert';
+import { PLATE_MAX_LENGTH, sanitizeCode, tidyText, validatePlate } from '@/utils/transportValidation';
 
 export const VehicleDetailScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
@@ -112,6 +113,11 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
       Alert.alert('Error', 'El modelo es obligatorio');
       return false;
     }
+    const plateError = validatePlate(sanitizeCode(formData.numeroPlaca));
+    if (plateError) {
+      Alert.alert('Error', plateError);
+      return false;
+    }
     return true;
   };
 
@@ -122,15 +128,15 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
       setSaving(true);
 
       const requestData: CreateVehicleRequest | UpdateVehicleRequest = {
-        numeroPlaca: formData.numeroPlaca.trim().toUpperCase(),
+        numeroPlaca: sanitizeCode(formData.numeroPlaca, PLATE_MAX_LENGTH),
         tipoVehiculo: formData.tipoVehiculo,
-        tarjetaUnicaCirculacion: formData.tarjetaUnicaCirculacion.trim() || undefined,
-        numeroAutorizacion: formData.numeroAutorizacion.trim() || undefined,
+        tarjetaUnicaCirculacion: sanitizeCode(formData.tarjetaUnicaCirculacion, 15) || undefined,
+        numeroAutorizacion: sanitizeCode(formData.numeroAutorizacion, 50) || undefined,
         codigoAutorizado: formData.codigoAutorizado || undefined,
-        marca: formData.marca.trim(),
-        modelo: formData.modelo.trim(),
+        marca: tidyText(formData.marca),
+        modelo: tidyText(formData.modelo),
         anio: formData.anio ? parseInt(formData.anio) : undefined,
-        color: formData.color.trim() || undefined,
+        color: tidyText(formData.color) || undefined,
         capacidadCargaKg: formData.capacidadCargaKg ? parseFloat(formData.capacidadCargaKg) : undefined,
         indTrasVehiculoCatM1L: formData.indTrasVehiculoCatM1L,
         status: formData.status,
@@ -276,10 +282,11 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={formData.numeroPlaca}
-              onChangeText={(text) => setFormData({ ...formData, numeroPlaca: text.toUpperCase() })}
-              placeholder="Ej: ABC-123"
+              onChangeText={(text) => setFormData({ ...formData, numeroPlaca: sanitizeCode(text, PLATE_MAX_LENGTH) })}
+              placeholder="Ej: ABC123"
               editable={isEditing}
               autoCapitalize="characters"
+              maxLength={PLATE_MAX_LENGTH}
             />
           </View>
 
@@ -357,8 +364,10 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={formData.tarjetaUnicaCirculacion}
-              onChangeText={(text) => setFormData({ ...formData, tarjetaUnicaCirculacion: text })}
-              placeholder="TUC-123456"
+              onChangeText={(text) => setFormData({ ...formData, tarjetaUnicaCirculacion: sanitizeCode(text, 15) })}
+              autoCapitalize="characters"
+              maxLength={15}
+              placeholder="15M26007198E"
               editable={isEditing}
             />
           </View>
@@ -368,8 +377,9 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={formData.numeroAutorizacion}
-              onChangeText={(text) => setFormData({ ...formData, numeroAutorizacion: text })}
-              placeholder="AUTH-123"
+              onChangeText={(text) => setFormData({ ...formData, numeroAutorizacion: sanitizeCode(text, 50) })}
+              autoCapitalize="characters"
+              placeholder="T0535352026"
               editable={isEditing}
             />
           </View>

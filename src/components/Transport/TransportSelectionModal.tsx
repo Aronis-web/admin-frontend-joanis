@@ -30,6 +30,22 @@ import {
 } from '@/types/transport';
 import { transportService } from '@/services/api';
 import Alert from '@/utils/alert';
+import {
+  DRIVER_DOCUMENT_RULES,
+  LICENSE_MAX_LENGTH,
+  PHONE_MAX_LENGTH,
+  PLATE_MAX_LENGTH,
+  RUC_LENGTH,
+  sanitizeCode,
+  sanitizeDigits,
+  sanitizeDriverDocument,
+  sanitizePersonName,
+  tidyText,
+  validateDriverFields,
+  validatePhone,
+  validatePlate,
+  validateRuc,
+} from '@/utils/transportValidation';
 
 interface TransportSelectionModalProps {
   visible: boolean;
@@ -993,6 +1009,31 @@ const createStyles = (theme: Theme) =>
     formGroup: {
       marginBottom: theme.space[4],
     },
+    docTypeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+    },
+    docTypeChip: {
+      paddingHorizontal: theme.space[3],
+      paddingVertical: theme.space[2],
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      backgroundColor: theme.color.surface.subtle,
+    },
+    docTypeChipActive: {
+      borderColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.accent,
+    },
+    docTypeChipText: {
+      fontSize: 14,
+      color: theme.color.text.body,
+    },
+    docTypeChipTextActive: {
+      color: theme.color.text.onAction,
+      fontWeight: '600',
+    },
   });
 
 
@@ -1025,7 +1066,17 @@ const CreateVehicleModal: React.FC<{
       Alert.alert('Error', 'Por favor completa todos los campos requeridos');
       return;
     }
-    onSubmit(formData);
+    const plateError = validatePlate(formData.numeroPlaca);
+    if (plateError) {
+      Alert.alert('Error', plateError);
+      return;
+    }
+    onSubmit({
+      ...formData,
+      marca: tidyText(formData.marca),
+      modelo: tidyText(formData.modelo),
+      color: formData.color ? tidyText(formData.color) : undefined,
+    });
   };
 
   return (
@@ -1047,11 +1098,12 @@ const CreateVehicleModal: React.FC<{
               <Text style={styles.formLabel}>Placa *</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="Ej: ABC-123"
+                placeholder="Ej: ABC123"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroPlaca}
-                onChangeText={(text) => setFormData({ ...formData, numeroPlaca: text.toUpperCase() })}
+                onChangeText={(text) => setFormData({ ...formData, numeroPlaca: sanitizeCode(text, PLATE_MAX_LENGTH) })}
                 autoCapitalize="characters"
+                maxLength={PLATE_MAX_LENGTH}
               />
             </View>
 
@@ -1084,8 +1136,9 @@ const CreateVehicleModal: React.FC<{
                 placeholder="Ej: 2023"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.anio?.toString() || ''}
-                onChangeText={(text) => setFormData({ ...formData, anio: parseInt(text) || undefined })}
+                onChangeText={(text) => setFormData({ ...formData, anio: parseInt(sanitizeDigits(text, 4)) || undefined })}
                 keyboardType="numeric"
+                maxLength={4}
               />
             </View>
 
@@ -1145,8 +1198,21 @@ const CreateDriverModal: React.FC<{
       Alert.alert('Error', 'Por favor completa todos los campos requeridos');
       return;
     }
-    onSubmit(formData);
+    const formatError = validateDriverFields(formData);
+    if (formatError) {
+      Alert.alert('Error', formatError);
+      return;
+    }
+    onSubmit({
+      ...formData,
+      nombre: tidyText(formData.nombre),
+      apellido: tidyText(formData.apellido),
+      categoriaLicencia: tidyText(formData.categoriaLicencia).toUpperCase(),
+      telefono: formData.telefono || undefined,
+    });
   };
+
+  const docRule = DRIVER_DOCUMENT_RULES[formData.tipoDocumento];
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -1170,7 +1236,7 @@ const CreateDriverModal: React.FC<{
                 placeholder="Nombre"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.nombre}
-                onChangeText={(text) => setFormData({ ...formData, nombre: text })}
+                onChangeText={(text) => setFormData({ ...formData, nombre: sanitizePersonName(text) })}
               />
             </View>
 
@@ -1181,19 +1247,49 @@ const CreateDriverModal: React.FC<{
                 placeholder="Apellido"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.apellido}
-                onChangeText={(text) => setFormData({ ...formData, apellido: text })}
+                onChangeText={(text) => setFormData({ ...formData, apellido: sanitizePersonName(text) })}
               />
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Número de Documento *</Text>
+              <Text style={styles.formLabel}>Tipo de Documento *</Text>
+              <View style={styles.docTypeRow}>
+                {Object.values(DocumentType).map((tipo) => {
+                  const active = formData.tipoDocumento === tipo;
+                  return (
+                    <TouchableOpacity
+                      key={tipo}
+                      style={[styles.docTypeChip, active && styles.docTypeChipActive]}
+                      onPress={() =>
+                        setFormData({
+                          ...formData,
+                          tipoDocumento: tipo,
+                          numeroDocumento: sanitizeDriverDocument(tipo, formData.numeroDocumento),
+                        })
+                      }
+                    >
+                      <Text style={[styles.docTypeChipText, active && styles.docTypeChipTextActive]}>
+                        {DRIVER_DOCUMENT_RULES[tipo].label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Número de {docRule.label} *</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="DNI"
+                placeholder={docRule.placeholder}
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroDocumento}
-                onChangeText={(text) => setFormData({ ...formData, numeroDocumento: text })}
-                keyboardType="numeric"
+                onChangeText={(text) =>
+                  setFormData({ ...formData, numeroDocumento: sanitizeDriverDocument(formData.tipoDocumento, text) })
+                }
+                keyboardType={docRule.numericOnly ? 'numeric' : 'default'}
+                autoCapitalize="characters"
+                maxLength={docRule.maxLength}
               />
             </View>
 
@@ -1204,8 +1300,9 @@ const CreateDriverModal: React.FC<{
                 placeholder="Ej: Q12345678"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroLicencia}
-                onChangeText={(text) => setFormData({ ...formData, numeroLicencia: text.toUpperCase() })}
+                onChangeText={(text) => setFormData({ ...formData, numeroLicencia: sanitizeCode(text, LICENSE_MAX_LENGTH) })}
                 autoCapitalize="characters"
+                maxLength={LICENSE_MAX_LENGTH}
               />
             </View>
 
@@ -1216,7 +1313,8 @@ const CreateDriverModal: React.FC<{
                 placeholder="Ej: A-IIIb"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.categoriaLicencia}
-                onChangeText={(text) => setFormData({ ...formData, categoriaLicencia: text })}
+                onChangeText={(text) => setFormData({ ...formData, categoriaLicencia: text.toUpperCase() })}
+                autoCapitalize="characters"
               />
             </View>
 
@@ -1227,8 +1325,9 @@ const CreateDriverModal: React.FC<{
                 placeholder="Ej: 987654321"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.telefono || ''}
-                onChangeText={(text) => setFormData({ ...formData, telefono: text })}
+                onChangeText={(text) => setFormData({ ...formData, telefono: sanitizeDigits(text, PHONE_MAX_LENGTH) })}
                 keyboardType="phone-pad"
+                maxLength={PHONE_MAX_LENGTH}
               />
             </View>
           </ScrollView>
@@ -1267,7 +1366,17 @@ const CreateTransporterModal: React.FC<{
       Alert.alert('Error', 'Por favor completa todos los campos requeridos');
       return;
     }
-    onSubmit(formData);
+    const formatError = validateRuc(formData.numeroRuc) || validatePhone(formData.telefono);
+    if (formatError) {
+      Alert.alert('Error', formatError);
+      return;
+    }
+    onSubmit({
+      ...formData,
+      razonSocial: tidyText(formData.razonSocial),
+      direccion: formData.direccion ? tidyText(formData.direccion) : undefined,
+      telefono: formData.telefono || undefined,
+    });
   };
 
   return (
@@ -1292,9 +1401,9 @@ const CreateTransporterModal: React.FC<{
                 placeholder="Ej: 20123456789"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroRuc}
-                onChangeText={(text) => setFormData({ ...formData, numeroRuc: text })}
+                onChangeText={(text) => setFormData({ ...formData, numeroRuc: sanitizeDigits(text, RUC_LENGTH) })}
                 keyboardType="numeric"
-                maxLength={11}
+                maxLength={RUC_LENGTH}
               />
             </View>
 
@@ -1316,7 +1425,9 @@ const CreateTransporterModal: React.FC<{
                 placeholder="Número de registro MTC"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.numeroRegistroMTC || ''}
-                onChangeText={(text) => setFormData({ ...formData, numeroRegistroMTC: text })}
+                onChangeText={(text) => setFormData({ ...formData, numeroRegistroMTC: sanitizeCode(text, 20) })}
+                autoCapitalize="characters"
+                maxLength={20}
               />
             </View>
 
@@ -1327,8 +1438,9 @@ const CreateTransporterModal: React.FC<{
                 placeholder="Ej: 987654321"
                 placeholderTextColor={theme.color.text.placeholder}
                 value={formData.telefono || ''}
-                onChangeText={(text) => setFormData({ ...formData, telefono: text })}
+                onChangeText={(text) => setFormData({ ...formData, telefono: sanitizeDigits(text, PHONE_MAX_LENGTH) })}
                 keyboardType="phone-pad"
+                maxLength={PHONE_MAX_LENGTH}
               />
             </View>
 

@@ -24,6 +24,17 @@ import {
   DriverStatus,
 } from '@/types/transport';
 import Alert from '@/utils/alert';
+import {
+  DRIVER_DOCUMENT_RULES,
+  LICENSE_MAX_LENGTH,
+  PHONE_MAX_LENGTH,
+  sanitizeCode,
+  sanitizeDigits,
+  sanitizeDriverDocument,
+  sanitizePersonName,
+  tidyText,
+  validateDriverFields,
+} from '@/utils/transportValidation';
 
 export const DriverDetailScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
@@ -125,6 +136,16 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
       Alert.alert('Error', 'La fecha de vencimiento de licencia es obligatoria');
       return false;
     }
+    const formatError = validateDriverFields({
+      tipoDocumento: formData.tipoDocumento,
+      numeroDocumento: formData.numeroDocumento,
+      numeroLicencia: formData.numeroLicencia,
+      telefono: formData.telefono,
+    });
+    if (formatError) {
+      Alert.alert('Error', formatError);
+      return false;
+    }
     return true;
   };
 
@@ -136,15 +157,15 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
 
       const requestData: CreateDriverRequest | UpdateDriverRequest = {
         tipoDocumento: formData.tipoDocumento,
-        numeroDocumento: formData.numeroDocumento.trim(),
-        nombre: formData.nombre.trim(),
-        apellido: formData.apellido.trim(),
-        numeroLicencia: formData.numeroLicencia.trim().toUpperCase(),
-        categoriaLicencia: formData.categoriaLicencia.trim().toUpperCase(),
+        numeroDocumento: sanitizeDriverDocument(formData.tipoDocumento, formData.numeroDocumento),
+        nombre: tidyText(formData.nombre),
+        apellido: tidyText(formData.apellido),
+        numeroLicencia: sanitizeCode(formData.numeroLicencia, LICENSE_MAX_LENGTH),
+        categoriaLicencia: tidyText(formData.categoriaLicencia).toUpperCase(),
         fechaVencimientoLicencia: formData.fechaVencimientoLicencia,
         telefono: formData.telefono.trim() || undefined,
         email: formData.email.trim() || undefined,
-        direccion: formData.direccion.trim() || undefined,
+        direccion: tidyText(formData.direccion) || undefined,
         status: formData.status,
         isActive: formData.isActive,
         notas: formData.notas.trim() || undefined,
@@ -282,10 +303,12 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={formData.numeroDocumento}
-              onChangeText={(text) => setFormData({ ...formData, numeroDocumento: text.replace(/[^0-9A-Z]/g, '') })}
-              placeholder="12345678"
-              keyboardType="default"
-              maxLength={formData.tipoDocumento === DocumentType.DNI ? 8 : 20}
+              onChangeText={(text) =>
+                setFormData({ ...formData, numeroDocumento: sanitizeDriverDocument(formData.tipoDocumento, text) })
+              }
+              placeholder={DRIVER_DOCUMENT_RULES[formData.tipoDocumento].placeholder}
+              keyboardType={DRIVER_DOCUMENT_RULES[formData.tipoDocumento].numericOnly ? 'numeric' : 'default'}
+              maxLength={DRIVER_DOCUMENT_RULES[formData.tipoDocumento].maxLength}
               editable={isEditing}
               autoCapitalize="characters"
             />
@@ -298,7 +321,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={formData.nombre}
-              onChangeText={(text) => setFormData({ ...formData, nombre: text })}
+              onChangeText={(text) => setFormData({ ...formData, nombre: sanitizePersonName(text) })}
               placeholder="Juan"
               editable={isEditing}
             />
@@ -311,7 +334,7 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={formData.apellido}
-              onChangeText={(text) => setFormData({ ...formData, apellido: text })}
+              onChangeText={(text) => setFormData({ ...formData, apellido: sanitizePersonName(text) })}
               placeholder="Pérez García"
               editable={isEditing}
             />
@@ -329,8 +352,9 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={formData.numeroLicencia}
-              onChangeText={(text) => setFormData({ ...formData, numeroLicencia: text.toUpperCase() })}
+              onChangeText={(text) => setFormData({ ...formData, numeroLicencia: sanitizeCode(text, LICENSE_MAX_LENGTH) })}
               placeholder="Q12345678"
+              maxLength={LICENSE_MAX_LENGTH}
               editable={isEditing}
               autoCapitalize="characters"
             />
@@ -387,10 +411,10 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
             <TextInput
               style={[styles.input, !isEditing && styles.inputDisabled]}
               value={formData.telefono}
-              onChangeText={(text) => setFormData({ ...formData, telefono: text.replace(/[^0-9]/g, '') })}
+              onChangeText={(text) => setFormData({ ...formData, telefono: sanitizeDigits(text, PHONE_MAX_LENGTH) })}
               placeholder="987654321"
               keyboardType="phone-pad"
-              maxLength={15}
+              maxLength={PHONE_MAX_LENGTH}
               editable={isEditing}
             />
           </View>
@@ -503,7 +527,12 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
                 key={tipo}
                 style={styles.modalOption}
                 onPress={() => {
-                  setFormData({ ...formData, tipoDocumento: tipo, numeroDocumento: '' });
+                  // Conserva el numero ya escrito, ajustado al formato del nuevo tipo.
+                  setFormData({
+                    ...formData,
+                    tipoDocumento: tipo,
+                    numeroDocumento: sanitizeDriverDocument(tipo, formData.numeroDocumento),
+                  });
                   setShowTipoDocumentoModal(false);
                 }}
               >
