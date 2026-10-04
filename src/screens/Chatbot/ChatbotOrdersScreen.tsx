@@ -693,7 +693,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
         PAGOS ({vouchers.length})
       </Caption>
       {vouchers.map((v) => {
-        const status: VoucherStatus = handled[v.id] ?? v.status;
+        const status = (handled[v.id] ?? v.status) as VoucherStatus;
         const vbadge = VOUCHER_BADGE[status] ?? VOUCHER_BADGE.PENDING;
         const img = v.imageUrl ? `/chatbot/orders/vouchers/${v.id}/image` : null;
         const closed = status === 'REJECTED' || status === 'DUPLICATE';
