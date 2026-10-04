@@ -48,6 +48,7 @@ import type {
 } from '@/types/chatbot';
 import Alert from '@/utils/alert';
 import { config } from '@/utils/config';
+import { downloadWithAuth } from '@/utils/downloadWithAuth';
 import { formatDateTime, formatSolesFromCents } from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotOrders'>;
@@ -142,6 +143,24 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
 
   const [filter, setFilter] = useState<OrderFilter>('ALL');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  /**
+   * Los vouchers estan en almacenamiento privado: se descargan con el token y
+   * se muestran en un modal (la tarjeta queda compacta).
+   */
+  const openPreview = async (apiPath: string | null) => {
+    if (!apiPath) return;
+    try {
+      setPreviewLoading(true);
+      const blob = await downloadWithAuth(`${config.API_URL}${apiPath}`);
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch {
+      Alert.alert('Voucher', 'No se pudo cargar la imagen del voucher.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
   const [rejectTarget, setRejectTarget] = useState<ChatbotOrder | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [extendTarget, setExtendTarget] = useState<ChatbotOrder | null>(null);
@@ -367,14 +386,14 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                     {delivery ? <Caption color={theme.color.text.body}>{delivery}</Caption> : null}
 
                     {voucher ? (
-                      <Pressable onPress={() => setPreviewUrl(voucher)} style={styles.voucherBox}>
-                        <Image
-                          source={{ uri: voucher }}
-                          style={styles.voucherImg}
-                          resizeMode="cover"
-                        />
-                        <Caption color={theme.color.text.muted}>Toca para ampliar</Caption>
-                      </Pressable>
+                      <Button
+                        title="Ver voucher"
+                        variant="outline"
+                        size="small"
+                        leftIcon="image-outline"
+                        loading={previewLoading}
+                        onPress={() => openPreview(`/chatbot/orders/${order.id}/voucher-image`)}
+                      />
                     ) : null}
 
                     {/* Vouchers (comprobantes) del pedido */}
@@ -382,7 +401,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       order={order}
                       styles={styles}
                       theme={theme}
-                      onPreview={setPreviewUrl}
+                      onPreview={openPreview}
                       onDiscard={handleDiscardVoucher}
                       discardPending={rejectMutation.isPending}
                       allowDiscard={isActionable(order.status)}
@@ -446,7 +465,13 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Preview voucher */}
         <Modal visible={!!previewUrl} transparent animationType="fade">
-          <Pressable style={styles.previewBackdrop} onPress={() => setPreviewUrl(null)}>
+          <Pressable
+            style={styles.previewBackdrop}
+            onPress={() => {
+              if (previewUrl) URL.revokeObjectURL(previewUrl);
+              setPreviewUrl(null);
+            }}
+          >
             {previewUrl ? (
               <Image
                 source={{ uri: previewUrl }}
@@ -562,7 +587,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
       <Caption color={theme.color.text.muted}>Comprobantes ({vouchers.length})</Caption>
       {vouchers.map((v) => {
         const vbadge = VOUCHER_BADGE[v.status] ?? VOUCHER_BADGE.PENDING;
-        const img = resolveVoucherUrl(v.imageUrl);
+        const img = v.imageUrl ? `/chatbot/orders/vouchers/${v.id}/image` : null;
         const isRejected = v.status === 'REJECTED';
         return (
           <View key={v.id} style={styles.voucherItem}>
