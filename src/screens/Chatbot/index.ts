@@ -8,3 +8,4 @@ export { ChatbotSyncRulesScreen } from './ChatbotSyncRulesScreen';
 export { ChatbotTrainingScreen } from './ChatbotTrainingScreen';
 export { ChatbotSettingsScreen } from './ChatbotSettingsScreen';
 export { ChatbotDashboardScreen } from './ChatbotDashboardScreen';
+export { ChatbotComplaintsScreen } from './ChatbotComplaintsScreen';

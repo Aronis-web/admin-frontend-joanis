@@ -673,6 +673,9 @@ const ChatbotSyncRulesScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSyncRulesScreen })),
   'Cargando Reglas...'
 );
+const ChatbotComplaintsScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotComplaintsScreen }))
+);
 const ChatbotTrainingScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotTrainingScreen })),
   'Cargando Entrenamiento...'
@@ -2511,6 +2514,16 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.training.manage']}>
             <ChatbotTrainingScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="ChatbotComplaints"
+        options={{ title: 'Libro de Reclamaciones' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.complaints.manage']}>
+            <ChatbotComplaintsScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
