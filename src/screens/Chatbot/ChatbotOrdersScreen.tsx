@@ -885,11 +885,13 @@ const createStyles = (theme: Theme) =>
     },
     voucherItemActions: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'flex-end',
       gap: spacing[2],
     },
     actionsRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'flex-end',
       gap: spacing[2],
     },
