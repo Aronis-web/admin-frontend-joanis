@@ -335,7 +335,7 @@ export const BotFulfillmentPanel: React.FC<Props> = ({ visible }) => {
         {agencyEnabled ? (
           <>
             <Caption color={theme.color.text.muted}>
-              Tarifa 0 = el cliente paga el envío en destino.
+              Tarifa = lo que cobramos por llevar el pedido a la agencia (0 = sin costo). El envío a destino lo paga el cliente contraentrega.
             </Caption>
             {agencies.map((a, idx) => (
               <View key={a.code || idx} style={styles.inlineRow}>
