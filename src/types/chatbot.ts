@@ -619,6 +619,8 @@ export interface BotFulfillmentConfig {
     originSiteId: string | null;
     /** Tramos ordenados por km; más allá del último = sin cobertura. */
     bands: BotDeliveryBand[];
+    /** Costo fijo (centavos) para todo Lima/Callao; si existe reemplaza a los tramos. */
+    fixedFeeCents?: number | null;
   };
   agency: {
     enabled: boolean;

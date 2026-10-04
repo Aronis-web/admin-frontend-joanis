@@ -62,6 +62,9 @@ export const BotFulfillmentPanel: React.FC<Props> = ({ visible }) => {
   const [limaEnabled, setLimaEnabled] = useState(false);
   const [originSiteId, setOriginSiteId] = useState<string | null>(null);
   const [bands, setBands] = useState<BandRow[]>([]);
+  // FIXED = un solo costo para todo Lima/Callao; BANDS = tarifa por distancia.
+  const [limaMode, setLimaMode] = useState<'FIXED' | 'BANDS'>('FIXED');
+  const [fixedFee, setFixedFee] = useState('');
   const [agencyEnabled, setAgencyEnabled] = useState(false);
   const [agencies, setAgencies] = useState<AgencyRow[]>([]);
 
@@ -77,6 +80,10 @@ export const BotFulfillmentPanel: React.FC<Props> = ({ visible }) => {
     setBands(
       (c?.lima?.bands ?? []).map((b) => ({ upToKm: String(b.upToKm), fee: toSoles(b.feeCents) }))
     );
+    const fixed = c?.lima?.fixedFeeCents;
+    const hasBands = (c?.lima?.bands?.length ?? 0) > 0;
+    setLimaMode(fixed != null || !hasBands ? 'FIXED' : 'BANDS');
+    setFixedFee(fixed != null ? toSoles(fixed) : '');
     setAgencyEnabled(c?.agency?.enabled ?? false);
     setAgencies(
       (c?.agency?.agencies?.length ? c.agency.agencies : DEFAULT_AGENCIES).map((a) => ({
@@ -98,6 +105,7 @@ export const BotFulfillmentPanel: React.FC<Props> = ({ visible }) => {
           .map((b) => ({ upToKm: Number.parseFloat(b.upToKm), feeCents: toCents(b.fee) }))
           .filter((b) => Number.isFinite(b.upToKm) && b.upToKm > 0)
           .sort((a, b) => a.upToKm - b.upToKm),
+        fixedFeeCents: limaMode === 'FIXED' ? toCents(fixedFee) : null,
       },
       agency: {
         enabled: agencyEnabled,
@@ -114,7 +122,7 @@ export const BotFulfillmentPanel: React.FC<Props> = ({ visible }) => {
           })),
       },
     }),
-    [pickupSiteIds, limaEnabled, originSiteId, bands, agencyEnabled, agencies]
+    [pickupSiteIds, limaEnabled, originSiteId, bands, limaMode, fixedFee, agencyEnabled, agencies]
   );
 
   const dirty = JSON.stringify(current) !== JSON.stringify(draft);
@@ -125,7 +133,11 @@ export const BotFulfillmentPanel: React.FC<Props> = ({ visible }) => {
     setPickupSiteIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const handleSave = () => {
-    if (draft.lima.enabled && (!draft.lima.originSiteId || !draft.lima.bands.length)) {
+    if (
+      draft.lima.enabled &&
+      limaMode === 'BANDS' &&
+      (!draft.lima.originSiteId || !draft.lima.bands.length)
+    ) {
       Alert.alert(
         'Delivery Lima incompleto',
         'Elige la sede de despacho y al menos un tramo de distancia con su tarifa.'
@@ -186,11 +198,52 @@ export const BotFulfillmentPanel: React.FC<Props> = ({ visible }) => {
       <View style={styles.section}>
         <View style={styles.switchRow}>
           <Caption color={theme.color.text.heading} style={styles.sectionTitle}>
-            🛵 Delivery Lima / Callao (por distancia)
+            🛵 Delivery Lima / Callao
           </Caption>
           <Switch value={limaEnabled} onValueChange={setLimaEnabled} />
         </View>
         {limaEnabled ? (
+          <View style={styles.chipsRow}>
+            {(
+              [
+                ['FIXED', 'Costo fijo'],
+                ['BANDS', 'Por distancia'],
+              ] as const
+            ).map(([mode, label]) => (
+              <Pressable
+                key={mode}
+                onPress={() => setLimaMode(mode)}
+                style={[styles.chip, limaMode === mode && styles.chipActive]}
+              >
+                <Caption
+                  color={limaMode === mode ? theme.color.text.heading : theme.color.text.muted}
+                >
+                  {limaMode === mode ? '✓ ' : ''}
+                  {label}
+                </Caption>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        {limaEnabled && limaMode === 'FIXED' ? (
+          <>
+            <Caption color={theme.color.text.muted}>
+              Un solo costo de envío para todo Lima y Callao. Se suma al carrito y al pedido.
+            </Caption>
+            <View style={styles.inlineRow}>
+              <Caption color={theme.color.text.muted}>Costo de envío S/</Caption>
+              <TextInput
+                style={[styles.input, styles.inputSmall]}
+                value={fixedFee}
+                onChangeText={(t) => setFixedFee(t.replace(/[^0-9.,]/g, ''))}
+                keyboardType="decimal-pad"
+                placeholder="10.00"
+                placeholderTextColor={theme.color.text.muted}
+              />
+            </View>
+          </>
+        ) : null}
+        {limaEnabled && limaMode === 'BANDS' ? (
           <>
             <Caption color={theme.color.text.muted}>
               Sede de despacho (desde donde se mide la distancia en línea recta):{' '}
