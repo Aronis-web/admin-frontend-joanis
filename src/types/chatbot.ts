@@ -723,14 +723,19 @@ export interface ChatbotDashboard {
       cachedTokens: number;
       outputTokens: number;
       costUsd: number;
+      costPen?: number;
     }>;
+    totalPen?: number;
   };
+  /** Gasto total aproximado en soles (Meta + IA). */
+  totalCostPen?: number;
   meta: {
     available: boolean;
     currency: string | null;
     freeMessages: number;
     paidMessages: number;
     cost: number;
+    costPen?: number | null;
     error?: string;
   };
 }

@@ -74,9 +74,12 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, isError, isFetching, refetch } = useChatbotDashboard(params);
 
   const aiByProvider = useMemo(() => {
-    const acc: Record<string, number> = {};
+    const acc: Record<string, { usd: number; pen: number; calls: number }> = {};
     for (const r of data?.ai.byProvider ?? []) {
-      acc[r.provider] = (acc[r.provider] ?? 0) + r.costUsd;
+      const a = (acc[r.provider] ??= { usd: 0, pen: 0, calls: 0 });
+      a.usd += r.costUsd;
+      a.pen += r.costPen ?? 0;
+      a.calls += r.calls;
     }
     return acc;
   }, [data]);
@@ -216,40 +219,51 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 />
               </View>
 
-              <Title>Gasto</Title>
+              <Title>Gasto (aprox. en soles)</Title>
               <View style={styles.grid}>
+                <Kpi
+                  icon="wallet-outline"
+                  label="Gasto total"
+                  value={soles(Math.round((data.totalCostPen ?? 0) * 100))}
+                  hint="Meta + IA"
+                />
                 <Kpi
                   icon="logo-whatsapp"
                   label="Meta (WhatsApp)"
-                  value={data.meta.available ? money(data.meta.cost, data.meta.currency) : '—'}
+                  value={
+                    data.meta.available && data.meta.costPen != null
+                      ? soles(Math.round(data.meta.costPen * 100))
+                      : '—'
+                  }
                   hint={
                     data.meta.available
-                      ? `${num(data.meta.paidMessages)} pagados · ${num(data.meta.freeMessages)} gratis`
+                      ? `Real: ${money(data.meta.cost, data.meta.currency)} · ${num(data.meta.paidMessages)} pagados · ${num(data.meta.freeMessages)} gratis`
                       : data.meta.error
                   }
                 />
                 <Kpi
                   icon="hardware-chip-outline"
-                  label="IA total (aprox.)"
-                  value={`US$ ${data.ai.totalUsd.toFixed(2)}`}
+                  label="IA total"
+                  value={soles(Math.round((data.ai.totalPen ?? 0) * 100))}
+                  hint={`Real: US$ ${data.ai.totalUsd.toFixed(2)}`}
                 />
-                {(['deepseek', 'gemini', 'anthropic'] as const).map((p) => (
-                  <Kpi
-                    key={p}
-                    icon="sparkles-outline"
-                    label={PROVIDER_LABEL[p]}
-                    value={`US$ ${(aiByProvider[p] ?? 0).toFixed(2)}`}
-                    hint={`${num(
-                      (data.ai.byProvider ?? [])
-                        .filter((r) => r.provider === p)
-                        .reduce((s, r) => s + r.calls, 0)
-                    )} llamadas`}
-                  />
-                ))}
+                {(['deepseek', 'gemini', 'anthropic'] as const).map((p) => {
+                  const a = aiByProvider[p] ?? { usd: 0, pen: 0, calls: 0 };
+                  return (
+                    <Kpi
+                      key={p}
+                      icon="sparkles-outline"
+                      label={PROVIDER_LABEL[p]}
+                      value={soles(Math.round(a.pen * 100))}
+                      hint={`Real: US$ ${a.usd.toFixed(2)} · ${num(a.calls)} llamadas`}
+                    />
+                  );
+                })}
               </View>
               <Caption color={theme.color.text.muted}>
-                IA: estimado con los tokens registrados y tarifas públicas. Meta: lo que reporta su
-                facturación, en la moneda de la cuenta (aproximado, puede variar de la factura).
+                Soles aproximados (ARS 17,500 = S/ 39.84; US$ 1 = S/ 3.60). Debajo de cada monto, el
+                valor real en la moneda original: Meta según su facturación (ARS), IA según tokens y
+                tarifas públicas (US$).
               </Caption>
               <Body color={theme.color.text.muted}>
                 Desde {new Date(data.range.from).toLocaleString('es-PE')}
