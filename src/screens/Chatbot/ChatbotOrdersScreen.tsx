@@ -384,6 +384,16 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
 
                     {delivery ? <Caption color={theme.color.text.body}>{delivery}</Caption> : null}
+                    {order.fulfillment?.orderNotes ? (
+                      <Caption color={theme.color.text.body}>
+                        📝 Detalles: {order.fulfillment.orderNotes}
+                      </Caption>
+                    ) : null}
+                    {order.fulfillment?.deliveryNotes ? (
+                      <Caption color={theme.color.text.body}>
+                        📍 Entrega: {order.fulfillment.deliveryNotes}
+                      </Caption>
+                    ) : null}
 
                     {voucher ? (
                       <Button

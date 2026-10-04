@@ -221,6 +221,10 @@ export interface ChatbotOrderFulfillment {
   destination?: string | null;
   distanceKm?: number | null;
   feeCents: number;
+  /** Detalles que pidio el cliente (color, talla...). Sin garantia. */
+  orderNotes?: string | null;
+  /** DELIVERY_LIMA: indicaciones para la entrega. */
+  deliveryNotes?: string | null;
 }
 
 export interface ChatbotOrder {
