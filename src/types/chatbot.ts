@@ -759,6 +759,16 @@ export interface ChatbotDashboard {
   };
   /** Gasto total aproximado en soles (Meta + IA). */
   totalCostPen?: number;
+  /** Chats y ventas desde anuncios "clic a WhatsApp" y ahorro por la ventana de 72 h. */
+  ads?: {
+    chats: number;
+    chatsWithOrder: number;
+    orders: number;
+    amountCents: number;
+    freeMessages: number;
+    savingsPen: number;
+    topAds: Array<{ headline: string; chats: number }>;
+  };
   /** Serie para gráficos (por hora si el rango es <= 2 días, por día o por mes). */
   series?: {
     granularity: 'hour' | 'day' | 'month';

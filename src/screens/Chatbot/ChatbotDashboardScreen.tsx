@@ -530,6 +530,42 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               ) : null}
 
+              <Text style={styles.sectionTitle}>📣 Anuncios "clic a WhatsApp"</Text>
+              <View style={styles.statsGrid}>
+                <Stat
+                  icon="📣"
+                  label="Chats desde anuncios"
+                  value={num(data.ads?.chats ?? 0)}
+                  sub={
+                    data.ads?.topAds?.[0]
+                      ? `Top: ${data.ads.topAds[0].headline} (${data.ads.topAds[0].chats})`
+                      : 'Facebook / Instagram'
+                  }
+                  tone="info"
+                />
+                <Stat
+                  icon="🛍️"
+                  label="Ventas desde anuncios"
+                  value={solesCents(data.ads?.amountCents ?? 0)}
+                  sub={`${num(data.ads?.orders ?? 0)} pedidos · ${num(data.ads?.chatsWithOrder ?? 0)} clientes`}
+                  tone="success"
+                />
+                <Stat
+                  icon="🎁"
+                  label="Mensajes gratis (72 h)"
+                  value={num(data.ads?.freeMessages ?? 0)}
+                  sub="Meta no los cobra por venir de un anuncio"
+                  tone="primary"
+                />
+                <Stat
+                  icon="💰"
+                  label="Ahorro estimado"
+                  value={soles(data.ads?.savingsPen ?? 0)}
+                  sub="Mensajes gratis × costo por mensaje pagado"
+                  tone="warning"
+                />
+              </View>
+
               <Text style={styles.sectionTitle}>💸 Gasto (aprox. en soles)</Text>
               <View style={styles.statsGrid}>
                 <Stat
