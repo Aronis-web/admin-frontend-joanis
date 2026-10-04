@@ -729,6 +729,20 @@ export interface ChatbotDashboard {
   };
   /** Gasto total aproximado en soles (Meta + IA). */
   totalCostPen?: number;
+  /** Serie para gráficos (por hora si el rango es <= 2 días, por día o por mes). */
+  series?: {
+    granularity: 'hour' | 'day' | 'month';
+    points: Array<{
+      bucket: string;
+      orders: number;
+      amountCents: number;
+      customerMessages: number;
+      botMessages: number;
+      chats: number;
+      aiPen: number;
+      metaPen: number;
+    }>;
+  };
   meta: {
     available: boolean;
     currency: string | null;
