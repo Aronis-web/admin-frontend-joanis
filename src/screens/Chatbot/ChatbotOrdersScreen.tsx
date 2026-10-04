@@ -39,6 +39,7 @@ import {
   useExtendChatbotOrderHold,
   useRejectChatbotOrder,
   useValidateChatbotOrder,
+  useVerifyChatbotVoucher,
 } from '@/hooks/api/useChatbotOrders';
 import type {
   ChatbotOrder,
@@ -96,7 +97,8 @@ const STATUS_BADGE: Record<ChatbotOrderStatus, { variant: BadgeVariant; label: s
 
 const VOUCHER_BADGE: Record<VoucherStatus, { variant: BadgeVariant; label: string }> = {
   PENDING: { variant: 'pending', label: 'Sin conciliar' },
-  MATCHED: { variant: 'success', label: 'Conciliado' },
+  MATCHED: { variant: 'warning', label: 'Por validar' },
+  VERIFIED: { variant: 'success', label: 'Validado' },
   MISMATCH_LESS: { variant: 'warning', label: 'Pagó de menos' },
   MISMATCH_MORE: { variant: 'info', label: 'Pagó de más' },
   ORPHAN: { variant: 'default', label: 'Sin pedido' },
@@ -161,6 +163,14 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
       setPreviewLoading(false);
     }
   };
+  /** Confirmación previa de cualquier acción (segunda validación). */
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ChatbotOrder | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [extendTarget, setExtendTarget] = useState<ChatbotOrder | null>(null);
@@ -180,6 +190,39 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const validateMutation = useValidateChatbotOrder();
   const rejectMutation = useRejectChatbotOrder();
   const extendMutation = useExtendChatbotOrderHold();
+  const verifyMutation = useVerifyChatbotVoucher();
+
+  const voucherLabel = (v: ConversationVoucher) =>
+    `${formatSolesFromCents(v.amountCents == null ? null : String(v.amountCents))}${
+      v.bank ? ` · ${v.bank}` : ''
+    }${v.operationNumber ? ` op. ${v.operationNumber}` : ''}`;
+
+  const handleVerifyVoucher = (order: ChatbotOrder, v: ConversationVoucher) =>
+    setConfirm({
+      title: 'Validar este pago',
+      message:
+        `¿Confirmas que el pago ${voucherLabel(v)} llegó a la cuenta?\n\n` +
+        'Si es el último pago pendiente del pedido, el pedido se valida y se emite la venta.',
+      confirmLabel: 'Sí, validar pago',
+      onConfirm: () =>
+        verifyMutation.mutate(
+          { orderId: order.id, voucherId: v.id },
+          {
+            onSuccess: (res) => {
+              if (res.orderStatus === 'EMITTED') {
+                Alert.alert('Pedido validado', `Venta emitida: ${res.saleIds?.join(', ') ?? '-'}`);
+              } else if (res.orderStatus === 'VALIDATED') {
+                Alert.alert(
+                  'Pedido validado',
+                  res.error ?? res.note ?? 'Emitir la venta en el POS.'
+                );
+              }
+            },
+            onError: (err: any) =>
+              Alert.alert('Error', err?.message ?? 'No se pudo validar el pago'),
+          }
+        ),
+    });
 
   const handleValidate = (order: ChatbotOrder) => {
     // balanceCents = pagado - total: negativo = falta pagar.
@@ -194,14 +237,12 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
       );
       return;
     }
-    Alert.alert(
-      'Validar pago',
-      'Se confirmará el pago y se intentará emitir el comprobante en el POS.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Validar', onPress: () => runValidate(order) },
-      ]
-    );
+    setConfirm({
+      title: 'Validar pedido',
+      message: 'Se confirmará el pedido y se intentará emitir el comprobante en el POS.',
+      confirmLabel: 'Sí, validar pedido',
+      onConfirm: () => runValidate(order),
+    });
   };
 
   const runValidate = (order: ChatbotOrder) => {
@@ -229,31 +270,39 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
     setExtendHours('72');
   };
 
-  const handleDiscardVoucher = (order: ChatbotOrder, voucher: ConversationVoucher) => {
-    Alert.alert(
-      'Descartar voucher',
-      'Se descartará este comprobante y se le pedirá al cliente uno nuevo. El pedido quedará a la espera de saldo.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Descartar',
-          style: 'destructive',
-          onPress: () =>
-            rejectMutation.mutate(
-              { id: order.id, body: { voucherId: voucher.id, action: 'request' } },
-              {
-                onError: (err: any) =>
-                  Alert.alert('Error', err?.message ?? 'No se pudo descartar el voucher'),
-              }
-            ),
-        },
-      ]
-    );
-  };
+  const handleDiscardVoucher = (order: ChatbotOrder, voucher: ConversationVoucher) =>
+    setConfirm({
+      title: 'Descartar comprobante',
+      message:
+        `Se descartará el pago ${voucherLabel(voucher)} (no llegó o no es válido). ` +
+        'Su monto se resta de lo pagado y el pedido queda esperando el saldo.',
+      confirmLabel: 'Sí, descartar',
+      danger: true,
+      onConfirm: () =>
+        rejectMutation.mutate(
+          { id: order.id, body: { voucherId: voucher.id, action: 'request' } },
+          {
+            onError: (err: any) =>
+              Alert.alert('Error', err?.message ?? 'No se pudo descartar el voucher'),
+          }
+        ),
+    });
 
   const confirmExtend = () => {
     if (!extendTarget) return;
     const hours = Number.parseInt(extendHours, 10);
+    const target = extendTarget;
+    setConfirm({
+      title: 'Dar más tiempo',
+      message: `El stock del pedido #${target.id.slice(0, 8)} seguirá apartado ${
+        Number.isFinite(hours) && hours > 0 ? hours : 72
+      } h más.`,
+      confirmLabel: 'Sí, extender',
+      onConfirm: () => runExtend(target, hours),
+    });
+  };
+
+  const runExtend = (extendTarget: ChatbotOrder, hours: number) => {
     extendMutation.mutate(
       { id: extendTarget.id, body: Number.isFinite(hours) && hours > 0 ? { hours } : undefined },
       {
@@ -269,6 +318,17 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
 
   const confirmReject = () => {
     if (!rejectTarget) return;
+    const target = rejectTarget;
+    setConfirm({
+      title: 'Cancelar pedido',
+      message: `Se anulará el pedido #${target.id.slice(0, 8)} y se liberará el stock apartado. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Sí, cancelar pedido',
+      danger: true,
+      onConfirm: () => runReject(target),
+    });
+  };
+
+  const runReject = (rejectTarget: ChatbotOrder) => {
     rejectMutation.mutate(
       {
         id: rejectTarget.id,
@@ -338,7 +398,6 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.list}>
               {orders.map((order) => {
                 const badge = STATUS_BADGE[order.status];
-                const voucher = resolveVoucherUrl(order.voucherUrl);
                 // balanceCents = pagado - total: negativo = falta, positivo = a favor.
                 const balanceMissing = order.balanceCents < 0;
                 const balanceColor =
@@ -348,87 +407,86 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       ? theme.color.text.warning
                       : theme.color.text.success;
                 const delivery = describeOrderFulfillment(order);
+                const who = order.customerName?.trim() || order.phone || null;
                 return (
                   <Card key={order.id} style={styles.orderCard}>
+                    {/* Cabecera: cliente, pedido y estado */}
                     <View style={styles.orderHeader}>
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.orderTitleRow}>
-                          <Ionicons name="cart-outline" size={16} color={theme.color.text.muted} />
-                          <Title>Pedido #{order.id.slice(0, 8)}</Title>
-                        </View>
-                        <Caption color={theme.color.text.muted}>
-                          {formatDateTime(order.createdAt)}
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Title numberOfLines={1}>{who ?? `Pedido #${order.id.slice(0, 8)}`}</Title>
+                        <Caption color={theme.color.text.muted} numberOfLines={1}>
+                          #{order.id.slice(0, 8)}
+                          {who && order.phone && order.customerName
+                            ? ` · ${order.phone}`
+                            : ''} · {formatDateTime(order.createdAt)}
                         </Caption>
                       </View>
                       <Badge variant={badge.variant} label={badge.label} />
                     </View>
 
-                    {/* Resumen de saldo */}
+                    {/* Montos en una línea */}
                     <View style={styles.balanceRow}>
                       <View style={styles.balanceCell}>
                         <Caption color={theme.color.text.muted}>Total</Caption>
-                        <Body>{formatSolesFromCents(order.totalCents)}</Body>
+                        <Body style={styles.amount}>{formatSolesFromCents(order.totalCents)}</Body>
                       </View>
                       <View style={styles.balanceCell}>
                         <Caption color={theme.color.text.muted}>Pagado</Caption>
-                        <Body>{formatSolesFromCents(order.paidCents)}</Body>
+                        <Body style={styles.amount}>{formatSolesFromCents(order.paidCents)}</Body>
                       </View>
                       <View style={styles.balanceCell}>
                         <Caption color={theme.color.text.muted}>
                           {balanceMissing ? 'Falta' : order.balanceCents > 0 ? 'A favor' : 'Saldo'}
                         </Caption>
-                        <Body color={balanceColor}>
+                        <Body color={balanceColor} style={styles.amount}>
                           {formatSolesFromCents(String(Math.abs(order.balanceCents)))}
                         </Body>
                       </View>
                     </View>
 
-                    {delivery ? <Caption color={theme.color.text.body}>{delivery}</Caption> : null}
-                    {order.fulfillment?.orderNotes ? (
-                      <Caption color={theme.color.text.body}>
-                        📝 Detalles: {order.fulfillment.orderNotes}
-                      </Caption>
+                    {/* Entrega y notas */}
+                    {delivery ||
+                    order.fulfillment?.orderNotes ||
+                    order.fulfillment?.deliveryNotes ? (
+                      <View style={styles.infoBox}>
+                        {delivery ? (
+                          <Caption color={theme.color.text.body}>{delivery}</Caption>
+                        ) : null}
+                        {order.fulfillment?.orderNotes ? (
+                          <Caption color={theme.color.text.body}>
+                            📝 {order.fulfillment.orderNotes}
+                          </Caption>
+                        ) : null}
+                        {order.fulfillment?.deliveryNotes ? (
+                          <Caption color={theme.color.text.body}>
+                            📍 {order.fulfillment.deliveryNotes}
+                          </Caption>
+                        ) : null}
+                      </View>
                     ) : null}
-                    {order.fulfillment?.deliveryNotes ? (
-                      <Caption color={theme.color.text.body}>
-                        📍 Entrega: {order.fulfillment.deliveryNotes}
-                      </Caption>
-                    ) : null}
-
-                    {voucher ? (
-                      <Button
-                        title="Ver voucher"
-                        variant="outline"
-                        size="small"
-                        leftIcon="image-outline"
-                        loading={previewLoading}
-                        onPress={() => openPreview(`/chatbot/orders/${order.id}/voucher-image`)}
-                      />
-                    ) : null}
-
-                    {/* Vouchers (comprobantes) del pedido */}
-                    <OrderVouchersSection
-                      order={order}
-                      styles={styles}
-                      theme={theme}
-                      onPreview={openPreview}
-                      onDiscard={handleDiscardVoucher}
-                      discardPending={rejectMutation.isPending}
-                      allowDiscard={isActionable(order.status)}
-                    />
-
-                    {order.rejectedReason ? (
-                      <Body color={theme.color.text.muted}>
-                        Motivo rechazo: {order.rejectedReason}
-                      </Body>
-                    ) : null}
-
                     {resolveDeliveryLabel(order) ? (
                       <Caption color={theme.color.text.muted}>
                         {resolveDeliveryLabel(order)}
                       </Caption>
                     ) : null}
 
+                    {/* Pagos: cada voucher se valida o descarta por separado */}
+                    <OrderVouchersSection
+                      order={order}
+                      styles={styles}
+                      theme={theme}
+                      onPreview={openPreview}
+                      onDiscard={handleDiscardVoucher}
+                      onVerify={handleVerifyVoucher}
+                      busy={rejectMutation.isPending || verifyMutation.isPending}
+                      allowActions={isActionable(order.status)}
+                    />
+
+                    {order.rejectedReason ? (
+                      <Caption color={theme.color.text.muted}>
+                        Motivo rechazo: {order.rejectedReason}
+                      </Caption>
+                    ) : null}
                     {order.saleIds && order.saleIds.length > 0 ? (
                       <Caption color={theme.color.text.muted}>
                         Ventas: {order.saleIds.join(', ')}
@@ -436,34 +494,32 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                     ) : null}
 
                     {isActionable(order.status) ? (
-                      <Caption color={theme.color.text.muted}>
-                        Validar pago: confirmas que el pago llegó y se genera la venta. · Cancelar
-                        pedido: lo anula y libera el stock apartado. · Dar más tiempo: mantiene el
-                        stock apartado más horas para que el cliente pague.
-                      </Caption>
-                    ) : null}
-                    {isActionable(order.status) ? (
                       <View style={styles.actionsRow}>
                         <Button
                           title="Dar más tiempo"
                           variant="ghost"
+                          size="small"
                           leftIcon="timer-outline"
                           onPress={() => openExtend(order)}
                         />
                         <Button
                           title="Cancelar pedido"
                           variant="outline"
+                          size="small"
                           leftIcon="close-circle-outline"
                           onPress={() => openReject(order)}
                         />
-                        <Button
-                          title="Validar pago"
-                          leftIcon="checkmark-circle-outline"
-                          onPress={() => handleValidate(order)}
-                          loading={
-                            validateMutation.isPending && validateMutation.variables === order.id
-                          }
-                        />
+                        {order.status === 'PENDING_PAYMENT' && !order.voucherUrl ? (
+                          <Button
+                            title="Validar pedido"
+                            size="small"
+                            leftIcon="checkmark-circle-outline"
+                            onPress={() => handleValidate(order)}
+                            loading={
+                              validateMutation.isPending && validateMutation.variables === order.id
+                            }
+                          />
+                        ) : null}
                       </View>
                     ) : null}
                   </Card>
@@ -549,6 +605,27 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
             </Pressable>
           </Pressable>
         </Modal>
+        {/* Confirmación (segunda validación) de cualquier acción */}
+        <Modal visible={!!confirm} transparent animationType="fade">
+          <Pressable style={styles.previewBackdrop} onPress={() => setConfirm(null)}>
+            <Pressable style={styles.rejectCard} onPress={(e) => e.stopPropagation()}>
+              <Title>{confirm?.title}</Title>
+              <Body color={theme.color.text.body}>{confirm?.message}</Body>
+              <View style={styles.rejectActions}>
+                <Button title="Volver" variant="outline" onPress={() => setConfirm(null)} />
+                <Button
+                  title={confirm?.confirmLabel ?? 'Confirmar'}
+                  variant={confirm?.danger ? 'danger' : 'primary'}
+                  onPress={() => {
+                    const run = confirm?.onConfirm;
+                    setConfirm(null);
+                    run?.();
+                  }}
+                />
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </SafeAreaView>
     </ScreenLayout>
   );
@@ -563,9 +640,10 @@ interface OrderVouchersSectionProps {
   theme: Theme;
   onPreview: (url: string | null) => void;
   onDiscard: (order: ChatbotOrder, voucher: ConversationVoucher) => void;
-  discardPending: boolean;
-  /** Solo permite descartar vouchers cuando el pedido sigue siendo accionable. */
-  allowDiscard: boolean;
+  onVerify: (order: ChatbotOrder, voucher: ConversationVoucher) => void;
+  busy: boolean;
+  /** Validar/descartar solo mientras el pedido sigue abierto. */
+  allowActions: boolean;
 }
 
 const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
@@ -574,11 +652,16 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
   theme,
   onPreview,
   onDiscard,
-  discardPending,
-  allowDiscard,
+  onVerify,
+  busy,
+  allowActions,
 }) => {
   const { data, isLoading } = useConversationVouchers(order.conversationId);
-  const vouchers = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+  // Solo los comprobantes de ESTE pedido (la conversación puede tener otros).
+  const vouchers = useMemo(
+    () => (Array.isArray(data) ? data : []).filter((v) => !v.orderId || v.orderId === order.id),
+    [data, order.id]
+  );
 
   if (isLoading) {
     return (
@@ -589,33 +672,38 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
   }
 
   if (vouchers.length === 0) {
-    return <Caption color={theme.color.text.muted}>Sin vouchers registrados aún.</Caption>;
+    return <Caption color={theme.color.text.muted}>Sin pagos registrados aún.</Caption>;
   }
 
   return (
     <View style={styles.vouchersBox}>
-      <Caption color={theme.color.text.muted}>Comprobantes ({vouchers.length})</Caption>
+      <Caption color={theme.color.text.muted} style={{ fontWeight: '700' }}>
+        PAGOS ({vouchers.length})
+      </Caption>
       {vouchers.map((v) => {
         const vbadge = VOUCHER_BADGE[v.status] ?? VOUCHER_BADGE.PENDING;
         const img = v.imageUrl ? `/chatbot/orders/vouchers/${v.id}/image` : null;
-        const isRejected = v.status === 'REJECTED';
+        const closed = v.status === 'REJECTED' || v.status === 'DUPLICATE';
+        const canVerify =
+          allowActions && !closed && v.status !== 'VERIFIED' && v.orderId === order.id;
         return (
           <View key={v.id} style={styles.voucherItem}>
             <View style={styles.voucherItemHeader}>
               <View style={{ flex: 1 }}>
-                <Body>
-                  {v.bank ?? 'Banco -'}
-                  {v.operationNumber ? ` · Op. ${v.operationNumber}` : ''}
-                </Body>
-                <Caption color={theme.color.text.muted}>
+                <Body style={{ fontWeight: '700' }}>
                   {formatSolesFromCents(
                     v.amountCents === null || v.amountCents === undefined
                       ? null
                       : String(v.amountCents)
                   )}
-                  {v.operationDate ? ` · ${v.operationDate}` : ''}
-                  {v.operationTime ? ` ${v.operationTime}` : ''}
-                </Caption>
+                  <Caption color={theme.color.text.muted}>
+                    {'  '}
+                    {v.bank ?? 'Banco -'}
+                    {v.operationNumber ? ` · Op. ${v.operationNumber}` : ''}
+                    {v.operationDate ? ` · ${v.operationDate}` : ''}
+                    {v.operationTime ? ` ${v.operationTime}` : ''}
+                  </Caption>
+                </Body>
               </View>
               <Badge variant={vbadge.variant} label={vbadge.label} />
             </View>
@@ -629,14 +717,23 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
                   onPress={() => onPreview(img)}
                 />
               ) : null}
-              {allowDiscard && !isRejected ? (
+              {allowActions && !closed ? (
                 <Button
-                  title="Descartar comprobante"
+                  title="Descartar"
                   variant="outline"
                   size="small"
                   leftIcon="close-circle-outline"
                   onPress={() => onDiscard(order, v)}
-                  disabled={discardPending}
+                  disabled={busy}
+                />
+              ) : null}
+              {canVerify ? (
+                <Button
+                  title="Validar pago"
+                  size="small"
+                  leftIcon="checkmark-circle-outline"
+                  onPress={() => onVerify(order, v)}
+                  disabled={busy}
                 />
               ) : null}
             </View>
@@ -727,6 +824,13 @@ const createStyles = (theme: Theme) =>
     balanceCell: {
       flex: 1,
       gap: spacing[1] / 2,
+    },
+    amount: {
+      fontWeight: '700',
+    },
+    infoBox: {
+      gap: 2,
+      paddingVertical: spacing[1],
     },
     voucherBox: {
       alignItems: 'center',

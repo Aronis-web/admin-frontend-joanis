@@ -6,6 +6,7 @@ import type {
   GetChatbotOrdersParams,
   RejectChatbotOrderBody,
   ValidateChatbotOrderResponse,
+  VerifyChatbotVoucherResponse,
 } from '@/types/chatbot';
 
 /**
@@ -31,6 +32,14 @@ class ChatbotOrdersService {
 
   async validate(id: string): Promise<ValidateChatbotOrderResponse> {
     return apiClient.post<ValidateChatbotOrderResponse>(`${this.basePath}/${id}/validate`, {});
+  }
+
+  /** Valida UN voucher (el pago llegó). Cierra el pedido si era el último pendiente. */
+  async verifyVoucher(id: string, voucherId: string): Promise<VerifyChatbotVoucherResponse> {
+    return apiClient.post<VerifyChatbotVoucherResponse>(
+      `${this.basePath}/${id}/vouchers/${voucherId}/verify`,
+      {}
+    );
   }
 
   async reject(id: string, body?: RejectChatbotOrderBody): Promise<ChatbotOrder> {

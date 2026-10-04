@@ -7,6 +7,7 @@ import type {
   GetChatbotOrdersParams,
   RejectChatbotOrderBody,
   ValidateChatbotOrderResponse,
+  VerifyChatbotVoucherResponse,
 } from '@/types/chatbot';
 
 // ============================================
@@ -47,6 +48,22 @@ export const useValidateChatbotOrder = () => {
     mutationFn: (id) => chatbotOrdersApi.validate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
+    },
+  });
+};
+
+/** Valida un voucher del pedido; refresca pedidos y vouchers. */
+export const useVerifyChatbotVoucher = () => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    VerifyChatbotVoucherResponse,
+    Error,
+    { orderId: string; voucherId: string }
+  >({
+    mutationFn: ({ orderId, voucherId }) => chatbotOrdersApi.verifyVoucher(orderId, voucherId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['chatbot-conversations'] });
     },
   });
 };

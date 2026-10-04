@@ -60,6 +60,8 @@ export type ChatbotOrderStatus =
 export type VoucherStatus =
   | 'PENDING'
   | 'MATCHED'
+  /** Un asesor confirmó que el pago llegó a la cuenta. */
+  | 'VERIFIED'
   | 'MISMATCH_LESS'
   | 'MISMATCH_MORE'
   | 'ORPHAN'
@@ -257,6 +259,9 @@ export interface ChatbotOrder {
   cartId: string;
   conversationId: string;
   customerId: string | null;
+  /** Nombre y teléfono del cliente (de la conversación). */
+  customerName?: string | null;
+  phone?: string | null;
   voucherUrl: string | null;
   status: ChatbotOrderStatus;
   stockReservationIds: string[] | null;
@@ -917,3 +922,13 @@ export interface CreateKnowledgeBody {
 }
 
 export type UpdateKnowledgeBody = Partial<CreateKnowledgeBody & { isActive: boolean }>;
+
+/** Respuesta de `POST /chatbot/orders/:id/vouchers/:voucherId/verify`. */
+export interface VerifyChatbotVoucherResponse {
+  voucherStatus: 'VERIFIED';
+  /** PENDING si aún faltan vouchers por validar; EMITTED/VALIDATED si se cerró el pedido. */
+  orderStatus: 'PENDING' | 'VALIDATED' | 'EMITTED';
+  saleIds?: string[];
+  note?: string;
+  error?: string;
+}
