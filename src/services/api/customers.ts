@@ -12,6 +12,15 @@ import {
 } from '@/types/customers';
 import type { AssignCustomerLevelRequest } from '@/types/customer-levels';
 
+/** Numero de celular adicional del cliente (`app.customer_phones`). */
+export interface CustomerExtraPhone {
+  id: string;
+  phone: string;
+  /** WHATSAPP = anexado por el bot; MANUAL = agregado en el admin. */
+  source: 'WHATSAPP' | 'MANUAL' | string;
+  createdAt: string;
+}
+
 /**
  * Customers API Service
  */
@@ -86,6 +95,23 @@ class CustomersService {
    */
   async assignLevel(id: string, data: AssignCustomerLevelRequest): Promise<Customer> {
     return apiClient.patch<Customer>(`${this.basePath}/${id}/level`, data);
+  }
+
+  /**
+   * Numeros de celular adicionales (el bot anexa los numeros desde los que el
+   * cliente escribe; el admin puede agregar/quitar).
+   * GET/POST /customers/:id/phones, DELETE /customers/:id/phones/:phoneId
+   */
+  async getExtraPhones(id: string): Promise<CustomerExtraPhone[]> {
+    return apiClient.get<CustomerExtraPhone[]>(`${this.basePath}/${id}/phones`);
+  }
+
+  async addExtraPhone(id: string, phone: string): Promise<CustomerExtraPhone[]> {
+    return apiClient.post<CustomerExtraPhone[]>(`${this.basePath}/${id}/phones`, { phone });
+  }
+
+  async removeExtraPhone(id: string, phoneId: string): Promise<void> {
+    return apiClient.delete<void>(`${this.basePath}/${id}/phones/${phoneId}`);
   }
 
   // ============================================

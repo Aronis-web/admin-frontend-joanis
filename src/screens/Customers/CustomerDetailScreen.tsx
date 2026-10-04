@@ -25,6 +25,7 @@ import { getDepartamentos, getProvincias, getDistritos } from '@/constants/ubige
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { CustomerExtraPhones } from './CustomerExtraPhones';
 
 export const CustomerDetailScreen = ({ navigation, route }: any) => {
   const customerId = route?.params?.customerId;
@@ -733,6 +734,8 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
             <Text style={styles.valueText}>{formData.mobile || '-'}</Text>
           )}
         </View>
+
+        {!isCreateMode && customerId ? <CustomerExtraPhones customerId={customerId} /> : null}
 
         <View style={styles.section}>
           <Text style={styles.label}>Dirección</Text>
