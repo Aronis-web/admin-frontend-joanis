@@ -24,9 +24,11 @@ function isChunkLoadError(error: unknown): boolean {
   const err = error as { name?: string; message?: string } | null;
   const name = err?.name ?? '';
   const message = err?.message ?? '';
-  if (name === 'ChunkLoadError') return true;
+  if (name === 'ChunkLoadError' || name === 'AsyncRequireError') return true;
   return (
     /Loading chunk [\w-]+ failed/i.test(message) ||
+    // Metro (Expo web): "AsyncRequireError: Loading module <url> failed."
+    /Loading module \S+ failed/i.test(message) ||
     /Loading CSS chunk/i.test(message) ||
     /Importing a module script failed/i.test(message) ||
     /error loading dynamically imported module/i.test(message) ||
