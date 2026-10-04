@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import type {
   ChatConversation,
+  ConversationCounts,
+  ConversationEscalation,
   ChatMessage,
   ConversationSearchItem,
   ConversationVoucher,
@@ -187,6 +189,16 @@ class ChatbotConversationsService {
    * `GET /chatbot/conversations/:id/vouchers`. Normaliza el shape legacy
    * (array plano) por compatibilidad.
    */
+  /** Conteos de las vistas rápidas. `GET /chatbot/conversations/counts`. */
+  async getCounts(): Promise<ConversationCounts> {
+    return apiClient.get<ConversationCounts>(`${this.basePath}/counts`);
+  }
+
+  /** Casos escalados pendientes del chat. */
+  async getEscalations(id: string): Promise<ConversationEscalation[]> {
+    return apiClient.get<ConversationEscalation[]>(`${this.basePath}/${id}/escalations`);
+  }
+
   async getVouchers(id: string): Promise<ConversationVoucher[]> {
     const res = await apiClient.get<ConversationVoucher[] | { items: ConversationVoucher[] }>(
       `${this.basePath}/${id}/vouchers`

@@ -4,6 +4,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -19,8 +20,17 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { Badge, Body, Caption, ErrorState, Text, useTheme, useThemedStyles } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
-import { useConversationsList, useConversationsSearch } from '@/hooks/api/useChatbotConversations';
-import type { ChatConversation, ConversationSearchItem, PurchaseStage } from '@/types/chatbot';
+import {
+  useConversationCounts,
+  useConversationsList,
+  useConversationsSearch,
+} from '@/hooks/api/useChatbotConversations';
+import type {
+  ChatConversation,
+  ConversationSearchItem,
+  ConversationView,
+  PurchaseStage,
+} from '@/types/chatbot';
 import { ConversationList } from './components/ConversationList';
 import { ConversationPanel } from './components/ConversationPanel';
 import { WaSessionModal } from './components/WaSessionModal';
@@ -46,6 +56,8 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [stageFilter, setStageFilter] = useState<PurchaseStage | undefined>(undefined);
   const [stagePickerOpen, setStagePickerOpen] = useState(false);
+  const [view, setView] = useState<ConversationView | undefined>(undefined);
+  const countsQuery = useConversationCounts({ refetchIntervalMs: 15000 });
 
   // Buscador con debounce
   const [searchInput, setSearchInput] = useState('');
@@ -58,7 +70,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const isSearching = debouncedQuery.length > 0;
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useConversationsList({ limit: 30, stage: stageFilter }, { refetchIntervalMs: 15000 });
+    useConversationsList({ limit: 30, stage: stageFilter, view }, { refetchIntervalMs: 15000 });
 
   const conversations = useMemo<ChatConversation[]>(
     () => data?.pages.flatMap((p) => p.items) ?? [],
@@ -91,6 +103,60 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
       void fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const VIEWS: Array<{ key: ConversationView | undefined; label: string; icon: any }> = [
+    { key: undefined, label: 'Todos', icon: 'chatbubbles-outline' },
+    { key: 'escalated', label: 'Escalados', icon: 'alert-circle-outline' },
+    { key: 'unanswered', label: 'Sin responder', icon: 'mail-unread-outline' },
+    { key: 'validation', label: 'Por validar', icon: 'receipt-outline' },
+    { key: 'human', label: 'Humano', icon: 'person-outline' },
+  ];
+
+  const renderViewChips = () => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.chipsRow}
+    >
+      {VIEWS.map((v) => {
+        const active = view === v.key;
+        const count = v.key ? countsQuery.data?.[v.key] : undefined;
+        const alert = v.key === 'escalated' && !!count;
+        return (
+          <Pressable
+            key={v.label}
+            onPress={() => setView(v.key)}
+            style={[styles.chip, active && styles.chipActive, alert && !active && styles.chipAlert]}
+          >
+            <Ionicons
+              name={v.icon}
+              size={14}
+              color={
+                active
+                  ? theme.color.text.onAction
+                  : alert
+                    ? theme.color.text.danger
+                    : theme.color.text.muted
+              }
+            />
+            <Caption
+              color={
+                active
+                  ? theme.color.text.onAction
+                  : alert
+                    ? theme.color.text.danger
+                    : theme.color.text.body
+              }
+              style={styles.chipText}
+            >
+              {v.label}
+              {count ? ` · ${count}` : ''}
+            </Caption>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
 
   const renderStageFilter = () => {
     const label = stageFilter ? PURCHASE_STAGE_LABEL[stageFilter] : 'Todos los estados';
@@ -260,6 +326,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
         </View>
       </View>
+      {!isSearching ? renderViewChips() : null}
       {!isSearching ? renderStageFilter() : null}
       {renderStagePickerModal()}
       <View style={{ flex: 1 }}>
@@ -285,6 +352,13 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
             isLoading={isLoading}
             onEndReached={handleEndReached}
             isFetchingNextPage={isFetchingNextPage}
+            emptyTitle={
+              view === 'escalated'
+                ? 'Sin casos escalados'
+                : view === 'unanswered'
+                  ? 'Todo respondido'
+                  : undefined
+            }
           />
         )}
       </View>
@@ -461,6 +535,31 @@ const createStyles = (theme: Theme) =>
       fontSize: 14,
       paddingVertical: 0,
     },
+    chipsRow: {
+      paddingHorizontal: spacing[3],
+      paddingTop: spacing[2],
+      gap: spacing[2],
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: spacing[3],
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      backgroundColor: theme.color.surface.base,
+    },
+    chipActive: {
+      backgroundColor: theme.color.brand.primary,
+      borderColor: theme.color.brand.primary,
+    },
+    chipAlert: {
+      borderColor: theme.color.state.danger.background,
+      backgroundColor: theme.color.state.danger.background,
+    },
+    chipText: { fontWeight: '600' },
     filtersRow: {
       paddingHorizontal: spacing[3],
       paddingBottom: spacing[2],

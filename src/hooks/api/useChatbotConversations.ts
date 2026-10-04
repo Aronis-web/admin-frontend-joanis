@@ -26,7 +26,28 @@ export const chatbotConversationsKeys = {
     [...chatbotConversationsKeys.all, 'messages', conversationId, params] as const,
   vouchers: (conversationId: string) =>
     [...chatbotConversationsKeys.all, 'vouchers', conversationId] as const,
+  counts: () => [...chatbotConversationsKeys.all, 'counts'] as const,
+  escalations: (conversationId: string) =>
+    [...chatbotConversationsKeys.all, 'escalations', conversationId] as const,
 };
+
+/** Conteos de las vistas rápidas (escalados, sin responder, humano, por validar). */
+export const useConversationCounts = (options?: { refetchIntervalMs?: number }) =>
+  useQuery({
+    queryKey: chatbotConversationsKeys.counts(),
+    queryFn: () => chatbotConversationsApi.getCounts(),
+    staleTime: 15 * 1000,
+    refetchInterval: options?.refetchIntervalMs ?? false,
+  });
+
+/** Casos escalados pendientes de una conversación. */
+export const useConversationEscalations = (conversationId?: string) =>
+  useQuery({
+    queryKey: chatbotConversationsKeys.escalations(conversationId ?? ''),
+    queryFn: () => chatbotConversationsApi.getEscalations(conversationId as string),
+    enabled: !!conversationId,
+    staleTime: 15 * 1000,
+  });
 
 const CONVERSATIONS_STALE_TIME = 15 * 1000; // 15s (chat activo)
 const SEARCH_STALE_TIME = 30 * 1000; // 30s (autocompletado)

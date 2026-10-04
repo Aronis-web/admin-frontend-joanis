@@ -111,6 +111,14 @@ export interface ChatConversation {
   lastMessageAt: string | null;
   /** Estado del embudo de compra asignado por el bot. */
   purchaseStage?: PurchaseStage;
+  /** Casos escalados por el bot pendientes de atender. */
+  pendingEscalations?: number;
+  /** Resumen del caso escalado más reciente. */
+  escalationSummary?: string | null;
+  /** Último mensaje (vista previa en la bandeja). */
+  lastMessage?: { role: string; text: string | null; at: string } | null;
+  /** true si el último mensaje es del cliente (nadie le respondió). */
+  awaitingReply?: boolean;
   companyOwnerId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -179,6 +187,23 @@ export interface GetConversationsParams {
   stage?: PurchaseStage;
   /** Filtra por estado de chat. */
   status?: ConversationStatus;
+  /** Vista rápida: escalados, sin responder, en humano o por validar. */
+  view?: ConversationView;
+}
+
+/** Vistas rápidas de la bandeja (`GET /chatbot/conversations?view=`). */
+export type ConversationView = 'escalated' | 'unanswered' | 'human' | 'validation';
+
+/** Conteos de cada vista rápida (`GET /chatbot/conversations/counts`). */
+export type ConversationCounts = Record<ConversationView, number>;
+
+/** Caso escalado pendiente de una conversación. */
+export interface ConversationEscalation {
+  id: string;
+  category: string;
+  summary: string | null;
+  customerText: string | null;
+  createdAt: string;
 }
 
 export interface SearchConversationsParams {

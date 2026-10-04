@@ -23,11 +23,15 @@ import {
 } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
+import { useQueryClient } from '@tanstack/react-query';
 import {
+  chatbotConversationsKeys,
+  useConversationEscalations,
   useConversationMessages,
   useHandoffConversation,
   useReplyConversation,
 } from '@/hooks/api/useChatbotConversations';
+import { useDismissCase } from '@/hooks/api/useChatbotTraining';
 import type { ChatConversation, ChatMessage } from '@/types/chatbot';
 import { formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 import Alert from '@/utils/alert';
@@ -55,6 +59,10 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
     useConversationMessages(conversation?.id, { limit: 50 }, { refetchIntervalMs: 5000 });
 
   const handoffMutation = useHandoffConversation();
+  const escalationsQuery = useConversationEscalations(conversation?.id);
+  const dismissMutation = useDismissCase();
+  const queryClient = useQueryClient();
+  const [pauseOnReply, setPauseOnReply] = useState(true);
   const replyMutation = useReplyConversation();
 
   const [text, setText] = useState('');
@@ -126,7 +134,7 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
         }
       );
 
-    if (conversation.botEnabled) {
+    if (conversation.botEnabled && pauseOnReply) {
       handoffMutation.mutate(
         { id: conversation.id, body: { botEnabled: false } },
         { onSuccess: doSend, onError: doSend }
@@ -183,6 +191,36 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
         />
       </View>
 
+      {(escalationsQuery.data ?? []).map((e) => (
+        <View key={e.id} style={styles.escalation}>
+          <Ionicons name="alert-circle" size={18} color={theme.color.text.danger} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Caption color={theme.color.text.danger} style={{ fontWeight: '700' }}>
+              Caso escalado · {formatTime(e.createdAt)}
+            </Caption>
+            <Caption color={theme.color.text.body}>{e.summary ?? e.customerText ?? '—'}</Caption>
+          </View>
+          <Pressable
+            style={styles.escalationBtn}
+            disabled={dismissMutation.isPending}
+            onPress={() =>
+              dismissMutation.mutate(e.id, {
+                onSuccess: () => {
+                  void queryClient.invalidateQueries({ queryKey: chatbotConversationsKeys.all });
+                },
+                onError: (err: any) =>
+                  Alert.alert('Error', err?.message ?? 'No se pudo marcar como resuelto'),
+              })
+            }
+          >
+            <Ionicons name="checkmark" size={14} color={theme.color.text.onAction} />
+            <Caption color={theme.color.text.onAction} style={{ fontWeight: '700' }}>
+              Resuelto
+            </Caption>
+          </Pressable>
+        </View>
+      ))}
+
       {isLoading ? (
         <View style={styles.centerBox}>
           <ActivityIndicator color={theme.color.brand.accent} />
@@ -236,6 +274,18 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
         />
       )}
 
+      {conversation.botEnabled ? (
+        <Pressable style={styles.pauseRow} onPress={() => setPauseOnReply((v) => !v)}>
+          <Ionicons
+            name={pauseOnReply ? 'checkbox' : 'square-outline'}
+            size={16}
+            color={theme.color.text.muted}
+          />
+          <Caption color={theme.color.text.muted}>
+            Pausar el bot al responder (si lo desmarcas, el bot sigue atendiendo este chat)
+          </Caption>
+        </Pressable>
+      ) : null}
       <View style={styles.inputRow}>
         <TextInput
           value={text}
@@ -361,6 +411,32 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.color.background.subtle,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    escalation: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing[2],
+      marginHorizontal: spacing[3],
+      marginTop: spacing[2],
+      padding: spacing[3],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.state.danger.background,
+    },
+    escalationBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: spacing[3],
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: theme.color.brand.primary,
+    },
+    pauseRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      paddingHorizontal: spacing[4],
+      paddingTop: spacing[2],
     },
     handoffRow: {
       flexDirection: 'row',
