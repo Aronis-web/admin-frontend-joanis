@@ -583,11 +583,18 @@ export const PERMISSIONS = {
 
   // ========== CHATBOT WHATSAPP ==========
   CHATBOT: {
+    /** Ver chats (sin responder). */
+    READ: 'chatbot.read',
     SESSION_MANAGE: 'chatbot.session.manage',
     CHATS_MANAGE: 'chatbot.chats.manage',
+    DASHBOARD_READ: 'chatbot.dashboard.read',
+    METRICS_READ: 'chatbot.metrics.read',
+    ORDERS_READ: 'chatbot.orders.read',
     ORDERS_VALIDATE: 'chatbot.orders.validate',
+    ORDERS_CANCEL: 'chatbot.orders.cancel',
     CATALOG_MANAGE: 'chatbot.catalog.manage',
     TRAINING_MANAGE: 'chatbot.training.manage',
+    SETTINGS_MANAGE: 'chatbot.settings.manage',
   },
 
   // ========== NOTIFICATIONS WHATSAPP ==========

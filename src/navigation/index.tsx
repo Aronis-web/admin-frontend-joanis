@@ -2437,21 +2437,21 @@ const MainStack = React.memo(() => {
       {/* Chatbot Ventas WhatsApp */}
       <MainStackNavigator.Screen name="ChatbotChats" options={{ title: 'Chats WhatsApp' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.chats.manage']}>
+          <ProtectedRoute requiredPermissions={['chatbot.read', 'chatbot.chats.manage']}>
             <ChatbotChatsScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen name="ChatbotChatDetail" options={{ title: 'Chat' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.chats.manage']}>
+          <ProtectedRoute requiredPermissions={['chatbot.read', 'chatbot.chats.manage']}>
             <ChatbotChatDetailScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen name="ChatbotOrders" options={{ title: 'Pedidos WhatsApp' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.orders.validate']}>
+          <ProtectedRoute requiredPermissions={['chatbot.orders.read', 'chatbot.orders.validate']}>
             <ChatbotOrdersScreen {...props} />
           </ProtectedRoute>
         )}
@@ -2475,24 +2475,21 @@ const MainStack = React.memo(() => {
         options={{ title: 'Configuración del chatbot' }}
       >
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
+          <ProtectedRoute requiredPermissions={['chatbot.settings.manage']}>
             <ChatbotSettingsScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
-      <MainStackNavigator.Screen
-        name="ChatbotDashboard"
-        options={{ title: 'Dashboard WhatsApp' }}
-      >
+      <MainStackNavigator.Screen name="ChatbotDashboard" options={{ title: 'Dashboard WhatsApp' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.chats.manage']}>
+          <ProtectedRoute requiredPermissions={['chatbot.dashboard.read']}>
             <ChatbotDashboardScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen name="ChatbotMetrics" options={{ title: 'Métricas WhatsApp' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.chats.manage']}>
+          <ProtectedRoute requiredPermissions={['chatbot.metrics.read']}>
             <ChatbotMetricsScreen {...props} />
           </ProtectedRoute>
         )}
@@ -2512,13 +2509,7 @@ const MainStack = React.memo(() => {
         options={{ title: 'Entrenamiento WhatsApp' }}
       >
         {(props) => (
-          <ProtectedRoute
-            requiredPermissions={[
-              'chatbot.training.manage',
-              'chatbot.catalog.manage',
-              'chatbot.chats.manage',
-            ]}
-          >
+          <ProtectedRoute requiredPermissions={['chatbot.training.manage']}>
             <ChatbotTrainingScreen {...props} />
           </ProtectedRoute>
         )}

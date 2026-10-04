@@ -42,6 +42,11 @@ class ChatbotOrdersService {
     );
   }
 
+  /** Cancela el pedido (permiso `chatbot.orders.cancel`). */
+  async cancel(id: string, body?: { reason?: string }): Promise<ChatbotOrder> {
+    return apiClient.post<ChatbotOrder>(`${this.basePath}/${id}/cancel`, body ?? {});
+  }
+
   async reject(id: string, body?: RejectChatbotOrderBody): Promise<ChatbotOrder> {
     return apiClient.post<ChatbotOrder>(`${this.basePath}/${id}/reject`, body ?? {});
   }

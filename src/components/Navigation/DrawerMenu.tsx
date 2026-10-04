@@ -448,10 +448,15 @@ const menuCategories: MenuCategory[] = [
     title: 'Ventas WhatsApp',
     icon: 'logo-whatsapp',
     requiredPermissions: [
+      'chatbot.dashboard.read',
+      'chatbot.read',
       'chatbot.chats.manage',
+      'chatbot.orders.read',
       'chatbot.orders.validate',
       'chatbot.catalog.manage',
       'chatbot.training.manage',
+      'chatbot.metrics.read',
+      'chatbot.settings.manage',
     ],
     items: [
       {
@@ -459,21 +464,21 @@ const menuCategories: MenuCategory[] = [
         icon: 'speedometer-outline',
         label: 'Dashboard',
         route: MAIN_ROUTES.CHATBOT_DASHBOARD,
-        requiredPermissions: ['chatbot.chats.manage'],
+        requiredPermissions: ['chatbot.dashboard.read'],
       },
       {
         id: 'chatbot-chats',
         icon: 'chatbubbles-outline',
         label: 'Chats',
         route: MAIN_ROUTES.CHATBOT_CHATS,
-        requiredPermissions: ['chatbot.chats.manage'],
+        requiredPermissions: ['chatbot.read', 'chatbot.chats.manage'],
       },
       {
         id: 'chatbot-orders',
         icon: 'cart-outline',
         label: 'Pedidos',
         route: MAIN_ROUTES.CHATBOT_ORDERS,
-        requiredPermissions: ['chatbot.orders.validate'],
+        requiredPermissions: ['chatbot.orders.read', 'chatbot.orders.validate'],
       },
       {
         id: 'chatbot-catalog',
@@ -501,28 +506,21 @@ const menuCategories: MenuCategory[] = [
         icon: 'school-outline',
         label: 'Entrenamiento',
         route: MAIN_ROUTES.CHATBOT_TRAINING,
-        // Se acepta cualquier permiso del módulo Chatbot; el permiso propio
-        // `chatbot.training.manage` puede no estar aún registrado en el backend
-        // para roles existentes, así que usamos `some(...)` con fallbacks.
-        requiredPermissions: [
-          'chatbot.training.manage',
-          'chatbot.catalog.manage',
-          'chatbot.chats.manage',
-        ],
+        requiredPermissions: ['chatbot.training.manage'],
       },
       {
         id: 'chatbot-metrics',
         icon: 'bar-chart-outline',
         label: 'Métricas',
         route: MAIN_ROUTES.CHATBOT_METRICS,
-        requiredPermissions: ['chatbot.chats.manage'],
+        requiredPermissions: ['chatbot.metrics.read'],
       },
       {
         id: 'chatbot-settings',
         icon: 'settings-outline',
         label: 'Configuración',
         route: MAIN_ROUTES.CHATBOT_SETTINGS,
-        requiredPermissions: ['chatbot.catalog.manage'],
+        requiredPermissions: ['chatbot.settings.manage'],
       },
     ],
   },

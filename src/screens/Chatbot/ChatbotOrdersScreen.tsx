@@ -37,6 +37,7 @@ import { useConversationVouchers } from '@/hooks/api/useChatbotConversations';
 import {
   useChatbotOrdersList,
   useExtendChatbotOrderHold,
+  useCancelChatbotOrder,
   useRejectChatbotOrder,
   useValidateChatbotOrder,
   useVerifyChatbotVoucher,
@@ -48,6 +49,7 @@ import type {
   VoucherStatus,
 } from '@/types/chatbot';
 import Alert from '@/utils/alert';
+import { usePermissions } from '@/hooks/usePermissions';
 import { config } from '@/utils/config';
 import { downloadWithAuth } from '@/utils/downloadWithAuth';
 import { formatDateTime, formatSolesFromCents } from './utils';
@@ -193,6 +195,10 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   });
   const orders = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
+  const { hasPermission } = usePermissions();
+  const canValidate = hasPermission('chatbot.orders.validate');
+  const canCancel = hasPermission('chatbot.orders.cancel');
+  const cancelMutation = useCancelChatbotOrder();
   const validateMutation = useValidateChatbotOrder();
   const rejectMutation = useRejectChatbotOrder();
   const extendMutation = useExtendChatbotOrderHold();
@@ -337,11 +343,8 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const runReject = (rejectTarget: ChatbotOrder) => {
-    rejectMutation.mutate(
-      {
-        id: rejectTarget.id,
-        body: { action: 'cancel', ...(rejectReason ? { reason: rejectReason } : {}) },
-      },
+    cancelMutation.mutate(
+      { id: rejectTarget.id, reason: rejectReason || undefined },
       {
         onSuccess: () => {
           setRejectTarget(null);
@@ -488,7 +491,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       onVerify={handleVerifyVoucher}
                       busy={rejectMutation.isPending || verifyMutation.isPending}
                       handled={handledVouchers}
-                      allowActions={isActionable(order.status)}
+                      allowActions={isActionable(order.status) && canValidate}
                     />
 
                     {order.rejectedReason ? (
@@ -502,23 +505,27 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       </Caption>
                     ) : null}
 
-                    {isActionable(order.status) ? (
+                    {isActionable(order.status) && (canValidate || canCancel) ? (
                       <View style={styles.actionsRow}>
-                        <Button
-                          title="Dar más tiempo"
-                          variant="ghost"
-                          size="small"
-                          leftIcon="timer-outline"
-                          onPress={() => openExtend(order)}
-                        />
-                        <Button
-                          title="Cancelar pedido"
-                          variant="outline"
-                          size="small"
-                          leftIcon="close-circle-outline"
-                          onPress={() => openReject(order)}
-                        />
-                        {order.status === 'PENDING_PAYMENT' && !order.voucherUrl ? (
+                        {canValidate ? (
+                          <Button
+                            title="Dar más tiempo"
+                            variant="ghost"
+                            size="small"
+                            leftIcon="timer-outline"
+                            onPress={() => openExtend(order)}
+                          />
+                        ) : null}
+                        {canCancel ? (
+                          <Button
+                            title="Cancelar pedido"
+                            variant="outline"
+                            size="small"
+                            leftIcon="close-circle-outline"
+                            onPress={() => openReject(order)}
+                          />
+                        ) : null}
+                        {canValidate && order.status === 'PENDING_PAYMENT' && !order.voucherUrl ? (
                           <Button
                             title="Validar pedido"
                             size="small"
@@ -578,7 +585,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                 <Button
                   title="Cancelar pedido"
                   onPress={confirmReject}
-                  loading={rejectMutation.isPending}
+                  loading={cancelMutation.isPending}
                   leftIcon="close-circle-outline"
                 />
               </View>

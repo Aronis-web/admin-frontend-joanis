@@ -32,6 +32,7 @@ import type {
   PurchaseStage,
 } from '@/types/chatbot';
 import { ConversationList } from './components/ConversationList';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ConversationPanel } from './components/ConversationPanel';
 import { WaSessionModal } from './components/WaSessionModal';
 import {
@@ -53,6 +54,9 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const isSplit = width >= SPLIT_BREAKPOINT;
 
   const [sessionOpen, setSessionOpen] = useState(false);
+  const { hasPermission } = usePermissions();
+  const canSettings = hasPermission('chatbot.settings.manage');
+  const canSession = hasPermission('chatbot.session.manage');
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [stageFilter, setStageFilter] = useState<PurchaseStage | undefined>(undefined);
   const [stagePickerOpen, setStagePickerOpen] = useState(false);
@@ -388,22 +392,26 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             </View>
             <View style={styles.headerActionsRow}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('ChatbotSettings')}
-                style={styles.headerAction}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="sparkles" size={16} color={theme.color.brand.onHeader} />
-                <Text style={styles.headerActionText}>Bot</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setSessionOpen(true)}
-                style={styles.headerAction}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="qr-code-outline" size={16} color={theme.color.brand.onHeader} />
-                <Text style={styles.headerActionText}>Sesión</Text>
-              </TouchableOpacity>
+              {canSettings ? (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ChatbotSettings')}
+                  style={styles.headerAction}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="sparkles" size={16} color={theme.color.brand.onHeader} />
+                  <Text style={styles.headerActionText}>Bot</Text>
+                </TouchableOpacity>
+              ) : null}
+              {canSession ? (
+                <TouchableOpacity
+                  onPress={() => setSessionOpen(true)}
+                  style={styles.headerAction}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="qr-code-outline" size={16} color={theme.color.brand.onHeader} />
+                  <Text style={styles.headerActionText}>Sesión</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         </LinearGradient>

@@ -35,6 +35,7 @@ import { useDismissCase } from '@/hooks/api/useChatbotTraining';
 import type { ChatConversation, ChatMessage } from '@/types/chatbot';
 import { formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 import Alert from '@/utils/alert';
+import { usePermissions } from '@/hooks/usePermissions';
 import { AuthedMedia, extractFileNameFromText } from './AuthedMedia';
 
 interface Props {
@@ -58,6 +59,10 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useConversationMessages(conversation?.id, { limit: 50 }, { refetchIntervalMs: 5000 });
 
+  const { hasPermission } = usePermissions();
+  const canReply = hasPermission('chatbot.chats.manage');
+  const canSession = hasPermission('chatbot.session.manage');
+  const canResolve = hasPermission('chatbot.training.manage');
   const handoffMutation = useHandoffConversation();
   const escalationsQuery = useConversationEscalations(conversation?.id);
   const dismissMutation = useDismissCase();
@@ -134,7 +139,7 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
         }
       );
 
-    if (conversation.botEnabled && pauseOnReply) {
+    if (conversation.botEnabled && pauseOnReply && canSession) {
       handoffMutation.mutate(
         { id: conversation.id, body: { botEnabled: false } },
         { onSuccess: doSend, onError: doSend }
@@ -187,7 +192,7 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
         <Switch
           value={conversation.botEnabled}
           onValueChange={handleToggleHandoff}
-          disabled={handoffMutation.isPending}
+          disabled={handoffMutation.isPending || !canSession}
         />
       </View>
 
@@ -200,24 +205,26 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
             </Caption>
             <Caption color={theme.color.text.body}>{e.summary ?? e.customerText ?? '—'}</Caption>
           </View>
-          <Pressable
-            style={styles.escalationBtn}
-            disabled={dismissMutation.isPending}
-            onPress={() =>
-              dismissMutation.mutate(e.id, {
-                onSuccess: () => {
-                  void queryClient.invalidateQueries({ queryKey: chatbotConversationsKeys.all });
-                },
-                onError: (err: any) =>
-                  Alert.alert('Error', err?.message ?? 'No se pudo marcar como resuelto'),
-              })
-            }
-          >
-            <Ionicons name="checkmark" size={14} color={theme.color.text.onAction} />
-            <Caption color={theme.color.text.onAction} style={{ fontWeight: '700' }}>
-              Resuelto
-            </Caption>
-          </Pressable>
+          {canResolve ? (
+            <Pressable
+              style={styles.escalationBtn}
+              disabled={dismissMutation.isPending}
+              onPress={() =>
+                dismissMutation.mutate(e.id, {
+                  onSuccess: () => {
+                    void queryClient.invalidateQueries({ queryKey: chatbotConversationsKeys.all });
+                  },
+                  onError: (err: any) =>
+                    Alert.alert('Error', err?.message ?? 'No se pudo marcar como resuelto'),
+                })
+              }
+            >
+              <Ionicons name="checkmark" size={14} color={theme.color.text.onAction} />
+              <Caption color={theme.color.text.onAction} style={{ fontWeight: '700' }}>
+                Resuelto
+              </Caption>
+            </Pressable>
+          ) : null}
         </View>
       ))}
 
@@ -274,7 +281,7 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
         />
       )}
 
-      {conversation.botEnabled ? (
+      {conversation.botEnabled && canReply && canSession ? (
         <Pressable style={styles.pauseRow} onPress={() => setPauseOnReply((v) => !v)}>
           <Ionicons
             name={pauseOnReply ? 'checkbox' : 'square-outline'}
@@ -286,31 +293,41 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
           </Caption>
         </Pressable>
       ) : null}
-      <View style={styles.inputRow}>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="Escribe un mensaje…"
-          placeholderTextColor={theme.color.text.muted}
-          style={styles.input}
-          multiline
-          editable={!replyMutation.isPending}
-        />
-        <Pressable
-          onPress={handleSend}
-          disabled={replyMutation.isPending || !text.trim()}
-          style={[
-            styles.sendBtn,
-            (replyMutation.isPending || !text.trim()) && styles.sendBtnDisabled,
-          ]}
-        >
-          {replyMutation.isPending ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Ionicons name="send" size={18} color="#fff" />
-          )}
-        </Pressable>
-      </View>
+      {!canReply ? (
+        <View style={styles.pauseRow}>
+          <Ionicons name="eye-outline" size={16} color={theme.color.text.muted} />
+          <Caption color={theme.color.text.muted}>
+            Solo lectura: no tienes permiso para responder.
+          </Caption>
+        </View>
+      ) : null}
+      {canReply ? (
+        <View style={styles.inputRow}>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder="Escribe un mensaje…"
+            placeholderTextColor={theme.color.text.muted}
+            style={styles.input}
+            multiline
+            editable={!replyMutation.isPending}
+          />
+          <Pressable
+            onPress={handleSend}
+            disabled={replyMutation.isPending || !text.trim()}
+            style={[
+              styles.sendBtn,
+              (replyMutation.isPending || !text.trim()) && styles.sendBtnDisabled,
+            ]}
+          >
+            {replyMutation.isPending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="send" size={18} color="#fff" />
+            )}
+          </Pressable>
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 };

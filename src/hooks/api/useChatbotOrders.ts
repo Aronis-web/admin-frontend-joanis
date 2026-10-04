@@ -65,6 +65,17 @@ export const useVerifyChatbotVoucher = () => {
   });
 };
 
+export const useCancelChatbotOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation<ChatbotOrder, Error, { id: string; reason?: string }>({
+    mutationFn: ({ id, reason }) => chatbotOrdersApi.cancel(id, reason ? { reason } : undefined),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['chatbot-conversations'] });
+    },
+  });
+};
+
 export const useRejectChatbotOrder = () => {
   const queryClient = useQueryClient();
   return useMutation<ChatbotOrder, Error, { id: string; body?: RejectChatbotOrderBody }>({
