@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { chatbotMetricsApi } from '@/services/api';
 import type {
+  ChatbotDashboard,
   ChatbotFunnelMetrics,
   ChatbotMetricsParams,
   ChatbotUsageMetrics,
@@ -13,6 +14,8 @@ export const chatbotMetricsKeys = {
   all: ['chatbot-metrics'] as const,
   funnel: (params?: ChatbotMetricsParams) => [...chatbotMetricsKeys.all, 'funnel', params] as const,
   usage: (params?: ChatbotMetricsParams) => [...chatbotMetricsKeys.all, 'usage', params] as const,
+  dashboard: (params?: ChatbotMetricsParams) =>
+    [...chatbotMetricsKeys.all, 'dashboard', params] as const,
 };
 
 const METRICS_STALE_TIME = 60 * 1000;
@@ -41,5 +44,14 @@ export const useChatbotUsage = (params?: ChatbotMetricsParams, options?: { enabl
     staleTime: METRICS_STALE_TIME,
     refetchOnWindowFocus: false,
     enabled: options?.enabled ?? true,
+  });
+};
+
+export const useChatbotDashboard = (params?: ChatbotMetricsParams) => {
+  return useQuery<ChatbotDashboard>({
+    queryKey: chatbotMetricsKeys.dashboard(params),
+    queryFn: () => chatbotMetricsApi.getDashboard(params),
+    staleTime: METRICS_STALE_TIME,
+    refetchOnWindowFocus: false,
   });
 };

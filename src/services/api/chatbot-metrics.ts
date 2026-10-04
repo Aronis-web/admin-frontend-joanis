@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type {
+  ChatbotDashboard,
   ChatbotFunnelMetrics,
   ChatbotMetricsParams,
   ChatbotUsageMetrics,
@@ -16,6 +17,11 @@ class ChatbotMetricsService {
   /** Embudo de compra. `GET /chatbot/metrics/funnel`. */
   async getFunnel(params?: ChatbotMetricsParams): Promise<ChatbotFunnelMetrics> {
     return apiClient.get<ChatbotFunnelMetrics>(`${this.basePath}/funnel`, { params });
+  }
+
+  /** Tablero de ventas WhatsApp. `GET /chatbot/metrics/dashboard`. */
+  async getDashboard(params?: ChatbotMetricsParams): Promise<ChatbotDashboard> {
+    return apiClient.get<ChatbotDashboard>(`${this.basePath}/dashboard`, { params });
   }
 
   /** Uso / consumo de tokens. `GET /chatbot/metrics/usage`. */

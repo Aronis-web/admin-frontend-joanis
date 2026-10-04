@@ -130,6 +130,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = 
   const [customInstructions, setCustomInstructions] = useState('');
   const [emojiLevel, setEmojiLevel] = useState<BotEmojiLevel>('low');
   const [maxLines, setMaxLines] = useState('3');
+  const [replyWait, setReplyWait] = useState('10');
   const [faq, setFaq] = useState<FaqRow[]>([]);
 
   // Rehidrata el formulario cuando llegan settings del backend.
@@ -142,6 +143,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = 
     setCustomInstructions(s.customInstructions ?? '');
     setEmojiLevel(s.emojiLevel ?? 'low');
     setMaxLines(String(s.maxLines ?? 3));
+    setReplyWait(String(s.replyWaitSeconds ?? 10));
     setFaq(toFaqRows(s.faqKeywords));
   }, [settingsQuery.data]);
 
@@ -155,6 +157,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = 
       (s.customInstructions ?? '') !== customInstructions ||
       s.emojiLevel !== emojiLevel ||
       String(s.maxLines ?? 3) !== maxLines ||
+      String(s.replyWaitSeconds ?? 10) !== replyWait ||
       JSON.stringify(s.faqKeywords ?? []) !== JSON.stringify(fromFaqRows(faq))
     );
   }, [
@@ -165,12 +168,15 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = 
     customInstructions,
     emojiLevel,
     maxLines,
+    replyWait,
     faq,
   ]);
 
   const handleSaveSettings = () => {
     const parsedMax = Number.parseInt(maxLines, 10);
+    const parsedWait = Number.parseInt(replyWait, 10);
     const body: UpdateBotSettingsBody = {
+      replyWaitSeconds: Number.isFinite(parsedWait) ? Math.min(60, Math.max(0, parsedWait)) : 10,
       botName: botName.trim() || null,
       persona: persona.trim() || null,
       tone: toneText.trim() || null,
@@ -469,6 +475,21 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = 
                 placeholder="3"
                 placeholderTextColor={theme.color.text.muted}
               />
+            </Field>
+
+            <Field label="Espera ante mensajes seguidos (segundos, 0–60)">
+              <TextInput
+                style={styles.input}
+                value={replyWait}
+                onChangeText={(t) => setReplyWait(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                placeholder="10"
+                placeholderTextColor={theme.color.text.muted}
+              />
+              <Caption color={theme.color.text.muted}>
+                El bot espera este tiempo desde el último mensaje del cliente y responde todo junto.
+                Botones, formularios y el carrito de WhatsApp se responden al instante.
+              </Caption>
             </Field>
 
             <View style={styles.actionsRow}>

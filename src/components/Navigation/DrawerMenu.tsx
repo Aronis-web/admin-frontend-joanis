@@ -455,6 +455,13 @@ const menuCategories: MenuCategory[] = [
     ],
     items: [
       {
+        id: 'chatbot-dashboard',
+        icon: 'speedometer-outline',
+        label: 'Dashboard',
+        route: MAIN_ROUTES.CHATBOT_DASHBOARD,
+        requiredPermissions: ['chatbot.chats.manage'],
+      },
+      {
         id: 'chatbot-chats',
         icon: 'chatbubbles-outline',
         label: 'Chats',

@@ -661,6 +661,10 @@ const ChatbotCrateScreen = lazyLoad(
 const ChatbotSettingsScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSettingsScreen }))
 );
+const ChatbotDashboardScreen = lazyLoad(
+  () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotDashboardScreen })),
+  'Cargando Dashboard...'
+);
 const ChatbotMetricsScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotMetricsScreen })),
   'Cargando Métricas...'
@@ -2473,6 +2477,16 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
             <ChatbotSettingsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="ChatbotDashboard"
+        options={{ title: 'Dashboard WhatsApp' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.chats.manage']}>
+            <ChatbotDashboardScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

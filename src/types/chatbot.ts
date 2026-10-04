@@ -595,6 +595,8 @@ export interface BotSettings {
   fulfillmentConfig?: BotFulfillmentConfig | null;
   /** Medios de pago que el bot envía al confirmar el pedido. */
   paymentMethods?: BotPaymentMethod[];
+  /** Segundos que el bot espera ante mensajes seguidos antes de responder (0–60). */
+  replyWaitSeconds?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -694,6 +696,43 @@ export interface ChatbotMetricsParams {
   from?: string;
   /** ISO date final (inclusive). */
   to?: string;
+}
+
+/** Tablero de ventas WhatsApp (`GET /chatbot/metrics/dashboard`). Montos en centavos. */
+export interface ChatbotDashboard {
+  range: { from: string; to: string };
+  sales: {
+    orders: number;
+    amountCents: number;
+    validated: { count: number; amountCents: number };
+    pendingValidation: { count: number; amountCents: number };
+    awaitingBalance: { count: number; amountCents: number; missingCents: number };
+    rejectedOrExpired: number;
+    deliveryFeesCents: number;
+  };
+  vouchers: { received: number; awaitingValidation: number; byStatus: Record<string, number> };
+  conversations: { active: number; newChats: number; identified: number; optedOut: number };
+  messages: { fromCustomers: number; fromBot: number; manual: number };
+  ai: {
+    totalUsd: number;
+    byProvider: Array<{
+      provider: string;
+      model: string;
+      calls: number;
+      inputTokens: number;
+      cachedTokens: number;
+      outputTokens: number;
+      costUsd: number;
+    }>;
+  };
+  meta: {
+    available: boolean;
+    currency: string | null;
+    freeMessages: number;
+    paidMessages: number;
+    cost: number;
+    error?: string;
+  };
 }
 
 /**

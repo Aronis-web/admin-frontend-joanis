@@ -262,6 +262,7 @@ export const MAIN_ROUTES = {
   CHATBOT_CATALOG: 'ChatbotCatalog',
   CHATBOT_CRATE: 'ChatbotCrate',
   CHATBOT_METRICS: 'ChatbotMetrics',
+  CHATBOT_DASHBOARD: 'ChatbotDashboard',
   CHATBOT_SYNC_RULES: 'ChatbotSyncRules',
   CHATBOT_TRAINING: 'ChatbotTraining',
   CHATBOT_SETTINGS: 'ChatbotSettings',
