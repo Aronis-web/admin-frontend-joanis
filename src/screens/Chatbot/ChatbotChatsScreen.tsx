@@ -116,6 +116,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.chipsScroll}
       contentContainerStyle={styles.chipsRow}
     >
       {VIEWS.map((v) => {
@@ -535,12 +536,18 @@ const createStyles = (theme: Theme) =>
       fontSize: 14,
       paddingVertical: 0,
     },
+    chipsScroll: {
+      flexGrow: 0,
+      flexShrink: 0,
+    },
     chipsRow: {
+      alignItems: 'center',
       paddingHorizontal: spacing[3],
       paddingTop: spacing[2],
       gap: spacing[2],
     },
     chip: {
+      alignSelf: 'center',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
