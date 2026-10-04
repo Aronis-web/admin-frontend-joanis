@@ -71,9 +71,10 @@ const describeOrderFulfillment = (order: ChatbotOrder): string | null => {
  * Valor del filtro. `MANAGE` = bandeja por defecto (sin `status`): el backend
  * devuelve los pedidos accionables (`PENDING_PAYMENT` + `AWAITING_BALANCE`).
  */
-type OrderFilter = ChatbotOrderStatus | 'MANAGE';
+type OrderFilter = ChatbotOrderStatus | 'MANAGE' | 'ALL';
 
 const STATUS_OPTIONS: Array<{ label: string; value: OrderFilter }> = [
+  { label: 'Todos', value: 'ALL' },
   { label: 'Por gestionar', value: 'MANAGE' },
   { label: 'Pendiente', value: 'PENDING_PAYMENT' },
   { label: 'Falta saldo', value: 'AWAITING_BALANCE' },
@@ -139,7 +140,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
-  const [filter, setFilter] = useState<OrderFilter>('MANAGE');
+  const [filter, setFilter] = useState<OrderFilter>('ALL');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<ChatbotOrder | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -149,8 +150,9 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const isManage = filter === 'MANAGE';
   // "Por gestionar" pide explícitamente los estados accionables porque el
   // backend, sin `status`, devuelve TODOS los pedidos.
+  const isAll = filter === 'ALL';
   const listParams = isManage ? { status: ACTIONABLE_STATUSES } : { status: filter };
-  const isPolling = isManage || isActionable(filter as ChatbotOrderStatus);
+  const isPolling = isAll || isManage || isActionable(filter as ChatbotOrderStatus);
   const { data, isLoading, isFetching, isError, refetch } = useChatbotOrdersList(listParams, {
     refetchIntervalMs: isPolling ? 20000 : undefined,
   });
@@ -405,21 +407,28 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                     ) : null}
 
                     {isActionable(order.status) ? (
+                      <Caption color={theme.color.text.muted}>
+                        Validar pago: confirmas que el pago llegó y se genera la venta. · Cancelar
+                        pedido: lo anula y libera el stock apartado. · Dar más tiempo: mantiene el
+                        stock apartado más horas para que el cliente pague.
+                      </Caption>
+                    ) : null}
+                    {isActionable(order.status) ? (
                       <View style={styles.actionsRow}>
                         <Button
-                          title="Extender"
+                          title="Dar más tiempo"
                           variant="ghost"
                           leftIcon="timer-outline"
                           onPress={() => openExtend(order)}
                         />
                         <Button
-                          title="Cancelar"
+                          title="Cancelar pedido"
                           variant="outline"
                           leftIcon="close-circle-outline"
                           onPress={() => openReject(order)}
                         />
                         <Button
-                          title="Validar"
+                          title="Validar pago"
                           leftIcon="checkmark-circle-outline"
                           onPress={() => handleValidate(order)}
                           loading={
@@ -587,7 +596,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
               ) : null}
               {allowDiscard && !isRejected ? (
                 <Button
-                  title="Descartar"
+                  title="Descartar comprobante"
                   variant="outline"
                   size="small"
                   leftIcon="close-circle-outline"

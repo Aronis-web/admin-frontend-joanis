@@ -267,8 +267,9 @@ export interface GetChatbotOrdersParams {
    * - `ChatbotOrderStatus` → un solo estado.
    * - `ChatbotOrderStatus[]` → varios estados (se serializan como
    *   `?status=PENDING_PAYMENT,AWAITING_BALANCE`).
+   * - `'ALL'` → todos los pedidos (cualquier estado).
    */
-  status?: ChatbotOrderStatus | ChatbotOrderStatus[];
+  status?: ChatbotOrderStatus | ChatbotOrderStatus[] | 'ALL';
 }
 
 export interface ValidateChatbotOrderResponse {
