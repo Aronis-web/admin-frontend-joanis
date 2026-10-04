@@ -171,6 +171,12 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
     danger?: boolean;
     onConfirm: () => void;
   } | null>(null);
+  /** Vouchers ya procesados en esta pantalla: sus botones se ocultan al instante. */
+  const [handledVouchers, setHandledVouchers] = useState<Record<string, 'REJECTED' | 'VERIFIED'>>(
+    {}
+  );
+  const markHandled = (id: string, st: 'REJECTED' | 'VERIFIED') =>
+    setHandledVouchers((prev) => ({ ...prev, [id]: st }));
   const [rejectTarget, setRejectTarget] = useState<ChatbotOrder | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [extendTarget, setExtendTarget] = useState<ChatbotOrder | null>(null);
@@ -209,6 +215,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
           { orderId: order.id, voucherId: v.id },
           {
             onSuccess: (res) => {
+              markHandled(v.id, 'VERIFIED');
               if (res.orderStatus === 'EMITTED') {
                 Alert.alert('Pedido validado', `Venta emitida: ${res.saleIds?.join(', ') ?? '-'}`);
               } else if (res.orderStatus === 'VALIDATED') {
@@ -282,6 +289,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
         rejectMutation.mutate(
           { id: order.id, body: { voucherId: voucher.id, action: 'request' } },
           {
+            onSuccess: () => markHandled(voucher.id, 'REJECTED'),
             onError: (err: any) =>
               Alert.alert('Error', err?.message ?? 'No se pudo descartar el voucher'),
           }
@@ -479,6 +487,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       onDiscard={handleDiscardVoucher}
                       onVerify={handleVerifyVoucher}
                       busy={rejectMutation.isPending || verifyMutation.isPending}
+                      handled={handledVouchers}
                       allowActions={isActionable(order.status)}
                     />
 
@@ -642,6 +651,8 @@ interface OrderVouchersSectionProps {
   onDiscard: (order: ChatbotOrder, voucher: ConversationVoucher) => void;
   onVerify: (order: ChatbotOrder, voucher: ConversationVoucher) => void;
   busy: boolean;
+  /** Estado local de vouchers ya validados/descartados (antes de refrescar). */
+  handled: Record<string, 'REJECTED' | 'VERIFIED'>;
   /** Validar/descartar solo mientras el pedido sigue abierto. */
   allowActions: boolean;
 }
@@ -654,6 +665,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
   onDiscard,
   onVerify,
   busy,
+  handled,
   allowActions,
 }) => {
   const { data, isLoading } = useConversationVouchers(order.conversationId);
@@ -681,11 +693,12 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
         PAGOS ({vouchers.length})
       </Caption>
       {vouchers.map((v) => {
-        const vbadge = VOUCHER_BADGE[v.status] ?? VOUCHER_BADGE.PENDING;
+        const status = handled[v.id] ?? v.status;
+        const vbadge = VOUCHER_BADGE[status] ?? VOUCHER_BADGE.PENDING;
         const img = v.imageUrl ? `/chatbot/orders/vouchers/${v.id}/image` : null;
-        const closed = v.status === 'REJECTED' || v.status === 'DUPLICATE';
+        const closed = status === 'REJECTED' || status === 'DUPLICATE';
         const canVerify =
-          allowActions && !closed && v.status !== 'VERIFIED' && v.orderId === order.id;
+          allowActions && !closed && status !== 'VERIFIED' && v.orderId === order.id;
         return (
           <View key={v.id} style={styles.voucherItem}>
             <View style={styles.voucherItemHeader}>

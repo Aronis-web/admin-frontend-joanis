@@ -48,6 +48,7 @@ export const useValidateChatbotOrder = () => {
     mutationFn: (id) => chatbotOrdersApi.validate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['chatbot-conversations'] });
     },
   });
 };
@@ -55,11 +56,7 @@ export const useValidateChatbotOrder = () => {
 /** Valida un voucher del pedido; refresca pedidos y vouchers. */
 export const useVerifyChatbotVoucher = () => {
   const queryClient = useQueryClient();
-  return useMutation<
-    VerifyChatbotVoucherResponse,
-    Error,
-    { orderId: string; voucherId: string }
-  >({
+  return useMutation<VerifyChatbotVoucherResponse, Error, { orderId: string; voucherId: string }>({
     mutationFn: ({ orderId, voucherId }) => chatbotOrdersApi.verifyVoucher(orderId, voucherId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
@@ -74,6 +71,8 @@ export const useRejectChatbotOrder = () => {
     mutationFn: ({ id, body }) => chatbotOrdersApi.reject(id, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
+      // Los vouchers del pedido vienen de la conversacion: refrescarlos tambien.
+      queryClient.invalidateQueries({ queryKey: ['chatbot-conversations'] });
     },
   });
 };
