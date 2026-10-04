@@ -658,6 +658,9 @@ const ChatbotCrateScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotCrateScreen })),
   'Cargando Venta por cajón...'
 );
+const ChatbotSettingsScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSettingsScreen }))
+);
 const ChatbotMetricsScreen = lazyLoad(
   () => import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotMetricsScreen })),
   'Cargando Métricas...'
@@ -2460,6 +2463,16 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
             <ChatbotCrateScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name="ChatbotSettings"
+        options={{ title: 'Configuración del chatbot' }}
+      >
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.catalog.manage']}>
+            <ChatbotSettingsScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

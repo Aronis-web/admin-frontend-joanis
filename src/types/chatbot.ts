@@ -588,8 +588,29 @@ export interface BotSettings {
    * no pregunta la entrega.
    */
   fulfillmentConfig?: BotFulfillmentConfig | null;
+  /** Medios de pago que el bot envía al confirmar el pedido. */
+  paymentMethods?: BotPaymentMethod[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+// ============================================
+// Medios de pago del bot
+// ============================================
+export type BotPaymentMethodType = 'TRANSFER' | 'YAPE' | 'PLIN' | 'OTHER';
+
+/** `chatbot_settings.payment_methods[]`. */
+export interface BotPaymentMethod {
+  id: string;
+  type: BotPaymentMethodType;
+  label: string;
+  bank: string | null;
+  holder: string | null;
+  accountNumber: string | null;
+  cci: string | null;
+  phone: string | null;
+  notes: string | null;
+  enabled: boolean;
 }
 
 // ============================================

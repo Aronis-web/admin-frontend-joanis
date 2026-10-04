@@ -366,6 +366,7 @@ export type MainStackParamList = {
   ChatbotCatalog: undefined;
   ChatbotCrate: undefined;
   ChatbotMetrics: undefined;
+  ChatbotSettings: undefined;
   ChatbotSyncRules: undefined;
   ChatbotTraining: undefined;
 

@@ -264,6 +264,7 @@ export const MAIN_ROUTES = {
   CHATBOT_METRICS: 'ChatbotMetrics',
   CHATBOT_SYNC_RULES: 'ChatbotSyncRules',
   CHATBOT_TRAINING: 'ChatbotTraining',
+  CHATBOT_SETTINGS: 'ChatbotSettings',
 } as const;
 
 /**

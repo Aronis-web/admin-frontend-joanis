@@ -510,6 +510,13 @@ const menuCategories: MenuCategory[] = [
         route: MAIN_ROUTES.CHATBOT_METRICS,
         requiredPermissions: ['chatbot.chats.manage'],
       },
+      {
+        id: 'chatbot-settings',
+        icon: 'settings-outline',
+        label: 'Configuración',
+        route: MAIN_ROUTES.CHATBOT_SETTINGS,
+        requiredPermissions: ['chatbot.catalog.manage'],
+      },
     ],
   },
   // Asistencia

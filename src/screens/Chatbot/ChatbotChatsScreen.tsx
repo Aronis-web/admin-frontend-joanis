@@ -24,7 +24,6 @@ import type { ChatConversation, ConversationSearchItem, PurchaseStage } from '@/
 import { ConversationList } from './components/ConversationList';
 import { ConversationPanel } from './components/ConversationPanel';
 import { WaSessionModal } from './components/WaSessionModal';
-import { BotControlModal } from './components/BotControlModal';
 import {
   formatRelative,
   PURCHASE_STAGES,
@@ -44,7 +43,6 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const isSplit = width >= SPLIT_BREAKPOINT;
 
   const [sessionOpen, setSessionOpen] = useState(false);
-  const [botOpen, setBotOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [stageFilter, setStageFilter] = useState<PurchaseStage | undefined>(undefined);
   const [stagePickerOpen, setStagePickerOpen] = useState(false);
@@ -316,7 +314,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <View style={styles.headerActionsRow}>
               <TouchableOpacity
-                onPress={() => setBotOpen(true)}
+                onPress={() => navigation.navigate('ChatbotSettings')}
                 style={styles.headerAction}
                 activeOpacity={0.8}
               >
@@ -349,7 +347,6 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <WaSessionModal visible={sessionOpen} onClose={() => setSessionOpen(false)} />
-        <BotControlModal visible={botOpen} onClose={() => setBotOpen(false)} />
       </SafeAreaView>
     </ScreenLayout>
   );

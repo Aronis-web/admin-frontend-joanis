@@ -6,3 +6,4 @@ export { ChatbotCrateScreen } from './ChatbotCrateScreen';
 export { ChatbotMetricsScreen } from './ChatbotMetricsScreen';
 export { ChatbotSyncRulesScreen } from './ChatbotSyncRulesScreen';
 export { ChatbotTrainingScreen } from './ChatbotTrainingScreen';
+export { ChatbotSettingsScreen } from './ChatbotSettingsScreen';

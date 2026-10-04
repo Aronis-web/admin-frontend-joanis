@@ -24,13 +24,16 @@ import {
 import type { BotEmojiLevel, BotFaqRule, BotLlmMode, UpdateBotSettingsBody } from '@/types/chatbot';
 import Alert from '@/utils/alert';
 import { BotFulfillmentPanel } from './BotFulfillmentPanel';
+import { BotPaymentMethodsPanel } from './BotPaymentMethodsPanel';
 
 interface Props {
   visible: boolean;
-  onClose: () => void;
+  onClose?: () => void;
+  /** Como pantalla propia (menu Ventas WhatsApp > Configuracion), sin modal. */
+  embedded?: boolean;
 }
 
-type Tab = 'estado' | 'personalidad' | 'faq' | 'entrega' | 'terminos';
+type Tab = 'estado' | 'personalidad' | 'faq' | 'entrega' | 'pagos' | 'terminos';
 
 /** Fila editable de FAQ en el UI (usa string CSV de keywords). */
 interface FaqRow {
@@ -76,7 +79,7 @@ const EMOJI_LABEL: Record<BotEmojiLevel, string> = {
  * - PUT  /chatbot/settings     { botName, persona, tone, customInstructions,
  *                                emojiLevel, maxLines, faqKeywords, isActive }
  */
-export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
+export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = false }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
 
@@ -251,341 +254,343 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose }) => {
     );
   };
 
+  const content = (
+    <>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerIcon}>
+            <Ionicons
+              name={active ? 'sparkles' : 'pause-circle-outline'}
+              size={22}
+              color={active ? '#10B981' : theme.color.text.muted}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Title>Bot de ventas</Title>
+            <Caption color={theme.color.text.muted}>
+              Encendido/apagado global y configuración
+            </Caption>
+          </View>
+        </View>
+        {!embedded && onClose ? (
+          <Pressable onPress={onClose} hitSlop={8}>
+            <Ionicons name="close" size={22} color={theme.color.text.muted} />
+          </Pressable>
+        ) : null}
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        {(['estado', 'personalidad', 'faq', 'entrega', 'pagos', 'terminos'] as Tab[]).map((t) => (
+          <Pressable
+            key={t}
+            onPress={() => setTab(t)}
+            style={[styles.tab, tab === t && styles.tabActive]}
+          >
+            <Caption
+              color={tab === t ? theme.color.text.heading : theme.color.text.muted}
+              style={tab === t ? styles.tabTextActive : undefined}
+            >
+              {t === 'estado'
+                ? 'Estado'
+                : t === 'personalidad'
+                  ? 'Personalidad'
+                  : t === 'faq'
+                    ? 'FAQ'
+                    : t === 'entrega'
+                      ? 'Entrega'
+                      : t === 'pagos'
+                        ? 'Pagos'
+                        : 'Términos'}
+            </Caption>
+          </Pressable>
+        ))}
+      </View>
+
+      <ScrollView
+        style={embedded ? undefined : styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {tab === 'estado' ? (
+          <View style={{ gap: spacing[3] }}>
+            <View style={styles.statusRow}>
+              <Badge variant={tone} label={statusLabel} />
+              {scanning ? <Badge variant="info" label="Procesando" /> : null}
+              {statusQuery.isFetching ? (
+                <ActivityIndicator size="small" color={theme.color.text.muted} />
+              ) : null}
+            </View>
+            {/* Modelo de IA del bot (se guarda al elegir) */}
+            <Field
+              label="Modelo de IA"
+              hint="Sonnet: máxima calidad. Escalonado: modelo económico al explorar y Sonnet al cerrar. DeepSeek: el más barato (~50x menos), con guardias extra."
+            >
+              <View style={styles.chipsRow}>
+                {LLM_MODES.map((m) => {
+                  const selected = llmMode === m.value;
+                  const unavailable = m.value === 'DEEPSEEK' && !deepseekAvailable;
+                  return (
+                    <Pressable
+                      key={m.value}
+                      disabled={unavailable || updateMutation.isPending}
+                      onPress={() => handleLlmMode(m.value)}
+                      style={[
+                        styles.chip,
+                        selected && styles.chipActive,
+                        unavailable && { opacity: 0.4 },
+                      ]}
+                    >
+                      <Caption color={selected ? theme.color.text.heading : theme.color.text.muted}>
+                        {selected ? '✓ ' : ''}
+                        {m.label}
+                      </Caption>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {!deepseekAvailable ? (
+                <Caption color={theme.color.text.muted}>
+                  DeepSeek se habilita cuando el servidor tenga la versión nueva desplegada y su API
+                  key.
+                </Caption>
+              ) : null}
+            </Field>
+
+            <View style={styles.stateBox}>
+              <Ionicons
+                name={active ? 'chatbubbles' : 'chatbubbles-outline'}
+                size={32}
+                color={active ? '#10B981' : theme.color.text.muted}
+              />
+              <Body color={active ? theme.color.text.body : theme.color.text.muted}>
+                {active
+                  ? 'El bot está respondiendo automáticamente a los clientes.'
+                  : 'El bot está pausado. Los mensajes entrantes NO reciben respuesta automática.'}
+              </Body>
+              {wa ? (
+                <Caption color={theme.color.text.muted}>
+                  WhatsApp: {wa.status}
+                  {wa.me ? ` · ${wa.me}` : ''}
+                </Caption>
+              ) : null}
+            </View>
+            <View style={styles.actionsRow}>
+              {active ? (
+                <Button
+                  title="Pausar bot"
+                  variant="outline"
+                  onPress={() => handleToggle(false)}
+                  loading={toggleMutation.isPending}
+                  leftIcon="pause"
+                />
+              ) : (
+                <Button
+                  title="Activar bot"
+                  onPress={() => handleToggle(true)}
+                  loading={toggleMutation.isPending}
+                  leftIcon="play"
+                />
+              )}
+            </View>
+          </View>
+        ) : tab === 'personalidad' ? (
+          <View style={{ gap: spacing[3] }}>
+            {settingsQuery.isLoading ? <ActivityIndicator color={theme.color.text.muted} /> : null}
+
+            <Field label="Nombre del bot" hint="Cómo se presenta al cliente.">
+              <TextInput
+                style={styles.input}
+                value={botName}
+                onChangeText={setBotName}
+                placeholder="Ej. Rosa"
+                placeholderTextColor={theme.color.text.muted}
+              />
+            </Field>
+
+            <Field label="Personalidad" hint="Descripción del rol/estilo.">
+              <TextInput
+                style={[styles.input, styles.inputMulti]}
+                value={persona}
+                onChangeText={setPersona}
+                placeholder="Ej. Vendedora cercana y rápida de la distribuidora"
+                placeholderTextColor={theme.color.text.muted}
+                multiline
+              />
+            </Field>
+
+            <Field label="Tono / vocabulario">
+              <TextInput
+                style={[styles.input, styles.inputMulti]}
+                value={toneText}
+                onChangeText={setToneText}
+                placeholder="Ej. Tutea, usa 'casero/a', evita tecnicismos"
+                placeholderTextColor={theme.color.text.muted}
+                multiline
+              />
+            </Field>
+
+            <Field label="Instrucciones (Do/Don't)">
+              <TextInput
+                style={[styles.input, styles.inputMulti]}
+                value={customInstructions}
+                onChangeText={setCustomInstructions}
+                placeholder="Ej. Nunca discutas precio; ofrece el combo."
+                placeholderTextColor={theme.color.text.muted}
+                multiline
+              />
+            </Field>
+
+            <Field label="Uso de emojis">
+              <View style={styles.chipsRow}>
+                {EMOJI_LEVELS.map((lvl) => (
+                  <Pressable
+                    key={lvl}
+                    onPress={() => setEmojiLevel(lvl)}
+                    style={[styles.chip, emojiLevel === lvl && styles.chipActive]}
+                  >
+                    <Caption
+                      color={emojiLevel === lvl ? theme.color.text.heading : theme.color.text.muted}
+                    >
+                      {EMOJI_LABEL[lvl]}
+                    </Caption>
+                  </Pressable>
+                ))}
+              </View>
+            </Field>
+
+            <Field label="Líneas máximas por respuesta">
+              <TextInput
+                style={styles.input}
+                value={maxLines}
+                onChangeText={(t) => setMaxLines(t.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                placeholder="3"
+                placeholderTextColor={theme.color.text.muted}
+              />
+            </Field>
+
+            <View style={styles.actionsRow}>
+              <Button
+                title="Guardar configuración"
+                onPress={handleSaveSettings}
+                disabled={!dirty}
+                loading={updateMutation.isPending}
+                leftIcon="save-outline"
+              />
+            </View>
+          </View>
+        ) : tab === 'faq' ? (
+          <View style={{ gap: spacing[3] }}>
+            <Caption color={theme.color.text.muted}>
+              Respuestas exactas por palabras clave. Si el mensaje del cliente contiene alguna
+              keyword (sin tildes, sin distinguir mayúsculas), el bot responde el texto sin llamar
+              al modelo.
+            </Caption>
+
+            {faq.length === 0 ? (
+              <View style={styles.emptyFaq}>
+                <Ionicons name="help-buoy-outline" size={24} color={theme.color.text.muted} />
+                <Caption color={theme.color.text.muted}>Sin reglas configuradas</Caption>
+              </View>
+            ) : (
+              faq.map((row, idx) => (
+                <View key={idx} style={styles.faqCard}>
+                  <View style={styles.faqCardHeader}>
+                    <Caption color={theme.color.text.muted}>Regla #{idx + 1}</Caption>
+                    <Pressable onPress={() => removeFaqRow(idx)} hitSlop={8}>
+                      <Ionicons name="trash-outline" size={16} color={theme.color.text.muted} />
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    value={row.keywordsRaw}
+                    onChangeText={(t) => updateFaqRow(idx, { keywordsRaw: t })}
+                    placeholder="Keywords separadas por coma (horario, atienden)"
+                    placeholderTextColor={theme.color.text.muted}
+                  />
+                  <TextInput
+                    style={[styles.input, styles.inputMulti]}
+                    value={row.reply}
+                    onChangeText={(t) => updateFaqRow(idx, { reply: t })}
+                    placeholder="Respuesta exacta"
+                    placeholderTextColor={theme.color.text.muted}
+                    multiline
+                  />
+                </View>
+              ))
+            )}
+
+            <View style={styles.actionsRow}>
+              <Button title="Agregar regla" variant="outline" onPress={addFaqRow} leftIcon="add" />
+              <Button
+                title="Guardar FAQ"
+                onPress={handleSaveSettings}
+                disabled={!dirty}
+                loading={updateMutation.isPending}
+                leftIcon="save-outline"
+              />
+            </View>
+          </View>
+        ) : tab === 'entrega' ? (
+          <BotFulfillmentPanel visible={visible} />
+        ) : tab === 'pagos' ? (
+          <BotPaymentMethodsPanel visible={visible} />
+        ) : (
+          <View style={{ gap: spacing[3] }}>
+            <Caption color={theme.color.text.muted}>
+              Términos y condiciones que el bot comparte con el cliente. Acepta HTML básico. Déjalo
+              vacío y usa Restaurar para volver al texto por defecto del sistema.
+            </Caption>
+
+            {termsQuery.isLoading ? (
+              <ActivityIndicator color={theme.color.text.muted} />
+            ) : (
+              <TextInput
+                style={[styles.input, styles.termsInput]}
+                value={termsHtml}
+                onChangeText={setTermsHtml}
+                placeholder="<p>Al comprar aceptas...</p>"
+                placeholderTextColor={theme.color.text.muted}
+                multiline
+              />
+            )}
+
+            {termsQuery.data?.updatedAt ? (
+              <Caption color={theme.color.text.muted}>
+                Última actualización: {termsQuery.data.updatedAt}
+              </Caption>
+            ) : null}
+
+            <View style={styles.actionsRow}>
+              <Button
+                title="Restaurar"
+                variant="outline"
+                onPress={handleRestoreTerms}
+                loading={updateTermsMutation.isPending}
+                leftIcon="refresh-outline"
+              />
+              <Button
+                title="Guardar términos"
+                onPress={handleSaveTerms}
+                disabled={!termsDirty}
+                loading={updateTermsMutation.isPending}
+                leftIcon="save-outline"
+              />
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </>
+  );
+
+  if (embedded) return <View style={styles.page}>{content}</View>;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <View style={styles.headerIcon}>
-                <Ionicons
-                  name={active ? 'sparkles' : 'pause-circle-outline'}
-                  size={22}
-                  color={active ? '#10B981' : theme.color.text.muted}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Title>Bot de ventas</Title>
-                <Caption color={theme.color.text.muted}>
-                  Encendido/apagado global y configuración
-                </Caption>
-              </View>
-            </View>
-            <Pressable onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={22} color={theme.color.text.muted} />
-            </Pressable>
-          </View>
-
-          {/* Tabs */}
-          <View style={styles.tabs}>
-            {(['estado', 'personalidad', 'faq', 'entrega', 'terminos'] as Tab[]).map((t) => (
-              <Pressable
-                key={t}
-                onPress={() => setTab(t)}
-                style={[styles.tab, tab === t && styles.tabActive]}
-              >
-                <Caption
-                  color={tab === t ? theme.color.text.heading : theme.color.text.muted}
-                  style={tab === t ? styles.tabTextActive : undefined}
-                >
-                  {t === 'estado'
-                    ? 'Estado'
-                    : t === 'personalidad'
-                      ? 'Personalidad'
-                      : t === 'faq'
-                        ? 'FAQ'
-                        : t === 'entrega'
-                          ? 'Entrega'
-                          : 'Términos'}
-                </Caption>
-              </Pressable>
-            ))}
-          </View>
-
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            {tab === 'estado' ? (
-              <View style={{ gap: spacing[3] }}>
-                <View style={styles.statusRow}>
-                  <Badge variant={tone} label={statusLabel} />
-                  {scanning ? <Badge variant="info" label="Procesando" /> : null}
-                  {statusQuery.isFetching ? (
-                    <ActivityIndicator size="small" color={theme.color.text.muted} />
-                  ) : null}
-                </View>
-                {/* Modelo de IA del bot (se guarda al elegir) */}
-                <Field
-                  label="Modelo de IA"
-                  hint="Sonnet: máxima calidad. Escalonado: modelo económico al explorar y Sonnet al cerrar. DeepSeek: el más barato (~50x menos), con guardias extra."
-                >
-                  <View style={styles.chipsRow}>
-                    {LLM_MODES.map((m) => {
-                      const selected = llmMode === m.value;
-                      const unavailable = m.value === 'DEEPSEEK' && !deepseekAvailable;
-                      return (
-                        <Pressable
-                          key={m.value}
-                          disabled={unavailable || updateMutation.isPending}
-                          onPress={() => handleLlmMode(m.value)}
-                          style={[
-                            styles.chip,
-                            selected && styles.chipActive,
-                            unavailable && { opacity: 0.4 },
-                          ]}
-                        >
-                          <Caption
-                            color={selected ? theme.color.text.heading : theme.color.text.muted}
-                          >
-                            {selected ? '✓ ' : ''}
-                            {m.label}
-                          </Caption>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  {!deepseekAvailable ? (
-                    <Caption color={theme.color.text.muted}>
-                      DeepSeek se habilita cuando el servidor tenga la versión nueva desplegada y su
-                      API key.
-                    </Caption>
-                  ) : null}
-                </Field>
-
-                <View style={styles.stateBox}>
-                  <Ionicons
-                    name={active ? 'chatbubbles' : 'chatbubbles-outline'}
-                    size={32}
-                    color={active ? '#10B981' : theme.color.text.muted}
-                  />
-                  <Body color={active ? theme.color.text.body : theme.color.text.muted}>
-                    {active
-                      ? 'El bot está respondiendo automáticamente a los clientes.'
-                      : 'El bot está pausado. Los mensajes entrantes NO reciben respuesta automática.'}
-                  </Body>
-                  {wa ? (
-                    <Caption color={theme.color.text.muted}>
-                      WhatsApp: {wa.status}
-                      {wa.me ? ` · ${wa.me}` : ''}
-                    </Caption>
-                  ) : null}
-                </View>
-                <View style={styles.actionsRow}>
-                  {active ? (
-                    <Button
-                      title="Pausar bot"
-                      variant="outline"
-                      onPress={() => handleToggle(false)}
-                      loading={toggleMutation.isPending}
-                      leftIcon="pause"
-                    />
-                  ) : (
-                    <Button
-                      title="Activar bot"
-                      onPress={() => handleToggle(true)}
-                      loading={toggleMutation.isPending}
-                      leftIcon="play"
-                    />
-                  )}
-                </View>
-              </View>
-            ) : tab === 'personalidad' ? (
-              <View style={{ gap: spacing[3] }}>
-                {settingsQuery.isLoading ? (
-                  <ActivityIndicator color={theme.color.text.muted} />
-                ) : null}
-
-                <Field label="Nombre del bot" hint="Cómo se presenta al cliente.">
-                  <TextInput
-                    style={styles.input}
-                    value={botName}
-                    onChangeText={setBotName}
-                    placeholder="Ej. Rosa"
-                    placeholderTextColor={theme.color.text.muted}
-                  />
-                </Field>
-
-                <Field label="Personalidad" hint="Descripción del rol/estilo.">
-                  <TextInput
-                    style={[styles.input, styles.inputMulti]}
-                    value={persona}
-                    onChangeText={setPersona}
-                    placeholder="Ej. Vendedora cercana y rápida de la distribuidora"
-                    placeholderTextColor={theme.color.text.muted}
-                    multiline
-                  />
-                </Field>
-
-                <Field label="Tono / vocabulario">
-                  <TextInput
-                    style={[styles.input, styles.inputMulti]}
-                    value={toneText}
-                    onChangeText={setToneText}
-                    placeholder="Ej. Tutea, usa 'casero/a', evita tecnicismos"
-                    placeholderTextColor={theme.color.text.muted}
-                    multiline
-                  />
-                </Field>
-
-                <Field label="Instrucciones (Do/Don't)">
-                  <TextInput
-                    style={[styles.input, styles.inputMulti]}
-                    value={customInstructions}
-                    onChangeText={setCustomInstructions}
-                    placeholder="Ej. Nunca discutas precio; ofrece el combo."
-                    placeholderTextColor={theme.color.text.muted}
-                    multiline
-                  />
-                </Field>
-
-                <Field label="Uso de emojis">
-                  <View style={styles.chipsRow}>
-                    {EMOJI_LEVELS.map((lvl) => (
-                      <Pressable
-                        key={lvl}
-                        onPress={() => setEmojiLevel(lvl)}
-                        style={[styles.chip, emojiLevel === lvl && styles.chipActive]}
-                      >
-                        <Caption
-                          color={
-                            emojiLevel === lvl ? theme.color.text.heading : theme.color.text.muted
-                          }
-                        >
-                          {EMOJI_LABEL[lvl]}
-                        </Caption>
-                      </Pressable>
-                    ))}
-                  </View>
-                </Field>
-
-                <Field label="Líneas máximas por respuesta">
-                  <TextInput
-                    style={styles.input}
-                    value={maxLines}
-                    onChangeText={(t) => setMaxLines(t.replace(/[^0-9]/g, ''))}
-                    keyboardType="number-pad"
-                    placeholder="3"
-                    placeholderTextColor={theme.color.text.muted}
-                  />
-                </Field>
-
-                <View style={styles.actionsRow}>
-                  <Button
-                    title="Guardar configuración"
-                    onPress={handleSaveSettings}
-                    disabled={!dirty}
-                    loading={updateMutation.isPending}
-                    leftIcon="save-outline"
-                  />
-                </View>
-              </View>
-            ) : tab === 'faq' ? (
-              <View style={{ gap: spacing[3] }}>
-                <Caption color={theme.color.text.muted}>
-                  Respuestas exactas por palabras clave. Si el mensaje del cliente contiene alguna
-                  keyword (sin tildes, sin distinguir mayúsculas), el bot responde el texto sin
-                  llamar al modelo.
-                </Caption>
-
-                {faq.length === 0 ? (
-                  <View style={styles.emptyFaq}>
-                    <Ionicons name="help-buoy-outline" size={24} color={theme.color.text.muted} />
-                    <Caption color={theme.color.text.muted}>Sin reglas configuradas</Caption>
-                  </View>
-                ) : (
-                  faq.map((row, idx) => (
-                    <View key={idx} style={styles.faqCard}>
-                      <View style={styles.faqCardHeader}>
-                        <Caption color={theme.color.text.muted}>Regla #{idx + 1}</Caption>
-                        <Pressable onPress={() => removeFaqRow(idx)} hitSlop={8}>
-                          <Ionicons name="trash-outline" size={16} color={theme.color.text.muted} />
-                        </Pressable>
-                      </View>
-                      <TextInput
-                        style={styles.input}
-                        value={row.keywordsRaw}
-                        onChangeText={(t) => updateFaqRow(idx, { keywordsRaw: t })}
-                        placeholder="Keywords separadas por coma (horario, atienden)"
-                        placeholderTextColor={theme.color.text.muted}
-                      />
-                      <TextInput
-                        style={[styles.input, styles.inputMulti]}
-                        value={row.reply}
-                        onChangeText={(t) => updateFaqRow(idx, { reply: t })}
-                        placeholder="Respuesta exacta"
-                        placeholderTextColor={theme.color.text.muted}
-                        multiline
-                      />
-                    </View>
-                  ))
-                )}
-
-                <View style={styles.actionsRow}>
-                  <Button
-                    title="Agregar regla"
-                    variant="outline"
-                    onPress={addFaqRow}
-                    leftIcon="add"
-                  />
-                  <Button
-                    title="Guardar FAQ"
-                    onPress={handleSaveSettings}
-                    disabled={!dirty}
-                    loading={updateMutation.isPending}
-                    leftIcon="save-outline"
-                  />
-                </View>
-              </View>
-            ) : tab === 'entrega' ? (
-              <BotFulfillmentPanel visible={visible} />
-            ) : (
-              <View style={{ gap: spacing[3] }}>
-                <Caption color={theme.color.text.muted}>
-                  Términos y condiciones que el bot comparte con el cliente. Acepta HTML básico.
-                  Déjalo vacío y usa Restaurar para volver al texto por defecto del sistema.
-                </Caption>
-
-                {termsQuery.isLoading ? (
-                  <ActivityIndicator color={theme.color.text.muted} />
-                ) : (
-                  <TextInput
-                    style={[styles.input, styles.termsInput]}
-                    value={termsHtml}
-                    onChangeText={setTermsHtml}
-                    placeholder="<p>Al comprar aceptas...</p>"
-                    placeholderTextColor={theme.color.text.muted}
-                    multiline
-                  />
-                )}
-
-                {termsQuery.data?.updatedAt ? (
-                  <Caption color={theme.color.text.muted}>
-                    Última actualización: {termsQuery.data.updatedAt}
-                  </Caption>
-                ) : null}
-
-                <View style={styles.actionsRow}>
-                  <Button
-                    title="Restaurar"
-                    variant="outline"
-                    onPress={handleRestoreTerms}
-                    loading={updateTermsMutation.isPending}
-                    leftIcon="refresh-outline"
-                  />
-                  <Button
-                    title="Guardar términos"
-                    onPress={handleSaveTerms}
-                    disabled={!termsDirty}
-                    loading={updateTermsMutation.isPending}
-                    leftIcon="save-outline"
-                  />
-                </View>
-              </View>
-            )}
-          </ScrollView>
+          {content}
         </Pressable>
       </Pressable>
     </Modal>
@@ -648,15 +653,25 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    page: {
+      flex: 1,
+      width: '100%',
+      maxWidth: 900,
+      alignSelf: 'center',
+      padding: spacing[4],
+      gap: spacing[3],
+    },
     tabs: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: spacing[1],
       padding: spacing[1],
       backgroundColor: theme.color.background.subtle,
       borderRadius: borderRadius.lg,
     },
     tab: {
-      flex: 1,
+      flexGrow: 1,
+      minWidth: 84,
       alignItems: 'center',
       paddingVertical: spacing[2],
       borderRadius: borderRadius.md,
