@@ -5,15 +5,20 @@
  * Misma lógica de impresión que el "Sticker precio" de Stock
  * (`stickerLabelPrint.ts`): en Electron va directo y en silencio a la
  * impresora elegida (`deviceName`) con `pageSize` en micrones; en navegador
- * puro, iframe oculto; en Android/iOS, `expo-print`.
+ * puro, iframe oculto; en Android/iOS, `expo-print`. Electron (`print-html` en
+ * electron/main.js) imprime con `printBackground`, `margins: none` y el
+ * `pageSize` indicado; el HTML usa `@page { size: 104mm 75mm; margin: 0 }`,
+ * html/body sin margen ni padding, cada etiqueta mide exactamente 104 × 75 mm
+ * con `overflow: hidden` y el salto de página va solo ENTRE etiquetas (la
+ * última no lo lleva), para que el sensor de gap no se desfase.
  *
  * Diseño (posiciones absolutas en mm, márgenes de 2 mm, solo negro):
  *
  *   ┌──────────────┬──────────────────────────────────────────┐
- *   │ QR ~29 mm    │ Nombre I.                                │
- *   │ (módulos     │ [ RECOJO EN TIENDA ]                     │
- *   │  alineados a │ Destino (máx. 2 líneas…)                 │
- *   │  dots)       │──────────────────────────────────────────│
+ *   │ QR ~25 mm    │ Nombre I.                                │
+ *   │ (7 dots por  │ [ RECOJO EN TIENDA ]                     │
+ *   │  módulo, 3mm │ Destino (máx. 2 líneas…)                 │
+ *   │  de blanco)  │──────────────────────────────────────────│
  *   │              │ PRODUCTOS · N und.                       │
  *   │   #ABC123    │ 2× NOMBRE DEL PRODUCTO…                  │
  *   │   N und.     │ … +N más                                 │
@@ -30,8 +35,13 @@ const PAGE_WIDTH_MM = 104;
 const PAGE_HEIGHT_MM = 75;
 /** Margen de seguridad en mm. */
 const MARGIN_MM = 2;
-/** Lado máximo del QR en mm. */
-const QR_MAX_MM = 30;
+/**
+ * Lado máximo del QR en mm y zona blanca mínima a su alrededor (borde del
+ * sticker, columna derecha y número de pedido) para que los lectores lo tomen
+ * sin problemas.
+ */
+const QR_MAX_MM = 27;
+const QR_QUIET_MM = 3;
 /** 1 dot de la Godex a 203 dpi, en mm (25.4 / 203). */
 const DOT_MM = 25.4 / 203;
 /** Columna izquierda (QR + número de pedido). */
@@ -175,12 +185,11 @@ const buildSticker = async (data: OrderStickerData): Promise<string> => {
   const { svg: qrSvg, sizeMm: qrMm } = await buildQrSvg(data.qr);
   const destination = clean(data.destination);
   const totalUnits = (data.items ?? []).reduce((acc, it) => acc + (Number(it?.qty) || 0), 0);
-  // QR centrado en la columna izquierda; número de pedido debajo.
-  const qrLeft = MARGIN_MM + (LEFT_W_MM - qrMm) / 2;
-  const orderTop = MARGIN_MM + qrMm + 1.5;
+  // QR a 3 mm del borde superior e izquierdo; número de pedido 3 mm debajo.
+  const qrLeft = QR_QUIET_MM;
+  const orderTop = QR_QUIET_MM + qrMm + QR_QUIET_MM;
 
-  return `
-  <div class="page">
+  return `<div class="page">
     <div class="qr" style="left:${mm(qrLeft)};width:${mm(qrMm)};height:${mm(qrMm)}">${qrSvg}</div>
     <div class="order" style="top:${mm(orderTop)};font-size:${orderNoFontPt(orderNo)}pt">${escapeHtml(orderNo)}</div>
     <div class="units" style="top:${mm(orderTop + 10)}">${totalUnits} und.</div>
@@ -191,7 +200,7 @@ const buildSticker = async (data: OrderStickerData): Promise<string> => {
       <div class="items-head">PRODUCTOS · ${totalUnits} und.</div>
       ${buildItemsHtml(data.items)}
     </div>
-  </div>`;
+  </div>`.trim();
 };
 
 /** Documento HTML completo: un sticker por página. */
@@ -218,7 +227,7 @@ const buildOrderStickersHtml = async (stickers: OrderStickerData[]): Promise<str
   .page:last-child { page-break-after: auto; break-after: auto; }
   .page > div { position: absolute; overflow: hidden; }
   /* Columna izquierda */
-  .qr { top: ${MARGIN_MM}mm; line-height: 0; }
+  .qr { top: ${QR_QUIET_MM}mm; line-height: 0; }
   .qr svg { display: block; width: 100%; height: 100%; }
   .order {
     left: ${MARGIN_MM}mm;
