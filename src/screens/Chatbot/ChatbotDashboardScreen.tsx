@@ -258,7 +258,6 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
   const chartWidth = Math.min(width, 1200) - 64;
 
   const [filter, setFilter] = useState<QuickFilter>('today');
@@ -311,26 +310,22 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
     },
   ];
 
-  const toneStyle = {
-    info: styles.statInfo,
-    success: styles.statSuccess,
-    warning: styles.statWarning,
-    danger: styles.statDanger,
-    primary: styles.statPrimary,
-  };
-
-  const Stat: React.FC<{
-    icon: string;
-    label: string;
-    value: string;
-    sub?: string;
-    tone: keyof typeof toneStyle;
-  }> = ({ icon, label, value, sub, tone }) => (
-    <View style={[styles.statCard, toneStyle[tone]]}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>{value}</Text>
-      {sub ? <Text style={styles.statSubtext}>{sub}</Text> : null}
+  const Panel: React.FC<{
+    title: string;
+    color: string;
+    rows: Array<{ k: string; v: string; sub?: string }>;
+  }> = ({ title, color, rows }) => (
+    <View style={[styles.compareCard, { borderTopColor: color }]}>
+      <Text style={styles.compareName}>{title}</Text>
+      {rows.map((r) => (
+        <View key={r.k} style={styles.compareRow}>
+          <Text style={styles.compareKey}>{r.k}</Text>
+          <View style={{ alignItems: 'flex-end', flexShrink: 1 }}>
+            <Text style={styles.compareVal}>{r.v}</Text>
+            {r.sub ? <Text style={styles.panelSub}>{r.sub}</Text> : null}
+          </View>
+        </View>
+      ))}
     </View>
   );
 
@@ -550,50 +545,120 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
                 </>
               ) : null}
 
-              <Text style={styles.sectionTitle}>💰 Ventas{chMeta ? ` · ${chMeta.label}` : ''}</Text>
-              <View style={styles.statsGrid}>
-                <Stat
-                  icon="🛒"
-                  label="Pedidos"
-                  value={num(data.sales.orders)}
-                  sub={`${num(data.sales.validated.count)} validados`}
-                  tone="info"
+              {/* Detalle: cada tema en una tarjeta (lo del resumen no se repite) */}
+              <View style={styles.compareGrid}>
+                <Panel
+                  title="💰 Ventas"
+                  color={c[1]}
+                  rows={[
+                    {
+                      k: 'Validadas',
+                      v: solesCents(data.sales.validated.amountCents),
+                      sub: `${num(data.sales.validated.count)} pedidos`,
+                    },
+                    {
+                      k: 'Por validar (voucher)',
+                      v: solesCents(data.sales.pendingValidation.amountCents),
+                      sub: `${num(data.vouchers.awaitingValidation)} vouchers`,
+                    },
+                    {
+                      k: 'Falta saldo',
+                      v: `Faltan ${solesCents(data.sales.awaitingBalance.missingCents)}`,
+                      sub: `${num(data.sales.awaitingBalance.count)} pedidos`,
+                    },
+                    { k: 'Envíos cobrados', v: solesCents(data.sales.deliveryFeesCents) },
+                    { k: 'Rechazados / vencidos', v: num(data.sales.rejectedOrExpired) },
+                  ]}
                 />
-                <Stat
-                  icon="💵"
-                  label="Monto de ventas"
-                  value={solesCents(data.sales.amountCents)}
-                  sub={`Validado ${solesCents(data.sales.validated.amountCents)}`}
-                  tone="success"
+                <Panel
+                  title="💬 Chats y mensajes"
+                  color={c[0]}
+                  rows={[
+                    {
+                      k: 'Identificados (DNI/RUC)',
+                      v: num(data.conversations.identified),
+                    },
+                    { k: 'Mensajes de clientes', v: num(data.messages.fromCustomers) },
+                    {
+                      k: 'Mensajes del bot',
+                      v: num(data.messages.fromBot),
+                      sub: data.messages.manual
+                        ? `${num(data.messages.manual)} manuales`
+                        : undefined,
+                    },
+                    { k: 'Dados de baja', v: num(data.conversations.optedOut) },
+                  ]}
                 />
-                <Stat
-                  icon="🧾"
-                  label="Vouchers por validar"
-                  value={num(data.vouchers.awaitingValidation)}
-                  sub={solesCents(data.sales.pendingValidation.amountCents)}
-                  tone="warning"
+                <Panel
+                  title="💸 Gasto (S/ aprox.)"
+                  color={c[3] ?? c[2]}
+                  rows={[
+                    {
+                      k: 'Meta (WhatsApp)',
+                      v: !waOnly
+                        ? 'Gratis'
+                        : data.meta.available && data.meta.costPen != null
+                          ? soles(data.meta.costPen)
+                          : '—',
+                      sub: !waOnly
+                        ? `${chMeta?.label} no cobra mensajes`
+                        : data.meta.available
+                          ? `${money(data.meta.cost, data.meta.currency)} · ${num(data.meta.paidMessages)} pagados · ${num(data.meta.freeMessages)} gratis`
+                          : data.meta.error,
+                    },
+                    {
+                      k: 'IA',
+                      v: soles(data.ai.totalPen ?? 0),
+                      sub: `US$ ${data.ai.totalUsd.toFixed(2)}`,
+                    },
+                    ...(
+                      [
+                        ['deepseek', 'IA · DeepSeek'],
+                        ['gemini', 'IA · Gemini'],
+                        ['anthropic', 'IA · Claude'],
+                      ] as const
+                    )
+                      .filter(([key]) => (aiByProvider[key]?.calls ?? 0) > 0)
+                      .map(([key, label]) => ({
+                        k: label,
+                        v: soles(aiByProvider[key].pen),
+                        sub: `${num(aiByProvider[key].calls)} llamadas`,
+                      })),
+                  ]}
                 />
-                <Stat
-                  icon="⏳"
-                  label="Falta saldo"
-                  value={num(data.sales.awaitingBalance.count)}
-                  sub={`Faltan ${solesCents(data.sales.awaitingBalance.missingCents)}`}
-                  tone="primary"
-                />
-                <Stat
-                  icon="🛵"
-                  label="Envíos cobrados"
-                  value={solesCents(data.sales.deliveryFeesCents)}
-                  tone="info"
-                />
-                <Stat
-                  icon="✖️"
-                  label="Rechazados / vencidos"
-                  value={num(data.sales.rejectedOrExpired)}
-                  tone="danger"
-                />
+                {waOnly ? (
+                  <Panel
+                    title={'📣 Anuncios "clic a WhatsApp"'}
+                    color={c[2]}
+                    rows={[
+                      {
+                        k: 'Chats desde anuncios',
+                        v: num(data.ads?.chats ?? 0),
+                        sub: data.ads?.topAds?.[0]
+                          ? `Top: ${data.ads.topAds[0].headline} (${data.ads.topAds[0].chats})`
+                          : undefined,
+                      },
+                      {
+                        k: 'Ventas desde anuncios',
+                        v: solesCents(data.ads?.amountCents ?? 0),
+                        sub: `${num(data.ads?.orders ?? 0)} pedidos · ${num(data.ads?.chatsWithOrder ?? 0)} clientes`,
+                      },
+                      {
+                        k: 'Mensajes gratis (72 h)',
+                        v: num(data.ads?.freeMessages ?? 0),
+                      },
+                      { k: 'Ahorro estimado', v: soles(data.ads?.savingsPen ?? 0) },
+                    ]}
+                  />
+                ) : null}
               </View>
 
+              {hasSeries ? (
+                <Text style={styles.sectionTitle}>
+                  📈 Tendencia {granularityText}
+                  {chMeta ? ` · ${chMeta.label}` : ''}
+                </Text>
+              ) : null}
               {hasSeries ? (
                 <View style={styles.chartContainer}>
                   <Text style={styles.chartTitle}>Ventas {granularityText}</Text>
@@ -611,38 +676,6 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
                   />
                 </View>
               ) : null}
-
-              <Text style={styles.sectionTitle}>
-                💬 Chats y mensajes{chMeta ? ` · ${chMeta.label}` : ''}
-              </Text>
-              <View style={styles.statsGrid}>
-                <Stat
-                  icon="💬"
-                  label="Chats activos"
-                  value={num(data.conversations.active)}
-                  sub={`${num(data.conversations.newChats)} nuevos · ${num(data.conversations.identified)} identificados`}
-                  tone="info"
-                />
-                <Stat
-                  icon="📥"
-                  label="Mensajes de clientes"
-                  value={num(data.messages.fromCustomers)}
-                  tone="primary"
-                />
-                <Stat
-                  icon="🤖"
-                  label="Mensajes del bot"
-                  value={num(data.messages.fromBot)}
-                  sub={data.messages.manual ? `${num(data.messages.manual)} manuales` : undefined}
-                  tone="success"
-                />
-                <Stat
-                  icon="🚫"
-                  label="Dados de baja"
-                  value={num(data.conversations.optedOut)}
-                  tone="danger"
-                />
-              </View>
 
               {hasSeries ? (
                 <View style={styles.chartContainer}>
@@ -674,104 +707,6 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
                   />
                 </View>
               ) : null}
-
-              {waOnly ? (
-                <>
-                  <Text style={styles.sectionTitle}>📣 Anuncios "clic a WhatsApp"</Text>
-                  <View style={styles.statsGrid}>
-                    <Stat
-                      icon="📣"
-                      label="Chats desde anuncios"
-                      value={num(data.ads?.chats ?? 0)}
-                      sub={
-                        data.ads?.topAds?.[0]
-                          ? `Top: ${data.ads.topAds[0].headline} (${data.ads.topAds[0].chats})`
-                          : 'Facebook / Instagram'
-                      }
-                      tone="info"
-                    />
-                    <Stat
-                      icon="🛍️"
-                      label="Ventas desde anuncios"
-                      value={solesCents(data.ads?.amountCents ?? 0)}
-                      sub={`${num(data.ads?.orders ?? 0)} pedidos · ${num(data.ads?.chatsWithOrder ?? 0)} clientes`}
-                      tone="success"
-                    />
-                    <Stat
-                      icon="🎁"
-                      label="Mensajes gratis (72 h)"
-                      value={num(data.ads?.freeMessages ?? 0)}
-                      sub="Meta no los cobra por venir de un anuncio"
-                      tone="primary"
-                    />
-                    <Stat
-                      icon="💰"
-                      label="Ahorro estimado"
-                      value={soles(data.ads?.savingsPen ?? 0)}
-                      sub="Mensajes gratis × costo por mensaje pagado"
-                      tone="warning"
-                    />
-                  </View>
-                </>
-              ) : null}
-
-              <Text style={styles.sectionTitle}>
-                💸 Gasto (aprox. en soles){chMeta ? ` · ${chMeta.label}` : ''}
-              </Text>
-              <View style={styles.statsGrid}>
-                <Stat
-                  icon="👛"
-                  label="Gasto total"
-                  value={soles(data.totalCostPen ?? 0)}
-                  sub={waOnly ? 'Meta + IA' : 'Solo IA'}
-                  tone="warning"
-                />
-                <Stat
-                  icon="🟢"
-                  label="Meta (WhatsApp)"
-                  value={
-                    !waOnly
-                      ? 'Gratis'
-                      : data.meta.available && data.meta.costPen != null
-                        ? soles(data.meta.costPen)
-                        : '—'
-                  }
-                  sub={
-                    !waOnly
-                      ? `${chMeta?.label} no cobra mensajes`
-                      : data.meta.available
-                        ? `Real ${money(data.meta.cost, data.meta.currency)} · ${num(data.meta.paidMessages)} pagados · ${num(data.meta.freeMessages)} gratis`
-                        : data.meta.error
-                  }
-                  tone="success"
-                />
-                <Stat
-                  icon="🧠"
-                  label="IA total"
-                  value={soles(data.ai.totalPen ?? 0)}
-                  sub={`Real US$ ${data.ai.totalUsd.toFixed(2)}`}
-                  tone="primary"
-                />
-                {(
-                  [
-                    ['deepseek', 'DeepSeek', '🐋'],
-                    ['gemini', 'Gemini', '✨'],
-                    ['anthropic', 'Claude', '🤖'],
-                  ] as const
-                ).map(([key, label, icon]) => {
-                  const a = aiByProvider[key] ?? { usd: 0, pen: 0, calls: 0 };
-                  return (
-                    <Stat
-                      key={key}
-                      icon={icon}
-                      label={label}
-                      value={soles(a.pen)}
-                      sub={`Real US$ ${a.usd.toFixed(2)} · ${num(a.calls)} llamadas`}
-                      tone="info"
-                    />
-                  );
-                })}
-              </View>
 
               {hasSeries ? (
                 <View style={styles.chartContainer}>
@@ -876,65 +811,6 @@ const createStyles = (theme: Theme) =>
       color: theme.color.text.heading,
       marginBottom: theme.space[3],
       marginTop: theme.space[2],
-    },
-    statsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginHorizontal: -theme.space[1.5],
-      marginBottom: theme.space[4],
-    },
-    statCard: {
-      flex: 1,
-      minWidth: '30%',
-      margin: theme.space[1.5],
-      padding: theme.space[4],
-      borderRadius: theme.radii.xl,
-      alignItems: 'center',
-      borderWidth: 1,
-    },
-    statInfo: {
-      backgroundColor: theme.color.state.info.background,
-      borderColor: theme.color.state.info.background,
-    },
-    statSuccess: {
-      backgroundColor: theme.color.state.success.background,
-      borderColor: theme.color.state.success.background,
-    },
-    statWarning: {
-      backgroundColor: theme.color.state.warning.background,
-      borderColor: theme.color.state.warning.background,
-    },
-    statDanger: {
-      backgroundColor: theme.color.state.danger.background,
-      borderColor: theme.color.state.danger.background,
-    },
-    statPrimary: {
-      backgroundColor: theme.color.brand.accentSoft,
-      borderColor: theme.color.brand.accentSoft,
-    },
-    statIcon: { fontSize: 26, marginBottom: theme.space[2] },
-    statLabel: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: theme.color.text.muted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: theme.space[1],
-      textAlign: 'center',
-    },
-    statValue: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      textAlign: 'center',
-    },
-    statValueTablet: { fontSize: 24 },
-    statSubtext: {
-      fontSize: 10,
-      color: theme.color.text.muted,
-      marginTop: theme.space[1],
-      fontWeight: '500',
-      textAlign: 'center',
     },
     chartContainer: {
       backgroundColor: theme.color.surface.base,
@@ -1064,7 +940,8 @@ const createStyles = (theme: Theme) =>
       borderTopWidth: 1,
       borderTopColor: theme.color.border.subtle,
     },
-    compareKey: { fontSize: 12, color: theme.color.text.muted },
+    compareKey: { fontSize: 12, color: theme.color.text.muted, flexShrink: 1 },
+    panelSub: { fontSize: 10, color: theme.color.text.muted, textAlign: 'right' },
     compareVal: {
       fontSize: 12,
       fontWeight: '700',
