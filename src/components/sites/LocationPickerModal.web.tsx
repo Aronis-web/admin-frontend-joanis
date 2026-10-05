@@ -63,7 +63,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.content}>
           <Text style={styles.title}>Seleccionar Ubicación</Text>

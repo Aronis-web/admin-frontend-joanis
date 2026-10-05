@@ -307,7 +307,15 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
       </View>
 
       {/* Create Area Modal */}
-      <Modal visible={showCreateModal} animationType="slide" transparent>
+      <Modal
+        visible={showCreateModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowCreateModal(false);
+          resetAreaForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Nueva Área</Text>
@@ -354,7 +362,16 @@ export const WarehouseAreasScreen: React.FC<WarehouseAreasScreenProps> = ({
       </Modal>
 
       {/* Edit Area Modal */}
-      <Modal visible={showEditModal} animationType="slide" transparent>
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowEditModal(false);
+          setSelectedArea(null);
+          resetAreaForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Editar Área</Text>

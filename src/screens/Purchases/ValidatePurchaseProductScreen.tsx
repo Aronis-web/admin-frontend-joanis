@@ -2185,7 +2185,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         visible={showAddPresentation}
         animationType="fade"
         transparent
-        onRequestClose={() => setShowAddPresentation(false)}
+        onRequestClose={() => {
+          setShowAddPresentation(false);
+          setNewPresentationId('');
+        }}
       >
         <View style={styles.dialogOverlay}>
           <View style={styles.dialog}>

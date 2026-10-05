@@ -187,7 +187,17 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
         ]}
       />
 
-      <Modal visible={createModalVisible} transparent animationType="fade">
+      <Modal
+        visible={createModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (submitting) return;
+          setCreateModalVisible(false);
+          setNewCampaignName('');
+          setNewCampaignDescription('');
+        }}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Nueva campaña</Text>

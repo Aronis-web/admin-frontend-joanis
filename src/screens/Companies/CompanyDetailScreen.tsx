@@ -659,7 +659,12 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
       {activeTab === 'bank-accounts' && renderBankAccountsTab()}
 
       {/* Edit Company Modal */}
-      <Modal visible={showEditCompanyModal} animationType="slide" transparent>
+      <Modal
+        visible={showEditCompanyModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowEditCompanyModal(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -760,7 +765,15 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
       </Modal>
 
       {/* Create Site Modal */}
-      <Modal visible={showCreateSiteModal} animationType="slide" transparent>
+      <Modal
+        visible={showCreateSiteModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowCreateSiteModal(false);
+          resetSiteForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -870,7 +883,15 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
       </Modal>
 
       {/* Create Payment Method Modal */}
-      <Modal visible={showCreatePaymentModal} animationType="slide" transparent>
+      <Modal
+        visible={showCreatePaymentModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowCreatePaymentModal(false);
+          resetPaymentForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -940,7 +961,15 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
       </Modal>
 
       {/* Add Account Modal */}
-      <Modal visible={showAddAccountModal} animationType="slide" transparent>
+      <Modal
+        visible={showAddAccountModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowAddAccountModal(false);
+          resetAccountForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>

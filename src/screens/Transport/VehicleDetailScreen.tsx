@@ -501,7 +501,12 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
       </ScrollView>
 
       {/* Tipo Vehículo Modal */}
-      <Modal visible={showTipoVehiculoModal} transparent animationType="fade">
+      <Modal
+        visible={showTipoVehiculoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTipoVehiculoModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowTipoVehiculoModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Tipo de Vehículo</Text>
@@ -523,7 +528,12 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
       </Modal>
 
       {/* Status Modal */}
-      <Modal visible={showStatusModal} transparent animationType="fade">
+      <Modal
+        visible={showStatusModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStatusModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowStatusModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Estado del Vehículo</Text>
@@ -545,7 +555,12 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
       </Modal>
 
       {/* Código Autorizado Modal */}
-      <Modal visible={showCodigoAutorizadoModal} transparent animationType="fade">
+      <Modal
+        visible={showCodigoAutorizadoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCodigoAutorizadoModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowCodigoAutorizadoModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Código Autorizado</Text>

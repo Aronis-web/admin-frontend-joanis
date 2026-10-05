@@ -156,7 +156,14 @@ const UpsertAfpModal: React.FC<{
     !!commissionRate && !!insuranceRate && !!fundRate && !!insurableCap && !!effectiveFrom;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Tasa AFP</Title>
@@ -306,7 +313,14 @@ const UpsertParamModal: React.FC<{
   const canSubmit = !!numericValue && !!effectiveFrom;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Parametro</Title>
@@ -433,7 +447,14 @@ const UpsertTaxBracketModal: React.FC<{
   const canSubmit = !!bracketOrder && !!lowerUit && !!upperUit && !!rate;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Tramo {year}</Title>
@@ -576,7 +597,14 @@ const UpsertConceptModal: React.FC<{
   const canSubmit = !!code.trim() && !!name.trim();
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Concepto</Title>

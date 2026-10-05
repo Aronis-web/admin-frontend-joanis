@@ -391,7 +391,14 @@ export const RecaudoEfectivoScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
-      <Modal visible={showQrScanner} animationType="slide" onRequestClose={() => setShowQrScanner(false)}>
+      <Modal
+        visible={showQrScanner}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowQrScanner(false);
+          setHasScannedQr(false);
+        }}
+      >
         <View style={styles.scannerContainer}>
           <CameraView
             style={StyleSheet.absoluteFillObject}

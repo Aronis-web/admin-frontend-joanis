@@ -400,7 +400,12 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
       </ScrollView>
 
       {/* Create/Edit Modal */}
-      <Modal visible={isModalVisible} animationType="slide" transparent={false}>
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
         <SafeAreaView style={styles.modalContainer}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>

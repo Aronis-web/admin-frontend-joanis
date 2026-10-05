@@ -546,7 +546,15 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
         </ScrollView>
 
         {/* Preview voucher */}
-        <Modal visible={!!previewUrl} transparent animationType="fade">
+        <Modal
+          visible={!!previewUrl}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }}
+        >
           <Pressable
             style={styles.previewBackdrop}
             onPress={() => {
@@ -565,7 +573,12 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
         </Modal>
 
         {/* Reject / cancel order modal */}
-        <Modal visible={!!rejectTarget} transparent animationType="fade">
+        <Modal
+          visible={!!rejectTarget}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setRejectTarget(null)}
+        >
           <Pressable style={styles.previewBackdrop} onPress={() => setRejectTarget(null)}>
             <Pressable style={styles.rejectCard} onPress={(e) => e.stopPropagation()}>
               <Title>Cancelar pedido</Title>
@@ -594,7 +607,12 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
         </Modal>
 
         {/* Extend-hold modal */}
-        <Modal visible={!!extendTarget} transparent animationType="fade">
+        <Modal
+          visible={!!extendTarget}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setExtendTarget(null)}
+        >
           <Pressable style={styles.previewBackdrop} onPress={() => setExtendTarget(null)}>
             <Pressable style={styles.rejectCard} onPress={(e) => e.stopPropagation()}>
               <Title>Extender apartado</Title>
@@ -622,7 +640,12 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
           </Pressable>
         </Modal>
         {/* Confirmación (segunda validación) de cualquier acción */}
-        <Modal visible={!!confirm} transparent animationType="fade">
+        <Modal
+          visible={!!confirm}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setConfirm(null)}
+        >
           <Pressable style={styles.previewBackdrop} onPress={() => setConfirm(null)}>
             <Pressable style={styles.rejectCard} onPress={(e) => e.stopPropagation()}>
               <Title>{confirm?.title}</Title>

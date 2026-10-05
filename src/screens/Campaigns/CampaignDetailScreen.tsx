@@ -2039,7 +2039,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         )}
                       </View>
                       <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>
-                        ΓÇ║
+                        ›
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -3729,7 +3729,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               )}
                             </View>
                             <Text style={styles.globalSearchStatus}>
-                              {product.status === 'active' ? '✔ Activo' : 'ΓÜá Preliminar'}
+                              {product.status === 'active' ? '✔ Activo' : '⚠ Preliminar'}
                             </Text>
                           </View>
                         </View>
@@ -3786,7 +3786,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         <View style={[styles.header, isTablet && styles.headerTablet]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ΓåÉ Volver
+              ← Volver
             </Text>
           </TouchableOpacity>
           <Text style={[styles.title, isTablet && styles.titleTablet]}>{campaign.code}</Text>

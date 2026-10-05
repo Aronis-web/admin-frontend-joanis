@@ -518,7 +518,12 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
       </ScrollView>
 
       {/* Tipo Documento Modal */}
-      <Modal visible={showTipoDocumentoModal} transparent animationType="fade">
+      <Modal
+        visible={showTipoDocumentoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTipoDocumentoModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowTipoDocumentoModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Tipo de Documento</Text>
@@ -545,7 +550,12 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
       </Modal>
 
       {/* Status Modal */}
-      <Modal visible={showStatusModal} transparent animationType="fade">
+      <Modal
+        visible={showStatusModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStatusModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowStatusModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Estado del Conductor</Text>

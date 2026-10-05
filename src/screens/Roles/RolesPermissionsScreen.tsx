@@ -606,7 +606,12 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         </ScrollView>
 
         {/* Create Role Modal */}
-        <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
+        <Modal
+          visible={showCreateModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowCreateModal(false)}
+        >
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowCreateModal(false)}>
@@ -667,7 +672,12 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         </Modal>
 
         {/* Edit Role Modal */}
-        <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
+        <Modal
+          visible={showEditModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowEditModal(false)}
+        >
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEditModal(false)}>
@@ -721,6 +731,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
           visible={showRolePermissionsModal}
           animationType="slide"
           presentationStyle="pageSheet"
+          onRequestClose={() => setShowRolePermissionsModal(false)}
         >
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>

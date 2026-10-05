@@ -1117,7 +1117,12 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           />
         )}
 
-        <Modal visible={showValidateModal} animationType="slide" presentationStyle="pageSheet">
+        <Modal
+          visible={showValidateModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => void handleCloseValidationModal()}
+        >
           <SafeAreaView style={styles.validateModalContainer} edges={['top']}>
             <View style={styles.validateHeader}>
               <Text style={styles.validateTitle}>
@@ -1317,7 +1322,15 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           </View>
         </Modal>
 
-        <Modal visible={showItemErrorModal} transparent animationType="fade">
+        <Modal
+          visible={showItemErrorModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setShowItemErrorModal(false);
+            setErrorModalForm(null);
+          }}
+        >
           <View style={styles.modalOverlay}>
             <View style={styles.itemErrorModalCard}>
               <Text style={styles.itemErrorModalTitle}>Validar producto</Text>
@@ -1490,7 +1503,15 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
           </View>
         </Modal>
 
-        <Modal visible={showItemViewModal} transparent animationType="fade">
+        <Modal
+          visible={showItemViewModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setShowItemViewModal(false);
+            setErrorModalForm(null);
+          }}
+        >
           <View style={styles.modalOverlay}>
             <View style={styles.itemErrorModalCard}>
               <Text style={styles.itemErrorModalTitle}>Detalle de validación</Text>

@@ -698,10 +698,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
         visible={showCreateModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => {
-          console.log('🔵 Modal onRequestClose called');
-          setShowCreateModal(false);
-        }}
+        onRequestClose={() => setShowCreateModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>

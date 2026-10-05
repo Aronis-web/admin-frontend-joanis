@@ -339,7 +339,16 @@ export const CustomerLevelsScreen: React.FC<Props> = ({ navigation }) => {
       </ProtectedElement>
 
       {/* Form Modal */}
-      <Modal visible={showFormModal} transparent animationType="slide">
+      <Modal
+        visible={showFormModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowFormModal(false);
+          setEditing(null);
+          setForm(EMPTY_FORM);
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -482,7 +491,12 @@ export const CustomerLevelsScreen: React.FC<Props> = ({ navigation }) => {
       </Modal>
 
       {/* Price Profile Picker Modal */}
-      <Modal visible={showProfileModal} transparent animationType="fade">
+      <Modal
+        visible={showProfileModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProfileModal(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: '70%' }]}>
             <Text style={styles.modalTitle}>Seleccionar perfil</Text>

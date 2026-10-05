@@ -258,7 +258,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
     onSave: () => void,
     title: string
   ) => (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <ScrollView showsVerticalScrollIndicator={false}>

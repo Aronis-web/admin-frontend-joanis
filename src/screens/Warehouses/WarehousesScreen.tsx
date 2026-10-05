@@ -330,7 +330,15 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
       />
 
       {/* Create Warehouse Modal */}
-      <Modal visible={showCreateModal} animationType="slide" transparent>
+      <Modal
+        visible={showCreateModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowCreateModal(false);
+          resetWarehouseForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Nuevo Almacén</Text>
@@ -379,7 +387,16 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
       </Modal>
 
       {/* Edit Warehouse Modal */}
-      <Modal visible={showEditModal} animationType="slide" transparent>
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowEditModal(false);
+          setSelectedWarehouse(null);
+          resetWarehouseForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Editar Almacén</Text>

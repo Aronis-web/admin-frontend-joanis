@@ -901,7 +901,15 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         />
 
         {/* Create Transfer Modal */}
-        <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
+        <Modal
+          visible={showCreateModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => {
+            setShowCreateModal(false);
+            resetCreateForm();
+          }}
+        >
           <SafeAreaView style={styles.modalContainer} edges={['top']}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Nuevo Traslado Externo</Text>
@@ -1181,7 +1189,12 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         </Modal>
 
         {/* Detail Modal */}
-        <Modal visible={showDetailModal} animationType="slide" presentationStyle="pageSheet">
+        <Modal
+          visible={showDetailModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowDetailModal(false)}
+        >
           <SafeAreaView style={styles.modalContainer} edges={['top']}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedTransfer?.transferNumber || 'Detalle'}</Text>
@@ -1406,7 +1419,12 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         </Modal>
 
         {/* Ship Modal */}
-        <Modal visible={showShipModal} animationType="slide" transparent>
+        <Modal
+          visible={showShipModal}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setShowShipModal(false)}
+        >
           <View style={styles.shipModalOverlay}>
             <View style={styles.shipModalContainer}>
               <Text style={styles.shipModalTitle}>Despachar Traslado</Text>

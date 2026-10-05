@@ -648,7 +648,10 @@ export const RetencionDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           visible={showAnularModal}
           transparent
           animationType="fade"
-          onRequestClose={() => setShowAnularModal(false)}
+          onRequestClose={() => {
+            setShowAnularModal(false);
+            setMotivoAnulacion('');
+          }}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
