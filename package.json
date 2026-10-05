@@ -75,6 +75,7 @@
     "express": "^5.2.1",
     "got": "^14.6.6",
     "memoize-one": "5.2.1",
+    "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
