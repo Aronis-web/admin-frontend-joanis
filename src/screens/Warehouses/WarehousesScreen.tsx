@@ -20,6 +20,7 @@ import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
 import Alert from '@/utils/alert';
 import { useGoBack } from '@/hooks/useGoBack';
+import { useAuthStore } from '@/store/auth';
 import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface WarehousesScreenProps {
@@ -36,7 +37,14 @@ interface WarehousesScreenProps {
 }
 
 export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, route }) => {
-  const { companyId, companyName, siteId, siteName, siteCode } = route.params;
+  // Si se abre la URL sin parámetros (enlace directo), usar la empresa/sede actual.
+  const { currentCompany, currentSite } = useAuthStore();
+  const params = route.params ?? ({} as Partial<WarehousesScreenProps['route']['params']>);
+  const companyId = params.companyId ?? currentCompany?.id ?? '';
+  const companyName = params.companyName ?? currentCompany?.name ?? '';
+  const siteId = params.siteId ?? currentSite?.id ?? '';
+  const siteName = params.siteName ?? currentSite?.name ?? '';
+  const siteCode = params.siteCode ?? (currentSite as { code?: string } | null)?.code ?? '';
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const goBack = useGoBack();
