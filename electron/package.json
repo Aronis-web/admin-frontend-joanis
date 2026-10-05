@@ -1,6 +1,6 @@
 {
   "name": "erp-aio-electron",
-  "version": "1.0.91",
+  "version": "1.0.101",
   "main": "main.js",
   "dependencies": {
     "electron-updater": "^6.8.3",
