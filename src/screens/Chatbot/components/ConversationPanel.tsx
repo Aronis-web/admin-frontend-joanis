@@ -33,7 +33,7 @@ import {
 } from '@/hooks/api/useChatbotConversations';
 import { useDismissCase } from '@/hooks/api/useChatbotTraining';
 import type { ChatConversation, ChatMessage } from '@/types/chatbot';
-import { formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
+import { displayPhone, formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 import Alert from '@/utils/alert';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AuthedMedia, extractFileNameFromText } from './AuthedMedia';
@@ -164,10 +164,12 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
           <Ionicons name="person" size={20} color={theme.color.text.muted} />
         </View>
         <View style={{ flex: 1 }}>
-          <Title numberOfLines={1}>{conversation.customerName?.trim() || conversation.phone}</Title>
+          <Title numberOfLines={1}>
+            {conversation.customerName?.trim() || displayPhone(conversation.phone)}
+          </Title>
           <Caption color={theme.color.text.muted} numberOfLines={1}>
             {conversation.customerName
-              ? conversation.phone
+              ? displayPhone(conversation.phone)
               : (conversation.summary ?? 'Sin resumen')}
           </Caption>
         </View>
