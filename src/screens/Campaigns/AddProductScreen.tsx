@@ -29,7 +29,11 @@ import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProdu
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { isProductBalanceRow, VARIANT_ONLY_STOCK_NOTE } from '@/utils/repartos';
 import { useGoBack } from '@/hooks/useGoBack';
+
+// Fila de stock por (producto, almacen, area, variante); variantId null = saldo del producto.
+type CampaignStockItem = StockItem & { variantId?: string | null; variantName?: string | null };
 
 interface AddProductScreenProps {
   navigation: any;
@@ -47,7 +51,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   const { campaignId } = route.params;
   const [sourceType, setSourceType] = useState<ProductSourceType>(ProductSourceType.INVENTORY);
   const [products, setProducts] = useState<any[]>([]);
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [stockItems, setStockItems] = useState<CampaignStockItem[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [receptions, setReceptions] = useState<any[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
@@ -162,11 +166,13 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             })),
           });
           // Convert StockItemResponse to StockItem format
-          const stockItemsData: StockItem[] = stockArray.map((item: any) => ({
-            id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}`,
+          const stockItemsData: CampaignStockItem[] = stockArray.map((item: any) => ({
+            id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}-${item.variantId || 'producto'}`,
             productId: item.productId,
             warehouseId: item.warehouseId,
             areaId: item.areaId || undefined,
+            variantId: item.variantId ?? null,
+            variantName: item.variantName ?? null,
             quantityBase: parseStockNumber(item.quantityBase) ?? 0,
             reservedQuantityBase: parseStockNumber(item.reservedQuantityBase),
             availableQuantityBase: parseStockNumber(item.availableQuantityBase),
@@ -301,8 +307,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
   };
 
   const getStockFromStockResponse = (stockResponse: any): number => {
+    // Solo el saldo del producto (filas sin variante): es lo que reparten las campanas.
     if (Array.isArray(stockResponse)) {
-      return stockResponse.reduce((total, item) => {
+      return stockResponse.filter(isProductBalanceRow).reduce((total, item) => {
         const availableQuantity = parseStockNumber(item.availableQuantityBase);
         const quantityBase = parseStockNumber(item.quantityBase);
         return total + (availableQuantity ?? quantityBase ?? 0);
@@ -310,7 +317,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     }
 
     if (stockResponse?.data && Array.isArray(stockResponse.data)) {
-      return stockResponse.data.reduce((total: number, item: any) => {
+      return stockResponse.data.filter(isProductBalanceRow).reduce((total: number, item: any) => {
         const availableStock = parseStockNumber(item.availableStock);
         const totalStock = parseStockNumber(item.totalStock);
         const availableQuantity = parseStockNumber(item.availableQuantityBase);
@@ -396,14 +403,34 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             name: product?.title || product?.name || item.name || item.productName,
             sku: product?.sku || item.sku || item.productSku,
             correlativeNumber: product?.correlativeNumber || item.correlativeNumber,
-            receivedStock: getTransferItemStock(item),
+            // Items de variante (color con stock propio) no suman: la campana
+            // solo reparte el saldo del producto. Se informan en variantStock.
+            receivedStock: item.variantId ? 0 : getTransferItemStock(item),
+            variantStock: item.variantId ? getTransferItemStock(item) : 0,
+            hasVariantItems: !!item.variantId,
             status: 'VALIDATED',
           };
         })
-        .filter((item: any) => item.productId);
+        .filter((item: any) => item.productId)
+        // Un producto por fila: los items de color del mismo producto se
+        // agrupan para que la seleccion (por productId) y las keys sean unicas.
+        .reduce((acc: any[], item: any) => {
+          const existing = acc.find((p) => p.productId === item.productId);
+          if (!existing) {
+            acc.push(item);
+          } else if (item.hasVariantItems || existing.hasVariantItems) {
+            existing.receivedStock += item.receivedStock;
+            existing.variantStock += item.variantStock;
+            existing.hasVariantItems = true;
+          } else {
+            // Sin colores: se conserva el comportamiento previo (una fila por item).
+            acc.push(item);
+          }
+          return acc;
+        }, []);
 
       const productsWithoutStock = mappedProducts
-        .filter((product: any) => product.receivedStock <= 0)
+        .filter((product: any) => product.receivedStock <= 0 && !product.hasVariantItems)
         .map((product: any) => product.productId);
       const stockByProductId =
         productsWithoutStock.length > 0 ? await fetchProductsStockBatch(productsWithoutStock) : {};
@@ -651,6 +678,36 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     );
   };
 
+  // Disponible en colores (variantes con stock propio): se informa pero no se
+  // ofrece, porque las campanas/repartos solo mueven el saldo del producto.
+  const getVariantStock = (productId: string): number => {
+    const purchaseProduct = purchaseProducts.find((p) => p.productId === productId);
+    if (purchaseProduct) {
+      return parseStockNumber(purchaseProduct.variantStock) ?? 0;
+    }
+    const product = products.find((p) => p.id === productId);
+    const variants = (product as any)?.stock?.variants;
+    if (Array.isArray(variants)) {
+      return variants.reduce(
+        (sum: number, v: any) => sum + Math.max(parseStockNumber(v?.available) ?? 0, 0),
+        0
+      );
+    }
+    return stockItems
+      .filter((item) => item.productId === productId && !isProductBalanceRow(item))
+      .reduce(
+        (sum, item) =>
+          sum +
+          Math.max(
+            parseStockNumber(item.availableQuantityBase) ??
+              parseStockNumber(item.quantityBase) ??
+              0,
+            0
+          ),
+        0
+      );
+  };
+
   const getProductStock = (productId: string): number => {
     // First, try to get stock from purchase/reception products (when adding from purchase/reception)
     const purchaseProduct = purchaseProducts.find((p) => p.productId === productId);
@@ -679,7 +736,8 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       // If product has stock structure from backend (v2 search), use it
       if (product.stock && typeof product.stock === 'object') {
         console.log('✅ Using stock from product.stock:', product.stock);
-        return product.stock.available || 0;
+        // `available` incluye colores; se descuenta lo que vive en variantes.
+        return Math.max((product.stock.available || 0) - getVariantStock(productId), 0);
       }
 
       // If product is preliminary, use preliminaryStock
@@ -692,8 +750,10 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       }
     }
 
-    // Fallback: Filter stock items for this product
-    const productStockItems = stockItems.filter((item) => item.productId === productId);
+    // Fallback: Filter stock items for this product (solo saldo del producto, sin variantes)
+    const productStockItems = stockItems.filter(
+      (item) => item.productId === productId && isProductBalanceRow(item)
+    );
 
     console.log('🔍 Getting stock for product:', {
       productId,
@@ -710,7 +770,7 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
       return 0;
     }
 
-    const totalStock = productStockItems.reduce((total: number, item: StockItem) => {
+    const totalStock = productStockItems.reduce((total: number, item: CampaignStockItem) => {
       // Use availableQuantityBase (stock disponible) instead of quantityBase (stock total)
       const availableQuantity = parseStockNumber(item.availableQuantityBase);
       const quantityBase = parseStockNumber(item.quantityBase);
@@ -978,6 +1038,9 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                             >
                               {isPreliminary ? 'Stock Preliminar: ' : 'Stock: '}
                               {stock}
+                              {!isPreliminary && getVariantStock(product.id) > 0
+                                ? ` · 🎨 ${VARIANT_ONLY_STOCK_NOTE}`
+                                : ''}
                             </Text>
                             <Text
                               style={[
@@ -1022,22 +1085,30 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
             )}
 
           {selectedProduct && (
-            <View style={[styles.stockInfo, isTablet && styles.stockInfoTablet]}>
-              <Text style={[styles.stockLabel, isTablet && styles.stockLabelTablet]}>
-                {selectedProduct.status === 'preliminary'
-                  ? 'Stock Preliminar:'
-                  : 'Stock Disponible:'}
-              </Text>
-              <Text
-                style={[
-                  styles.stockValue,
-                  isTablet && styles.stockValueTablet,
-                  availableStock > 0 ? styles.stockAvailable : styles.stockUnavailable,
-                ]}
-              >
-                {availableStock} unidades
-              </Text>
-            </View>
+            <>
+              <View style={[styles.stockInfo, isTablet && styles.stockInfoTablet]}>
+                <Text style={[styles.stockLabel, isTablet && styles.stockLabelTablet]}>
+                  {selectedProduct.status === 'preliminary'
+                    ? 'Stock Preliminar:'
+                    : 'Stock Disponible:'}
+                </Text>
+                <Text
+                  style={[
+                    styles.stockValue,
+                    isTablet && styles.stockValueTablet,
+                    availableStock > 0 ? styles.stockAvailable : styles.stockUnavailable,
+                  ]}
+                >
+                  {availableStock} unidades
+                </Text>
+              </View>
+              {selectedProduct.status !== 'preliminary' &&
+                getVariantStock(selectedProductId) > 0 && (
+                  <Text style={[styles.stockLabel, isTablet && styles.stockLabelTablet]}>
+                    🎨 {VARIANT_ONLY_STOCK_NOTE} ({getVariantStock(selectedProductId)})
+                  </Text>
+                )}
+            </>
           )}
         </View>
 
@@ -1428,6 +1499,11 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
                     {displayStock}
                     {isPreliminary && ' ⚠ Preliminar'}
                   </Text>
+                  {!isPreliminary && getVariantStock(product.productId) > 0 && (
+                    <Text style={styles.productDetails}>
+                      🎨 {VARIANT_ONLY_STOCK_NOTE} ({getVariantStock(product.productId)})
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
 

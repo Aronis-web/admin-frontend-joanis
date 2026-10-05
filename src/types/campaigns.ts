@@ -176,6 +176,9 @@ export interface CampaignProduct {
       quantityBase: number;
       reservedQuantityBase?: number;
       availableQuantityBase?: number;
+      /** null = saldo del producto (lo unico que reparten los repartos). */
+      variantId?: string | null;
+      variantName?: string | null;
       updatedAt: string;
       warehouse?: {
         id: string;
@@ -359,11 +362,8 @@ export interface DistributionGenerateItem {
   factorToBase?: number;
   presentationId?: string;
   quantityPresentation?: number;
-  /**
-   * Variante (color) opcional. Cuando la variante tiene tracksStock=true el
-   * traslado generado desde el reparto mueve el saldo de esa variante.
-   */
-  variantId?: string;
+  // Sin variantId: los repartos solo mueven el saldo del producto (fila de
+  // stock sin variante); el backend no acepta variante en este payload.
   notes?: string;
   /** Per-participant breakdown of stock sources (warehouse/area + qty) */
   sources?: DistributionSource[];
@@ -413,6 +413,9 @@ export interface StockDetailByWarehouse {
   siteId?: string;
   area?: string | null;
   areaId?: string | null;
+  /** null = saldo del producto (lo unico que reparten los repartos). */
+  variantId?: string | null;
+  variantName?: string | null;
   total: number;
   reserved: number;
   available: number;
@@ -516,6 +519,11 @@ export interface CampaignProductTenantSiteStock {
   quantityBase: string;
   reservedQuantityBase: string;
   availableQuantityBase: string;
+  /**
+   * Disponible solo del saldo del producto (sin variantes): es lo que los
+   * repartos pueden reservar. `availableQuantityBase` incluye variantes.
+   */
+  productBalanceAvailableQuantityBase?: string;
 }
 
 /**
@@ -628,6 +636,11 @@ export interface CampaignProductFullStockBySite {
   quantityBase: string;
   reservedQuantityBase: string;
   availableQuantityBase: string;
+  /**
+   * Disponible solo del saldo del producto (sin variantes): es lo que los
+   * repartos pueden reservar. `availableQuantityBase` incluye variantes.
+   */
+  productBalanceAvailableQuantityBase?: string;
 }
 
 /**

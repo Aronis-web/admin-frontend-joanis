@@ -8,6 +8,7 @@ import React from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { VARIANT_ONLY_STOCK_NOTE } from '@/utils/repartos';
 import { StockBucket } from './types';
 
 interface StockAllocationPickerProps {
@@ -17,6 +18,8 @@ interface StockAllocationPickerProps {
   onAllocate: (key: string, qty: number) => void;
   total: number;
   siteName?: string;
+  /** Disponible en colores (variantes con stock propio): se informa, no se reparte. */
+  variantStockAvailable?: number;
 }
 
 export const StockAllocationPicker: React.FC<StockAllocationPickerProps> = ({
@@ -26,8 +29,18 @@ export const StockAllocationPicker: React.FC<StockAllocationPickerProps> = ({
   onAllocate,
   total,
   siteName,
+  variantStockAvailable = 0,
 }) => {
   const styles = useThemedStyles(createStyles);
+  const variantNote =
+    variantStockAvailable > 0 ? (
+      <View style={styles.warningBox}>
+        <Text style={styles.warningTitle}>{VARIANT_ONLY_STOCK_NOTE}</Text>
+        <Text style={styles.warningText}>
+          {`Disponible en colores: ${variantStockAvailable}. Solo se reparte el saldo del producto (sin color).`}
+        </Text>
+      </View>
+    ) : null;
   if (buckets.length === 0) {
     return (
       <View style={styles.container}>
@@ -43,6 +56,7 @@ export const StockAllocationPicker: React.FC<StockAllocationPickerProps> = ({
             Solo se permite generar repartos con stock de la sede actual.
           </Text>
         </View>
+        {variantNote}
       </View>
     );
   }
@@ -53,6 +67,7 @@ export const StockAllocationPicker: React.FC<StockAllocationPickerProps> = ({
       <Text style={styles.hint}>
         Marca los buckets a usar y la cantidad. El total a repartir es la suma.
       </Text>
+      {variantNote}
 
       {buckets.map((b) => {
         const isSelected = allocations[b.key] !== undefined;
