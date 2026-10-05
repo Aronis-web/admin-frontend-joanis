@@ -509,6 +509,13 @@ const menuCategories: MenuCategory[] = [
         requiredPermissions: ['chatbot.training.manage'],
       },
       {
+        id: 'chatbot-broadcasts',
+        icon: 'megaphone-outline',
+        label: 'Promociones',
+        route: MAIN_ROUTES.CHATBOT_BROADCASTS,
+        requiredPermissions: ['chatbot.broadcasts.manage'],
+      },
+      {
         id: 'chatbot-complaints',
         icon: 'book-outline',
         label: 'Libro de reclamaciones',

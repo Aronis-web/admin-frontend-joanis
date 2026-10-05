@@ -596,6 +596,7 @@ export const PERMISSIONS = {
     TRAINING_MANAGE: 'chatbot.training.manage',
     SETTINGS_MANAGE: 'chatbot.settings.manage',
     COMPLAINTS_MANAGE: 'chatbot.complaints.manage',
+    BROADCASTS_MANAGE: 'chatbot.broadcasts.manage',
   },
 
   // ========== NOTIFICATIONS WHATSAPP ==========
