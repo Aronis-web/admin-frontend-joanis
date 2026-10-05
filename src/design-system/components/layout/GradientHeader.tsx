@@ -10,7 +10,14 @@
  * `ContentContainer`, así el título queda alineado con el cuerpo en escritorio.
  */
 import React from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -49,6 +56,8 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const hasLead = !!onBack || !!icon;
+  // En celular el título se achica y puede ocupar dos líneas en vez de cortarse.
+  const compact = useWindowDimensions().width < 480;
 
   return (
     <LinearGradient
@@ -76,7 +85,11 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
                   <Ionicons name={icon} size={22} color={theme.color.brand.onHeader} />
                 </View>
               ) : null}
-              <Text style={styles.headerTitle} numberOfLines={1} accessibilityRole="header">
+              <Text
+                style={[styles.headerTitle, compact && styles.headerTitleCompact]}
+                numberOfLines={compact ? 2 : 1}
+                accessibilityRole="header"
+              >
                 {title}
               </Text>
             </View>
@@ -173,6 +186,10 @@ const createStyles = (theme: Theme) =>
       fontWeight: '700',
       color: theme.color.brand.onHeader,
       letterSpacing: 0.3,
+    },
+    headerTitleCompact: {
+      fontSize: 20,
+      letterSpacing: 0,
     },
     headerSubtitle: {
       fontSize: 14,
