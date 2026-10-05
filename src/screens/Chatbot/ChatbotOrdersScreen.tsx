@@ -715,7 +715,10 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
       {vouchers.map((v) => {
         const status = (handled[v.id] ?? v.status) as VoucherStatus;
         const vbadge = VOUCHER_BADGE[status] ?? VOUCHER_BADGE.PENDING;
-        const hasImage = !!v.imageUrl;
+        // El listado de vouchers no siempre trae imageUrl: si el backend dice
+        // explicitamente que no hay imagen (hasImage === false) se oculta; si no,
+        // el boton pide el link y avisa si no hay imagen.
+        const hasImage = (v as { hasImage?: boolean }).hasImage !== false;
         const closed = status === 'REJECTED' || status === 'DUPLICATE';
         const canVerify =
           allowActions && !closed && status !== 'VERIFIED' && v.orderId === order.id;
