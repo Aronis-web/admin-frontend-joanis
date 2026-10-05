@@ -2566,28 +2566,28 @@ const MainStack = React.memo(() => {
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen name="ChatbotPostsalePrint" options={{ title: 'Post venta · Imprimir' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.postsale.operate']}>
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.print']}>
             <ChatbotPostsalePrintScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen name="ChatbotPostsaleAssembly" options={{ title: 'Post venta · Armado' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.postsale.operate']}>
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.assemble']}>
             <ChatbotPostsaleAssemblyScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen name="ChatbotPostsaleDispatch" options={{ title: 'Post venta · Despacho' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.postsale.operate']}>
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.dispatch']}>
             <ChatbotPostsaleDispatchScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen name="ChatbotPostsaleReception" options={{ title: 'Post venta · Recepción' }}>
         {(props) => (
-          <ProtectedRoute requiredPermissions={['chatbot.postsale.operate']}>
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.receive']}>
             <ChatbotPostsaleReceptionScreen {...props} />
           </ProtectedRoute>
         )}

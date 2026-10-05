@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Caption, Card, ChipGroup, EmptyState, useTheme, useThemedStyles } from '@/design-system';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   postsaleErrorMessage,
   type PostsaleOrder,
@@ -40,7 +42,9 @@ export const ChatbotPostsaleTrackingScreen: React.FC<Props> = ({ navigation }) =
     [filter]
   );
   const paged = usePagedOrders(statuses);
-  const printing = usePostsalePrinting();
+  const { hasPermission } = usePermissions();
+  // El selector de impresora solo aparece para quien puede reimprimir stickers.
+  const printing = usePostsalePrinting(hasPermission(PERMISSIONS.CHATBOT.POSTSALE_PRINT));
   const [open, setOpen] = useState<PostsaleOrder | null>(null);
   const [looking, setLooking] = useState(false);
 

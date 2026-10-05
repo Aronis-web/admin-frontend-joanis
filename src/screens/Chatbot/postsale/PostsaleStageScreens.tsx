@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Button, Caption, EmptyState, Title, useTheme, useThemedStyles } from '@/design-system';
 import { MAIN_ROUTES } from '@/constants/routes';
+import { PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   postsaleErrorMessage,
   type PostsaleOrder,
@@ -162,6 +164,8 @@ const StageScreen: React.FC<{
 }> = (p) => {
   const paged = usePagedOrders(p.statuses);
   const printing = usePostsalePrinting(false);
+  const { hasPermission } = usePermissions();
+  const canDeliver = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_DELIVER);
   const [open, setOpen] = useState<PostsaleOrder | null>(null);
   const goDeliver = (orderId: string) =>
     p.navigation.navigate(MAIN_ROUTES.CHATBOT_POSTSALE_DELIVERY, { orderId });
@@ -179,7 +183,7 @@ const StageScreen: React.FC<{
       <StageScanner
         stage={p.stage}
         description={p.description}
-        onDeliver={p.allowDeliver ? goDeliver : undefined}
+        onDeliver={p.allowDeliver && canDeliver ? goDeliver : undefined}
       />
       <PendingList
         title={p.listTitle}

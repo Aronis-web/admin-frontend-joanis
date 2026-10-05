@@ -66,7 +66,7 @@ export const usePrintPostsale = () => {
 export const useScanPostsale = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ code, stage }: { code: string; stage?: PostsaleScanStage }) =>
+    mutationFn: ({ code, stage }: { code: string; stage: PostsaleScanStage }) =>
       chatbotPostsaleApi.scan(code, stage),
     onSuccess: () => qc.invalidateQueries({ queryKey: chatbotPostsaleKeys.all }),
   });

@@ -18,6 +18,8 @@ import {
 } from '@/design-system';
 import { spacing } from '@/design-system/tokens';
 import { usePostsaleDetail, useResendPostsaleCode } from '@/hooks/api/useChatbotPostsale';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/constants/permissions';
 import {
   chatbotPostsaleApi,
   isPostsaleDeliverable,
@@ -51,6 +53,12 @@ export const OrderDetailModal: React.FC<{
   const styles = useThemedStyles(createPostsaleStyles);
   const detail = usePostsaleDetail(orderId);
   const resend = useResendPostsaleCode();
+  const { hasPermission } = usePermissions();
+  const canPrint = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_PRINT);
+  // La hoja de armado la usan quien imprime y quien arma.
+  const canPicking = canPrint || hasPermission(PERMISSIONS.CHATBOT.POSTSALE_ASSEMBLE);
+  const canDeliver = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_DELIVER);
+  const canResend = hasPermission(PERMISSIONS.CHATBOT.ORDERS_VALIDATE);
   const d = detail.data;
   const status = d?.status ?? fallback?.postsaleStatus ?? null;
   const deliverable = isPostsaleDeliverable(status);
@@ -106,25 +114,29 @@ export const OrderDetailModal: React.FC<{
           {fallback?.customerName ? <Body>{fallback.customerName}</Body> : null}
 
           <View style={styles.actionsRow}>
-            <Button
-              title="Reimprimir sticker"
-              leftIcon="print-outline"
-              variant="outline"
-              size="small"
-              onPress={() => orderId && printing.printStickers([orderId])}
-              disabled={printing.printingStickers}
-              loading={printing.printingStickers}
-            />
-            <Button
-              title="Hoja de armado (PDF)"
-              leftIcon="document-text-outline"
-              variant="outline"
-              size="small"
-              onPress={() => orderId && printing.printPicking([orderId])}
-              disabled={printing.printingPicking}
-              loading={printing.printingPicking}
-            />
-            {deliverable ? (
+            {canPrint ? (
+              <Button
+                title="Reimprimir sticker"
+                leftIcon="print-outline"
+                variant="outline"
+                size="small"
+                onPress={() => orderId && printing.printStickers([orderId])}
+                disabled={printing.printingStickers}
+                loading={printing.printingStickers}
+              />
+            ) : null}
+            {canPicking ? (
+              <Button
+                title="Hoja de armado (PDF)"
+                leftIcon="document-text-outline"
+                variant="outline"
+                size="small"
+                onPress={() => orderId && printing.printPicking([orderId])}
+                disabled={printing.printingPicking}
+                loading={printing.printingPicking}
+              />
+            ) : null}
+            {deliverable && canResend ? (
               <Button
                 title="Reenviar código"
                 leftIcon="chatbubble-ellipses-outline"
@@ -135,7 +147,7 @@ export const OrderDetailModal: React.FC<{
                 loading={resend.isPending}
               />
             ) : null}
-            {deliverable && onDeliver && orderId ? (
+            {deliverable && canDeliver && onDeliver && orderId ? (
               <Button
                 title="Entregar"
                 leftIcon="hand-left-outline"

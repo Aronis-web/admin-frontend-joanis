@@ -204,11 +204,9 @@ class ChatbotPostsaleService {
     return apiClient.post<PostsaleSticker[]>(`${this.basePath}/print`, { orderIds });
   }
 
-  async scan(code: string, stage?: PostsaleScanStage): Promise<PostsaleScanResult> {
-    return apiClient.post<PostsaleScanResult>(`${this.basePath}/scan`, {
-      code,
-      ...(stage ? { stage } : {}),
-    });
+  /** Escaneo de una etapa (obligatoria; 403 sin el permiso de esa etapa). */
+  async scan(code: string, stage: PostsaleScanStage): Promise<PostsaleScanResult> {
+    return apiClient.post<PostsaleScanResult>(`${this.basePath}/scan`, { code, stage });
   }
 
   async deliver(id: string, payload: PostsaleDeliverPayload): Promise<PostsaleDeliverResult> {

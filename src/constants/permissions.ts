@@ -598,7 +598,10 @@ export const PERMISSIONS = {
     COMPLAINTS_MANAGE: 'chatbot.complaints.manage',
     BROADCASTS_MANAGE: 'chatbot.broadcasts.manage',
     POSTSALE_READ: 'chatbot.postsale.read',
-    POSTSALE_OPERATE: 'chatbot.postsale.operate',
+    POSTSALE_PRINT: 'chatbot.postsale.print',
+    POSTSALE_ASSEMBLE: 'chatbot.postsale.assemble',
+    POSTSALE_DISPATCH: 'chatbot.postsale.dispatch',
+    POSTSALE_RECEIVE: 'chatbot.postsale.receive',
     POSTSALE_DELIVER: 'chatbot.postsale.deliver',
   },
 
