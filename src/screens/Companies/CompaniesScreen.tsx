@@ -24,6 +24,8 @@ import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { AddButton } from '@/components/Navigation/AddButton';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface CompaniesScreenProps {
   navigation: any;
@@ -32,6 +34,7 @@ interface CompaniesScreenProps {
 export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -258,7 +261,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
     onSave: () => void,
     title: string
   ) => (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -363,14 +366,12 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Empresas</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Empresas"
+        subtitle="Empresas emisoras y sus datos fiscales"
+        stat={{ value: companies.length, label: 'Total' }}
+      />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -391,7 +392,7 @@ export const CompaniesScreen: React.FC<CompaniesScreenProps> = ({ navigation }) 
         data={companies}
         renderItem={renderCompanyItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[styles.listContainer, contentWidthStyle]}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListEmptyComponent={
@@ -451,31 +452,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: theme.color.text.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: theme.space[2],
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.brand.accent,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  headerSpacer: {
-    width: 40,
   },
   searchContainer: {
     flexDirection: 'row',

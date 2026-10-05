@@ -55,6 +55,8 @@ import {
   useThemedStyles,
 } from '@/design-system';
 import type { Theme } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface RepartoDetailScreenProps {
   navigation: any;
@@ -70,6 +72,7 @@ type TabType = 'overview' | 'participantes';
 export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { repartoId } = route.params;
   const [reparto, setReparto] = useState<Reparto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1006,17 +1009,7 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Volver</Text>
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>{reparto?.code}</Text>
-            <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-              {reparto?.name}
-            </Text>
-          </View>
-        </View>
+        <GradientHeader onBack={goBack} title={reparto?.code ?? ''} subtitle={reparto?.name} />
 
         {/* Tabs */}
         {renderTabs()}
@@ -1024,7 +1017,11 @@ export const RepartoDetailScreen: React.FC<RepartoDetailScreenProps> = ({ naviga
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.scrollContentTablet,
+            contentWidthStyle,
+          ]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {activeTab === 'overview' ? renderOverview() : renderParticipantes()}
@@ -1139,43 +1136,6 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing[3],
       fontSize: 16,
       color: theme.color.text.muted,
-    },
-    header: {
-      paddingHorizontal: spacing[4],
-      paddingVertical: spacing[4],
-      backgroundColor: theme.color.background.canvas,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.default,
-    },
-    headerTablet: {
-      paddingHorizontal: spacing[8],
-      paddingVertical: spacing[6],
-    },
-    backButton: {
-      marginBottom: spacing[3],
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: theme.color.brand.primary,
-      fontWeight: '500',
-    },
-    headerInfo: {
-      gap: spacing[1],
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    titleTablet: {
-      fontSize: 32,
-    },
-    subtitle: {
-      fontSize: 16,
-      color: theme.color.text.muted,
-    },
-    subtitleTablet: {
-      fontSize: 18,
     },
     tabsContainer: {
       flexDirection: 'row',

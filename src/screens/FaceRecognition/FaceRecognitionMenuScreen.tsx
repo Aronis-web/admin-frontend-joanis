@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { spacing, borderRadius } from '@/design-system/tokens';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 export const FaceRecognitionMenuScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -41,18 +42,12 @@ export const FaceRecognitionMenuScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <MaterialIcons
-            name="face-retouching-natural"
-            size={80}
-            color={theme.color.brand.accent}
-          />
-          <Text style={styles.title}>Reconocimiento Facial</Text>
-          <Text style={styles.subtitle}>
-            Sistema de verificación biométrica para autenticación segura
-          </Text>
-        </View>
+      <GradientHeader
+        icon="scan-outline"
+        title="Reconocimiento Facial"
+        subtitle="Sistema de verificación biométrica para autenticación segura"
+      />
+      <ScrollView contentContainerStyle={[styles.scrollContent, contentWidthStyle]}>
 
         <View style={styles.menuContainer}>
           {menuOptions.map((option) => (
@@ -106,23 +101,6 @@ const createStyles = (theme: Theme) =>
     },
     scrollContent: {
       padding: spacing[5],
-    },
-    header: {
-      alignItems: 'center',
-      marginBottom: 30,
-    },
-    title: {
-      fontSize: 28,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-      marginTop: spacing[4],
-    },
-    subtitle: {
-      fontSize: 16,
-      color: theme.color.text.muted,
-      textAlign: 'center',
-      marginTop: spacing[2],
-      paddingHorizontal: spacing[5],
     },
     menuContainer: {
       gap: spacing[4],

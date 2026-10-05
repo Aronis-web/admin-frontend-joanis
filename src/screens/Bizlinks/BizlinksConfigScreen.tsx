@@ -14,6 +14,7 @@ import { useAuthStore } from '../../store/auth';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfig'>;
 
@@ -94,7 +95,7 @@ export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
   const renderConfig = ({ item }: { item: BizlinksConfig }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('BizlinksConfigEdit', { config: item })}
+      onPress={() => navigation.navigate('BizlinksConfigEdit', { configId: item.id })}
     >
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
@@ -172,21 +173,25 @@ export const BizlinksConfigScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Configuración Bizlinks</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('BizlinksConfigCreate')}
-        >
-          <Text style={styles.addButtonText}>+ Nueva Config</Text>
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        icon="settings-outline"
+        title="Configuración Bizlinks"
+        subtitle="Conexiones de facturación electrónica"
+        right={
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate('BizlinksConfigCreate')}
+          >
+            <Text style={styles.addButtonText}>+ Nueva Config</Text>
+          </TouchableOpacity>
+        }
+      />
 
       <FlatList
         data={configs}
         renderItem={renderConfig}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, contentWidthStyle]}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListEmptyComponent={
@@ -216,28 +221,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
   addButton: {
-    backgroundColor: theme.color.action.success.background,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    minHeight: 38,
+    justifyContent: 'center',
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: 14,
+    borderRadius: theme.radii.lg,
   },
   addButtonText: {
-    color: theme.color.action.success.text,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: 'bold',
   },

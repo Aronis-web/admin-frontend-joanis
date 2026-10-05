@@ -28,6 +28,8 @@ import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface ExpenseProjectDetailScreenProps {
   route: {
@@ -44,6 +46,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { projectId } = route.params;
   const [project, setProject] = useState<ExpenseProject | null>(null);
   const [loading, setLoading] = useState(true);
@@ -389,13 +392,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalle del Proyecto</Text>
-          <View style={styles.headerRight} />
-        </View>
+        <GradientHeader onBack={goBack} title="Detalle del Proyecto" />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando proyecto...</Text>
@@ -407,13 +404,7 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
   if (!project) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalle del Proyecto</Text>
-          <View style={styles.headerRight} />
-        </View>
+        <GradientHeader onBack={goBack} title="Detalle del Proyecto" />
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>No se encontró el proyecto</Text>
         </View>
@@ -423,24 +414,24 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalle del Proyecto</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleViewHistory} style={styles.headerActionButton}>
-            <Ionicons name="time-outline" size={24} color={theme.color.brand.accent} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleDeleteProject} style={styles.headerActionButton}>
-            <Ionicons name="trash-outline" size={24} color={theme.color.state.danger.border} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Detalle del Proyecto"
+        right={
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={handleViewHistory} style={styles.headerActionButton}>
+              <Ionicons name="time-outline" size={22} color={theme.color.brand.onHeader} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDeleteProject} style={styles.headerActionButton}>
+              <Ionicons name="trash-outline" size={22} color={theme.color.brand.onHeader} />
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -975,37 +966,19 @@ export const ExpenseProjectDetailScreen: React.FC<ExpenseProjectDetailScreenProp
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
+    backgroundColor: theme.color.background.subtle,
   },
   headerActions: {
     flexDirection: 'row',
     gap: 8,
   },
   headerActionButton: {
-    padding: 4,
-  },
-  headerRight: {
-    width: 32,
+    width: 38,
+    height: 38,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteButton: {
     padding: 4,

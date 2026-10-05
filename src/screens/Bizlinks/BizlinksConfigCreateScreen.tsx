@@ -1,17 +1,20 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BizlinksConfigForm } from '../../components/Bizlinks';
 import { useAuthStore } from '../../store/auth';
 import { useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfigCreate'>;
 
 export const BizlinksConfigCreateScreen: React.FC<Props> = ({ navigation }) => {
   const { currentCompany, currentSite } = useAuthStore();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const handleSuccess = () => {
     navigation.goBack();
@@ -23,7 +26,8 @@ export const BizlinksConfigCreateScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.content}>
+      <GradientHeader title="Crear Configuración" subtitle="Conexión con Bizlinks" onBack={goBack} />
+      <ScrollView style={styles.content} contentContainerStyle={formWidthStyle}>
         <BizlinksConfigForm
           companyId={currentCompany?.id || ''}
           siteId={currentSite?.id}

@@ -26,6 +26,11 @@ import { clearLazyReloadFlag } from '@/utils/lazyLoad';
 import { installWebBackHandler } from '@/utils/webBackHandler';
 import { installWebPullToRefresh } from '@/utils/webPullToRefresh';
 
+// Web-only: debe instalarse antes de montar NavigationContainer para que su
+// listener de `popstate` (fase de captura) corra antes que el de React
+// Navigation y pueda cerrar modales con "atrás" sin cambiar de pantalla.
+installWebBackHandler();
+
 export const App = () => {
   const [fontsLoaded] = useFonts({
     Baloo2_700Bold,
@@ -55,10 +60,9 @@ export const App = () => {
   }, []);
 
   // Web-only: fixes globales de UX
-  //  - Interceptor del botón "atrás" del navegador para modales/overlays.
   //  - Pull-to-refresh táctil (RN Web no lo implementa nativo).
+  //  (El interceptor de "atrás" se instala a nivel de módulo, arriba.)
   useEffect(() => {
-    installWebBackHandler();
     installWebPullToRefresh();
   }, []);
 

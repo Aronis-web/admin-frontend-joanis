@@ -25,6 +25,7 @@ import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface TransmisionesScreenProps {
   navigation: any;
@@ -277,16 +278,12 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Transmisiones
-            </Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              Gestión de lotes de productos
-            </Text>
-          </View>
-        </View>
+        <GradientHeader
+          icon="swap-horizontal-outline"
+          title="Transmisiones"
+          subtitle="Gestión de lotes de productos"
+          stat={{ value: pagination.total, label: 'Total' }}
+        />
         {renderStatusFilter()}
 
         {loading && !refreshing ? (
@@ -297,7 +294,7 @@ export const TransmisionesScreen: React.FC<TransmisionesScreenProps> = ({ naviga
         ) : (
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           >
             {transmisiones.length === 0 ? (
@@ -347,33 +344,6 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
-    },
-    header: {
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      paddingHorizontal: 24,
-      paddingVertical: 20,
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      marginBottom: 4,
-    },
-    headerTitleTablet: {
-      fontSize: 32,
-    },
-    headerSubtitle: {
-      fontSize: 14,
-      color: theme.color.text.muted,
-    },
-    headerSubtitleTablet: {
-      fontSize: 16,
     },
     filterWrapper: {
       backgroundColor: theme.color.surface.base,

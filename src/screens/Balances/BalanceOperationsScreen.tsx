@@ -38,6 +38,8 @@ import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface BalanceOperationsScreenProps {
   navigation: any;
@@ -50,6 +52,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { balanceId, balance } = route.params || {};
   const { currentSite } = useAuthStore();
 
@@ -435,7 +438,10 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
       visible={showCreateModal}
       transparent
       animationType="slide"
-      onRequestClose={() => setShowCreateModal(false)}
+      onRequestClose={() => {
+        setShowCreateModal(false);
+        resetForm();
+      }}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
@@ -666,17 +672,15 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Volver</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          Operaciones {balanceData ? `- ${balanceData.code}` : ''}
-        </Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowCreateModal(true)}>
-          <Text style={styles.addButtonText}>+ Nueva</Text>
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        title={`Operaciones ${balanceData ? `- ${balanceData.code}` : ''}`}
+        onBack={goBack}
+        right={
+          <TouchableOpacity style={styles.addButton} onPress={() => setShowCreateModal(true)}>
+            <Text style={styles.addButtonText}>+ Nueva</Text>
+          </TouchableOpacity>
+        }
+      />
 
       {!balanceId ? (
         <View style={styles.errorContainer}>
@@ -798,7 +802,7 @@ export const BalanceOperationsScreen: React.FC<BalanceOperationsScreenProps> = (
               data={filteredOperations}
               renderItem={renderOperationItem}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[styles.listContent, contentWidthStyle]}
               refreshing={refreshing}
               onRefresh={handleRefresh}
               ListEmptyComponent={
@@ -866,39 +870,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background.subtle,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: theme.color.brand.accent,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
   addButton: {
-    backgroundColor: theme.color.state.success.border,
+    backgroundColor: theme.color.brand.headerBadge,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    height: 36,
+    justifyContent: 'center',
+    borderRadius: theme.radii.lg,
   },
   addButtonText: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: '600',
   },

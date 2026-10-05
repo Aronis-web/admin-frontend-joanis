@@ -32,6 +32,8 @@ import { AddButton } from '@/components/Navigation/AddButton';
 import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface RolesPermissionsScreenProps {
   navigation: any;
@@ -43,6 +45,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
   const navigateFromMenu = useMenuNavigation(navigation);
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   // All useState hooks must be declared before any early returns to follow Rules of Hooks
   const [roles, setRoles] = useState<Role[]>([]);
@@ -561,16 +564,16 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
   return (
     <ProtectedRoute requiredPermissions={['roles.read', 'permissions.read']} requireAll={false}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Roles y Permisos</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title="Roles y Permisos"
+          subtitle="Roles del sistema y sus permisos"
+          stat={{ value: roles.length, label: 'Total' }}
+        />
 
         <ScrollView
           style={[styles.content, isLandscape && styles.contentLandscape]}
+          contentContainerStyle={contentWidthStyle}
           showsVerticalScrollIndicator={false}
         >
           {/* Roles Section */}
@@ -606,7 +609,12 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         </ScrollView>
 
         {/* Create Role Modal */}
-        <Modal visible={showCreateModal} animationType="slide" presentationStyle="pageSheet">
+        <Modal
+          visible={showCreateModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowCreateModal(false)}
+        >
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowCreateModal(false)}>
@@ -667,7 +675,12 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
         </Modal>
 
         {/* Edit Role Modal */}
-        <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
+        <Modal
+          visible={showEditModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowEditModal(false)}
+        >
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEditModal(false)}>
@@ -721,6 +734,7 @@ export const RolesPermissionsScreen: React.FC<RolesPermissionsScreenProps> = ({ 
           visible={showRolePermissionsModal}
           animationType="slide"
           presentationStyle="pageSheet"
+          onRequestClose={() => setShowRolePermissionsModal(false)}
         >
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -768,37 +782,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: theme.color.brand.primary,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSpacer: {
-    width: 40,
   },
   content: {
     flex: 1,

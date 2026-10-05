@@ -29,6 +29,7 @@ import {
 } from '@/hooks/api/useNotificationsWhatsapp';
 import type { NotifWaStatus } from '@/types/notifications-whatsapp';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 const STATUS_LABEL: Record<NotifWaStatus, string> = {
   DISCONNECTED: 'Desconectado',
@@ -43,8 +44,6 @@ const STATUS_TONE: Record<NotifWaStatus, BadgeVariant> = {
   QR: 'info',
   CONNECTED: 'success',
 };
-
-const WHATSAPP_GREEN = '#25D366';
 
 export const NotificationsWhatsappScreen: React.FC = () => {
   const theme = useTheme();
@@ -96,146 +95,136 @@ export const NotificationsWhatsappScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.color.background.canvas }}
-      contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + spacing[6] }]}
-    >
-      {/* Header card */}
-      <Card variant="elevated" padding="large" style={styles.headerCard}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerIcon}>
-            <Ionicons name="logo-whatsapp" size={28} color={WHATSAPP_GREEN} />
+    <View style={styles.root}>
+      <GradientHeader
+        icon="logo-whatsapp"
+        title="WhatsApp de Notificaciones"
+        subtitle="Sesión del número saliente para reparto, documentos, exports y campañas."
+      />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: insets.bottom + spacing[6] },
+          contentWidthStyle,
+        ]}
+      >
+        {/* Header card */}
+        <Card variant="elevated" padding="large" style={styles.headerCard}>
+          <View style={styles.statusRow}>
+            <Badge variant={STATUS_TONE[status]} label={STATUS_LABEL[status]} />
+            {statusQuery.isFetching ? (
+              <ActivityIndicator size="small" color={theme.color.text.muted} />
+            ) : null}
           </View>
-          <View style={{ flex: 1 }}>
-            <Title>WhatsApp de Notificaciones</Title>
-            <Caption color={theme.color.text.muted}>
-              Sesión del número saliente para reparto, documentos, exports y campañas.
-            </Caption>
-          </View>
-        </View>
 
-        <View style={styles.statusRow}>
-          <Badge variant={STATUS_TONE[status]} label={STATUS_LABEL[status]} />
-          {statusQuery.isFetching ? (
-            <ActivityIndicator size="small" color={theme.color.text.muted} />
+          {me ? (
+            <View style={styles.meRow}>
+              <Ionicons name="call-outline" size={16} color={theme.color.text.muted} />
+              <Body>{formatMe(me)}</Body>
+            </View>
           ) : null}
-        </View>
+        </Card>
 
-        {me ? (
-          <View style={styles.meRow}>
-            <Ionicons name="call-outline" size={16} color={theme.color.text.muted} />
-            <Body>{formatMe(me)}</Body>
-          </View>
-        ) : null}
-      </Card>
+        {/* Estado / QR */}
+        <Card variant="elevated" padding="large">
+          {status === 'QR' ? (
+            <View style={styles.qrBox}>
+              {qrQuery.data?.qr ? (
+                <Image
+                  source={{ uri: qrQuery.data.qr }}
+                  style={styles.qrImage}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View style={styles.qrPlaceholder}>
+                  <ActivityIndicator color={theme.color.text.muted} />
+                  <Caption color={theme.color.text.muted}>Generando QR…</Caption>
+                </View>
+              )}
+              <Body color={theme.color.text.muted} style={styles.qrHint}>
+                Abre WhatsApp en el celular del número de notificaciones → Dispositivos vinculados →
+                Vincular dispositivo.
+              </Body>
+            </View>
+          ) : status === 'CONNECTING' ? (
+            <View style={styles.stateBox}>
+              <ActivityIndicator color={theme.color.brand.accent} />
+              <Body color={theme.color.text.muted}>Iniciando conexión…</Body>
+            </View>
+          ) : status === 'CONNECTED' ? (
+            <View style={styles.stateBox}>
+              <Ionicons name="checkmark-circle" size={40} color="#10B981" />
+              <Body>La sesión está activa. Se pueden enviar notificaciones.</Body>
+            </View>
+          ) : (
+            <View style={styles.stateBox}>
+              <Ionicons name="cloud-offline-outline" size={40} color={theme.color.text.muted} />
+              <Body color={theme.color.text.muted} style={{ textAlign: 'center' }}>
+                No hay sesión iniciada. Pulsa “Conectar” para generar el QR de vinculación.
+              </Body>
+            </View>
+          )}
 
-      {/* Estado / QR */}
-      <Card variant="elevated" padding="large">
-        {status === 'QR' ? (
-          <View style={styles.qrBox}>
-            {qrQuery.data?.qr ? (
-              <Image
-                source={{ uri: qrQuery.data.qr }}
-                style={styles.qrImage}
-                resizeMode="contain"
+          <View style={styles.actions}>
+            {status === 'CONNECTED' ? (
+              <Button
+                title="Desvincular"
+                variant="outline"
+                onPress={handleLogout}
+                loading={logoutMutation.isPending}
+                leftIcon="log-out-outline"
               />
             ) : (
-              <View style={styles.qrPlaceholder}>
-                <ActivityIndicator color={theme.color.text.muted} />
-                <Caption color={theme.color.text.muted}>Generando QR…</Caption>
-              </View>
+              <Button
+                title={status === 'QR' ? 'Regenerar QR' : 'Conectar'}
+                onPress={handleStart}
+                loading={startMutation.isPending}
+                leftIcon="qr-code-outline"
+              />
             )}
-            <Body color={theme.color.text.muted} style={styles.qrHint}>
-              Abre WhatsApp en el celular del número de notificaciones → Dispositivos vinculados →
-              Vincular dispositivo.
-            </Body>
           </View>
-        ) : status === 'CONNECTING' ? (
-          <View style={styles.stateBox}>
-            <ActivityIndicator color={theme.color.brand.accent} />
-            <Body color={theme.color.text.muted}>Iniciando conexión…</Body>
-          </View>
-        ) : status === 'CONNECTED' ? (
-          <View style={styles.stateBox}>
-            <Ionicons name="checkmark-circle" size={40} color="#10B981" />
-            <Body>La sesión está activa. Se pueden enviar notificaciones.</Body>
-          </View>
-        ) : (
-          <View style={styles.stateBox}>
-            <Ionicons name="cloud-offline-outline" size={40} color={theme.color.text.muted} />
-            <Body color={theme.color.text.muted} style={{ textAlign: 'center' }}>
-              No hay sesión iniciada. Pulsa “Conectar” para generar el QR de vinculación.
-            </Body>
-          </View>
-        )}
+        </Card>
 
-        <View style={styles.actions}>
-          {status === 'CONNECTED' ? (
-            <Button
-              title="Desvincular"
-              variant="outline"
-              onPress={handleLogout}
-              loading={logoutMutation.isPending}
-              leftIcon="log-out-outline"
+        {/* Info operativa */}
+        <Card variant="outlined" padding="large" style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={theme.color.state.info.border}
             />
-          ) : (
-            <Button
-              title={status === 'QR' ? 'Regenerar QR' : 'Conectar'}
-              onPress={handleStart}
-              loading={startMutation.isPending}
-              leftIcon="qr-code-outline"
-            />
-          )}
-        </View>
-      </Card>
-
-      {/* Info operativa */}
-      <Card variant="outlined" padding="large" style={styles.infoCard}>
-        <View style={styles.infoHeader}>
-          <Ionicons
-            name="information-circle-outline"
-            size={20}
-            color={theme.color.state.info.border}
-          />
-          <Title size="small">Información</Title>
-        </View>
-        <Body color={theme.color.text.muted} style={styles.infoText}>
-          • Este número es independiente del robot de ventas (chatbot).
-        </Body>
-        <Body color={theme.color.text.muted} style={styles.infoText}>
-          • La sesión se reconecta sola ante caídas de red. Sólo hace falta volver a escanear el QR
-          tras un logout explícito o si el teléfono desvincula el dispositivo.
-        </Body>
-        <Body color={theme.color.text.muted} style={styles.infoText}>
-          • El envío de notificaciones (texto, PDF, Excel, imágenes) lo disparan los flujos
-          existentes de reparto, documentos, exports y campañas.
-        </Body>
-      </Card>
-    </ScrollView>
+            <Title size="small">Información</Title>
+          </View>
+          <Body color={theme.color.text.muted} style={styles.infoText}>
+            • Este número es independiente del robot de ventas (chatbot).
+          </Body>
+          <Body color={theme.color.text.muted} style={styles.infoText}>
+            • La sesión se reconecta sola ante caídas de red. Sólo hace falta volver a escanear el QR
+            tras un logout explícito o si el teléfono desvincula el dispositivo.
+          </Body>
+          <Body color={theme.color.text.muted} style={styles.infoText}>
+            • El envío de notificaciones (texto, PDF, Excel, imágenes) lo disparan los flujos
+            existentes de reparto, documentos, exports y campañas.
+          </Body>
+        </Card>
+      </ScrollView>
+    </View>
   );
 };
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: theme.color.background.subtle,
+    },
     container: {
       padding: spacing[4],
       gap: spacing[4],
     },
     headerCard: {
       gap: spacing[3],
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[3],
-    },
-    headerIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: borderRadius.lg,
-      backgroundColor: `${WHATSAPP_GREEN}20`,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     statusRow: {
       flexDirection: 'row',

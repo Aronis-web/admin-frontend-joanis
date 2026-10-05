@@ -24,6 +24,8 @@ import { CashCollectionScanResponse, CashClosureScanResponse } from '@/types/tre
 import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 // Module brand: emerald action color para recaudo
 const MODULE_EMERALD = '#10B981';
@@ -43,6 +45,7 @@ export const RecaudoEfectivoScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const [showForm, setShowForm] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
@@ -372,15 +375,13 @@ export const RecaudoEfectivoScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}> 
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recaudo Efectivo</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <GradientHeader
+        title="Recaudo Efectivo"
+        subtitle="Recaudo y cierre de efectivo de caja"
+        onBack={goBack}
+      />
 
-      <View style={styles.content}>
+      <View style={[styles.content, contentWidthStyle]}>
         <TouchableOpacity style={styles.mainButton} activeOpacity={0.85} onPress={handleOpenForm}>
           <Text style={styles.mainButtonText}>Generar Recaudo</Text>
         </TouchableOpacity>
@@ -391,7 +392,14 @@ export const RecaudoEfectivoScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
-      <Modal visible={showQrScanner} animationType="slide" onRequestClose={() => setShowQrScanner(false)}>
+      <Modal
+        visible={showQrScanner}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowQrScanner(false);
+          setHasScannedQr(false);
+        }}
+      >
         <View style={styles.scannerContainer}>
           <CameraView
             style={StyleSheet.absoluteFillObject}
@@ -566,37 +574,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.text.body,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  placeholder: {
-    width: 40,
   },
   content: {
     flex: 1,

@@ -1478,7 +1478,12 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
         </View>
 
         {/* Design (Gemini) prompt modal */}
-        <Modal visible={designModalVisible} transparent animationType="fade">
+        <Modal
+          visible={designModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setDesignModalVisible(false)}
+        >
           <View style={styles.modalBackdrop}>
             <ScrollView
               style={styles.modalScroll}
@@ -1695,7 +1700,12 @@ export const ProductPhotoManagerModal: React.FC<ProductPhotoManagerModalProps> =
         </Modal>
 
         {/* Price photo (ad-design) modal */}
-        <Modal visible={pricePhotoModalVisible} transparent animationType="fade">
+        <Modal
+          visible={pricePhotoModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={resetPriceState}
+        >
           <View style={styles.modalBackdrop}>
             <ScrollView
               style={styles.modalScroll}

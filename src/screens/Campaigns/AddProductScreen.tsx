@@ -28,6 +28,8 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { CampaignProductBannerModal } from '@/components/Campaigns/CampaignProductBannerModal';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface AddProductScreenProps {
   navigation: any;
@@ -41,6 +43,7 @@ interface AddProductScreenProps {
 export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { campaignId } = route.params;
   const [sourceType, setSourceType] = useState<ProductSourceType>(ProductSourceType.INVENTORY);
   const [products, setProducts] = useState<any[]>([]);
@@ -1456,19 +1459,16 @@ export const AddProductScreen: React.FC<AddProductScreenProps> = ({ navigation, 
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Agregar Producto</Text>
-        </View>
+        <GradientHeader onBack={goBack} title="Agregar Producto" />
 
         {/* Form */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.scrollContentTablet,
+            formWidthStyle,
+          ]}
         >
           <View style={[styles.formCard, isTablet && styles.formCardTablet]}>
             {/* Source Type */}
@@ -1578,36 +1578,6 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
-    },
-    header: {
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      paddingHorizontal: 32,
-      paddingVertical: 24,
-    },
-    backButton: {
-      marginBottom: 8,
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: theme.color.brand.primary,
-      fontWeight: '600',
-    },
-    backButtonTextTablet: {
-      fontSize: 18,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    titleTablet: {
-      fontSize: 32,
     },
     scrollView: {
       flex: 1,

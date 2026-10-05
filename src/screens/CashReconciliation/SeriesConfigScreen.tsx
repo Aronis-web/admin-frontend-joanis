@@ -17,6 +17,8 @@ import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 // Cash-reconciliation module brand color (cyan)
 const MODULE_BRAND = '#06B6D4';
@@ -49,6 +51,7 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { token } = useAuthStore();
   const { selectedSite } = useTenantStore();
   const [seriesConfigs, setSeriesConfigs] = useState<SeriesConfig[]>([]);
@@ -243,19 +246,17 @@ export const SeriesConfigScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Configuración de Series</Text>
-          <Text style={styles.headerSubtitle}>{selectedSite?.name || 'Sin sede'}</Text>
-        </View>
-        <View style={styles.placeholder} />
-      </View>
+      <GradientHeader
+        title="Configuración de Series"
+        subtitle={selectedSite?.name || 'Sin sede'}
+        onBack={goBack}
+      />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={contentWidthStyle}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Info Card */}
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>ℹ️ Configuración de Series</Text>
@@ -427,46 +428,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: theme.color.text.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.text.body,
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  placeholder: {
-    width: 40,
   },
   content: {
     flex: 1,

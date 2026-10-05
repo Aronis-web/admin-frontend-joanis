@@ -33,6 +33,8 @@ import {
 } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface AddPurchaseProductScreenProps {
   navigation: any;
@@ -53,6 +55,7 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { purchaseId } = route.params;
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
@@ -296,19 +299,11 @@ export const AddPurchaseProductScreen: React.FC<AddPurchaseProductScreenProps> =
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Title size="large">Agregar Producto</Title>
-          <Body color="secondary">Datos preliminares del producto</Body>
-        </View>
-      </View>
+      <GradientHeader
+        title="Agregar Producto"
+        subtitle="Datos preliminares del producto"
+        onBack={goBack}
+      />
 
       <ScrollView
         style={styles.content}
@@ -570,27 +565,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[4],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    gap: theme.space[3],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flex: 1,
   },
   content: {
     flex: 1,

@@ -726,7 +726,12 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ navigation }) =>
 
         {/* Product View Modal */}
         {viewProduct && (
-          <Modal visible={isViewModalVisible} animationType="slide" transparent={false}>
+          <Modal
+            visible={isViewModalVisible}
+            animationType="slide"
+            transparent={false}
+            onRequestClose={() => setIsViewModalVisible(false)}
+          >
             <SafeAreaView style={styles.modalContainer}>
               <View style={styles.modalHeader}>
                 <IconButton

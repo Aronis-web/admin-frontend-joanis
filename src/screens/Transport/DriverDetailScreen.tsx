@@ -24,6 +24,8 @@ import {
   DriverStatus,
 } from '@/types/transport';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import {
   DRIVER_DOCUMENT_RULES,
   LICENSE_MAX_LENGTH,
@@ -39,6 +41,7 @@ import {
 export const DriverDetailScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const driverId = route?.params?.driverId;
   const isCreateMode = !driverId;
 
@@ -258,28 +261,31 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.text.heading} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isCreateMode ? 'Nuevo Conductor' : isEditing ? 'Editar Conductor' : 'Detalle de Conductor'}
-        </Text>
-        <View style={styles.headerActions}>
-          {!isCreateMode && !isEditing && (
-            <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editButton}>
-              <Ionicons name="create-outline" size={24} color={theme.color.brand.accent} />
-            </TouchableOpacity>
-          )}
-          {!isCreateMode && isEditing && (
-            <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.cancelButton}>
-              <Ionicons name="close" size={24} color={theme.color.text.danger} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <GradientHeader
+        title={
+          isCreateMode ? 'Nuevo Conductor' : isEditing ? 'Editar Conductor' : 'Detalle de Conductor'
+        }
+        onBack={goBack}
+        right={
+          <View style={styles.headerActions}>
+            {!isCreateMode && !isEditing && (
+              <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.headerActionButton}>
+                <Ionicons name="create-outline" size={22} color={theme.color.brand.onHeader} />
+              </TouchableOpacity>
+            )}
+            {!isCreateMode && isEditing && (
+              <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.headerActionButton}>
+                <Ionicons name="close" size={22} color={theme.color.brand.onHeader} />
+              </TouchableOpacity>
+            )}
+          </View>
+        }
+      />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, contentWidthStyle]}
+      >
         {/* Información Personal */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
@@ -518,7 +524,12 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
       </ScrollView>
 
       {/* Tipo Documento Modal */}
-      <Modal visible={showTipoDocumentoModal} transparent animationType="fade">
+      <Modal
+        visible={showTipoDocumentoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTipoDocumentoModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowTipoDocumentoModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Tipo de Documento</Text>
@@ -545,7 +556,12 @@ export const DriverDetailScreen = ({ navigation, route }: any) => {
       </Modal>
 
       {/* Status Modal */}
-      <Modal visible={showStatusModal} transparent animationType="fade">
+      <Modal
+        visible={showStatusModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStatusModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowStatusModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Estado del Conductor</Text>
@@ -585,35 +601,17 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       color: theme.color.text.muted,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      padding: 8,
-    },
-    headerTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-      flex: 1,
-      textAlign: 'center',
-    },
     headerActions: {
       flexDirection: 'row',
       gap: 8,
     },
-    editButton: {
-      padding: 8,
-    },
-    cancelButton: {
-      padding: 8,
+    headerActionButton: {
+      width: 38,
+      height: 38,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     content: {
       flex: 1,

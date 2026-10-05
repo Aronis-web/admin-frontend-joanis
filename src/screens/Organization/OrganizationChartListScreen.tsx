@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +26,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 type ScopeFilter = 'all' | 'COMPANY' | 'SITE';
 
@@ -49,8 +49,6 @@ interface PositionSection {
  */
 export const OrganizationChartListScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const { hasPermission } = usePermissions();
@@ -372,11 +370,12 @@ export const OrganizationChartListScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, isTablet && styles.titleTablet]}>Organigrama · Lista</Text>
-        <Text style={styles.subtitle}>{companyName}</Text>
-      </View>
+      <GradientHeader
+        icon="git-network-outline"
+        title="Organigrama · Lista"
+        subtitle={companyName}
+        stat={{ value: counts.all, label: 'Total' }}
+      />
 
       {/* Scope filter chips */}
       <View style={styles.chipsContainer}>
@@ -416,7 +415,7 @@ export const OrganizationChartListScreen: React.FC = () => {
         renderSectionHeader={renderSectionHeader}
         renderSectionFooter={renderSectionFooter}
         stickySectionHeadersEnabled={false}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, contentWidthStyle]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -489,7 +488,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.color.surface.muted,
+      backgroundColor: theme.color.background.subtle,
     },
     centerContainer: {
       flex: 1,
@@ -500,26 +499,6 @@ const createStyles = (theme: Theme) =>
     loadingText: {
       marginTop: 16,
       fontSize: 16,
-      color: theme.color.text.muted,
-    },
-    header: {
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-      marginBottom: 4,
-    },
-    titleTablet: {
-      fontSize: 32,
-    },
-    subtitle: {
-      fontSize: 14,
       color: theme.color.text.muted,
     },
     chipsContainer: {

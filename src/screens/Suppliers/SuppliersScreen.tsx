@@ -23,6 +23,7 @@ import { SUPPLIER_TYPE_LABELS, SUPPLIER_TYPE_ICONS, SUPPLIER_TYPE_COLORS } from 
 import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface SuppliersScreenProps {
   navigation: any;
@@ -349,22 +350,17 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <View style={styles.headerLeft}>
+      <GradientHeader
+        icon="storefront-outline"
+        title="Proveedores"
+        subtitle="Gestión de Proveedores"
+        stat={{ value: pagination.total, label: 'Total' }}
+        right={
           <TouchableOpacity onPress={handleMenuToggle} style={styles.menuButton}>
             <Text style={[styles.menuIcon, isTablet && styles.menuIconTablet]}>☰</Text>
           </TouchableOpacity>
-          <View>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Proveedores
-            </Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              Gestión de Proveedores
-            </Text>
-          </View>
-        </View>
-      </View>
+        }
+      />
 
       {/* Search Bar */}
       <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
@@ -503,7 +499,11 @@ export const SuppliersScreen: React.FC<SuppliersScreenProps> = ({ navigation }) 
       {/* Suppliers List */}
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          isTablet && styles.contentContainerTablet,
+          contentWidthStyle,
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {loading ? (
@@ -575,55 +575,20 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background.subtle,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: theme.space[8],
-    paddingVertical: theme.space[5],
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.space[4],
-  },
   menuButton: {
     width: 40,
     height: 40,
     borderRadius: theme.radii.lg,
-    backgroundColor: theme.color.surface.muted,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuIcon: {
     fontSize: 24,
-    color: theme.color.text.muted,
+    color: theme.color.brand.onHeader,
   },
   menuIconTablet: {
     fontSize: 28,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerTitleTablet: {
-    fontSize: 24,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  headerSubtitleTablet: {
-    fontSize: 15,
   },
   searchContainer: {
     flexDirection: 'row',

@@ -16,6 +16,7 @@ import {
   Input,
   Title,
 } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 import { useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { spacing } from '@/design-system/tokens';
@@ -66,9 +67,12 @@ export const PayrollConfigScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenLayout navigation={navigation as any}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Title>Configuracion de Planilla</Title>
-          <Caption>Tasas AFP, parametros, escalas 5ta y conceptos.</Caption>
+        <GradientHeader
+          icon="settings-outline"
+          title="Configuracion de Planilla"
+          subtitle="Tasas AFP, parametros, escalas 5ta y conceptos."
+        />
+        <ScrollView contentContainerStyle={[styles.container, contentWidthStyle]}>
           <PayrollTabs tabs={TABS} active={tab} onChange={setTab} />
           {tab === 'afp' && <AfpTab />}
           {tab === 'params' && <ParametersTab />}
@@ -156,7 +160,14 @@ const UpsertAfpModal: React.FC<{
     !!commissionRate && !!insuranceRate && !!fundRate && !!insurableCap && !!effectiveFrom;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Tasa AFP</Title>
@@ -306,7 +317,14 @@ const UpsertParamModal: React.FC<{
   const canSubmit = !!numericValue && !!effectiveFrom;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Parametro</Title>
@@ -433,7 +451,14 @@ const UpsertTaxBracketModal: React.FC<{
   const canSubmit = !!bracketOrder && !!lowerUit && !!upperUit && !!rate;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Tramo {year}</Title>
@@ -576,7 +601,14 @@ const UpsertConceptModal: React.FC<{
   const canSubmit = !!code.trim() && !!name.trim();
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => {
+        if (!saving) onClose();
+      }}
+    >
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], gap: spacing[2] }}>
           <Title>Concepto</Title>
@@ -657,7 +689,7 @@ const UpsertConceptModal: React.FC<{
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: theme.color.background.canvas },
+    safe: { flex: 1, backgroundColor: theme.color.background.subtle },
     container: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[6] },
     tabWrap: { gap: spacing[2] },
     card: { padding: spacing[4], gap: spacing[1], marginBottom: spacing[2] },

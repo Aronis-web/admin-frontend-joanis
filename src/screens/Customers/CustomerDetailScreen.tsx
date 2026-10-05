@@ -26,6 +26,8 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
 import { CustomerExtraPhones } from './CustomerExtraPhones';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 export const CustomerDetailScreen = ({ navigation, route }: any) => {
   const customerId = route?.params?.customerId;
@@ -33,6 +35,7 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
 
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const [loading, setLoading] = useState(!isCreateMode);
   const [saving, setSaving] = useState(false);
@@ -416,24 +419,19 @@ export const CustomerDetailScreen = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Atrás</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>
-          {isCreateMode ? 'Nuevo Cliente' : isEditing ? 'Editar Cliente' : 'Detalle de Cliente'}
-        </Text>
-        <View style={styles.headerRight}>
-          {!isCreateMode && !isEditing && (
+      <GradientHeader
+        onBack={goBack}
+        title={isCreateMode ? 'Nuevo Cliente' : isEditing ? 'Editar Cliente' : 'Detalle de Cliente'}
+        right={
+          !isCreateMode && !isEditing ? (
             <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
               <Text style={styles.editButtonText}>✏️ Editar</Text>
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
+          ) : undefined
+        }
+      />
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={contentWidthStyle}>
         {/* Tipo de Cliente */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tipo de Cliente</Text>
@@ -982,40 +980,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background.subtle,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: theme.color.brand.accent,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  headerRight: {
-    minWidth: 80,
-    alignItems: 'flex-end',
-  },
   editButton: {
-    backgroundColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.headerBadge,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    height: 36,
+    justifyContent: 'center',
+    borderRadius: theme.radii.lg,
   },
   editButtonText: {
-    color: theme.color.text.onAction,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: '600',
   },

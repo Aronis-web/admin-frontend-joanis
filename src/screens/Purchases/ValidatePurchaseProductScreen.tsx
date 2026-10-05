@@ -54,6 +54,7 @@ import {
 } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader } from '@/design-system/components';
 
 interface ValidatePurchaseProductScreenProps {
   navigation: any;
@@ -1102,18 +1103,7 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={goBackToPurchase}>
-          <Ionicons name="chevron-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Title size="large">Validar Producto</Title>
-          <Body color="secondary" numberOfLines={1}>
-            {product.name}
-          </Body>
-        </View>
-      </View>
+      <GradientHeader title="Validar Producto" subtitle={product.name} onBack={goBackToPurchase} />
 
       <ScrollView
         style={styles.content}
@@ -2185,7 +2175,10 @@ export const ValidatePurchaseProductScreen: React.FC<ValidatePurchaseProductScre
         visible={showAddPresentation}
         animationType="fade"
         transparent
-        onRequestClose={() => setShowAddPresentation(false)}
+        onRequestClose={() => {
+          setShowAddPresentation(false);
+          setNewPresentationId('');
+        }}
       >
         <View style={styles.dialogOverlay}>
           <View style={styles.dialog}>
@@ -2379,27 +2372,6 @@ const createStyles = (theme: Theme) =>
     },
     loadingText: {
       marginTop: theme.space[4],
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[4],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      gap: theme.space[3],
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radii.full,
-      backgroundColor: theme.color.surface.subtle,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    headerContent: {
-      flex: 1,
     },
     content: {
       flex: 1,

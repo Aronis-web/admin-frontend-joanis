@@ -9,6 +9,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, ContentContainer } from '@/design-system/components';
 
 type Props = NativeStackScreenProps<any, 'BizlinksMenu'>;
 
@@ -65,28 +66,31 @@ export const BizlinksMenuScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Bizlinks</Text>
-        <Text style={styles.headerSubtitle}>Facturación Electrónica SUNAT</Text>
-      </View>
+      <GradientHeader
+        icon="document-text-outline"
+        title="Bizlinks"
+        subtitle="Facturación Electrónica SUNAT"
+      />
 
-      <View style={styles.content}>
-        {menuOptions.map(renderOption)}
-      </View>
-
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>ℹ️ Información</Text>
-        <Text style={styles.infoText}>
-          Sistema de integración con el Componente Local Bizlinks para emisión de
-          comprobantes electrónicos según normativa SUNAT (Perú).
-        </Text>
-        <View style={styles.infoList}>
-          <Text style={styles.infoItem}>✅ Facturas Electrónicas</Text>
-          <Text style={styles.infoItem}>✅ Consulta de estados SUNAT</Text>
-          <Text style={styles.infoItem}>✅ Descarga de PDF, XML y CDR</Text>
-          <Text style={styles.infoItem}>✅ Multi-empresa y multi-sede</Text>
+      <ContentContainer>
+        <View style={styles.content}>
+          {menuOptions.map(renderOption)}
         </View>
-      </View>
+
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>ℹ️ Información</Text>
+          <Text style={styles.infoText}>
+            Sistema de integración con el Componente Local Bizlinks para emisión de
+            comprobantes electrónicos según normativa SUNAT (Perú).
+          </Text>
+          <View style={styles.infoList}>
+            <Text style={styles.infoItem}>✅ Facturas Electrónicas</Text>
+            <Text style={styles.infoItem}>✅ Consulta de estados SUNAT</Text>
+            <Text style={styles.infoItem}>✅ Descarga de PDF, XML y CDR</Text>
+            <Text style={styles.infoItem}>✅ Multi-empresa y multi-sede</Text>
+          </View>
+        </View>
+      </ContentContainer>
     </ScrollView>
   );
 };
@@ -95,22 +99,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    backgroundColor: theme.color.surface.base,
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
   },
   content: {
     padding: 16,

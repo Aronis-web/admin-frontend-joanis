@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  TextInput,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
@@ -27,6 +26,8 @@ import { UsersManagementModal } from '@/components/apps/UsersManagementModal';
 import { BottomNavigation } from '@/components/Navigation/BottomNavigation';
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import Alert from '@/utils/alert';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface AppsScreenProps {
   navigation: any;
@@ -35,6 +36,7 @@ interface AppsScreenProps {
 export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { user, logout } = useAuthStore();
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,42 +265,22 @@ export const AppsScreen: React.FC<AppsScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>📱 Gestión de Apps</Text>
-            <Text style={styles.headerSubtitle}>
-              {pagination.total} {pagination.total === 1 ? 'app' : 'apps'}
-            </Text>
-          </View>
-          <View style={styles.headerRight} />
-        </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por nombre o código..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={theme.color.text.placeholder}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Text style={styles.clearIcon}>✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Gestión de Apps"
+        subtitle="Aplicaciones registradas en el sistema"
+        stat={{ value: pagination.total, label: pagination.total === 1 ? 'app' : 'apps' }}
+        search={{
+          value: searchQuery,
+          onChangeText: setSearchQuery,
+          placeholder: 'Buscar por nombre o código...',
+        }}
+      />
 
       {/* Content */}
       <ScrollView
         style={[styles.content, isLandscape && styles.contentLandscape]}
+        contentContainerStyle={contentWidthStyle}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
@@ -408,74 +390,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: theme.space[5],
-    paddingTop: theme.space[4],
-    paddingBottom: theme.space[4],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.space[4],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.text.heading,
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: theme.color.text.subtle,
-    marginTop: 2,
-  },
-  headerRight: {
-    width: 40,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.background.subtle,
-    borderRadius: theme.radii.xl,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: theme.space[2],
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: theme.color.text.body,
-  },
-  clearIcon: {
-    fontSize: 16,
-    color: theme.color.text.placeholder,
-    paddingHorizontal: theme.space[2],
   },
   content: {
     flex: 1,

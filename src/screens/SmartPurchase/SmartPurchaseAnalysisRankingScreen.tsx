@@ -18,7 +18,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -35,12 +34,13 @@ import {
   EmptyState,
   ErrorState,
   Input,
-  Title,
   useTheme,
   useThemedStyles,
 } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 import { suppliersService } from '@/services/api/suppliers';
@@ -68,6 +68,7 @@ type TabKey = 'RANKING' | 'PENDING';
 
 export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
+  const goBack = useGoBack();
   const styles = useThemedStyles(createStyles);
 
   const [tab, setTab] = useState<TabKey>('RANKING');
@@ -293,19 +294,13 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
   return (
     <ScreenLayout navigation={navigation as any}>
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={12}>
-            <Ionicons name="chevron-back" size={24} color={theme.color.text.body} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Title>Proveedores · Compra Inteligente</Title>
-            <Caption color="muted">
-              Ranking por viabilidad + gestión de proveedores aún no analizados.
-            </Caption>
-          </View>
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title="Proveedores · Compra Inteligente"
+          subtitle="Ranking por viabilidad + gestión de proveedores aún no analizados."
+        />
 
-        <View style={styles.tabsRow}>
+        <View style={[styles.tabsRow, contentWidthStyle]}>
           <TabButton
             active={tab === 'RANKING'}
             label={`Ranking (${analysis?.length ?? 0})`}
@@ -318,7 +313,7 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
           />
         </View>
 
-        <View style={styles.filters}>
+        <View style={[styles.filters, contentWidthStyle]}>
           <Input
             leftIcon="search"
             placeholder="Buscar por nombre o RUC..."
@@ -339,7 +334,7 @@ export const SmartPurchaseAnalysisRankingScreen: React.FC<Props> = ({ navigation
           data={showingList as any[]}
           keyExtractor={(r: any) => (tab === 'RANKING' ? r.supplierId : r.id)}
           renderItem={tab === 'RANKING' ? (renderRankRow as any) : (renderPendingRow as any)}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, contentWidthStyle]}
           ItemSeparatorComponent={() => <View style={{ height: spacing[2] }} />}
           refreshControl={
             <RefreshControl
@@ -458,19 +453,12 @@ const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) =>
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.color.background.canvas },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[2],
-      paddingHorizontal: spacing[6],
-      paddingTop: spacing[4],
-      paddingBottom: spacing[2],
-    },
+    container: { flex: 1, backgroundColor: theme.color.background.subtle },
     tabsRow: {
       flexDirection: 'row',
       gap: spacing[2],
       paddingHorizontal: spacing[6],
+      paddingTop: spacing[3],
       paddingBottom: spacing[2],
     },
     tab: {

@@ -573,7 +573,7 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
 
   return (
     <>
-      <Modal visible={visible} animationType="slide" transparent={false}>
+      <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -893,7 +893,15 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
       </View>
 
       {/* Promotional Image Preview Modal */}
-      <Modal visible={showPromoPreview} animationType="fade" transparent={true}>
+      <Modal
+        visible={showPromoPreview}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {
+          setShowPromoPreview(false);
+          setSelectedImageForPromo(null);
+        }}
+      >
         <View style={styles.promoModalOverlay}>
           <View style={styles.promoModalContainer}>
             <View style={styles.promoModalHeader}>
@@ -1177,7 +1185,12 @@ export const ProductImagesModal: React.FC<ProductImagesModalProps> = ({
       </Modal>
 
     {/* Image Quality Analysis Modal */}
-    <Modal visible={showQualityModal} animationType="fade" transparent={true}>
+    <Modal
+      visible={showQualityModal}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={() => setShowQualityModal(false)}
+    >
         <View style={styles.qualityModalOverlay}>
           <View style={styles.qualityModalContainer}>
             <View style={styles.qualityModalHeader}>

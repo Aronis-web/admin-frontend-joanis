@@ -44,6 +44,8 @@ import {
   useThemedStyles,
 } from '@/design-system';
 import type { Theme } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface RepartoCampaignDetailScreenProps {
   navigation: any;
@@ -60,6 +62,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { campaignId } = route.params;
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [participants, setParticipants] = useState<CampaignParticipant[]>([]);
@@ -636,19 +639,7 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>{campaign.name}</Text>
-            <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-              {campaign.code}
-            </Text>
-          </View>
-        </View>
+        <GradientHeader onBack={goBack} title={campaign.name} subtitle={campaign.code} />
 
         {/* Campaign Info */}
         <View style={[styles.infoSection, isTablet && styles.infoSectionTablet]}>
@@ -714,7 +705,11 @@ export const RepartoCampaignDetailScreen: React.FC<RepartoCampaignDetailScreenPr
         {/* Participants List */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.scrollContentTablet,
+            contentWidthStyle,
+          ]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
@@ -908,47 +903,6 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing[3],
       fontSize: 16,
       color: theme.color.text.muted,
-    },
-    header: {
-      backgroundColor: theme.color.background.canvas,
-      paddingHorizontal: spacing[4],
-      paddingVertical: spacing[4],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.default,
-    },
-    headerTablet: {
-      paddingHorizontal: spacing[8],
-      paddingVertical: spacing[6],
-    },
-    backButton: {
-      marginBottom: spacing[2],
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: theme.color.brand.primary,
-      fontWeight: '600',
-    },
-    backButtonTextTablet: {
-      fontSize: 18,
-    },
-    headerInfo: {
-      marginTop: spacing[2],
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    titleTablet: {
-      fontSize: 32,
-    },
-    subtitle: {
-      fontSize: 14,
-      color: theme.color.text.muted,
-      marginTop: spacing[1],
-    },
-    subtitleTablet: {
-      fontSize: 16,
     },
     infoSection: {
       backgroundColor: theme.color.background.canvas,

@@ -43,6 +43,7 @@ import {
   AppId,
   UpdateReleaseDto,
 } from '@/services/api/app-updates';
+import { GradientHeader, contentWidthStyle, formWidthStyle } from '@/design-system/components';
 
 type Props = NativeStackScreenProps<any, 'AppVersions'>;
 
@@ -557,7 +558,11 @@ export const AppVersionsScreen: React.FC<Props> = ({ navigation }) => {
   // ============================================================================
 
   const renderUploadTab = () => (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.tabContent}
+      contentContainerStyle={formWidthStyle}
+      showsVerticalScrollIndicator={false}
+    >
       {/* App Selector */}
       <AnimatedCard delay={0}>
         <View style={styles.card}>
@@ -828,6 +833,7 @@ export const AppVersionsScreen: React.FC<Props> = ({ navigation }) => {
       ) : (
         <ScrollView
           style={styles.versionsList}
+          contentContainerStyle={contentWidthStyle}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -860,6 +866,13 @@ export const AppVersionsScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScreenLayout navigation={navigation as any}>
+      <GradientHeader
+        icon="cloud-upload-outline"
+        title="Versiones de App"
+        subtitle="Publica y gestiona las versiones de las apps"
+        stat={{ value: releases.length, label: 'Total' }}
+      />
+
       {/* Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity

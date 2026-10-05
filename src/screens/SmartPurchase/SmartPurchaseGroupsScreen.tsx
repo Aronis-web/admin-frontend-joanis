@@ -30,6 +30,7 @@ import {
 } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 import type { MainStackParamList } from '@/types/navigation';
 import type { SmartPurchaseGroup, SmartPurchaseGroupWithSuppliers } from '@/types/smartPurchase';
 import { useSmartPurchaseGroups } from '@/hooks/api/useSmartPurchase';
@@ -116,19 +117,18 @@ export const SmartPurchaseGroupsScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScreenLayout navigation={navigation as any}>
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <View style={styles.header}>
-          <Title>Compra Inteligente</Title>
-          <Caption color="muted">
-            Grupos de compra por política. Selecciona uno para analizar sus proveedores y generar
-            órdenes.
-          </Caption>
-        </View>
+        <GradientHeader
+          icon="people-outline"
+          title="Compra Inteligente"
+          subtitle="Grupos de compra por política. Selecciona uno para analizar sus proveedores y generar órdenes."
+          stat={{ value: groups?.length ?? 0, label: 'Total' }}
+        />
 
         <FlatList
           data={groups ?? []}
           keyExtractor={(g) => g.id}
           renderItem={renderGroup}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, contentWidthStyle]}
           ItemSeparatorComponent={() => <View style={{ height: spacing[2] }} />}
           ListEmptyComponent={listContent()}
           refreshControl={
@@ -212,13 +212,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.color.background.canvas,
-    },
-    header: {
-      paddingHorizontal: spacing[6],
-      paddingTop: spacing[4],
-      paddingBottom: spacing[2],
-      gap: spacing[1],
+      backgroundColor: theme.color.background.subtle,
     },
     listContent: {
       paddingHorizontal: spacing[6],

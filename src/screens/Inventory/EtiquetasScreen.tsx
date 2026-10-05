@@ -14,7 +14,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View, Image } from 'react-native';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
-import { Body, Caption, Card, Heading, Input } from '@/design-system/components';
+import {
+  Body,
+  Caption,
+  Card,
+  GradientHeader,
+  Heading,
+  Input,
+  contentWidthStyle,
+} from '@/design-system/components';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { productsApi, Product } from '@/services/api/products';
@@ -392,21 +400,21 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
 
   return (
     <ScreenLayout navigation={navigation}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Heading size="large">Etiquetas electrónicas</Heading>
-            <Caption color="muted">
-              Modo scanner · Leeka 1.54&quot; BWRY · precio = costo
-              {busyCount > 0 ? ` · ${busyCount} en envío` : ''}
-            </Caption>
-          </View>
-          {mode === 'AWAIT_PRODUCT' && (
+      <GradientHeader
+        icon="pricetag-outline"
+        title="Etiquetas electrónicas"
+        subtitle={`Modo scanner · Leeka 1.54" BWRY · precio = costo${
+          busyCount > 0 ? ` · ${busyCount} en envío` : ''
+        }`}
+        right={
+          mode === 'AWAIT_PRODUCT' ? (
             <Pressable onPress={onCancelPairing} style={styles.resetBtn}>
-              <Caption color="muted">✕ Cancelar etiqueta</Caption>
+              <Caption style={styles.resetBtnText}>✕ Cancelar etiqueta</Caption>
             </Pressable>
-          )}
-        </View>
+          ) : undefined
+        }
+      />
+      <ScrollView contentContainerStyle={[styles.container, contentWidthStyle]}>
 
         {/* Banner del paso actual */}
         <Card style={{ ...styles.banner, borderColor: stepBanner.color }}>
@@ -553,17 +561,14 @@ export const EtiquetasScreen: React.FC<EtiquetasScreenProps> = ({ navigation }) 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { padding: 16, gap: 16, paddingBottom: 64 },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
     resetBtn: {
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 6,
-      backgroundColor: theme.color.background.muted,
+      paddingHorizontal: 12,
+      height: 36,
+      justifyContent: 'center',
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
     },
+    resetBtnText: { color: theme.color.brand.onHeader },
     banner: { padding: 24, gap: 8, alignItems: 'center', borderWidth: 2 },
     bannerIcon: { fontSize: 48, lineHeight: 56 },
     bannerSub: { textAlign: 'center' },

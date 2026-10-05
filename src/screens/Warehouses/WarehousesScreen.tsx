@@ -19,6 +19,9 @@ import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpa
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
 import Alert from '@/utils/alert';
+import { useGoBack } from '@/hooks/useGoBack';
+import { useAuthStore } from '@/store/auth';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface WarehousesScreenProps {
   navigation: any;
@@ -34,9 +37,17 @@ interface WarehousesScreenProps {
 }
 
 export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, route }) => {
-  const { companyId, companyName, siteId, siteName, siteCode } = route.params;
+  // Si se abre la URL sin parámetros (enlace directo), usar la empresa/sede actual.
+  const { currentCompany, currentSite } = useAuthStore();
+  const params = route.params ?? ({} as Partial<WarehousesScreenProps['route']['params']>);
+  const companyId = params.companyId ?? currentCompany?.id ?? '';
+  const companyName = params.companyName ?? currentCompany?.name ?? '';
+  const siteId = params.siteId ?? currentSite?.id ?? '';
+  const siteName = params.siteName ?? currentSite?.name ?? '';
+  const siteCode = params.siteCode ?? (currentSite as { code?: string } | null)?.code ?? '';
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -245,16 +256,7 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Almacenes</Text>
-            <Text style={styles.headerSubtitle}>🏪 {siteName}</Text>
-          </View>
-          <View style={styles.placeholder} />
-        </View>
+        <GradientHeader onBack={goBack} title="Almacenes" subtitle={`🏪 ${siteName}`} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando almacenes...</Text>
@@ -265,35 +267,22 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Almacenes</Text>
-          <Text style={styles.headerSubtitle}>🏪 {siteName}</Text>
-        </View>
-        <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar almacenes..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={theme.color.text.placeholder}
-          keyboardType="default"
-        />
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Almacenes"
+        subtitle={`🏪 ${siteName}`}
+        right={
+          <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
+        }
+        search={{ value: searchQuery, onChangeText: setSearchQuery, placeholder: 'Buscar almacenes...' }}
+      />
 
       {/* Warehouses List */}
       <ScrollView
         style={styles.warehousesList}
+        contentContainerStyle={contentWidthStyle}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
@@ -330,7 +319,15 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
       />
 
       {/* Create Warehouse Modal */}
-      <Modal visible={showCreateModal} animationType="slide" transparent>
+      <Modal
+        visible={showCreateModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowCreateModal(false);
+          resetWarehouseForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Nuevo Almacén</Text>
@@ -379,7 +376,16 @@ export const WarehousesScreen: React.FC<WarehousesScreenProps> = ({ navigation, 
       </Modal>
 
       {/* Edit Warehouse Modal */}
-      <Modal visible={showEditModal} animationType="slide" transparent>
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowEditModal(false);
+          setSelectedWarehouse(null);
+          resetWarehouseForm();
+        }}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Editar Almacén</Text>
@@ -437,58 +443,17 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.color.background.subtle,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.space[5],
-      paddingVertical: theme.space[4],
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radii['2xl'],
-      backgroundColor: theme.color.surface.muted,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 20,
-      color: theme.color.text.muted,
-      fontWeight: '600',
-    },
-    headerTitleContainer: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-    },
-    headerSubtitle: {
-      fontSize: 12,
-      color: theme.color.text.muted,
-      marginTop: 2,
-    },
-    placeholder: {
-      width: 40,
-      height: 40,
-    },
     addButton: {
       width: 40,
       height: 40,
-      borderRadius: theme.radii['2xl'],
-      backgroundColor: theme.color.brand.accent,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
       justifyContent: 'center',
       alignItems: 'center',
     },
     addButtonText: {
       fontSize: 24,
-      color: theme.color.text.onAction,
+      color: theme.color.brand.onHeader,
       fontWeight: '600',
     },
     loadingContainer: {
@@ -500,23 +465,6 @@ const createStyles = (theme: Theme) =>
       marginTop: 10,
       fontSize: 16,
       color: theme.color.text.muted,
-    },
-    searchContainer: {
-      paddingHorizontal: theme.space[5],
-      paddingVertical: theme.space[4],
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    searchInput: {
-      backgroundColor: theme.color.background.subtle,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-      borderRadius: theme.radii.xl,
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[3],
-      fontSize: 16,
-      color: theme.color.text.heading,
     },
     warehousesList: {
       flex: 1,

@@ -24,6 +24,8 @@ import { useMenuNavigation } from '@/hooks/useMenuNavigation';
 import { AddButton } from '@/components/Navigation/AddButton';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface PriceProfilesScreenProps {
   navigation: any;
@@ -32,6 +34,7 @@ interface PriceProfilesScreenProps {
 export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [profiles, setProfiles] = useState<PriceProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -302,7 +305,7 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
     onSave: () => void,
     title: string
   ) => (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -396,14 +399,12 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Perfiles de Precio</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Perfiles de Precio"
+        subtitle="Estrategias de precios por tipo de cliente"
+        stat={{ value: profiles.length, label: 'Total' }}
+      />
 
       {/* Info Banner */}
       <View style={styles.infoBanner}>
@@ -433,7 +434,11 @@ export const PriceProfilesScreen: React.FC<PriceProfilesScreenProps> = ({ naviga
         data={profiles}
         renderItem={renderProfileItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContainer, isLandscape && styles.listContainerLandscape]}
+        contentContainerStyle={[
+          styles.listContainer,
+          isLandscape && styles.listContainerLandscape,
+          contentWidthStyle,
+        ]}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListEmptyComponent={
@@ -494,36 +499,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: theme.space[4],
     fontSize: 16,
     color: theme.color.text.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.text.heading,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 40,
   },
   infoBanner: {
     flexDirection: 'row',

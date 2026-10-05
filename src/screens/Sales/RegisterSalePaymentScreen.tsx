@@ -34,6 +34,8 @@ import { durations } from '@/design-system/tokens/animations';
 import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type RegisterSalePaymentRouteProp = RouteProp<
   { RegisterSalePayment: { saleId: string; pendingAmount?: number; saleName?: string } },
@@ -89,6 +91,7 @@ export const RegisterSalePaymentScreen: React.FC = () => {
   const { currentCompany } = useAuthStore();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   // ============================================================================
   // Payment Method Chip (nested, theme-dependent)
@@ -186,10 +189,6 @@ export const RegisterSalePaymentScreen: React.FC = () => {
   const [isAmountFocused, setIsAmountFocused] = useState(false);
   const [isNotesFocused, setIsNotesFocused] = useState(false);
 
-  // Animation values
-  const headerScale = useRef(new Animated.Value(0.95)).current;
-  const headerOpacity = useRef(new Animated.Value(0)).current;
-
   // Quick amounts based on pending amount
   const quickAmounts = pendingAmount
     ? [
@@ -205,20 +204,6 @@ export const RegisterSalePaymentScreen: React.FC = () => {
   // ============================================================================
 
   useEffect(() => {
-    // Header animation
-    Animated.parallel([
-      Animated.spring(headerScale, {
-        toValue: 1,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-      Animated.timing(headerOpacity, {
-        toValue: 1,
-        duration: durations.normal,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
     // Load payment methods
     if (currentCompany?.id) {
       loadPaymentMethods();
@@ -348,37 +333,22 @@ export const RegisterSalePaymentScreen: React.FC = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <GradientHeader
+        title="Registrar Pago"
+        subtitle={saleName}
+        onBack={goBack}
+        stat={
+          pendingAmount !== undefined
+            ? { value: `S/ ${pendingAmount.toFixed(2)}`, label: 'Saldo Pendiente' }
+            : undefined
+        }
+      />
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, formWidthStyle]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Card */}
-        <Animated.View
-          style={[
-            styles.headerCard,
-            {
-              transform: [{ scale: headerScale }],
-              opacity: headerOpacity,
-            },
-          ]}
-        >
-          <View style={styles.headerIconContainer}>
-            <View style={styles.headerIconBg}>
-              <Ionicons name="wallet" size={32} color={theme.color.text.success} />
-            </View>
-          </View>
-          <Text style={styles.headerTitle}>Registrar Pago</Text>
-          {saleName && <Text style={styles.headerSubtitle}>{saleName}</Text>}
-          {pendingAmount !== undefined && (
-            <View style={styles.pendingAmountContainer}>
-              <Text style={styles.pendingAmountLabel}>Saldo Pendiente</Text>
-              <Text style={styles.pendingAmountValue}>S/ {pendingAmount.toFixed(2)}</Text>
-            </View>
-          )}
-        </Animated.View>
-
         {/* Amount Input Card */}
         <AnimatedCard delay={100}>
           <View style={styles.card}>
@@ -573,65 +543,13 @@ export const RegisterSalePaymentScreen: React.FC = () => {
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.color.background.muted,
+    backgroundColor: theme.color.background.subtle,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: theme.space[4],
-  },
-
-  // Header Card
-  headerCard: {
-    backgroundColor: theme.color.surface.base,
-    borderRadius: theme.radii.lg,
-    padding: theme.space[6],
-    marginBottom: theme.space[4],
-    alignItems: 'center',
-    ...theme.shadow.md,
-  },
-  headerIconContainer: {
-    marginBottom: theme.space[4],
-  },
-  headerIconBg: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.color.state.success.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: theme.space[1],
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginBottom: theme.space[4],
-  },
-  pendingAmountContainer: {
-    backgroundColor: theme.color.state.warning.background,
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[3],
-    borderRadius: theme.radii.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.color.state.warning.border,
-  },
-  pendingAmountLabel: {
-    fontSize: 12,
-    color: theme.color.state.warning.text,
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  pendingAmountValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.state.warning.text,
   },
 
   // Card Styles

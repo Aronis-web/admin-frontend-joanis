@@ -6,8 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  TextInput,
-  useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +21,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface CustomersScreenProps {
   navigation: {
@@ -33,7 +32,6 @@ interface CustomersScreenProps {
 export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(searchQuery, 300).trim();
@@ -72,13 +70,6 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
     limit,
     total: 0,
     totalPages: 0,
-  };
-
-  const { width, height } = useWindowDimensions();
-  const isTablet = width >= 768 || height >= 768;
-
-  const handleMenuToggle = () => {
-    setIsMenuVisible(!isMenuVisible);
   };
 
   const handleSearchChange = (text: string) => {
@@ -246,37 +237,17 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={handleMenuToggle} style={styles.menuButton}>
-            <Text style={[styles.menuIcon, isTablet && styles.menuIconTablet]}>☰</Text>
-          </TouchableOpacity>
-          <View>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Clientes</Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              Gestión de Clientes
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Search Bar */}
-      <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={[styles.searchInput, isTablet && styles.searchInputTablet]}
-          placeholder="Buscar por nombre, documento, email..."
-          value={searchQuery}
-          onChangeText={handleSearchChange}
-          placeholderTextColor={theme.color.text.placeholder}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => handleSearchChange('')} style={styles.clearButton}>
-            <Text style={styles.clearButtonText}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <GradientHeader
+        icon="people-outline"
+        title="Clientes"
+        subtitle="Gestión de Clientes"
+        stat={{ value: pagination.total, label: 'Total' }}
+        search={{
+          value: searchQuery,
+          onChangeText: handleSearchChange,
+          placeholder: 'Buscar por nombre, documento, email...',
+        }}
+      />
 
       {/* Stats */}
       <View style={styles.statsContainer}>
@@ -312,6 +283,7 @@ export const CustomersScreen: React.FC<CustomersScreenProps> = ({ navigation }) 
       ) : (
         <ScrollView
           style={styles.scrollView}
+          contentContainerStyle={contentWidthStyle}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
         >
           {customers.map(renderCustomerCard)}
@@ -399,95 +371,6 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
-    },
-    header: {
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      shadowColor: theme.color.shadow,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 2,
-    },
-    headerTablet: {
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-    },
-    headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    menuButton: {
-      padding: 8,
-    },
-    menuIcon: {
-      fontSize: 24,
-      color: theme.color.text.muted,
-    },
-    menuIconTablet: {
-      fontSize: 28,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      marginBottom: 2,
-    },
-    headerTitleTablet: {
-      fontSize: 24,
-    },
-    headerSubtitle: {
-      fontSize: 13,
-      color: theme.color.text.muted,
-      fontWeight: '500',
-    },
-    headerSubtitleTablet: {
-      fontSize: 14,
-    },
-    searchContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      gap: 12,
-    },
-    searchContainerTablet: {
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-    },
-    searchIcon: {
-      fontSize: 20,
-      color: theme.color.text.placeholder,
-    },
-    searchInput: {
-      flex: 1,
-      backgroundColor: theme.color.surface.subtle,
-      borderRadius: 8,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      fontSize: 15,
-      color: theme.color.text.heading,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-    },
-    searchInputTablet: {
-      paddingVertical: 12,
-      fontSize: 16,
-    },
-    clearButton: {
-      padding: 8,
-    },
-    clearButtonText: {
-      fontSize: 18,
-      color: theme.color.text.placeholder,
-      fontWeight: '600',
     },
     statsContainer: {
       padding: 12,

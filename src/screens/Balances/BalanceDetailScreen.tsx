@@ -26,6 +26,8 @@ import { MAIN_ROUTES } from '@/constants/routes';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface BalanceDetailScreenProps {
   navigation: any;
@@ -39,6 +41,7 @@ interface BalanceDetailScreenProps {
 export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { balanceId } = route.params;
   const [balance, setBalance] = useState<Balance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -233,15 +236,7 @@ export const BalanceDetailScreen: React.FC<BalanceDetailScreenProps> = ({ naviga
     <>
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container} edges={['top']}>
-          {/* Header */}
-          <View style={[styles.header, isTablet && styles.headerTablet]}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-                ← Volver
-              </Text>
-            </TouchableOpacity>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>Detalle de Balance</Text>
-          </View>
+          <GradientHeader title="Detalle de Balance" onBack={goBack} />
 
           <ScrollView
             style={styles.content}
@@ -434,38 +429,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   errorText: {
     fontSize: 18,
     color: theme.color.state.danger.text,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: theme.color.brand.accent,
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  titleTablet: {
-    fontSize: 24,
   },
   content: {
     flex: 1,

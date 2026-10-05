@@ -18,6 +18,8 @@ import { spacing, borderRadius } from '@/design-system/tokens';
 import { palette } from '@/design-system/tokens/palette';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { VideoCaptureCamera } from '@/components/FaceRecognition/VideoCaptureCamera';
 import { biometricApi, VerifyFromVideoResponse } from '@/services/api/biometric';
 import { usersApi, User } from '@/services/api/users';
@@ -47,6 +49,7 @@ export const VerifyFaceScreen: React.FC = () => {
   const route = useRoute<RouteProp<RouteParams, 'VerifyFace'>>();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { userId, userName, prefilledEntityType, prefilledEntityId } = route.params || {};
 
   // Determine initial values
@@ -351,18 +354,15 @@ export const VerifyFaceScreen: React.FC = () => {
   // Pantalla principal: búsqueda de usuario
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <GradientHeader
+        title="Verificar Rostro"
+        subtitle="Busca un usuario para verificar su identidad"
+        onBack={goBack}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+        style={[styles.keyboardView, contentWidthStyle]}
       >
-        <View style={styles.header}>
-          <MaterialIcons name="verified-user" size={48} color={theme.color.icon.success} />
-          <Text style={styles.title}>Verificar Rostro</Text>
-          <Text style={styles.subtitle}>
-            Busca un usuario para verificar su identidad
-          </Text>
-        </View>
-
         {/* Barra de búsqueda */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
@@ -444,23 +444,7 @@ const createStyles = (theme: Theme) =>
     },
     keyboardView: {
       flex: 1,
-    },
-    header: {
-      alignItems: 'center',
-      paddingVertical: spacing[5],
-      paddingHorizontal: spacing[5],
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-      marginTop: spacing[3],
-    },
-    subtitle: {
-      fontSize: 14,
-      color: theme.color.text.muted,
-      textAlign: 'center',
-      marginTop: spacing[1],
+      paddingTop: spacing[4],
     },
     // Search
     searchContainer: {

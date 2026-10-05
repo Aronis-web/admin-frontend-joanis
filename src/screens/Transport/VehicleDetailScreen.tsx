@@ -25,11 +25,14 @@ import {
   AuthorizedCode,
 } from '@/types/transport';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { PLATE_MAX_LENGTH, sanitizeCode, tidyText, validatePlate } from '@/utils/transportValidation';
 
 export const VehicleDetailScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const vehicleId = route?.params?.vehicleId;
   const isCreateMode = !vehicleId;
 
@@ -249,28 +252,31 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.text.heading} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isCreateMode ? 'Nuevo Vehículo' : isEditing ? 'Editar Vehículo' : 'Detalle de Vehículo'}
-        </Text>
-        <View style={styles.headerActions}>
-          {!isCreateMode && !isEditing && (
-            <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editButton}>
-              <Ionicons name="create-outline" size={24} color={theme.color.brand.accent} />
-            </TouchableOpacity>
-          )}
-          {!isCreateMode && isEditing && (
-            <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.cancelButton}>
-              <Ionicons name="close" size={24} color={theme.color.text.danger} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <GradientHeader
+        title={
+          isCreateMode ? 'Nuevo Vehículo' : isEditing ? 'Editar Vehículo' : 'Detalle de Vehículo'
+        }
+        onBack={goBack}
+        right={
+          <View style={styles.headerActions}>
+            {!isCreateMode && !isEditing && (
+              <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.headerActionButton}>
+                <Ionicons name="create-outline" size={22} color={theme.color.brand.onHeader} />
+              </TouchableOpacity>
+            )}
+            {!isCreateMode && isEditing && (
+              <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.headerActionButton}>
+                <Ionicons name="close" size={22} color={theme.color.brand.onHeader} />
+              </TouchableOpacity>
+            )}
+          </View>
+        }
+      />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, contentWidthStyle]}
+      >
         {/* Información Básica */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Básica</Text>
@@ -501,7 +507,12 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
       </ScrollView>
 
       {/* Tipo Vehículo Modal */}
-      <Modal visible={showTipoVehiculoModal} transparent animationType="fade">
+      <Modal
+        visible={showTipoVehiculoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowTipoVehiculoModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowTipoVehiculoModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Tipo de Vehículo</Text>
@@ -523,7 +534,12 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
       </Modal>
 
       {/* Status Modal */}
-      <Modal visible={showStatusModal} transparent animationType="fade">
+      <Modal
+        visible={showStatusModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStatusModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowStatusModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Estado del Vehículo</Text>
@@ -545,7 +561,12 @@ export const VehicleDetailScreen = ({ navigation, route }: any) => {
       </Modal>
 
       {/* Código Autorizado Modal */}
-      <Modal visible={showCodigoAutorizadoModal} transparent animationType="fade">
+      <Modal
+        visible={showCodigoAutorizadoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCodigoAutorizadoModal(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setShowCodigoAutorizadoModal(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Código Autorizado</Text>
@@ -587,35 +608,17 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       color: theme.color.text.muted,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      padding: 8,
-    },
-    headerTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-      flex: 1,
-      textAlign: 'center',
-    },
     headerActions: {
       flexDirection: 'row',
       gap: 8,
     },
-    editButton: {
-      padding: 8,
-    },
-    cancelButton: {
-      padding: 8,
+    headerActionButton: {
+      width: 38,
+      height: 38,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     content: {
       flex: 1,

@@ -22,11 +22,14 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { Picker } from '@react-native-picker/picker';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { durations } from '@/design-system/tokens/animations';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 import { config } from '@/utils/config';
 import { useAuthStore } from '@/store/auth';
@@ -83,6 +86,7 @@ export const ReviewProsegurScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { token } = useAuthStore();
 
   // Animations
@@ -357,19 +361,16 @@ export const ReviewProsegurScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Revisar Prosegur</Text>
-          <Text style={styles.headerSubtitle}>🏦 Depósitos y recogidas</Text>
-        </View>
-        <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.filterButton}>
-          <Text style={styles.filterButtonText}>⚙️</Text>
-        </TouchableOpacity>
-      </Animated.View>
+      <GradientHeader
+        title="Revisar Prosegur"
+        subtitle="🏦 Depósitos y recogidas"
+        onBack={goBack}
+        right={
+          <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.filterButton}>
+            <Ionicons name="options-outline" size={20} color={theme.color.brand.onHeader} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* Quick Date Filters */}
       <ScrollView
@@ -512,6 +513,7 @@ export const ReviewProsegurScreen: React.FC<Props> = ({ navigation }) => {
       {/* Deposits List */}
       <ScrollView
         style={styles.content}
+        contentContainerStyle={contentWidthStyle}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[PROSEGUR_BRAND]} />}
       >
@@ -635,54 +637,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background.subtle,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    ...theme.shadow.sm,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.background.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.text.body,
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: theme.color.text.subtle,
-    marginTop: 2,
-  },
   filterButton: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.background.muted,
+    width: 40,
+    height: 40,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  filterButtonText: {
-    fontSize: 20,
   },
   quickFiltersContainer: {
     backgroundColor: theme.color.surface.base,

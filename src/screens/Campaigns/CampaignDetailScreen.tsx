@@ -70,6 +70,8 @@ import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CampaignDetailScreenProps {
   navigation: any;
@@ -176,6 +178,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   // Sede actual seleccionada en el login. Se usa para filtrar `stockBySite`
   // en la lista de "Productos disponibles para agregar" y validar la
   // cantidad al agregar sólo contra el stock de esa sede.
@@ -668,7 +671,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         hasLoaded: hasLoadedRef.current,
       });
 
-      if (updatedProductId) {
+      // Tras recargar la página (F5) la pantalla se monta de cero: aunque la URL
+      // traiga skipReloadOnce/updatedProductId hay que cargar la campaña completa.
+      if (updatedProductId && hasLoadedRef.current) {
         // OPTIMIZATION: Solo actualizar el producto específico sin recargar toda la campaña
         logger.debug('⚡ [CAMPAIGN] Actualizando solo producto:', updatedProductId);
         navigation.setParams({ updatedProductId: undefined } as any);
@@ -702,7 +707,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         } as any);
         hasLoadedRef.current = true;
         loadCampaign();
-      } else if (skipReloadOnce) {
+      } else if (skipReloadOnce && hasLoadedRef.current) {
         // Skip reload this time (coming back from product detail)
         logger.debug('⭕ [CAMPAIGN] Skipping reload due to skipReloadOnce param');
         navigation.setParams({ skipReloadOnce: undefined } as any);
@@ -2039,7 +2044,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                         )}
                       </View>
                       <Text style={[styles.arrowIcon, isTablet && styles.arrowIconTablet]}>
-                        ΓÇ║
+                        ›
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -3729,7 +3734,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               )}
                             </View>
                             <Text style={styles.globalSearchStatus}>
-                              {product.status === 'active' ? '✔ Activo' : 'ΓÜá Preliminar'}
+                              {product.status === 'active' ? '✔ Activo' : '⚠ Preliminar'}
                             </Text>
                           </View>
                         </View>
@@ -3783,14 +3788,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ΓåÉ Volver
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>{campaign.code}</Text>
-        </View>
+        <GradientHeader onBack={goBack} title={campaign.code} />
 
         {/* Tabs */}
         {renderTabs}
@@ -3802,7 +3800,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           // muchos productos (el ScrollView montaba todas a la vez).
           <FlatList
             style={styles.scrollView}
-            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            contentContainerStyle={[
+              styles.scrollContent,
+              isTablet && styles.scrollContentTablet,
+              contentWidthStyle,
+            ]}
             data={paginatedProducts}
             keyExtractor={keyExtractor}
             renderItem={renderProductItem}
@@ -3825,7 +3827,11 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         ) : (
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            contentContainerStyle={[
+              styles.scrollContent,
+              isTablet && styles.scrollContentTablet,
+              contentWidthStyle,
+            ]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           >
             {activeTab === 'overview' && renderOverview()}
@@ -4350,36 +4356,6 @@ const createStyles = (theme: Theme) =>
       marginTop: 12,
       fontSize: 16,
       color: theme.color.text.muted,
-    },
-    header: {
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      paddingHorizontal: 32,
-      paddingVertical: 24,
-    },
-    backButton: {
-      marginBottom: 8,
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: theme.color.brand.primary,
-      fontWeight: '600',
-    },
-    backButtonTextTablet: {
-      fontSize: 18,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    titleTablet: {
-      fontSize: 32,
     },
     tabsContainer: {
       flexDirection: 'row',

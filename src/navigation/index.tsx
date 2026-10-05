@@ -11,7 +11,7 @@ import { PERMISSIONS } from '@/constants/permissions';
 // Type Definitions
 import { AuthStackParamList, MainStackParamList } from '@/types/navigation';
 import { AUTH_ROUTES, MAIN_ROUTES } from '@/constants/routes';
-import { linking } from '@/navigation/linking';
+import { buildLinking } from '@/navigation/linking';
 
 // ============================================
 // EAGER LOADED - Critical screens (always loaded)
@@ -2813,6 +2813,10 @@ export const Navigation = () => {
 
   // Check if user has dashboard permission
   const hasDashboardPermission = user?.permissions?.includes(PERMISSIONS.DASHBOARD.READ) || false;
+
+  // Pantalla base bajo cualquier URL profunda (ver buildLinking).
+  const homeRoute = hasDashboardPermission ? MAIN_ROUTES.DASHBOARD : MAIN_ROUTES.HOME;
+  const linking = React.useMemo(() => buildLinking(homeRoute), [homeRoute]);
 
   console.log('🔄 Navigation render:', {
     isAuthenticated,

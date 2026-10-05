@@ -8,7 +8,6 @@ import {
   TextInput,
   ActivityIndicator,
   Switch,
-  useWindowDimensions,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +22,8 @@ import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface EditCashRegisterScreenProps {
   navigation: any;
@@ -42,10 +43,9 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
 }) => {
   const { cashRegisterId, emissionPointName, emissionPointCode } = route.params;
   const { currentSite, currentCompany } = useAuthStore();
-  const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const [cashRegister, setCashRegister] = useState<CashRegister | null>(null);
   const [code, setCode] = useState('');
@@ -237,18 +237,16 @@ export const EditCashRegisterScreen: React.FC<EditCashRegisterScreenProps> = ({
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Editar Caja Registradora
-            </Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              {emissionPointCode} - {emissionPointName}
-            </Text>
-          </View>
-        </View>
+        <GradientHeader
+          title="Editar Caja Registradora"
+          subtitle={`${emissionPointCode} - ${emissionPointName}`}
+          onBack={goBack}
+        />
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, formWidthStyle]}
+        >
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Estado de la Caja</Text>
 
@@ -564,31 +562,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: theme.color.text.muted,
-  },
-  header: {
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    padding: 24,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  headerTitleTablet: {
-    fontSize: 32,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginTop: 4,
-  },
-  headerSubtitleTablet: {
-    fontSize: 16,
   },
   scrollView: {
     flex: 1,

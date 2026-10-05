@@ -31,6 +31,7 @@ import { BalanceOperationsModal } from '@/components/Balances/BalanceOperationsM
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader } from '@/design-system/components';
 
 interface BalancesScreenProps {
   navigation: any;
@@ -317,15 +318,12 @@ export const BalancesScreen: React.FC<BalancesScreenProps> = ({ navigation }) =>
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>Balances</Text>
-            <Text style={[styles.subtitle, isTablet && styles.subtitleTablet]}>
-              Gestión de balances de distribución
-            </Text>
-          </View>
-        </View>
+        <GradientHeader
+          icon="scale-outline"
+          title="Balances"
+          subtitle="Gestión de balances de distribución"
+          stat={{ value: balances.length, label: 'Total' }}
+        />
 
         {/* Status Filter */}
         {renderStatusFilter()}
@@ -399,33 +397,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: theme.color.text.muted,
-  },
-  header: {
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    marginBottom: 4,
-  },
-  titleTablet: {
-    fontSize: 28,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-  },
-  subtitleTablet: {
-    fontSize: 16,
   },
   filterWrapper: {
     backgroundColor: theme.color.surface.base,

@@ -21,6 +21,8 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import logger from '@/utils/logger';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CampaignParticipantDetailScreenProps {
   navigation: any;
@@ -47,6 +49,7 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
   const isTablet = width >= 768 || height >= 768;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const loadData = useCallback(async () => {
     try {
@@ -165,38 +168,24 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>{participantName}</Text>
-            <View style={styles.typeBadgeContainer}>
-              <View
-                style={[
-                  styles.typeBadge,
-                  isTablet && styles.typeBadgeTablet,
-                  participant.participantType === 'EXTERNAL_COMPANY'
-                    ? styles.typeBadgeCompany
-                    : styles.typeBadgeSite,
-                ]}
-              >
-                <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
-                  {participant.participantType === 'EXTERNAL_COMPANY'
-                    ? '🏢 Empresa Externa'
-                    : '🏛️ Sede Interna'}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title={participantName}
+          subtitle={
+            participant.participantType === 'EXTERNAL_COMPANY'
+              ? '🏢 Empresa Externa'
+              : '🏛️ Sede Interna'
+          }
+        />
 
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.scrollContentTablet,
+            contentWidthStyle,
+          ]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {/* Totals Summary */}
@@ -421,7 +410,7 @@ export const CampaignParticipantDetailScreen: React.FC<CampaignParticipantDetail
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.color.background.muted,
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -432,69 +421,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: theme.color.text.subtle,
-  },
-  header: {
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: theme.color.brand.primary,
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  headerInfo: {
-    marginTop: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  titleTablet: {
-    fontSize: 32,
-  },
-  typeBadgeContainer: {
-    marginTop: 8,
-  },
-  typeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  typeBadgeTablet: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  typeBadgeCompany: {
-    backgroundColor: theme.color.brand.primarySoft,
-    borderColor: theme.color.brand.primary,
-  },
-  typeBadgeSite: {
-    backgroundColor: theme.color.state.success.background,
-    borderColor: theme.color.state.success.border,
-  },
-  typeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.color.text.heading,
-  },
-  typeTextTablet: {
-    fontSize: 14,
   },
   scrollView: {
     flex: 1,

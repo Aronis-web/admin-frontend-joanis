@@ -16,6 +16,8 @@ import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface ExpenseCategoryDetailScreenProps {
   navigation: any;
@@ -32,6 +34,7 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { categoryId } = route.params;
   const [category, setCategory] = useState<ExpenseCategory | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,17 +132,17 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalle de Categoría</Text>
-        <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
-          <Ionicons name="create-outline" size={24} color={theme.color.brand.accent} />
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Detalle de Categoría"
+        right={
+          <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
+            <Ionicons name="create-outline" size={22} color={theme.color.brand.onHeader} />
+          </TouchableOpacity>
+        }
+      />
 
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={contentWidthStyle}>
         {/* Category Header */}
         <View style={styles.categoryHeader}>
           <View style={[styles.iconContainer, { backgroundColor: category.color || theme.color.brand.accent }]}>
@@ -268,7 +271,7 @@ export const ExpenseCategoryDetailScreen: React.FC<ExpenseCategoryDetailScreenPr
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
+    backgroundColor: theme.color.background.subtle,
   },
   centerContainer: {
     flex: 1,
@@ -287,28 +290,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.muted,
     textAlign: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
   editButton: {
-    padding: 4,
+    width: 38,
+    height: 38,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   container: {
     flex: 1,

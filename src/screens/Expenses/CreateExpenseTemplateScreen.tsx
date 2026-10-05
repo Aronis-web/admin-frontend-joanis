@@ -31,6 +31,8 @@ import { usePermissionError } from '@/hooks/usePermissionError';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CreateExpenseTemplateScreenProps {
   navigation?: any;
@@ -47,6 +49,7 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [sites, setSites] = useState<any[]>([]);
@@ -492,27 +495,25 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {route?.params?.templateId ? 'Editar Plantilla' : 'Gastos Recurrentes'}
-        </Text>
-        <TouchableOpacity
-          onPress={handleSave}
-          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={theme.color.text.inverse} />
-          ) : (
-            <Text style={styles.saveButtonText}>Guardar</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title={route?.params?.templateId ? 'Editar Plantilla' : 'Gastos Recurrentes'}
+        right={
+          <TouchableOpacity
+            onPress={handleSave}
+            style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={theme.color.brand.onHeader} />
+            ) : (
+              <Text style={styles.saveButtonText}>Guardar</Text>
+            )}
+          </TouchableOpacity>
+        }
+      />
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.content, formWidthStyle]}>
         {/* Basic Information */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Información Básica</Text>
@@ -789,41 +790,23 @@ export const CreateExpenseTemplateScreen: React.FC<CreateExpenseTemplateScreenPr
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
+    backgroundColor: theme.color.background.subtle,
   },
   saveButton: {
-    backgroundColor: theme.color.brand.accent,
+    minHeight: 36,
+    justifyContent: 'center',
+    backgroundColor: theme.color.brand.headerBadge,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: theme.radii.lg,
   },
   saveButtonDisabled: {
-    backgroundColor: theme.color.text.placeholder,
+    opacity: 0.6,
   },
   saveButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
   },
   container: {
     flex: 1,

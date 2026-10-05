@@ -18,6 +18,7 @@ import { AddButton } from '@/components/Navigation/AddButton';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface DriversScreenProps {
   navigation: any;
@@ -187,18 +188,16 @@ export const DriversScreen: React.FC<DriversScreenProps> = ({ navigation }) => {
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.text.heading} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Conductores</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handleAddDriver}
-          >
-            <Ionicons name="add" size={24} color={theme.color.brand.accent} />
-          </TouchableOpacity>
-        </View>
+        <GradientHeader
+          title="Conductores"
+          subtitle="Conductores registrados para guías de remisión"
+          icon="person-circle-outline"
+          right={
+            <TouchableOpacity style={styles.addButton} onPress={handleAddDriver}>
+              <Ionicons name="add" size={22} color={theme.color.brand.onHeader} />
+            </TouchableOpacity>
+          }
+        />
 
         {/* Search */}
         <View style={styles.searchContainer}>
@@ -234,7 +233,7 @@ export const DriversScreen: React.FC<DriversScreenProps> = ({ navigation }) => {
             data={filteredDrivers}
             renderItem={renderDriverItem}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, contentWidthStyle]}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -269,26 +268,13 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       color: theme.color.text.muted,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      padding: 8,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
     addButton: {
-      padding: 8,
+      width: 38,
+      height: 38,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     searchContainer: {
       flexDirection: 'row',

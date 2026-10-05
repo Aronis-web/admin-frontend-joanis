@@ -15,6 +15,8 @@ import {
   Input,
   Title,
 } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { spacing } from '@/design-system/tokens';
@@ -59,6 +61,7 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 export const PayrollEmployeeDetailScreen: React.FC<Props> = ({ navigation, route }) => {
+  const goBack = useGoBack();
   const { userId } = route.params;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -131,21 +134,22 @@ export const PayrollEmployeeDetailScreen: React.FC<Props> = ({ navigation, route
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenLayout navigation={navigation as any}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Title>{employee.full_name ?? employee.user_id}</Title>
-              <Caption>
-                {(employee.employee_code ?? '—') +
-                  (employee.position_name ? ` · ${employee.position_name}` : '')}
-              </Caption>
-            </View>
+        <GradientHeader
+          onBack={goBack}
+          title={employee.full_name ?? employee.user_id}
+          subtitle={
+            (employee.employee_code ?? '—') +
+            (employee.position_name ? ` · ${employee.position_name}` : '')
+          }
+          right={
             <Badge
               variant={employee.is_active ? 'success' : 'default'}
               size="small"
               label={employee.is_active ? 'Activo' : 'Inactivo'}
             />
-          </View>
+          }
+        />
+        <ScrollView contentContainerStyle={[styles.container, contentWidthStyle]}>
 
           <PayrollTabs tabs={TABS} active={tab} onChange={setTab} />
 
@@ -513,14 +517,9 @@ const FieldRow: React.FC<{ label: string; value: string }> = ({ label, value }) 
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: theme.color.background.canvas },
+    safe: { flex: 1, backgroundColor: theme.color.background.subtle },
     container: { padding: spacing[4], gap: spacing[2], paddingBottom: spacing[6] },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[2],
-    },
     tabWrap: { gap: spacing[2] },
     card: { padding: spacing[4], gap: spacing[1], marginBottom: spacing[2] },
     cardTitle: { fontSize: 16 },

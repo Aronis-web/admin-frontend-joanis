@@ -29,6 +29,7 @@ import { AttendanceEvidenceModal } from '@/components/Attendance/AttendanceEvide
 import { AttendanceExportModal } from '@/components/Attendance/AttendanceExportModal';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
 import { PERMISSIONS } from '@/constants/permissions';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface AttendanceScreenProps {
   navigation: any;
@@ -264,16 +265,11 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View style={styles.headerFlex}>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Asistencia
-            </Text>
-            <Text style={styles.headerSubtitle}>
-              Trabajadores activos y jornadas del día (hora de Lima)
-            </Text>
-          </View>
-        </View>
+        <GradientHeader
+          icon="finger-print-outline"
+          title="Asistencia"
+          subtitle="Trabajadores activos y jornadas del día (hora de Lima)"
+        />
 
         {/* Filtros */}
         <View style={styles.filtersCard}>
@@ -382,7 +378,7 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ navigation }
         ) : (
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
             refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} />}
           >
             {currentQuery.error ? (
@@ -483,31 +479,6 @@ const createStyles = (theme: Theme) =>
       marginTop: 12,
       fontSize: 16,
       color: theme.color.text.muted,
-    },
-    header: {
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      padding: 24,
-    },
-    headerFlex: {
-      flex: 1,
-    },
-    headerTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 30,
-    },
-    headerSubtitle: {
-      fontSize: 13,
-      color: theme.color.text.muted,
-      marginTop: 4,
     },
     filtersCard: {
       backgroundColor: theme.color.surface.base,

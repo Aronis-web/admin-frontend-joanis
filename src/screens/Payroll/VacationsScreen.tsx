@@ -6,9 +6,12 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -23,6 +26,7 @@ import {
   Input,
   Title,
 } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { spacing } from '@/design-system/tokens';
@@ -97,16 +101,23 @@ export const PayrollVacationsScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenLayout navigation={navigation as any}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Title>Vacaciones</Title>
-            <Button
-              title="Nueva"
-              leftIcon="add-outline"
-              size="small"
+        <GradientHeader
+          icon="airplane-outline"
+          title="Vacaciones"
+          subtitle="Solicitudes de vacaciones del personal"
+          right={
+            <TouchableOpacity
+              style={styles.headerAction}
               onPress={() => setFormOpen(true)}
-            />
-          </View>
+              accessibilityRole="button"
+              accessibilityLabel="Nueva solicitud de vacaciones"
+            >
+              <Ionicons name="add-outline" size={20} color={theme.color.brand.onHeader} />
+              <Text style={styles.headerActionText}>Nueva</Text>
+            </TouchableOpacity>
+          }
+        />
+        <View style={[styles.container, contentWidthStyle]}>
 
           <EmployeePicker
             label="Filtrar por trabajador"
@@ -284,12 +295,21 @@ const VacationForm: React.FC<FormProps> = ({ initialUser, submitting, onSubmit, 
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: theme.color.background.canvas },
+    safe: { flex: 1, backgroundColor: theme.color.background.subtle },
     container: { flex: 1, padding: spacing[4], gap: spacing[2] },
-    header: {
+    headerAction: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: spacing[1],
+      height: 36,
+      paddingHorizontal: spacing[3],
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+    },
+    headerActionText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.color.brand.onHeader,
     },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list: { paddingVertical: spacing[2], gap: spacing[2] },

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  useWindowDimensions,
   Image,
   Platform,
 } from 'react-native';
@@ -21,6 +20,8 @@ import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 import config from '@/utils/config';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface EditEmissionPointScreenProps {
   navigation: any;
@@ -37,6 +38,7 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { emissionPointId } = route.params;
   const [emissionPoint, setEmissionPoint] = useState<EmissionPoint | null>(null);
   const [code, setCode] = useState('');
@@ -67,8 +69,6 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
   const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const { currentSite, currentCompany } = useAuthStore();
-  const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
 
   useEffect(() => {
     loadEmissionPoint();
@@ -479,13 +479,15 @@ export const EditEmissionPointScreen: React.FC<EditEmissionPointScreenProps> = (
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-            Editar Punto de Emisión
-          </Text>
-        </View>
+        <GradientHeader
+          title="Editar Punto de Emisión"
+          onBack={goBack}
+        />
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, formWidthStyle]}
+        >
           <View style={styles.form}>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Tipo de Punto de Emisión *</Text>
@@ -682,23 +684,6 @@ const createStyles = (theme: Theme) =>
       marginTop: 16,
       fontSize: 16,
       color: theme.color.text.muted,
-    },
-    header: {
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      padding: 24,
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 32,
     },
     scrollView: {
       flex: 1,

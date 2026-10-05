@@ -20,6 +20,8 @@ import { formatDateToString, getTodayString } from '@/utils/dateHelpers';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CreateExpenseProjectScreenProps {
   navigation: any;
@@ -30,6 +32,7 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { currentSite, currentCompany } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [sites, setSites] = useState<any[]>([]);
@@ -158,21 +161,21 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nuevo Proyecto</Text>
-          <TouchableOpacity onPress={handleSubmit} style={styles.saveButton} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator size="small" color={theme.color.brand.accent} />
-            ) : (
-              <Text style={styles.saveButtonText}>Guardar</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title="Nuevo Proyecto"
+          right={
+            <TouchableOpacity onPress={handleSubmit} style={styles.saveButton} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator size="small" color={theme.color.brand.onHeader} />
+              ) : (
+                <Text style={styles.saveButtonText}>Guardar</Text>
+              )}
+            </TouchableOpacity>
+          }
+        />
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, formWidthStyle]}>
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Información del Proyecto</Text>
 
@@ -315,39 +318,23 @@ export const CreateExpenseProjectScreen: React.FC<CreateExpenseProjectScreenProp
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
+    backgroundColor: theme.color.background.subtle,
   },
   keyboardAvoidingView: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
   saveButton: {
+    minHeight: 36,
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.color.brand.accent,
+    color: theme.color.brand.onHeader,
   },
   scrollView: {
     flex: 1,

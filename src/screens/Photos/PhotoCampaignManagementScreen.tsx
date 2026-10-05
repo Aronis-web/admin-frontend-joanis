@@ -17,6 +17,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { photoCampaignsApi } from '@/services/api';
 import priceProfilesApi from '@/services/api/price-profiles';
 import { productsApi, Product } from '@/services/api/products';
@@ -138,6 +140,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const campaignIdFromRoute = route?.params?.campaignId;
 
   const [loading, setLoading] = useState(true);
@@ -506,6 +509,18 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     }
   };
 
+  const closePricePhotoModal = () => {
+    setPricePhotoModalVisible(false);
+    setPricePhotoTargetItem(null);
+    setPricePhotoPreviewUri(null);
+    setPricePhotoHasGeneratedPreview(false);
+    setPricePhotoForm(defaultPricePhotoForm);
+    setPriceProfiles([]);
+    setPriceSalePrices([]);
+    setPricePhotoDesignBaseUri(null);
+    setPricePhotoDesignBaseMimeType('image/jpeg');
+  };
+
   const handlePreviewPricePhoto = async () => {
     if (!pricePhotoTargetItem?.productId || !selectedCampaign?.id) {
       Alert.alert('Error', 'No hay producto seleccionado para generar diseño con precio.');
@@ -687,6 +702,16 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
     } catch (error: any) {
       Alert.alert('Error', error?.message || 'No se pudo cargar la foto de referencia.');
     }
+  };
+
+  const closeDesignModal = () => {
+    setDesignModalVisible(false);
+    setDesignTargetItem(null);
+    setDesignReferenceFile(null);
+    setDesignPrompt(DEFAULT_DESIGN_PROMPT);
+    setDesignPreviewUri(null);
+    setDesignGeneratedBase64(null);
+    setDesignGeneratedMimeType('image/jpeg');
   };
 
   const handleGenerateDesignWithGemini = async () => {
@@ -1044,19 +1069,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          activeOpacity={theme.motion.activeOpacity.medium}
-        >
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestión de Campaña de Fotos</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <GradientHeader onBack={goBack} title="Gestión de Campaña de Fotos" />
 
-      <View style={styles.mainContent}>
+      <View style={[styles.mainContent, contentWidthStyle]}>
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.sectionTitle}>
@@ -1289,7 +1304,14 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         />
       )}
 
-      <Modal visible={campaignFormVisible} transparent animationType="fade">
+      <Modal
+        visible={campaignFormVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!submitting) setCampaignFormVisible(false);
+        }}
+      >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
@@ -1360,7 +1382,14 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         </View>
       </Modal>
 
-      <Modal visible={designModalVisible} transparent animationType="fade">
+      <Modal
+        visible={designModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!designGenerating && !designSaving) closeDesignModal();
+        }}
+      >
         <View style={styles.modalBackdrop}>
           <ScrollView
             style={styles.modalScroll}
@@ -1410,15 +1439,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               <View style={styles.modalActions}>
                 <TouchableOpacity
                   style={styles.secondaryButton}
-                  onPress={() => {
-                    setDesignModalVisible(false);
-                    setDesignTargetItem(null);
-                    setDesignReferenceFile(null);
-                    setDesignPrompt(DEFAULT_DESIGN_PROMPT);
-                    setDesignPreviewUri(null);
-                    setDesignGeneratedBase64(null);
-                    setDesignGeneratedMimeType('image/jpeg');
-                  }}
+                  onPress={closeDesignModal}
                   disabled={designGenerating || designSaving}
                 >
                   <Text style={styles.secondaryButtonText}>Cancelar</Text>
@@ -1438,7 +1459,14 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
         </View>
       </Modal>
 
-      <Modal visible={pricePhotoModalVisible} transparent animationType="fade">
+      <Modal
+        visible={pricePhotoModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!pricePhotoGenerating && !pricePhotoSaving) closePricePhotoModal();
+        }}
+      >
         <View style={styles.modalBackdrop}>
           <ScrollView
             style={styles.modalScroll}
@@ -1576,17 +1604,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
               <View style={styles.modalActions}>
                 <TouchableOpacity
                   style={styles.secondaryButton}
-                  onPress={() => {
-                    setPricePhotoModalVisible(false);
-                    setPricePhotoTargetItem(null);
-                    setPricePhotoPreviewUri(null);
-                    setPricePhotoHasGeneratedPreview(false);
-                    setPricePhotoForm(defaultPricePhotoForm);
-                    setPriceProfiles([]);
-                    setPriceSalePrices([]);
-                    setPricePhotoDesignBaseUri(null);
-                    setPricePhotoDesignBaseMimeType('image/jpeg');
-                  }}
+                  onPress={closePricePhotoModal}
                   disabled={pricePhotoGenerating || pricePhotoSaving}
                 >
                   <Text style={styles.secondaryButtonText}>Cancelar</Text>
@@ -1664,39 +1682,6 @@ const createStyles = (theme: Theme) =>
     loaderText: {
       marginTop: theme.space[3],
       color: theme.color.text.muted,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[3],
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radii.full,
-      backgroundColor: theme.color.surface.subtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    backText: {
-      fontSize: 22,
-      color: theme.color.text.body,
-    },
-    headerTitle: {
-      flex: 1,
-      marginHorizontal: theme.space[2],
-      fontSize: 18,
-      fontWeight: '700',
-      color: theme.color.text.body,
-    },
-    headerSpacer: {
-      width: 40,
-      height: 40,
     },
     mainContent: {
       flex: 1,

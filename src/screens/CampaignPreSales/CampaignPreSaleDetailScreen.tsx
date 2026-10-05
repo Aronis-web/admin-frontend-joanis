@@ -20,10 +20,13 @@ import {
   Divider,
   EmptyState,
   ErrorState,
+  GradientHeader,
+  contentWidthStyle,
 } from '@/design-system/components';
 import type { ScreenProps } from '@/types/navigation';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { useGoBack } from '@/hooks/useGoBack';
 import { Ionicons } from '@expo/vector-icons';
 import { useCampaignPreSale, useUpdateCampaignPreSaleStatus } from '@/hooks/api';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -42,6 +45,7 @@ type Props = ScreenProps<'CampaignPreSaleDetail'>;
 export const CampaignPreSaleDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { preSaleId } = route.params;
 
   const { data: preSale, isLoading, isError, refetch } = useCampaignPreSale(preSaleId);
@@ -125,7 +129,8 @@ export const CampaignPreSaleDetailScreen: React.FC<Props> = ({ route, navigation
 
   return (
     <ScreenLayout navigation={navigation}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <GradientHeader onBack={goBack} title="Detalle de pre-venta" />
+      <ScrollView style={styles.container} contentContainerStyle={[styles.content, contentWidthStyle]}>
         {/* Header */}
         <Card variant="elevated" padding="large" style={styles.headerCard}>
           <View style={styles.headerTopRow}>

@@ -2,12 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useThemedStyles } from '@/design-system/themes';
+import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 export const BizlinksGenerateDocumentsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const menuOptions = [
     {
@@ -24,7 +28,7 @@ export const BizlinksGenerateDocumentsScreen: React.FC = () => {
       title: 'Emitir Boleta',
       description: 'Generar boleta de venta electrónica (03)',
       icon: '🧾',
-      color: '#3B82F6',
+      color: theme.color.icon.accent,
       screen: 'BizlinksEmitirBoleta',
       available: false,
     },
@@ -33,7 +37,7 @@ export const BizlinksGenerateDocumentsScreen: React.FC = () => {
       title: 'Nota de Crédito',
       description: 'Generar nota de crédito electrónica (07)',
       icon: '↩️',
-      color: '#F59E0B',
+      color: theme.color.icon.warning,
       screen: 'BizlinksEmitirNotaCredito',
       available: false,
     },
@@ -42,7 +46,7 @@ export const BizlinksGenerateDocumentsScreen: React.FC = () => {
       title: 'Nota de Débito',
       description: 'Generar nota de débito electrónica (08)',
       icon: '↪️',
-      color: '#EF4444',
+      color: theme.color.icon.danger,
       screen: 'BizlinksEmitirNotaDebito',
       available: false,
     },
@@ -69,16 +73,13 @@ export const BizlinksGenerateDocumentsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Generar Documentos</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <GradientHeader title="Generar Documentos" onBack={goBack} />
 
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, contentWidthStyle]}
+      >
         <View style={styles.introSection}>
           <Text style={styles.introIcon}>📝</Text>
           <Text style={styles.introTitle}>Emisión de Documentos Electrónicos</Text>
@@ -144,31 +145,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.icon.accent,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  placeholder: {
-    width: 40,
   },
   content: {
     flex: 1,
