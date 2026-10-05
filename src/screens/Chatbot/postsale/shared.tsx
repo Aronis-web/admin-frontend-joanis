@@ -76,6 +76,7 @@ export const ACTION_LABEL: Record<string, string> = {
   REIMPRESO: 'Sticker reimpreso',
   HOJA_ARMADO: 'Hoja de armado impresa',
   BULTO_AGREGADO: 'Bulto agregado',
+  BULTO_ESCANEADO: 'Bulto escaneado',
 };
 
 export const PRINT_ACTIONS = ['IMPRESO', 'REIMPRESO', 'HOJA_ARMADO', 'BULTO_AGREGADO'];
@@ -93,18 +94,6 @@ export const statusLabel = (status: PostsaleStatus, serverLabel?: string | null)
   serverLabel || STATUS_LABEL[status] || status;
 
 export const formatOrderNo = (orderNo: string) => `#${String(orderNo ?? '').replace(/^#/, '')}`;
-
-/** `GRITPED:<uuid>` o `GRITPED:<uuid>:<bulto>` → uuid y bulto (si viene). */
-export const parseOrderQrFull = (code: string): { id: string; packageNo: number | null } | null => {
-  const m = /^GRITPED:([0-9a-f-]{36})(?::(\d+))?$/i.exec(code.trim());
-  return m ? { id: m[1].toLowerCase(), packageNo: m[2] ? Number(m[2]) : null } : null;
-};
-
-/** `GRITPED:<uuid>` o `GRITPED:<uuid>:<bulto>` → uuid. */
-export const parseOrderQr = (code: string): string | null => {
-  const m = /^GRITPED:([0-9a-f-]{36})(?::\d+)?$/i.exec(code.trim());
-  return m ? m[1].toLowerCase() : null;
-};
 
 // ── Conversión de imágenes a data URL ──────────────────────────────────────
 
@@ -468,6 +457,23 @@ export const createPostsaleStyles = (theme: Theme) =>
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
       borderColor: theme.color.border.default,
+    },
+    stageBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      padding: spacing[2],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+    },
+    matrixCell: { flex: 1, minWidth: 0, gap: 1 },
+    matrixRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      paddingVertical: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.color.border.subtle,
     },
     noticeBox: {
       flexDirection: 'row',

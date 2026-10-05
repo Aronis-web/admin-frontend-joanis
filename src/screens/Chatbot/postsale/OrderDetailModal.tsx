@@ -27,6 +27,8 @@ import {
   type PostsaleMediaKind,
   type PostsaleOrder,
   type PostsaleRoute,
+  type PostsalePackageScan,
+  type PostsaleScanStage,
 } from '@/services/api/chatbot-postsale';
 import { logger } from '@/utils/logger';
 import { formatDateTime } from '../utils';
@@ -289,6 +291,8 @@ export const OrderDetailModal: React.FC<{
                   </Body>
                 </View>
 
+                <PackageScanMatrix packages={packages} scans={d?.packageScans ?? []} />
+
                 <View style={styles.rowBetween}>
                   <Title>Historial</Title>
                   <Button
@@ -370,4 +374,61 @@ const PostsaleMediaImage: React.FC<{ orderId: string; kind: PostsaleMediaKind }>
   if (failed) return <Caption color={theme.color.text.muted}>No se pudo cargar.</Caption>;
   if (!uri) return <ActivityIndicator color={theme.color.brand.accent} />;
   return <Image source={{ uri }} style={styles.mediaImage} resizeMode="contain" />;
+};
+
+const SCAN_STAGES: Array<{ key: PostsaleScanStage; label: string }> = [
+  { key: 'armado', label: 'Armado' },
+  { key: 'despacho', label: 'Despacho' },
+  { key: 'recepcion', label: 'Recepción' },
+];
+
+/** Matriz bultos × etapas: ✓ con quién y cuándo se escaneó cada bulto. */
+const PackageScanMatrix: React.FC<{ packages: number; scans: PostsalePackageScan[] }> = ({
+  packages,
+  scans,
+}) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createPostsaleStyles);
+  if (!scans.length && packages <= 1) return null;
+  const find = (n: number, stage: PostsaleScanStage) =>
+    scans
+      .filter((s) => s.packageNo === n && s.stage === stage)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0];
+  return (
+    <View style={styles.block}>
+      <Caption color={theme.color.text.muted}>Escaneo por bulto</Caption>
+      <View style={styles.matrixRow}>
+        <Caption style={{ width: 62, fontWeight: '700' }}>Bulto</Caption>
+        {SCAN_STAGES.map((st) => (
+          <Caption key={st.key} style={[styles.matrixCell, { fontWeight: '700' }]}>
+            {st.label}
+          </Caption>
+        ))}
+      </View>
+      {Array.from({ length: Math.max(1, packages) }, (_, i) => i + 1).map((n) => (
+        <View key={n} style={styles.matrixRow}>
+          <Body style={{ width: 62, fontWeight: '700' }}>{n}</Body>
+          {SCAN_STAGES.map((st) => {
+            const scan = find(n, st.key);
+            return (
+              <View key={st.key} style={styles.matrixCell}>
+                {scan ? (
+                  <>
+                    <Caption style={{ color: theme.color.state.success.text, fontWeight: '700' }}>
+                      ✓ {scan.userName || 'Sistema'}
+                    </Caption>
+                    <Caption color={theme.color.text.muted} numberOfLines={1}>
+                      {formatDateTime(scan.createdAt)}
+                    </Caption>
+                  </>
+                ) : (
+                  <Caption color={theme.color.text.muted}>—</Caption>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
 };

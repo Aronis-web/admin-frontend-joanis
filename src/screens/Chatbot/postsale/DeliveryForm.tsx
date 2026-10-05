@@ -28,7 +28,11 @@ import {
   useThemedStyles,
 } from '@/design-system';
 import { useDeliverPostsale } from '@/hooks/api/useChatbotPostsale';
-import { postsaleErrorMessage, type PostsaleOrder } from '@/services/api/chatbot-postsale';
+import {
+  chatbotPostsaleApi,
+  postsaleErrorMessage,
+  type PostsaleOrder,
+} from '@/services/api/chatbot-postsale';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 import {
@@ -39,7 +43,6 @@ import {
   photoToDataUrl,
   statusLabel,
   uriToDataUrl,
-  parseOrderQrFull,
 } from './shared';
 import { QrInput } from './scanner';
 
@@ -75,18 +78,29 @@ export const DeliveryForm: React.FC<{
   const togglePackage = (n: number) =>
     setTicked((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
 
-  /** Escaneo de un sticker de bulto (`GRITPED:<uuid>:<n>`): marca ese bulto. */
-  const onPackageScan = (raw: string) => {
-    const parsed = parseOrderQrFull(raw);
-    if (!parsed) {
-      setPkgMsg({ ok: false, text: 'Ese código no es un sticker de pedido.' });
+  /**
+   * Escaneo de un sticker de bulto: el QR es un token cifrado, el backend dice
+   * de qué pedido y bulto es (`/resolve`); si es de este pedido, marca el bulto.
+   */
+  const onPackageScan = async (raw: string) => {
+    let resolved;
+    try {
+      resolved = await chatbotPostsaleApi.resolve(raw);
+    } catch (err) {
+      setPkgMsg({
+        ok: false,
+        text: postsaleErrorMessage(err, 'Ese código no es un sticker de pedido.'),
+      });
       return;
     }
-    if (parsed.id !== order.id.toLowerCase()) {
-      setPkgMsg({ ok: false, text: 'Ese bulto es de otro pedido.' });
+    if (resolved.orderId !== order.id) {
+      setPkgMsg({
+        ok: false,
+        text: `Ese bulto es de otro pedido (${formatOrderNo(resolved.orderNo)}).`,
+      });
       return;
     }
-    const n = parsed.packageNo ?? 1;
+    const n = resolved.packageNo ?? 1;
     if (n < 1 || n > packages) {
       setPkgMsg({ ok: false, text: `El bulto ${n} no existe en este pedido (tiene ${packages}).` });
       return;
@@ -186,7 +200,7 @@ export const DeliveryForm: React.FC<{
           <Caption color={theme.color.text.muted}>
             Escanea el sticker de cada bulto (o márcalo a mano) antes de entregar.
           </Caption>
-          <QrInput onCode={onPackageScan} placeholder="GRITPED:…:n" buttonTitle="Marcar" />
+          <QrInput onCode={onPackageScan} placeholder="Código del sticker" buttonTitle="Marcar" />
           {pkgMsg ? (
             <Caption
               style={{

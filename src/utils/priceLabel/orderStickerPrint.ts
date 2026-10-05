@@ -54,7 +54,7 @@ const BRAND_W_MM = PAGE_WIDTH_MM - 3 - 3 - SHIP_W_MM - 2;
 
 export interface OrderStickerData {
   orderNo: string;
-  /** Texto a codificar en el QR (`GRITPED:<uuid>`). */
+  /** Texto a codificar en el QR (token cifrado por bulto `GP1.…`; se usa tal cual). */
   qr: string;
   /** Cliente abreviado ("Nombre I."): respaldo si falta `customerFullName`. */
   customer: string;

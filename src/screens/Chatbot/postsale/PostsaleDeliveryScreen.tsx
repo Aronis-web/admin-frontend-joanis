@@ -11,9 +11,15 @@ import {
 } from '@/services/api/chatbot-postsale';
 import Alert from '@/utils/alert';
 import { DeliveryForm } from './DeliveryForm';
-import { OrderSearchBox, Pager, lookupOrder, usePagedOrders } from './paging';
+import {
+  OrderSearchBox,
+  Pager,
+  usePagedOrders,
+  lookupOrderWithPackage,
+  lookupOrderById,
+} from './paging';
 import { QrInput } from './scanner';
-import { OrderRow, PostsaleShell, createPostsaleStyles, parseOrderQrFull } from './shared';
+import { OrderRow, PostsaleShell, createPostsaleStyles } from './shared';
 
 type Props = NativeStackScreenProps<any, 'ChatbotPostsaleDelivery'>;
 
@@ -31,11 +37,12 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
   const openByCode = useCallback(async (raw: string) => {
     setLooking(true);
     try {
-      const found = await lookupOrder(raw, POSTSALE_DELIVERABLE);
+      // El backend resuelve el QR cifrado (pedido + bulto escaneado).
+      const { order: found, packageNo } = await lookupOrderWithPackage(raw, POSTSALE_DELIVERABLE);
       if (found) {
         setTarget(found);
-        // `GRITPED:<uuid>:<n>`: el bulto escaneado queda marcado.
-        setInitialPackage(parseOrderQrFull(raw)?.packageNo ?? null);
+        // El bulto escaneado queda marcado en el formulario.
+        setInitialPackage(packageNo);
       } else {
         Alert.alert(
           'Pedido no disponible',
@@ -52,11 +59,21 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
   // Llegada desde Recepción / Seguimiento con un pedido ya elegido.
   const paramOrderId = (route.params as { orderId?: string } | undefined)?.orderId;
   useEffect(() => {
-    if (paramOrderId) {
-      openByCode(`GRITPED:${paramOrderId}`);
-      navigation.setParams({ orderId: undefined } as never);
-    }
-  }, [paramOrderId, navigation, openByCode]);
+    if (!paramOrderId) return;
+    navigation.setParams({ orderId: undefined } as never);
+    lookupOrderById(paramOrderId, POSTSALE_DELIVERABLE)
+      .then((o) => {
+        if (o) {
+          setInitialPackage(null);
+          setTarget(o);
+        } else {
+          Alert.alert('Pedido no disponible', 'Ese pedido no está listo para entregar.');
+        }
+      })
+      .catch((err) =>
+        Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo abrir el pedido'))
+      );
+  }, [paramOrderId, navigation]);
 
   return (
     <PostsaleShell

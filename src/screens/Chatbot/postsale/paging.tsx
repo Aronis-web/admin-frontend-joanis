@@ -14,7 +14,7 @@ import {
   type PostsaleStatus,
 } from '@/services/api/chatbot-postsale';
 import { PageControls } from '../components/PageControls';
-import { createPostsaleStyles, parseOrderQr } from './shared';
+import { createPostsaleStyles } from './shared';
 
 const SEARCH_DEBOUNCE_MS = 350;
 export const DEFAULT_PAGE_SIZE = 20;
@@ -108,25 +108,48 @@ export const Pager: React.FC<{ paged: PagedOrders }> = ({ paged }) => (
   />
 );
 
+/** Texto escaneado de un sticker (QR cifrado `GP1.…` o formato antiguo `GRITPED:…`). */
+export const looksLikeOrderCode = (text: string): boolean => /^(GP1\.|GRITPED:)/i.test(text.trim());
+
 /**
- * Busca un pedido por QR (`GRITPED:<uuid>`, exacto) o por número de pedido.
- * Con `statuses` solo considera pedidos en esos estados.
+ * Busca un pedido por el texto escaneado de su sticker o por número de pedido,
+ * y devuelve además el bulto escaneado. El QR es un token cifrado: la app no lo
+ * interpreta, el backend lo resuelve (`/resolve`). Con `statuses` solo considera
+ * pedidos en esos estados. Si el código es inválido lanza el error del backend.
  */
+export const lookupOrderWithPackage = async (
+  raw: string,
+  statuses?: PostsaleStatus[]
+): Promise<{ order: PostsaleOrder | null; packageNo: number | null }> => {
+  const text = raw.trim();
+  if (!text) return { order: null, packageNo: null };
+  if (looksLikeOrderCode(text)) {
+    const resolved = await chatbotPostsaleApi.resolve(text);
+    const order = await lookupOrderById(resolved.orderId, statuses, text);
+    return { order, packageNo: resolved.packageNo ?? null };
+  }
+  const res = await chatbotPostsaleApi.listPage({ statuses, q: text, page: 1, pageSize: 5 });
+  const items = res.items ?? [];
+  const norm = text.replace(/^#/, '').toUpperCase();
+  const order =
+    items.find((o) => o.orderNo.replace(/^#/, '').toUpperCase() === norm) ??
+    (items.length === 1 ? items[0] : null);
+  return { order, packageNo: null };
+};
+
+/** Igual que `lookupOrderWithPackage`, solo el pedido. */
 export const lookupOrder = async (
   raw: string,
   statuses?: PostsaleStatus[]
+): Promise<PostsaleOrder | null> => (await lookupOrderWithPackage(raw, statuses)).order;
+
+/** Fila del listado de un pedido por id (para refrescarlo). */
+export const lookupOrderById = async (
+  orderId: string,
+  statuses?: PostsaleStatus[],
+  /** Texto de búsqueda; el listado acepta el QR cifrado o el formato antiguo por id. */
+  q = `GRITPED:${orderId}`
 ): Promise<PostsaleOrder | null> => {
-  const text = raw.trim();
-  if (!text) return null;
-  // Los stickers por bulto llevan `GRITPED:<uuid>:<n>`: se busca por el pedido.
-  const id = parseOrderQr(text);
-  const q = id ? `GRITPED:${id}` : text;
   const res = await chatbotPostsaleApi.listPage({ statuses, q, page: 1, pageSize: 5 });
-  const items = res.items ?? [];
-  const norm = text.replace(/^#/, '').toUpperCase();
-  return (
-    items.find(
-      (o) => (id && o.id.toLowerCase() === id) || o.orderNo.replace(/^#/, '').toUpperCase() === norm
-    ) ?? (items.length === 1 ? items[0] : null)
-  );
+  return (res.items ?? []).find((o) => o.id === orderId) ?? null;
 };

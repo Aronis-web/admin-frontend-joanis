@@ -51,7 +51,12 @@ export const QrInput: React.FC<{
   busy?: boolean;
   placeholder?: string;
   buttonTitle?: string;
-}> = ({ onCode, busy, placeholder = 'GRITPED:… o número de pedido', buttonTitle = 'Buscar' }) => {
+}> = ({
+  onCode,
+  busy,
+  placeholder = 'Código del sticker o número de pedido',
+  buttonTitle = 'Buscar',
+}) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   const ensureCamera = useCameraOpener();
@@ -221,6 +226,7 @@ export const ScanResultCard: React.FC<{
   }
   const r = entry.result;
   if (!r) return null;
+  const pending = r.pendingPackages ?? [];
   return (
     <Card style={StyleSheet.flatten([styles.card, highlight && styles.highlightCard])}>
       <View style={styles.rowBetween}>
@@ -245,6 +251,40 @@ export const ScanResultCard: React.FC<{
           {!compact ? ` · ${formatDateTime(entry.at)}` : ''}
         </Caption>
       </View>
+      {pending.length ? (
+        // Escaneo por bulto: el pedido no avanza hasta escanear todos sus bultos.
+        <View
+          style={[
+            styles.stageBanner,
+            {
+              borderColor: theme.color.state.warning.border,
+              backgroundColor: theme.color.state.warning.background,
+            },
+          ]}
+        >
+          <Ionicons name="time-outline" size={18} color={theme.color.state.warning.text} />
+          <Body style={{ flex: 1, fontWeight: '700', color: theme.color.state.warning.text }}>
+            {r.message ||
+              `Faltan bultos: ${pending.map((n) => `bulto ${n}`).join(', ')}. El pedido aún no avanza.`}
+          </Body>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.stageBanner,
+            {
+              borderColor: theme.color.state.success.border,
+              backgroundColor: theme.color.state.success.background,
+            },
+          ]}
+        >
+          <Ionicons name="checkmark-circle" size={18} color={theme.color.state.success.text} />
+          <Body style={{ flex: 1, fontWeight: '700', color: theme.color.state.success.text }}>
+            {`Avanzó a ${statusLabel(r.status, r.statusLabel)}`}
+            {r.message ? ` · ${r.message}` : ''}
+          </Body>
+        </View>
+      )}
       {r.agencyCode ? (
         <View style={styles.agencyBox}>
           <Caption color={theme.color.state.warning.text}>Clave de agencia</Caption>
@@ -324,7 +364,7 @@ export const StageScanner: React.FC<{
         <QrInput
           onCode={handleCode}
           busy={scan.isPending}
-          placeholder="GRITPED:…"
+          placeholder="Código del sticker"
           buttonTitle="Registrar"
         />
       </Card>

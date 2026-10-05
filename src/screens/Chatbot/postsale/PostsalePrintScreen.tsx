@@ -13,7 +13,7 @@ import {
 } from '@/design-system';
 import { postsaleErrorMessage, type PostsaleOrder } from '@/services/api/chatbot-postsale';
 import Alert from '@/utils/alert';
-import { OrderSearchBox, Pager, lookupOrder, usePagedOrders } from './paging';
+import { OrderSearchBox, Pager, lookupOrder, lookupOrderById, usePagedOrders } from './paging';
 import { QrInput } from './scanner';
 import { OrderRow, PostsaleShell, createPostsaleStyles } from './shared';
 import { SoldReportModal } from './SoldReportModal';
@@ -77,7 +77,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
   /** Refresca el pedido mostrado (estado, contadores, bultos). */
   const refreshScanned = () => {
     if (!scanned) return;
-    lookupOrder(`GRITPED:${scanned.id}`)
+    lookupOrderById(scanned.id)
       .then((o) => o && setScanned(o))
       .catch(() => undefined);
   };
@@ -88,7 +88,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
     if (ok) {
       setSelected((prev) => prev.filter((id) => id !== scanned.id));
       // Refresca el estado mostrado (PAGADO → En armado).
-      lookupOrder(`GRITPED:${scanned.id}`)
+      lookupOrderById(scanned.id)
         .then((o) => o && setScanned(o))
         .catch(() => undefined);
     }

@@ -51,7 +51,10 @@ export interface PostsaleOrder {
 export interface PostsaleSticker {
   orderId: string;
   orderNo: string;
-  /** Texto a codificar en el QR (`GRITPED:<uuid>` o `GRITPED:<uuid>:<bulto>`). */
+  /**
+   * Texto a codificar en el QR: token cifrado opaco por bulto (`GP1.<base64url>`).
+   * La app no lo interpreta; para saber qué pedido/bulto es, usar `resolve()`.
+   */
   qr: string;
   /** Cliente ya abreviado ("Nombre I."). */
   customer: string;
@@ -94,6 +97,32 @@ export interface PostsaleScanResult {
   /** Bultos del pedido y bulto escaneado. */
   packages?: number;
   packageNo?: number | null;
+  /**
+   * Bultos que faltan escanear en esta etapa. Si hay alguno, el pedido NO
+   * avanzó (mismo estado); vacío = completo y avanzó.
+   */
+  pendingPackages?: number[];
+  /** Mensaje del backend ("Bulto 1 escaneado. Faltan: bulto 2."). */
+  message?: string | null;
+}
+
+/** Resultado de `GET /chatbot/postsale/resolve?code=…` (QR escaneado → pedido/bulto). */
+export interface PostsaleResolved {
+  orderId: string;
+  orderNo: string;
+  packageNo: number | null;
+  packages: number;
+  postsaleStatus: PostsaleStatus;
+  statusLabel: string;
+  customerName: string | null;
+}
+
+/** Escaneo de un bulto en una etapa. */
+export interface PostsalePackageScan {
+  packageNo: number;
+  stage: PostsaleScanStage;
+  createdAt: string;
+  userName: string | null;
 }
 
 export interface PostsaleDeliverPayload {
@@ -136,6 +165,8 @@ export interface PostsaleDetail {
   /** Bultos del pedido (1 si no viene). */
   packages?: number;
   events: PostsaleEvent[];
+  /** Escaneos por bulto y etapa. */
+  packageScans?: PostsalePackageScan[];
 }
 
 export type PostsaleMediaKind = 'firma' | 'foto';
@@ -145,7 +176,7 @@ export interface PostsaleListParams {
   /**
    * Búsqueda: cada palabra contra número de pedido (con o sin #), cliente,
    * teléfono, tienda/agencia/dirección y productos (nombre, SKU, código).
-   * Un QR `GRITPED:<uuid>` devuelve exactamente ese pedido.
+   * El QR cifrado del sticker (`GP1.…`) o el formato antiguo `GRITPED:<uuid>` devuelve exactamente ese pedido.
    */
   q?: string;
   page: number;
@@ -228,6 +259,16 @@ class ChatbotPostsaleService {
     if (statuses?.length) params.status = statuses.join(',');
     if (q?.trim()) params.q = q.trim();
     return apiClient.get<PostsalePage>(this.basePath, { params });
+  }
+
+  /**
+   * Interpreta un texto escaneado (QR cifrado por bulto o formato antiguo):
+   * devuelve pedido y bulto. 400 con mensaje si no es un pedido o fue alterado.
+   */
+  async resolve(code: string): Promise<PostsaleResolved> {
+    return apiClient.get<PostsaleResolved>(`${this.basePath}/resolve`, {
+      params: { code: code.trim() },
+    });
   }
 
   async get(id: string): Promise<PostsaleDetail> {
