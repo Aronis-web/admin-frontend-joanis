@@ -74,6 +74,10 @@ const OfflineAccessScreen = lazyLoad(
   () => import('@/screens/OfflineAccess').then((m) => ({ default: m.OfflineAccessScreen })),
   'Cargando solicitudes...'
 );
+const DeviceFleetScreen = lazyLoad(
+  () => import('@/screens/DeviceFleet').then((m) => ({ default: m.DeviceFleetScreen })),
+  'Cargando cajas...'
+);
 const AttendanceTerminalsScreen = lazyLoad(
   () => import('@/screens/Attendance').then((m) => ({ default: m.AttendanceTerminalsScreen })),
   'Cargando terminales...'
@@ -960,6 +964,18 @@ const MainStack = React.memo(() => {
         {() => (
           <ProtectedRoute requiredPermissions={['apps.manage']}>
             <OfflineAccessScreen />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.DEVICE_FLEET}
+        options={{
+          title: 'Versiones de cajas',
+        }}
+      >
+        {() => (
+          <ProtectedRoute requiredPermissions={['apps.manage']}>
+            <DeviceFleetScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

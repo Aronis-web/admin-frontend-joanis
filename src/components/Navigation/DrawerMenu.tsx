@@ -901,6 +901,13 @@ const menuCategories: MenuCategory[] = [
             requiredPermissions: ['apps.manage'],
           },
           {
+            id: 'device-fleet',
+            icon: 'desktop-outline',
+            label: 'Versiones de cajas',
+            route: MAIN_ROUTES.DEVICE_FLEET,
+            requiredPermissions: ['apps.manage'],
+          },
+          {
             id: 'theme-playground',
             icon: 'color-palette-outline',
             label: 'Theme Playground',
