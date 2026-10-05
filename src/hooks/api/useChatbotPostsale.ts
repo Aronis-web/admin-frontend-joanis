@@ -1,9 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   chatbotPostsaleApi,
   type PostsaleDeliverPayload,
   type PostsaleDetail,
+  type PostsaleListParams,
   type PostsaleOrder,
+  type PostsalePage,
   type PostsaleScanStage,
   type PostsaleStatus,
 } from '@/services/api/chatbot-postsale';
@@ -12,6 +14,15 @@ export const chatbotPostsaleKeys = {
   all: ['chatbot-postsale'] as const,
   list: (statuses?: PostsaleStatus[]) =>
     [...chatbotPostsaleKeys.all, 'list', statuses?.join(',') ?? 'all'] as const,
+  page: (p: PostsaleListParams) =>
+    [
+      ...chatbotPostsaleKeys.all,
+      'page',
+      p.statuses?.join(',') ?? 'all',
+      p.q?.trim() ?? '',
+      p.page,
+      p.pageSize,
+    ] as const,
   detail: (id: string) => [...chatbotPostsaleKeys.all, 'detail', id] as const,
 };
 
@@ -21,6 +32,17 @@ export const usePostsaleOrders = (statuses?: PostsaleStatus[], enabled = true) =
     queryKey: chatbotPostsaleKeys.list(statuses),
     queryFn: () => chatbotPostsaleApi.list(statuses),
     enabled,
+    staleTime: 10 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
+/** Página de pedidos con búsqueda; conserva la página anterior mientras carga. */
+export const usePostsalePage = (params: PostsaleListParams, enabled = true) =>
+  useQuery<PostsalePage>({
+    queryKey: chatbotPostsaleKeys.page(params),
+    queryFn: () => chatbotPostsaleApi.listPage(params),
+    enabled,
+    placeholderData: keepPreviousData,
     staleTime: 10 * 1000,
     refetchInterval: 30 * 1000,
   });

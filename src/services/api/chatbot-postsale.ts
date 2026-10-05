@@ -105,6 +105,25 @@ export interface PostsaleDetail {
 
 export type PostsaleMediaKind = 'firma' | 'foto';
 
+export interface PostsaleListParams {
+  statuses?: PostsaleStatus[];
+  /**
+   * Búsqueda: cada palabra contra número de pedido (con o sin #), cliente,
+   * teléfono, tienda/agencia/dirección y productos (nombre, SKU, código).
+   * Un QR `GRITPED:<uuid>` devuelve exactamente ese pedido.
+   */
+  q?: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface PostsalePage {
+  items: PostsaleOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface PostsalePickingItem {
   name: string;
   sku: string | null;
@@ -166,6 +185,14 @@ class ChatbotPostsaleService {
     return apiClient.get<PostsaleOrder[]>(this.basePath, {
       params: statuses?.length ? { status: statuses.join(',') } : undefined,
     });
+  }
+
+  /** Listado paginado con búsqueda. */
+  async listPage({ statuses, q, page, pageSize }: PostsaleListParams): Promise<PostsalePage> {
+    const params: Record<string, string | number> = { page, pageSize };
+    if (statuses?.length) params.status = statuses.join(',');
+    if (q?.trim()) params.q = q.trim();
+    return apiClient.get<PostsalePage>(this.basePath, { params });
   }
 
   async get(id: string): Promise<PostsaleDetail> {

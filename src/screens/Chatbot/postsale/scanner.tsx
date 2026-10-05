@@ -2,8 +2,8 @@
  * Escaneo de stickers de pedido: cámara (solo nativo), campo manual / lector USB
  * (web y escritorio), tarjeta de resultado y escáner por etapa.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, StyleSheet, TextInput, View } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
@@ -40,64 +40,95 @@ import {
 /** Ignora el mismo QR si se vuelve a leer dentro de esta ventana (ms). */
 const SCAN_DEBOUNCE_MS = 3000;
 
-export const QrScannerModal: React.FC<{
-  visible: boolean;
-  title: string;
-  subtitle: string;
-  busy?: boolean;
-  /** Mantener la cámara abierta tras cada lectura (escaneo continuo). */
-  continuous?: boolean;
+/**
+ * Lector QR compacto: botón "📷 Escanear" que abre la cámara dentro de la
+ * pantalla (las listas siguen visibles) + campo de texto para lector USB / pegar
+ * (Enter envía). La cámara solo existe en Android/iOS; en web/escritorio queda
+ * el campo de texto.
+ */
+export const QrInput: React.FC<{
   onCode: (code: string) => void | Promise<void>;
-  onClose: () => void;
-  footer?: React.ReactNode;
-}> = ({ visible, title, subtitle, busy, continuous, onCode, onClose, footer }) => {
+  busy?: boolean;
+  placeholder?: string;
+  buttonTitle?: string;
+}> = ({ onCode, busy, placeholder = 'GRITPED:… o número de pedido', buttonTitle = 'Buscar' }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
+  const ensureCamera = useCameraOpener();
+  const [open, setOpen] = useState(false);
   const last = useRef<{ code: string; at: number } | null>(null);
-  const busyRef = useRef(false);
+  const runningRef = useRef(false);
 
-  useEffect(() => {
-    busyRef.current = !!busy;
-  }, [busy]);
-
-  useEffect(() => {
-    if (visible) last.current = null;
-  }, [visible]);
+  const run = useCallback(
+    (code: string) => {
+      runningRef.current = true;
+      Promise.resolve(onCode(code)).finally(() => {
+        runningRef.current = false;
+      });
+    },
+    [onCode]
+  );
 
   const handleScanned = ({ data }: { data: string }) => {
     const code = (data ?? '').trim();
-    if (!code || busyRef.current) return;
+    if (!code || runningRef.current || busy) return;
     const now = Date.now();
     if (last.current && last.current.code === code && now - last.current.at < SCAN_DEBOUNCE_MS) {
       return;
     }
     last.current = { code, at: now };
-    busyRef.current = true;
-    Promise.resolve(onCode(code)).finally(() => {
-      busyRef.current = false;
-      if (!continuous) onClose();
-    });
+    run(code);
+  };
+
+  const toggle = async () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    if (await ensureCamera()) {
+      last.current = null;
+      setOpen(true);
+    }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.scannerContainer}>
-        {visible ? (
+    <View style={{ gap: 8 }}>
+      {CAN_USE_CAMERA ? (
+        <Button
+          title={open ? 'Cerrar cámara' : '📷 Escanear'}
+          variant={open ? 'outline' : 'primary'}
+          size="small"
+          onPress={() => toggle()}
+        />
+      ) : null}
+      {CAN_USE_CAMERA && open ? (
+        <View style={styles.cameraPanel}>
           <CameraView
             style={StyleSheet.absoluteFillObject}
+            facing="back"
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onBarcodeScanned={handleScanned}
           />
-        ) : null}
-        <View style={styles.scannerOverlay}>
-          <Text style={styles.scannerTitle}>{title}</Text>
-          <Text style={styles.scannerSubtitle}>{subtitle}</Text>
-          {busy ? <ActivityIndicator color={theme.color.text.inverse} /> : null}
-          {footer}
-          <Button title="Cerrar" variant="secondary" onPress={onClose} />
+          <View style={styles.cameraFrame} pointerEvents="none" />
+          {busy ? (
+            <View style={styles.cameraBusy} pointerEvents="none">
+              <ActivityIndicator color="#FFFFFF" />
+            </View>
+          ) : null}
         </View>
-      </View>
-    </Modal>
+      ) : null}
+      <ManualCodeInput
+        placeholder={placeholder}
+        buttonTitle={buttonTitle}
+        busy={busy}
+        onSubmit={(c) => run(c)}
+      />
+      {!CAN_USE_CAMERA ? (
+        <Caption color={theme.color.text.muted}>
+          Lee el QR con el lector USB o pega su texto y presiona Enter.
+        </Caption>
+      ) : null}
+    </View>
   );
 };
 
@@ -248,14 +279,11 @@ export const ScanResultCard: React.FC<{
 export const StageScanner: React.FC<{
   stage: PostsaleScanStage;
   description: string;
-  cameraTitle: string;
   onDeliver?: (orderId: string) => void;
-}> = ({ stage, description, cameraTitle, onDeliver }) => {
+}> = ({ stage, description, onDeliver }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   const scan = useScanPostsale();
-  const ensureCamera = useCameraOpener();
-  const [cameraOpen, setCameraOpen] = useState(false);
   const [entries, setEntries] = useState<ScanEntry[]>([]);
 
   const handleCode = useCallback(
@@ -264,20 +292,18 @@ export const StageScanner: React.FC<{
       const key = `${at}-${Math.random().toString(36).slice(2, 8)}`;
       try {
         const result = await scan.mutateAsync({ code, stage });
-        setEntries((prev) => [{ key, at, result }, ...prev].slice(0, 20));
+        setEntries((prev) => [{ key, at, result }, ...prev].slice(0, 5));
       } catch (err) {
         setEntries((prev) =>
           [
             { key, at, error: postsaleErrorMessage(err, 'No se pudo registrar el escaneo') },
             ...prev,
-          ].slice(0, 20)
+          ].slice(0, 5)
         );
       }
     },
     [scan, stage]
   );
-
-  const latest = entries[0];
 
   return (
     <>
@@ -288,60 +314,22 @@ export const StageScanner: React.FC<{
         </Body>
       </View>
       <Card style={styles.card}>
-        {CAN_USE_CAMERA ? (
-          <Button
-            title="Escanear con la cámara"
-            leftIcon="qr-code-outline"
-            onPress={async () => {
-              if (await ensureCamera()) setCameraOpen(true);
-            }}
-          />
-        ) : null}
-        <Caption color={theme.color.text.muted}>
-          {CAN_USE_CAMERA
-            ? 'O escribe el código del QR:'
-            : 'Lee el QR con el lector o pega su texto (GRITPED:…) y presiona Enter.'}
-        </Caption>
-        <ManualCodeInput
+        <QrInput
+          onCode={handleCode}
+          busy={scan.isPending}
           placeholder="GRITPED:…"
           buttonTitle="Registrar"
-          busy={scan.isPending}
-          onSubmit={(c) => handleCode(c)}
         />
-        {scan.isPending ? <ActivityIndicator color={theme.color.brand.accent} /> : null}
       </Card>
-
       {entries.map((e, i) => (
-        <ScanResultCard key={e.key} entry={e} highlight={i === 0} onDeliver={onDeliver} />
-      ))}
-
-      {CAN_USE_CAMERA ? (
-        <QrScannerModal
-          visible={cameraOpen}
-          continuous
-          title={cameraTitle}
-          subtitle="La cámara queda abierta para leer varios pedidos seguidos"
-          busy={scan.isPending}
-          onCode={handleCode}
-          onClose={() => setCameraOpen(false)}
-          footer={
-            latest ? (
-              <ScanResultCard
-                entry={latest}
-                compact
-                onDeliver={
-                  onDeliver
-                    ? (id) => {
-                        setCameraOpen(false);
-                        onDeliver(id);
-                      }
-                    : undefined
-                }
-              />
-            ) : null
-          }
+        <ScanResultCard
+          key={e.key}
+          entry={e}
+          highlight={i === 0}
+          compact={i > 0}
+          onDeliver={onDeliver}
         />
-      ) : null}
+      ))}
     </>
   );
 };

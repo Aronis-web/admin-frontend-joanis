@@ -84,16 +84,6 @@ export const parseOrderQr = (code: string): string | null => {
   return m ? m[1].toLowerCase() : null;
 };
 
-/** Busca un pedido por QR (`GRITPED:<uuid>`) o por número de pedido. */
-export const findOrderByCode = (list: PostsaleOrder[], raw: string): PostsaleOrder | undefined => {
-  const text = raw.trim();
-  const id = parseOrderQr(text);
-  const norm = text.replace(/^#/, '').toUpperCase();
-  return list.find(
-    (o) => (id && o.id.toLowerCase() === id) || o.orderNo.replace(/^#/, '').toUpperCase() === norm
-  );
-};
-
 // ── Conversión de imágenes a data URL ──────────────────────────────────────
 
 export const blobToDataUrl = (blob: Blob): Promise<string> =>
@@ -352,6 +342,45 @@ export const createPostsaleStyles = (theme: Theme) =>
       height: 220,
       borderRadius: borderRadius.md,
       backgroundColor: theme.color.background.muted,
+    },
+    cameraPanel: {
+      height: 260,
+      borderRadius: borderRadius.md,
+      overflow: 'hidden',
+      backgroundColor: '#000',
+    },
+    cameraFrame: {
+      position: 'absolute',
+      top: '15%',
+      bottom: '15%',
+      left: '25%',
+      right: '25%',
+      borderWidth: 3,
+      borderColor: 'rgba(255,255,255,0.85)',
+      borderRadius: borderRadius.md,
+    },
+    cameraBusy: {
+      ...StyleSheet.absoluteFillObject,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0,0,0,0.35)',
+    },
+    searchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    searchInput: { flex: 1, paddingVertical: spacing[3], color: theme.color.text.body },
+    pager: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing[2],
     },
     scannerContainer: { flex: 1, backgroundColor: '#000' },
     scannerOverlay: {

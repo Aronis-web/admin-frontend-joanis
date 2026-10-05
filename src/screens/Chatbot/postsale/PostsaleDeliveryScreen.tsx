@@ -1,29 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Caption, Card, EmptyState, Title, useTheme, useThemedStyles } from '@/design-system';
 import {
-  Button,
-  Caption,
-  Card,
-  EmptyState,
-  Title,
-  useTheme,
-  useThemedStyles,
-} from '@/design-system';
-import { usePostsaleOrders } from '@/hooks/api/useChatbotPostsale';
-import { POSTSALE_DELIVERABLE, postsaleErrorMessage } from '@/services/api/chatbot-postsale';
+  POSTSALE_DELIVERABLE,
+  postsaleErrorMessage,
+  type PostsaleOrder,
+} from '@/services/api/chatbot-postsale';
 import Alert from '@/utils/alert';
 import { DeliveryForm } from './DeliveryForm';
-import { ManualCodeInput, QrScannerModal, useCameraOpener } from './scanner';
-import {
-  CAN_USE_CAMERA,
-  OrderRow,
-  PostsaleShell,
-  createPostsaleStyles,
-  findOrderByCode,
-} from './shared';
+import { OrderSearchBox, Pager, lookupOrder, usePagedOrders } from './paging';
+import { QrInput } from './scanner';
+import { OrderRow, PostsaleShell, createPostsaleStyles } from './shared';
 
 type Props = NativeStackScreenProps<any, 'ChatbotPostsaleDelivery'>;
 
@@ -31,33 +21,38 @@ type Props = NativeStackScreenProps<any, 'ChatbotPostsaleDelivery'>;
 export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
-  const orders = usePostsaleOrders(POSTSALE_DELIVERABLE);
-  const ensureCamera = useCameraOpener();
-  const [cameraOpen, setCameraOpen] = useState(false);
-  const [targetId, setTargetId] = useState<string | null>(null);
-  const list = useMemo(() => orders.data ?? [], [orders.data]);
-  const target = list.find((o) => o.id === targetId) ?? null;
+  const paged = usePagedOrders(POSTSALE_DELIVERABLE);
+  const [target, setTarget] = useState<PostsaleOrder | null>(null);
+  const [looking, setLooking] = useState(false);
+
+  /** Abre el formulario del pedido escaneado / escrito (solo si se puede entregar). */
+  const openByCode = useCallback(async (raw: string) => {
+    setLooking(true);
+    try {
+      const found = await lookupOrder(raw, POSTSALE_DELIVERABLE);
+      if (found) {
+        setTarget(found);
+      } else {
+        Alert.alert(
+          'Pedido no disponible',
+          'Ese pedido no está listo para entregar (debe estar en tienda o en ruta a domicilio).'
+        );
+      }
+    } catch (err) {
+      Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo buscar el pedido'));
+    } finally {
+      setLooking(false);
+    }
+  }, []);
 
   // Llegada desde Recepción / Seguimiento con un pedido ya elegido.
   const paramOrderId = (route.params as { orderId?: string } | undefined)?.orderId;
   useEffect(() => {
     if (paramOrderId) {
-      setTargetId(paramOrderId);
+      openByCode(`GRITPED:${paramOrderId}`);
       navigation.setParams({ orderId: undefined } as never);
     }
-  }, [paramOrderId, navigation]);
-
-  const pickByCode = (raw: string) => {
-    const found = findOrderByCode(list, raw);
-    if (found) {
-      setTargetId(found.id);
-    } else {
-      Alert.alert(
-        'Pedido no disponible',
-        'Ese pedido no está listo para entregar (debe estar en tienda o en ruta a domicilio).'
-      );
-    }
-  };
+  }, [paramOrderId, navigation, openByCode]);
 
   return (
     <PostsaleShell
@@ -65,15 +60,15 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
       icon="hand-left-outline"
       title="Post venta · Entrega"
       subtitle="Entrega al cliente con su código, firma y foto"
-      stat={{ value: list.length, label: 'Por entregar' }}
-      refreshing={orders.isFetching && !orders.isLoading}
-      onRefresh={() => orders.refetch()}
+      stat={{ value: paged.total, label: 'Por entregar' }}
+      refreshing={paged.query.isFetching && !paged.query.isLoading}
+      onRefresh={() => paged.query.refetch()}
     >
       {target ? (
         <DeliveryForm
           order={target}
-          onChangeOrder={() => setTargetId(null)}
-          onDelivered={() => setTargetId(null)}
+          onChangeOrder={() => setTarget(null)}
+          onDelivered={() => setTarget(null)}
         />
       ) : (
         <>
@@ -85,65 +80,45 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
             </Caption>
           </View>
           <Card style={styles.card}>
-            {CAN_USE_CAMERA ? (
-              <Button
-                title="Escanear sticker"
-                leftIcon="qr-code-outline"
-                onPress={async () => {
-                  if (await ensureCamera()) setCameraOpen(true);
-                }}
-              />
-            ) : null}
-            <ManualCodeInput
-              placeholder="GRITPED:… o número de pedido"
-              buttonTitle="Buscar"
-              onSubmit={pickByCode}
-            />
+            <QrInput onCode={openByCode} busy={looking} buttonTitle="Abrir" />
           </Card>
 
-          {targetId && !target && !orders.isLoading ? (
-            <Caption color={theme.color.state.warning.text}>
-              El pedido elegido ya no está pendiente de entrega.
-            </Caption>
-          ) : null}
-
-          <Title>Listos para entregar</Title>
-          {orders.isLoading ? (
+          <View style={styles.rowBetween}>
+            <Title>Listos para entregar</Title>
+            <Caption color={theme.color.text.muted}>{paged.total} pedidos</Caption>
+          </View>
+          <OrderSearchBox paged={paged} />
+          {paged.query.isLoading ? (
             <View style={styles.centerBox}>
               <ActivityIndicator color={theme.color.brand.accent} />
             </View>
-          ) : orders.isError ? (
+          ) : paged.query.isError ? (
             <EmptyState
               icon="alert-circle-outline"
               title="No se pudo cargar"
-              description={postsaleErrorMessage(orders.error)}
+              description={postsaleErrorMessage(paged.query.error)}
             />
-          ) : list.length === 0 ? (
+          ) : paged.items.length === 0 ? (
             <EmptyState
               icon="hand-left-outline"
-              title="Nada por entregar"
-              description="Aquí aparecen los pedidos en tienda o en ruta a domicilio."
+              title={paged.q ? 'Sin resultados' : 'Nada por entregar'}
+              description={
+                paged.q
+                  ? 'Ningún pedido coincide con la búsqueda.'
+                  : 'Aquí aparecen los pedidos en tienda o en ruta a domicilio.'
+              }
             />
           ) : (
-            list.map((o) => (
+            paged.items.map((o) => (
               <OrderRow
                 key={o.id}
                 order={o}
-                onPress={() => setTargetId(o.id)}
+                onPress={() => setTarget(o)}
                 right={<Ionicons name="chevron-forward" size={20} color={theme.color.text.muted} />}
               />
             ))
           )}
-
-          {CAN_USE_CAMERA ? (
-            <QrScannerModal
-              visible={cameraOpen}
-              title="Escanea el sticker del pedido"
-              subtitle="Para iniciar la entrega"
-              onCode={pickByCode}
-              onClose={() => setCameraOpen(false)}
-            />
-          ) : null}
+          <Pager paged={paged} />
         </>
       )}
     </PostsaleShell>
