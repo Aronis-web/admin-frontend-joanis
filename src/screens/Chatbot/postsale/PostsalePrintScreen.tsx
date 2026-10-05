@@ -16,6 +16,7 @@ import Alert from '@/utils/alert';
 import { OrderSearchBox, Pager, lookupOrder, usePagedOrders } from './paging';
 import { QrInput } from './scanner';
 import { OrderRow, PostsaleShell, createPostsaleStyles } from './shared';
+import { SoldReportModal } from './SoldReportModal';
 import { usePostsalePrinting } from './usePostsalePrinting';
 
 type Props = NativeStackScreenProps<any, 'ChatbotPostsalePrint'>;
@@ -31,6 +32,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
   const [selected, setSelected] = useState<string[]>([]);
   const [scanned, setScanned] = useState<PostsaleOrder | null>(null);
   const [looking, setLooking] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const pageItems = paged.items;
 
   const toggle = (id: string) =>
@@ -93,6 +95,16 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
       refreshing={paged.query.isFetching && !paged.query.isLoading}
       onRefresh={() => paged.query.refetch()}
     >
+      <View style={styles.actionsRow}>
+        <Button
+          title="📊 Reporte de stock vendido"
+          variant="outline"
+          size="small"
+          onPress={() => setReportOpen(true)}
+        />
+      </View>
+      <SoldReportModal visible={reportOpen} onClose={() => setReportOpen(false)} />
+
       {printing.printerPicker}
 
       <Card style={styles.card}>

@@ -227,6 +227,15 @@ class ChatbotPostsaleService {
     return apiClient.post<{ ok: true }>(`${this.basePath}/${id}/resend-code`);
   }
 
+  /**
+   * Reporte Excel de stock vendido (hojas "Consolidado" y "Detalle"). Fechas
+   * YYYY-MM-DD en hora de Lima (validación del pago).
+   */
+  async soldReport(from: string, to: string): Promise<Blob> {
+    const qs = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    return downloadWithAuth(`${config.API_URL}${this.basePath}/sold-report?${qs}`);
+  }
+
   /** Descarga la firma o foto de entrega (endpoint autenticado). */
   async fetchMedia(id: string, kind: PostsaleMediaKind): Promise<Blob> {
     return downloadWithAuth(`${config.API_URL}${this.basePath}/${id}/media/${kind}`);
