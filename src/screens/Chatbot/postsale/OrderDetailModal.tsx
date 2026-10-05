@@ -11,6 +11,7 @@ import {
   Body,
   Button,
   Caption,
+  ChipGroup,
   Text,
   Title,
   useTheme,
@@ -28,7 +29,6 @@ import {
   type PostsaleOrder,
   type PostsaleRoute,
 } from '@/services/api/chatbot-postsale';
-import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 import { formatDateTime } from '../utils';
 import {
@@ -68,25 +68,48 @@ export const OrderDetailModal: React.FC<{
   const orderNo = d?.orderNo ?? fallback?.orderNo ?? '';
   const route = (d?.route ?? fallback?.route) as PostsaleRoute | undefined;
 
-  const confirmResend = () => {
+  /**
+   * Resultado de la última acción, mostrado DENTRO de la hoja (los Alert
+   * globales pueden quedar ocultos tras este Modal en escritorio).
+   */
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  const [askResend, setAskResend] = useState(false);
+
+  // Al cambiar de pedido se limpian avisos y confirmaciones.
+  useEffect(() => {
+    setNotice(null);
+    setAskResend(false);
+  }, [orderId]);
+
+  const reprint = async () => {
     if (!orderId) return;
-    Alert.alert(
-      'Reenviar código',
-      `Se enviará un nuevo código de entrega al cliente del pedido ${formatOrderNo(orderNo)} por WhatsApp. ¿Continuar?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Reenviar',
-          onPress: () =>
-            resend.mutate(orderId, {
-              onSuccess: () =>
-                Alert.alert('Código reenviado', 'El cliente recibirá un nuevo código.'),
-              onError: (err) =>
-                Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo reenviar el código')),
-            }),
-        },
-      ]
-    );
+    setNotice(null);
+    const res = await printing.printStickers([orderId], { notify: false });
+    setNotice({ ok: res.ok, text: res.message });
+    if (res.ok) detail.refetch();
+  };
+
+  const printSheet = async () => {
+    if (!orderId) return;
+    setNotice(null);
+    const res = await printing.printPicking([orderId], { notify: false });
+    setNotice({ ok: res.ok, text: res.message });
+    if (res.ok) detail.refetch();
+  };
+
+  const doResend = () => {
+    if (!orderId) return;
+    setAskResend(false);
+    setNotice(null);
+    resend.mutate(orderId, {
+      onSuccess: () =>
+        setNotice({ ok: true, text: 'Código reenviado: el cliente recibirá un nuevo código.' }),
+      onError: (err) =>
+        setNotice({
+          ok: false,
+          text: postsaleErrorMessage(err, 'No se pudo reenviar el código'),
+        }),
+    });
   };
 
   const [onlyPrints, setOnlyPrints] = useState(false);
@@ -124,7 +147,7 @@ export const OrderDetailModal: React.FC<{
                 leftIcon="print-outline"
                 variant="outline"
                 size="small"
-                onPress={() => orderId && printing.printStickers([orderId])}
+                onPress={() => reprint()}
                 disabled={printing.printingStickers}
                 loading={printing.printingStickers}
               />
@@ -135,7 +158,7 @@ export const OrderDetailModal: React.FC<{
                 leftIcon="document-text-outline"
                 variant="outline"
                 size="small"
-                onPress={() => orderId && printing.printPicking([orderId])}
+                onPress={() => printSheet()}
                 disabled={printing.printingPicking}
                 loading={printing.printingPicking}
               />
@@ -146,7 +169,7 @@ export const OrderDetailModal: React.FC<{
                 leftIcon="chatbubble-ellipses-outline"
                 variant="outline"
                 size="small"
-                onPress={confirmResend}
+                onPress={() => setAskResend(true)}
                 disabled={resend.isPending}
                 loading={resend.isPending}
               />
@@ -160,6 +183,93 @@ export const OrderDetailModal: React.FC<{
               />
             ) : null}
           </View>
+
+          {canPrint && printing.supportsPrinterSelection ? (
+            <View style={styles.metaRow}>
+              <Caption color={theme.color.text.muted}>Impresora:</Caption>
+              {printing.printers.length ? (
+                <ChipGroup
+                  options={printing.printers.map((p) => ({
+                    label: p.displayName || p.name,
+                    value: p.name,
+                  }))}
+                  selected={printing.printer ? [printing.printer] : []}
+                  onChange={(sel) => {
+                    if (sel[0]) printing.selectPrinter(sel[0]);
+                  }}
+                  size="small"
+                />
+              ) : (
+                <Caption color={theme.color.state.warning.text}>
+                  {printing.loadingPrinters ? 'Buscando…' : 'No se detecta ninguna impresora.'}
+                </Caption>
+              )}
+              <Pressable
+                onPress={() => printing.reloadPrinters()}
+                disabled={printing.loadingPrinters}
+                hitSlop={8}
+              >
+                <Caption color={theme.color.text.link}>Actualizar</Caption>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {askResend ? (
+            <View style={styles.block}>
+              <Body>
+                Se enviará un nuevo código de entrega al cliente del pedido {formatOrderNo(orderNo)}{' '}
+                por WhatsApp. ¿Continuar?
+              </Body>
+              <View style={styles.actionsRow}>
+                <Button
+                  title="Cancelar"
+                  variant="ghost"
+                  size="small"
+                  onPress={() => setAskResend(false)}
+                />
+                <Button title="Reenviar" size="small" onPress={doResend} />
+              </View>
+            </View>
+          ) : null}
+
+          {notice ? (
+            <View
+              style={[
+                styles.noticeBox,
+                notice.ok
+                  ? {
+                      borderColor: theme.color.state.success.border,
+                      backgroundColor: theme.color.state.success.background,
+                    }
+                  : {
+                      borderColor: theme.color.state.danger.border,
+                      backgroundColor: theme.color.state.danger.background,
+                    },
+              ]}
+            >
+              <Ionicons
+                name={notice.ok ? 'checkmark-circle' : 'alert-circle'}
+                size={18}
+                color={notice.ok ? theme.color.state.success.text : theme.color.state.danger.text}
+              />
+              <Body
+                style={{
+                  flex: 1,
+                  fontWeight: '600',
+                  color: notice.ok ? theme.color.state.success.text : theme.color.state.danger.text,
+                }}
+              >
+                {notice.text}
+              </Body>
+              <Pressable
+                onPress={() => setNotice(null)}
+                hitSlop={8}
+                accessibilityLabel="Cerrar aviso"
+              >
+                <Ionicons name="close" size={16} color={theme.color.text.muted} />
+              </Pressable>
+            </View>
+          ) : null}
 
           <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ gap: spacing[3] }}>
             {detail.isLoading ? (

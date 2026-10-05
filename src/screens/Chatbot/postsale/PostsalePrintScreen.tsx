@@ -66,7 +66,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   const printSelected = async () => {
-    const ok = await printing.printStickers(selected);
+    const { ok } = await printing.printStickers(selected);
     if (ok) {
       setSelected([]);
       if (scanned && selected.includes(scanned.id)) setScanned(null);
@@ -75,7 +75,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
 
   const printScanned = async () => {
     if (!scanned) return;
-    const ok = await printing.printStickers([scanned.id]);
+    const { ok } = await printing.printStickers([scanned.id]);
     if (ok) {
       setSelected((prev) => prev.filter((id) => id !== scanned.id));
       // Refresca el estado mostrado (PAGADO → En armado).

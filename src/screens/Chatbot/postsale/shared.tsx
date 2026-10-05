@@ -451,6 +451,14 @@ export const createPostsaleStyles = (theme: Theme) =>
       borderWidth: 1,
       borderColor: theme.color.border.default,
     },
+    noticeBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      padding: spacing[2],
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+    },
     block: {
       gap: spacing[1],
       padding: spacing[3],
