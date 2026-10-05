@@ -57,6 +57,18 @@ class ChatbotOrdersService {
       body ?? {}
     );
   }
+
+  /** Enlace firmado temporal (15 min, público) a la imagen de un voucher. */
+  async voucherLink(voucherId: string): Promise<{ url: string; expiresAt: string }> {
+    return apiClient.get<{ url: string; expiresAt: string }>(
+      `${this.basePath}/vouchers/${voucherId}/link`
+    );
+  }
+
+  /** Enlace firmado temporal (15 min, público) al voucher guardado en el pedido. */
+  async orderVoucherLink(id: string): Promise<{ url: string; expiresAt: string }> {
+    return apiClient.get<{ url: string; expiresAt: string }>(`${this.basePath}/${id}/voucher-link`);
+  }
 }
 
 export const chatbotOrdersApi = new ChatbotOrdersService();

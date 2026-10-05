@@ -50,7 +50,7 @@ import type {
 import Alert from '@/utils/alert';
 import { usePermissions } from '@/hooks/usePermissions';
 import { config } from '@/utils/config';
-import { VoucherThumbnail, VoucherViewerModal } from './components/VoucherImage';
+import { VoucherLinkButton } from './components/VoucherLinkButton';
 import {
   CHANNEL_META,
   channelOf,
@@ -153,15 +153,6 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useThemedStyles(createStyles);
 
   const [filter, setFilter] = useState<OrderFilter>('ALL');
-  /**
-   * Voucher abierto a pantalla completa. Los vouchers están en almacenamiento
-   * privado: `VoucherViewerModal` los descarga con el token como data URL
-   * (funciona en web y en el celular).
-   */
-  const [preview, setPreview] = useState<{ path: string; title: string } | null>(null);
-  const openPreview = (apiPath: string | null, title = 'Voucher') => {
-    if (apiPath) setPreview({ path: apiPath, title });
-  };
   /** Confirmación previa de cualquier acción (segunda validación). */
   const [confirm, setConfirm] = useState<{
     title: string;
@@ -507,7 +498,6 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       order={order}
                       styles={styles}
                       theme={theme}
-                      onPreview={openPreview}
                       onDiscard={handleDiscardVoucher}
                       onVerify={handleVerifyVoucher}
                       busy={rejectMutation.isPending || verifyMutation.isPending}
@@ -565,13 +555,6 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           )}
         </ScrollView>
-
-        {/* Voucher a pantalla completa (con zoom) */}
-        <VoucherViewerModal
-          apiPath={preview?.path ?? null}
-          title={preview?.title}
-          onClose={() => setPreview(null)}
-        />
 
         {/* Reject / cancel order modal */}
         <Modal
@@ -678,7 +661,6 @@ interface OrderVouchersSectionProps {
   order: ChatbotOrder;
   styles: ReturnType<typeof createStyles>;
   theme: Theme;
-  onPreview: (url: string | null, title?: string) => void;
   onDiscard: (order: ChatbotOrder, voucher: ConversationVoucher) => void;
   onVerify: (order: ChatbotOrder, voucher: ConversationVoucher) => void;
   busy: boolean;
@@ -692,7 +674,6 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
   order,
   styles,
   theme,
-  onPreview,
   onDiscard,
   onVerify,
   busy,
@@ -715,6 +696,14 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
   }
 
   if (vouchers.length === 0) {
+    // Pedido con voucher guardado directamente (sin comprobantes en la conversación).
+    if (order.voucherUrl) {
+      return (
+        <View style={styles.voucherItemActions}>
+          <VoucherLinkButton orderId={order.id} />
+        </View>
+      );
+    }
     return <Caption color={theme.color.text.muted}>Sin pagos registrados aún.</Caption>;
   }
 
@@ -726,19 +715,13 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
       {vouchers.map((v) => {
         const status = (handled[v.id] ?? v.status) as VoucherStatus;
         const vbadge = VOUCHER_BADGE[status] ?? VOUCHER_BADGE.PENDING;
-        const img = v.imageUrl ? `/chatbot/orders/vouchers/${v.id}/image` : null;
+        const hasImage = !!v.imageUrl;
         const closed = status === 'REJECTED' || status === 'DUPLICATE';
-        const voucherTitle = `Voucher ${formatSolesFromCents(
-          v.amountCents === null || v.amountCents === undefined ? null : String(v.amountCents)
-        )}${v.bank ? ` · ${v.bank}` : ''}`;
         const canVerify =
           allowActions && !closed && status !== 'VERIFIED' && v.orderId === order.id;
         return (
           <View key={v.id} style={styles.voucherItem}>
             <View style={styles.voucherItemHeader}>
-              {img ? (
-                <VoucherThumbnail apiPath={img} onPress={() => onPreview(img, voucherTitle)} />
-              ) : null}
               <View style={{ flex: 1 }}>
                 <Body style={{ fontWeight: '700' }}>
                   {formatSolesFromCents(
@@ -758,15 +741,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
               <Badge variant={vbadge.variant} label={vbadge.label} />
             </View>
             <View style={styles.voucherItemActions}>
-              {img ? (
-                <Button
-                  title="Ver voucher"
-                  variant="outline"
-                  size="small"
-                  leftIcon="expand-outline"
-                  onPress={() => onPreview(img, voucherTitle)}
-                />
-              ) : null}
+              {hasImage ? <VoucherLinkButton voucherId={v.id} /> : null}
               {allowActions && !closed ? (
                 <Button
                   title="Descartar"
