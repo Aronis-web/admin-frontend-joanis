@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type Props = NativeStackScreenProps<any, 'CashReconciliationMenu'>;
 
@@ -24,6 +26,7 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const menuOptions: MenuOption[] = [
     {
@@ -73,17 +76,18 @@ export const CashReconciliationMenuScreen: React.FC<Props> = ({ navigation }) =>
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cuadre de Caja</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <GradientHeader
+        title="Cuadre de Caja"
+        subtitle="Archivos, revisión y reportes de cuadre"
+        onBack={goBack}
+      />
 
       {/* Menu Options */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={contentWidthStyle}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.menuContainer}>
           {menuOptions.map(renderOption)}
         </View>
@@ -96,37 +100,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.text.body,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  placeholder: {
-    width: 40,
   },
   content: {
     flex: 1,

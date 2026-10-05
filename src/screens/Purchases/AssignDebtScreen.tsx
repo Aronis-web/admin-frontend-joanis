@@ -11,7 +11,6 @@ import { purchasesService } from '@/services/api';
 import { PurchaseProduct, PurchaseProductStatus } from '@/types/purchases';
 import {
   ScreenContainer,
-  ScreenHeader,
   Card,
   Button,
   Badge,
@@ -21,6 +20,8 @@ import {
 } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import Alert from '@/utils/alert';
 
 interface AssignDebtScreenProps {
@@ -35,6 +36,7 @@ interface AssignDebtScreenProps {
 export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { purchaseId } = route.params;
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -191,11 +193,7 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
 
   if (products.length === 0) {
     return (
-      <ScreenContainer>
-        <ScreenHeader
-          title="Asignar Deudas"
-          onBack={() => navigation.goBack()}
-        />
+      <ScreenContainer header={<GradientHeader title="Asignar Deudas" onBack={goBack} />}>
         <EmptyState
           emoji="📋"
           title="Sin productos validados"
@@ -208,12 +206,15 @@ export const AssignDebtScreen: React.FC<AssignDebtScreenProps> = ({ navigation, 
   const debtsByLegalEntity = getDebtByLegalEntity();
 
   return (
-    <ScreenContainer>
-      <ScreenHeader
-        title="Asignar Deudas"
-        subtitle={purchase?.code || 'Compra'}
-        onBack={() => navigation.goBack()}
-      />
+    <ScreenContainer
+      header={
+        <GradientHeader
+          title="Asignar Deudas"
+          subtitle={purchase?.code || 'Compra'}
+          onBack={goBack}
+        />
+      }
+    >
 
       <ScrollView
         style={styles.content}

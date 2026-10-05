@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
   useWindowDimensions,
   ActivityIndicator,
@@ -25,6 +24,8 @@ import {
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface AccountReceivableDetailScreenProps {
   navigation: any;
@@ -43,6 +44,7 @@ export const AccountReceivableDetailScreen: React.FC<AccountReceivableDetailScre
   const { hasPermission } = usePermissions();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   // Verificar permisos
   const canReadDetails = hasPermission(PERMISSIONS.ACCOUNTS_RECEIVABLE.READ_DETAILS);
@@ -134,25 +136,15 @@ export const AccountReceivableDetailScreen: React.FC<AccountReceivableDetailScre
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={[styles.backIcon, isTablet && styles.backIconTablet]}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-            {accountReceivable.code}
-          </Text>
-          <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-            Cuenta por Cobrar
-          </Text>
-        </View>
-        <View style={styles.headerRight} />
-      </View>
+      <GradientHeader
+        title={accountReceivable.code}
+        subtitle="Cuenta por Cobrar"
+        onBack={goBack}
+      />
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet, contentWidthStyle]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Status Card */}
@@ -532,58 +524,7 @@ export const AccountReceivableDetailScreen: React.FC<AccountReceivableDetailScre
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.color.background.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: theme.color.text.muted,
-  },
-  backIconTablet: {
-    fontSize: 28,
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerTitleTablet: {
-    fontSize: 22,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: theme.color.text.subtle,
-    marginTop: 2,
-  },
-  headerSubtitleTablet: {
-    fontSize: 15,
-  },
-  headerRight: {
-    width: 40,
+    backgroundColor: theme.color.background.subtle,
   },
   content: {
     flex: 1,

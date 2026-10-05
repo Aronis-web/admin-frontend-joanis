@@ -12,7 +12,6 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,12 +26,13 @@ import {
   Caption,
   Card,
   ErrorState,
-  Title,
   useTheme,
   useThemedStyles,
 } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 import {
@@ -59,6 +59,7 @@ type Props = NativeStackScreenProps<MainStackParamList, 'SmartPurchaseOrderDetai
 export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { orderId } = route.params;
   const theme = useTheme();
+  const goBack = useGoBack();
   const styles = useThemedStyles(createStyles);
 
   const [editingItem, setEditingItem] = useState<SmartPurchaseOrderItem | null>(null);
@@ -214,27 +215,23 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
   return (
     <ScreenLayout navigation={navigation as any}>
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={12}>
-            <Ionicons name="chevron-back" size={24} color={theme.color.text.body} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Title>{order.code}</Title>
-            <Caption color="muted">
-              {siteName} · Generado {formatDateTime(order.generatedAt)}
-            </Caption>
-          </View>
-          <View style={styles.statusChip}>
-            <View
-              style={[styles.statusDot, { backgroundColor: ORDER_STATUS_COLOR[order.status] }]}
-            />
-            <Body size="small" style={{ fontWeight: '600' }}>
-              {ORDER_STATUS_LABEL[order.status]}
-            </Body>
-          </View>
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title={order.code}
+          subtitle={`${siteName} · Generado ${formatDateTime(order.generatedAt)}`}
+          right={
+            <View style={styles.statusChip}>
+              <View
+                style={[styles.statusDot, { backgroundColor: ORDER_STATUS_COLOR[order.status] }]}
+              />
+              <Body size="small" style={{ fontWeight: '600' }}>
+                {ORDER_STATUS_LABEL[order.status]}
+              </Body>
+            </View>
+          }
+        />
 
-        <View style={styles.summary}>
+        <View style={[styles.summary, contentWidthStyle]}>
           <SummaryTile label="Items" value={String(order.totalItems)} />
           <SummaryTile label="Unidades" value={formatNumber(order.totalUnits)} />
           <SummaryTile label="Costo total" value={formatCents(order.totalCostCents)} />
@@ -245,12 +242,12 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
         </View>
 
         {order.approvedAt && (
-          <Caption color="muted" style={styles.approvedLine}>
+          <Caption color="muted" style={[styles.approvedLine, contentWidthStyle]}>
             Aprobada {formatDateTime(order.approvedAt)}
           </Caption>
         )}
         {order.notes ? (
-          <Caption color="muted" style={styles.approvedLine}>
+          <Caption color="muted" style={[styles.approvedLine, contentWidthStyle]}>
             {order.notes}
           </Caption>
         ) : null}
@@ -259,7 +256,7 @@ export const SmartPurchaseOrderDetailScreen: React.FC<Props> = ({ navigation, ro
           data={sortedItems}
           keyExtractor={(i) => i.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, contentWidthStyle]}
           ItemSeparatorComponent={() => <View style={{ height: spacing[2] }} />}
           refreshControl={
             <RefreshControl
@@ -350,16 +347,8 @@ const SummaryTile: React.FC<{ label: string; value: string }> = ({ label, value 
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.color.background.canvas },
+    container: { flex: 1, backgroundColor: theme.color.background.subtle },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing[2],
-      paddingHorizontal: spacing[6],
-      paddingTop: spacing[4],
-      paddingBottom: spacing[2],
-    },
     statusChip: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -367,7 +356,7 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: spacing[2],
       paddingVertical: spacing[1],
       borderRadius: borderRadius.full,
-      backgroundColor: theme.color.surface.subtle,
+      backgroundColor: theme.color.surface.base,
     },
     statusDot: { width: 8, height: 8, borderRadius: 4 },
     summary: {
@@ -375,6 +364,7 @@ const createStyles = (theme: Theme) =>
       flexWrap: 'wrap',
       gap: spacing[2],
       paddingHorizontal: spacing[6],
+      paddingTop: spacing[3],
       paddingBottom: spacing[2],
     },
     summaryTile: {
@@ -382,7 +372,7 @@ const createStyles = (theme: Theme) =>
       flexGrow: 1,
       padding: spacing[2],
       borderRadius: borderRadius.md,
-      backgroundColor: theme.color.surface.subtle,
+      backgroundColor: theme.color.surface.base,
       gap: 2,
     },
     approvedLine: {
@@ -416,7 +406,7 @@ const createStyles = (theme: Theme) =>
       flexGrow: 1,
       padding: spacing[2],
       borderRadius: borderRadius.sm,
-      backgroundColor: theme.color.surface.subtle,
+      backgroundColor: theme.color.surface.base,
       gap: 2,
     },
     editHint: {

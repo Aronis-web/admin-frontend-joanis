@@ -8,6 +8,8 @@ import { Body, Caption, Card, ErrorState, Title } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { spacing } from '@/design-system/tokens';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 import { usePayrollSlip } from '@/hooks/api/usePayrollSlips';
 import { PeriodStatusChip } from '@/components/Payroll/PeriodStatusChip';
@@ -26,6 +28,7 @@ const SECTION_LABEL: Record<ConceptType, string> = {
 const SECTION_ORDER: ConceptType[] = ['INGRESO', 'DESCUENTO', 'APORTE'];
 
 export const PayrollSlipDetailScreen: React.FC<Props> = ({ navigation, route }) => {
+  const goBack = useGoBack();
   const { slipId } = route.params;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -78,13 +81,14 @@ export const PayrollSlipDetailScreen: React.FC<Props> = ({ navigation, route }) 
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenLayout navigation={navigation as any}>
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <GradientHeader
+          onBack={goBack}
+          title={snap.full_name}
+          subtitle={snap.position_name || undefined}
+          right={<PeriodStatusChip status={slip.status} />}
+        />
+        <ScrollView contentContainerStyle={[styles.scroll, contentWidthStyle]}>
           <Card style={styles.card}>
-            <View style={styles.rowBetween}>
-              <Title>{snap.full_name}</Title>
-              <PeriodStatusChip status={slip.status} />
-            </View>
-            {snap.position_name ? <Caption>{snap.position_name}</Caption> : null}
             {snap.cost_center ? <Caption>Centro de costo: {snap.cost_center}</Caption> : null}
             <Caption>
               Sistema: {snap.pension_system}
@@ -140,7 +144,7 @@ const FooterRow: React.FC<{ label: string; value: string; strong?: boolean }> = 
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: theme.color.background.canvas },
+    safe: { flex: 1, backgroundColor: theme.color.background.subtle },
     scroll: { padding: spacing[4], gap: spacing[3], paddingBottom: spacing[6] },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     card: { padding: spacing[4], gap: spacing[1] },
@@ -150,12 +154,6 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingVertical: spacing[1],
-      gap: spacing[2],
-    },
-    rowBetween: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
       gap: spacing[2],
     },
     amount: { fontWeight: '600' },

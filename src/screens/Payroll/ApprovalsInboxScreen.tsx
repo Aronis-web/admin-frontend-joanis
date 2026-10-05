@@ -25,6 +25,7 @@ import {
   Input,
   Title,
 } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { spacing } from '@/design-system/tokens';
@@ -99,8 +100,12 @@ export const PayrollApprovalsInboxScreen: React.FC<Props> = ({ navigation }) => 
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenLayout navigation={navigation as any}>
-        <View style={styles.container}>
-          <Title>Bandeja de aprobaciones</Title>
+        <GradientHeader
+          icon="checkmark-done-outline"
+          title="Bandeja de aprobaciones"
+          subtitle="Solicitudes de planilla por revisar"
+        />
+        <View style={[styles.container, contentWidthStyle]}>
 
           <ChipGroup
             options={ENTITY_TABS}
@@ -365,7 +370,7 @@ function mapError(err: any): string {
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: theme.color.background.canvas },
+    safe: { flex: 1, backgroundColor: theme.color.background.subtle },
     container: { flex: 1, padding: spacing[4], gap: spacing[2] },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list: { paddingVertical: spacing[2], gap: spacing[2] },

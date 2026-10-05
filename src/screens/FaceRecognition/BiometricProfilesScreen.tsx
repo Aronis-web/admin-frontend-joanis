@@ -14,6 +14,8 @@ import { useNavigation } from '@react-navigation/native';
 import { spacing, borderRadius } from '@/design-system/tokens';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { biometricApi, BiometricProfile } from '@/services/api/biometric';
 import Alert from '@/utils/alert';
 
@@ -21,6 +23,7 @@ export const BiometricProfilesScreen: React.FC = () => {
   const navigation = useNavigation();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [profiles, setProfiles] = useState<BiometricProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -188,15 +191,19 @@ export const BiometricProfilesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Perfiles Biométricos</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('RegisterFace' as never)}
-        >
-          <MaterialIcons name="add" size={24} color={theme.color.brand.accent} />
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        title="Perfiles Biométricos"
+        subtitle="Perfiles biométricos registrados"
+        onBack={goBack}
+        right={
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate('RegisterFace' as never)}
+          >
+            <MaterialIcons name="add" size={24} color={theme.color.brand.onHeader} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* Filtro por tipo de entidad */}
       <View style={styles.filterContainer}>
@@ -235,7 +242,7 @@ export const BiometricProfilesScreen: React.FC = () => {
           data={profiles}
           renderItem={renderProfile}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, contentWidthStyle]}
           ListEmptyComponent={renderEmptyState}
           refreshControl={
             <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
@@ -252,23 +259,13 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.color.background.subtle,
     },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: spacing[5],
-      paddingVertical: spacing[4],
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
     addButton: {
-      padding: spacing[2],
+      width: 40,
+      height: 40,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     filterContainer: {
       backgroundColor: theme.color.surface.base,

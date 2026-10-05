@@ -39,6 +39,8 @@ import {
 } from '@/constants/supplierTypes';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import Alert from '@/utils/alert';
 
 type SupplierDetailScreenProps = ScreenProps<'SupplierDetail'>;
@@ -48,6 +50,7 @@ type TabType = 'general' | 'types' | 'legal' | 'contacts' | 'banks' | 'debts' | 
 export const SupplierDetailScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const supplierId = route?.params?.supplierId;
   const isEditMode = !!supplierId;
   const { width, height } = useWindowDimensions();
@@ -1115,30 +1118,25 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation?.goBack()}>
-          <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-            ← Volver
-          </Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-          {isEditMode ? 'Editar Proveedor' : 'Nuevo Proveedor'}
-        </Text>
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            isTablet && styles.saveButtonTablet,
-            saving && styles.saveButtonDisabled,
-          ]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          <Text style={[styles.saveButtonText, isTablet && styles.saveButtonTextTablet]}>
-            {saving ? 'Guardando...' : '💾 Guardar'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        title={isEditMode ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+        onBack={goBack}
+        right={
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              isTablet && styles.saveButtonTablet,
+              saving && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            <Text style={[styles.saveButtonText, isTablet && styles.saveButtonTextTablet]}>
+              {saving ? 'Guardando...' : '💾 Guardar'}
+            </Text>
+          </TouchableOpacity>
+        }
+      />
 
       {/* Tabs */}
       <View style={[styles.tabsContainer, isTablet && styles.tabsContainerTablet]}>
@@ -1207,7 +1205,10 @@ export const SupplierDetailScreen = ({ navigation, route }: any) => {
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, formWidthStyle]}
+      >
         {activeTab === 'general' && renderGeneralTab()}
         {activeTab === 'types' && renderTypesTab()}
         {activeTab === 'legal' && renderLegalEntitiesTab()}
@@ -1405,57 +1406,21 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background.subtle,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  backButtonText: {
-    fontSize: 15,
-    color: theme.color.brand.primary,
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 17,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerTitleTablet: {
-    fontSize: 22,
-  },
   saveButton: {
-    backgroundColor: theme.color.action.primary.background,
-    paddingVertical: 8,
+    backgroundColor: theme.color.brand.headerBadge,
+    height: 40,
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: theme.radii.lg,
   },
   saveButtonTablet: {
-    paddingVertical: 10,
     paddingHorizontal: 20,
   },
   saveButtonDisabled: {
     opacity: 0.5,
   },
   saveButtonText: {
-    color: theme.color.action.primary.text,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: '600',
   },

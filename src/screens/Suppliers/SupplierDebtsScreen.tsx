@@ -26,6 +26,8 @@ import { DebtSummaryCard } from '@/components/Suppliers';
 import { AssignCompanyModal } from '@/components/Suppliers';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import Alert from '@/utils/alert';
 
 type TabType = 'all' | 'unassigned' | 'summary';
@@ -33,6 +35,7 @@ type TabType = 'all' | 'unassigned' | 'summary';
 export const SupplierDebtsScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const initialSupplierId = route?.params?.supplierId;
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -217,13 +220,13 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
 
   const getTransactionTypeColor = (type: TransactionType) => {
     const colors: Record<TransactionType, string> = {
-      PURCHASE: '#e74c3c',
-      PAYMENT: '#27ae60',
-      ADJUSTMENT: '#f39c12',
-      CREDIT_NOTE: '#3498db',
+      PURCHASE: theme.color.icon.danger,
+      PAYMENT: theme.color.icon.success,
+      ADJUSTMENT: theme.color.icon.warning,
+      CREDIT_NOTE: theme.color.icon.accent,
       DEBIT_NOTE: '#e67e22',
     };
-    return colors[type] || '#95a5a6';
+    return colors[type] || theme.color.icon.subtle;
   };
 
   const renderTransactionsList = (txns: SupplierDebtTransaction[]) => {
@@ -274,16 +277,12 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
   if (!selectedSupplierId) {
     return (
       <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.text.body} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Deudas de Proveedores</Text>
-            <Text style={styles.headerSubtitle}>Seleccione un proveedor</Text>
-          </View>
-        </View>
+        <GradientHeader
+          title="Deudas de Proveedores"
+          subtitle="Seleccione un proveedor"
+          onBack={goBack}
+          stat={{ value: suppliers.length, label: 'Total' }}
+        />
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -321,6 +320,7 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
               <Ionicons name="chevron-forward" size={24} color={theme.color.icon.disabled} />
             </TouchableOpacity>
           )}
+          contentContainerStyle={contentWidthStyle}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -337,22 +337,16 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => setSelectedSupplierId(null)}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color={theme.color.text.body} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Deudas - {supplier?.commercialName}</Text>
-          <Text style={styles.headerSubtitle}>Gestión de transacciones</Text>
-        </View>
-        <TouchableOpacity onPress={handleCreateTransaction} style={styles.addButton}>
-          <Ionicons name="add-circle" size={32} color={theme.color.brand.accent} />
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        title={`Deudas - ${supplier?.commercialName ?? ''}`}
+        subtitle="Gestión de transacciones"
+        onBack={() => setSelectedSupplierId(null)}
+        right={
+          <TouchableOpacity onPress={handleCreateTransaction} style={styles.addButton}>
+            <Ionicons name="add" size={22} color={theme.color.brand.onHeader} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
@@ -385,6 +379,7 @@ export const SupplierDebtsScreen = ({ navigation, route }: any) => {
       {/* Content */}
       <ScrollView
         style={styles.content}
+        contentContainerStyle={contentWidthStyle}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {activeTab === 'all' && renderTransactionsList(transactions)}
@@ -441,33 +436,13 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     color: theme.color.text.muted,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: theme.space[2],
-  },
-  headerTitleContainer: {
-    flex: 1,
-    marginLeft: theme.space[3],
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
   addButton: {
-    padding: theme.space[2],
+    width: 40,
+    height: 40,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tabsContainer: {
     flexDirection: 'row',

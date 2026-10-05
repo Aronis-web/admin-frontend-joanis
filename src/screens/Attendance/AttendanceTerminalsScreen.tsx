@@ -38,6 +38,7 @@ import {
   useGenerateTerminalToken,
   useRevokeTerminalToken,
 } from '@/hooks/api/useAttendanceTerminals';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface AttendanceTerminalsScreenProps {
   navigation: any;
@@ -417,20 +418,17 @@ export const AttendanceTerminalsScreen: React.FC<AttendanceTerminalsScreenProps>
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View style={styles.headerFlex}>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Terminales de Asistencia
-            </Text>
-            <Text style={styles.headerSubtitle}>
-              Gestiona los dispositivos de marcación y sus tokens
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.createButton} onPress={openCreateForm}>
-            <Ionicons name="add" size={20} color={theme.color.text.onAction} />
-            <Text style={styles.createButtonText}>Nuevo</Text>
-          </TouchableOpacity>
-        </View>
+        <GradientHeader
+          icon="hardware-chip-outline"
+          title="Terminales de Asistencia"
+          subtitle="Gestiona los dispositivos de marcación y sus tokens"
+          right={
+            <TouchableOpacity style={styles.createButton} onPress={openCreateForm}>
+              <Ionicons name="add" size={20} color={theme.color.brand.onHeader} />
+              <Text style={styles.createButtonText}>Nuevo</Text>
+            </TouchableOpacity>
+          }
+        />
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -440,7 +438,7 @@ export const AttendanceTerminalsScreen: React.FC<AttendanceTerminalsScreenProps>
         ) : (
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
             refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
           >
             {error ? (
@@ -676,46 +674,17 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       color: theme.color.text.muted,
     },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      gap: 12,
-    },
-    headerTablet: {
-      padding: 24,
-    },
-    headerFlex: {
-      flex: 1,
-    },
-    headerTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 30,
-    },
-    headerSubtitle: {
-      fontSize: 13,
-      color: theme.color.text.muted,
-      marginTop: 4,
-    },
     createButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      backgroundColor: theme.color.brand.accent,
+      backgroundColor: theme.color.brand.headerBadge,
       paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 8,
+      height: 40,
+      borderRadius: theme.radii.lg,
     },
     createButtonText: {
-      color: theme.color.text.onAction,
+      color: theme.color.brand.onHeader,
       fontSize: 14,
       fontWeight: '600',
     },

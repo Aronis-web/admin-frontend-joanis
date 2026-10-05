@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   useWindowDimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +34,8 @@ import {
 } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CreatePurchaseScreenProps {
   navigation: any;
@@ -41,6 +44,7 @@ interface CreatePurchaseScreenProps {
 export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [guideNumber, setGuideNumber] = useState('');
   const [guideType, setGuideType] = useState<GuideType>(GuideType.FACTURA);
@@ -90,66 +94,61 @@ export const CreatePurchaseScreen: React.FC<CreatePurchaseScreenProps> = ({ navi
   };
 
   const renderGuideTypePicker = () => {
-    if (!showGuideTypePicker) {
-      return null;
-    }
-
     const guideTypes = Object.values(GuideType);
 
     return (
-      <View style={styles.pickerOverlay}>
-        <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
-          <View style={styles.pickerHeader}>
-            <Title size="medium">Tipo de Guía</Title>
-            <IconButton
-              icon="close"
-              onPress={() => setShowGuideTypePicker(false)}
-              variant="ghost"
-              size="small"
-            />
-          </View>
-          <ScrollView style={styles.pickerList}>
-            {guideTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.pickerItem,
-                  guideType === type && styles.pickerItemSelected,
-                ]}
-                onPress={() => {
-                  setGuideType(type);
-                  setShowGuideTypePicker(false);
-                }}
-              >
-                <Body
-                  color={guideType === type ? theme.color.brand.primary : 'primary'}
-                  style={guideType === type && { fontWeight: '600' }}
+      <Modal
+        visible={showGuideTypePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGuideTypePicker(false)}
+      >
+        <View style={styles.pickerOverlay}>
+          <View style={[styles.pickerContainer, isTablet && styles.pickerContainerTablet]}>
+            <View style={styles.pickerHeader}>
+              <Title size="medium">Tipo de Guía</Title>
+              <IconButton
+                icon="close"
+                onPress={() => setShowGuideTypePicker(false)}
+                variant="ghost"
+                size="small"
+              />
+            </View>
+            <ScrollView style={styles.pickerList}>
+              {guideTypes.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.pickerItem,
+                    guideType === type && styles.pickerItemSelected,
+                  ]}
+                  onPress={() => {
+                    setGuideType(type);
+                    setShowGuideTypePicker(false);
+                  }}
                 >
-                  {GuideTypeLabels[type]}
-                </Body>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                  <Body
+                    color={guideType === type ? theme.color.brand.primary : 'primary'}
+                    style={guideType === type && { fontWeight: '600' }}
+                  >
+                    {GuideTypeLabels[type]}
+                  </Body>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
         </View>
-      </View>
+      </Modal>
     );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Title size="large">Nueva Compra</Title>
-          <Body color="secondary">Ingreso de guía de compra</Body>
-        </View>
-      </View>
+      <GradientHeader
+        title="Nueva Compra"
+        subtitle="Ingreso de guía de compra"
+        onBack={goBack}
+      />
 
       <ScrollView
         style={styles.content}
@@ -259,27 +258,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[4],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    gap: theme.space[3],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContent: {
-    flex: 1,
   },
   content: {
     flex: 1,

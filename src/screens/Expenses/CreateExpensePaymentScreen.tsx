@@ -25,6 +25,8 @@ import {
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CreateExpensePaymentScreenProps {
   navigation: any;
@@ -41,6 +43,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { expenseId } = route.params;
   const [loading, setLoading] = useState(false);
   const [expense, setExpense] = useState<any>(null);
@@ -295,15 +298,9 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Registrar Pago</Text>
-        <View style={styles.headerRight} />
-      </View>
+      <GradientHeader onBack={goBack} title="Registrar Pago" />
 
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={formWidthStyle}>
         {/* Expense Summary */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Gasto</Text>
@@ -510,7 +507,7 @@ export const CreateExpensePaymentScreen: React.FC<CreateExpensePaymentScreenProp
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
+    backgroundColor: theme.color.background.subtle,
   },
   centerContainer: {
     flex: 1,
@@ -522,29 +519,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: theme.color.text.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 32,
   },
   container: {
     flex: 1,

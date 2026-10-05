@@ -43,6 +43,7 @@ import {
   MediaTypeOptions
 } from '@/utils/filePicker';
 import { Pagination } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
@@ -503,19 +504,17 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Todas las Operaciones</Text>
-      </View>
-
-      {/* Search and Filters */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por descripción, referencia, emisor o balance..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+      <GradientHeader
+        icon="swap-horizontal-outline"
+        title="Todas las Operaciones"
+        subtitle="Movimientos de todos los balances"
+        stat={{ value: pagination.total, label: 'Total' }}
+        search={{
+          value: searchQuery,
+          onChangeText: setSearchQuery,
+          placeholder: 'Buscar por descripción, referencia, emisor o balance...',
+        }}
+      />
 
       {/* Receptor Filter */}
       <View style={styles.searchContainer}>
@@ -634,7 +633,7 @@ export const AllBalanceOperationsScreen: React.FC<AllBalanceOperationsScreenProp
             data={filteredOperations}
             renderItem={renderOperationItem}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, contentWidthStyle]}
             refreshing={refreshing}
             onRefresh={handleRefresh}
             ListEmptyComponent={
@@ -1125,19 +1124,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    textAlign: 'center',
   },
   searchContainer: {
     paddingHorizontal: 20,

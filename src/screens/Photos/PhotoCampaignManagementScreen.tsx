@@ -17,6 +17,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { photoCampaignsApi } from '@/services/api';
 import priceProfilesApi from '@/services/api/price-profiles';
 import { productsApi, Product } from '@/services/api/products';
@@ -138,6 +140,7 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const campaignIdFromRoute = route?.params?.campaignId;
 
   const [loading, setLoading] = useState(true);
@@ -1066,19 +1069,9 @@ export const PhotoCampaignManagementScreen: React.FC<PhotoCampaignManagementScre
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          activeOpacity={theme.motion.activeOpacity.medium}
-        >
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestión de Campaña de Fotos</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <GradientHeader onBack={goBack} title="Gestión de Campaña de Fotos" />
 
-      <View style={styles.mainContent}>
+      <View style={[styles.mainContent, contentWidthStyle]}>
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.sectionTitle}>
@@ -1689,39 +1682,6 @@ const createStyles = (theme: Theme) =>
     loaderText: {
       marginTop: theme.space[3],
       color: theme.color.text.muted,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[3],
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radii.full,
-      backgroundColor: theme.color.surface.subtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    backText: {
-      fontSize: 22,
-      color: theme.color.text.body,
-    },
-    headerTitle: {
-      flex: 1,
-      marginHorizontal: theme.space[2],
-      fontSize: 18,
-      fontWeight: '700',
-      color: theme.color.text.body,
-    },
-    headerSpacer: {
-      width: 40,
-      height: 40,
     },
     mainContent: {
       flex: 1,

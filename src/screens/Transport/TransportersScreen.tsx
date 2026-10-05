@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
@@ -17,6 +16,8 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import type { Transporter, TransportersResponse } from '@/types/transport';
 import Alert from '@/utils/alert';
+import { Ionicons } from '@expo/vector-icons';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 export const TransportersScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -230,36 +231,23 @@ export const TransportersScreen: React.FC = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Transportistas</Text>
-        <View style={styles.headerRight}>
-          {canCreate && (
+      <GradientHeader
+        title="Transportistas"
+        subtitle="Empresas de transporte para guías de remisión"
+        icon="bus-outline"
+        right={
+          canCreate ? (
             <TouchableOpacity style={styles.addButton} onPress={handleCreateTransporter}>
-              <Text style={styles.addButtonText}>+</Text>
+              <Ionicons name="add" size={22} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por RUC, razón social o registro MTC..."
-          value={searchQuery}
-          onChangeText={handleSearch}
-          placeholderTextColor={theme.color.text.placeholder}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => handleSearch('')}>
-            <Text style={styles.clearIcon}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+          ) : undefined
+        }
+        search={{
+          value: searchQuery,
+          onChangeText: handleSearch,
+          placeholder: 'Buscar por RUC, razón social o registro MTC...',
+        }}
+      />
 
       {/* Stats */}
       <View style={styles.statsContainer}>
@@ -279,7 +267,7 @@ export const TransportersScreen: React.FC = () => {
           data={transporters}
           renderItem={renderTransporterItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, contentWidthStyle]}
           ListEmptyComponent={renderEmptyState}
           ListFooterComponent={renderFooter}
           refreshControl={
@@ -304,78 +292,13 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.color.background.subtle,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.color.surface.muted,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 24,
-      color: theme.color.text.heading,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      flex: 1,
-      textAlign: 'center',
-    },
-    headerRight: {
-      width: 40,
-      alignItems: 'flex-end',
-    },
     addButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.color.brand.accent,
+      width: 38,
+      height: 38,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    addButtonText: {
-      fontSize: 24,
-      color: theme.color.text.inverse,
-      fontWeight: '600',
-    },
-    searchContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.color.surface.base,
-      marginHorizontal: 20,
-      marginTop: 16,
-      marginBottom: 12,
-      paddingHorizontal: 16,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: theme.color.border.subtle,
-    },
-    searchIcon: {
-      fontSize: 18,
-      marginRight: 8,
-    },
-    searchInput: {
-      flex: 1,
-      paddingVertical: 12,
-      fontSize: 15,
-      color: theme.color.text.heading,
-    },
-    clearIcon: {
-      fontSize: 18,
-      color: theme.color.text.placeholder,
-      padding: 4,
     },
     statsContainer: {
       paddingHorizontal: 20,

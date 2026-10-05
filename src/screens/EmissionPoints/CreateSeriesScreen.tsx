@@ -17,6 +17,8 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CreateSeriesScreenProps {
   navigation: any;
@@ -35,6 +37,7 @@ export const CreateSeriesScreen: React.FC<CreateSeriesScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { emissionPointId, emissionPointName, emissionPointCode } = route.params;
   const { currentSite, currentCompany } = useAuthStore();
   const { width } = useWindowDimensions();
@@ -148,18 +151,16 @@ export const CreateSeriesScreen: React.FC<CreateSeriesScreenProps> = ({
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Nueva Serie
-            </Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              {emissionPointCode} - {emissionPointName}
-            </Text>
-          </View>
-        </View>
+        <GradientHeader
+          title="Nueva Serie"
+          subtitle={`${emissionPointCode} - ${emissionPointName}`}
+          onBack={goBack}
+        />
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, formWidthStyle]}
+        >
           <View style={[styles.form, isTablet && styles.formTablet]}>
             {/* Document Type Selection */}
             <View style={styles.formGroup}>
@@ -334,34 +335,6 @@ const createStyles = (theme: Theme) =>
       marginTop: 12,
       fontSize: 16,
       color: theme.color.text.muted,
-    },
-    header: {
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      padding: 24,
-    },
-    headerInfo: {
-      flex: 1,
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 32,
-    },
-    headerSubtitle: {
-      fontSize: 14,
-      color: theme.color.text.muted,
-      marginTop: 4,
-    },
-    headerSubtitleTablet: {
-      fontSize: 16,
     },
     scrollView: {
       flex: 1,

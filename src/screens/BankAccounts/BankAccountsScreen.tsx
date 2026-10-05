@@ -27,6 +27,8 @@ import {
 } from '@/types/treasury';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { useGoBack } from '@/hooks/useGoBack';
+import { ContentContainer, GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface BankAccountsScreenProps {
   navigation: any;
@@ -41,6 +43,7 @@ interface BankAccountsScreenProps {
 export const BankAccountsScreen: React.FC<BankAccountsScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { companyId, companyName } = route.params;
 
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -236,38 +239,35 @@ export const BankAccountsScreen: React.FC<BankAccountsScreenProps> = ({ navigati
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Cuentas Bancarias</Text>
-          <Text style={styles.headerSubtitle}>{companyName}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() =>
-            navigation.navigate('BankAccountForm', {
-              companyId,
-              companyName,
-              mode: 'create',
-            })
-          }
-        >
-          <Text style={styles.addButtonText}>+ Nueva</Text>
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Cuentas Bancarias"
+        subtitle={companyName}
+        right={
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() =>
+              navigation.navigate('BankAccountForm', {
+                companyId,
+                companyName,
+                mode: 'create',
+              })
+            }
+          >
+            <Text style={styles.addButtonText}>+ Nueva</Text>
+          </TouchableOpacity>
+        }
+      />
 
       {/* Summary */}
-      {renderSummary()}
+      <ContentContainer>{renderSummary()}</ContentContainer>
 
       {/* Accounts List */}
       <FlatList
         data={accounts}
         renderItem={renderAccount}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, contentWidthStyle]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -313,43 +313,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     color: theme.color.text.muted,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.brand.accent,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
   addButton: {
-    backgroundColor: theme.color.state.success.border,
+    backgroundColor: theme.color.brand.headerBadge,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    height: 36,
+    justifyContent: 'center',
+    borderRadius: theme.radii.lg,
   },
   addButtonText: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: 'bold',
   },

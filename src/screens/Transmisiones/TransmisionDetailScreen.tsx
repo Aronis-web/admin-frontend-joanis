@@ -36,6 +36,8 @@ import { AddProductModal } from '@/components/Transmisiones/AddProductModal';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface TransmisionDetailScreenProps {
   navigation: any;
@@ -52,6 +54,7 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { transmisionId } = route.params;
   const [transmision, setTransmision] = useState<TransmisionWithProducts | null>(null);
   const [products, setProducts] = useState<TransmisionProduct[]>([]);
@@ -327,15 +330,11 @@ export const TransmisionDetailScreen: React.FC<TransmisionDetailScreenProps> = (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Volver</Text>
-          </TouchableOpacity>
-        </View>
+        <GradientHeader title="Detalle de Transmisión" onBack={goBack} />
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, contentWidthStyle]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {renderHeader()}
@@ -384,38 +383,11 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.color.background.subtle,
     },
-    header: {
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-    },
     headerTop: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 8,
-    },
-    backButton: {
-      paddingVertical: 8,
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: theme.color.brand.accent,
-      fontWeight: '600',
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 28,
     },
     scrollView: {
       flex: 1,

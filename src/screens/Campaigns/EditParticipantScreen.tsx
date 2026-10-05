@@ -19,6 +19,8 @@ import { PriceProfile } from '@/types/price-profiles';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface EditParticipantScreenProps {
   navigation: any;
@@ -35,17 +37,25 @@ export const EditParticipantScreen: React.FC<any> = ({
   navigation,
   route,
 }: EditParticipantScreenProps) => {
-  const { campaignId, participantId, participant } = route.params;
+  const { campaignId, participantId } = route.params;
+  // Tras recargar la página (F5) el objeto `participant` no viaja en la URL:
+  // en ese caso se vuelve a pedir por `campaignId` + `participantId`.
+  const routeParticipant =
+    route.params.participant && typeof route.params.participant === 'object'
+      ? route.params.participant
+      : null;
+  const [participant, setParticipant] = useState<CampaignParticipant | null>(routeParticipant);
   const [assignedAmount, setAssignedAmount] = useState(
-    (participant.assignedAmountCents / 100).toFixed(2)
+    routeParticipant ? (routeParticipant.assignedAmountCents / 100).toFixed(2) : ''
   );
-  const [priceProfileId, setPriceProfileId] = useState(participant.priceProfileId || '');
+  const [priceProfileId, setPriceProfileId] = useState(routeParticipant?.priceProfileId || '');
   const [priceProfiles, setPriceProfiles] = useState<PriceProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const { width, height } = useWindowDimensions();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -56,6 +66,18 @@ export const EditParticipantScreen: React.FC<any> = ({
   const loadPriceProfiles = async () => {
     setLoadingData(true);
     try {
+      if (!routeParticipant) {
+        const participants = await campaignsService.getParticipants(campaignId);
+        const found = participants.find((p) => p.id === participantId);
+        if (!found) {
+          Alert.alert('Error', 'Participante no encontrado');
+          goBack();
+          return;
+        }
+        setParticipant(found);
+        setAssignedAmount((found.assignedAmountCents / 100).toFixed(2));
+        setPriceProfileId(found.priceProfileId || '');
+      }
       const profiles = await priceProfilesApi.getActivePriceProfiles();
       setPriceProfiles(profiles);
     } catch (error: any) {
@@ -85,7 +107,7 @@ export const EditParticipantScreen: React.FC<any> = ({
         campaignId,
         participantId,
         updateData,
-        priceProfileIdOriginal: participant.priceProfileId,
+        priceProfileIdOriginal: participant?.priceProfileId,
         priceProfileIdNew: priceProfileId,
       });
 
@@ -114,7 +136,7 @@ export const EditParticipantScreen: React.FC<any> = ({
     }
   };
 
-  if (loadingData) {
+  if (loadingData || !participant) {
     return (
       <ScreenLayout navigation={navigation}>
         <SafeAreaView style={styles.container}>
@@ -130,18 +152,15 @@ export const EditParticipantScreen: React.FC<any> = ({
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Editar Participante</Text>
-        </View>
+        <GradientHeader onBack={goBack} title="Editar Participante" />
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.scrollContentTablet,
+            formWidthStyle,
+          ]}
         >
           <View style={[styles.section, isTablet && styles.sectionTablet]}>
             <Text style={[styles.sectionTitle, isTablet && styles.sectionTitleTablet]}>
@@ -228,7 +247,7 @@ export const EditParticipantScreen: React.FC<any> = ({
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.color.background.muted,
+    backgroundColor: theme.color.background.subtle,
   },
   loadingContainer: {
     flex: 1,
@@ -239,36 +258,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: theme.color.text.subtle,
-  },
-  header: {
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: theme.color.brand.primary,
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  titleTablet: {
-    fontSize: 32,
   },
   scrollView: {
     flex: 1,

@@ -18,6 +18,7 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface EmissionPointsScreenProps {
   navigation: any;
@@ -245,28 +246,22 @@ export const EmissionPointsScreen: React.FC<EmissionPointsScreenProps> = ({ navi
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Puntos de Emisión
-            </Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              {currentSite?.name || 'Sede'}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.createButton, isTablet && styles.createButtonTablet]}
-            onPress={handleCreateEmissionPoint}
-          >
-            <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
-              + Nuevo Punto de Emisión
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <GradientHeader
+          icon="print-outline"
+          title="Puntos de Emisión"
+          subtitle={currentSite?.name || 'Sede'}
+          right={
+            <TouchableOpacity style={styles.createButton} onPress={handleCreateEmissionPoint}>
+              <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
+                + Nuevo Punto de Emisión
+              </Text>
+            </TouchableOpacity>
+          }
+        />
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {emissionPoints.length === 0 ? (
@@ -310,46 +305,15 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       color: theme.color.text.muted,
     },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      padding: 24,
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 32,
-    },
-    headerSubtitle: {
-      fontSize: 14,
-      color: theme.color.text.muted,
-      marginTop: 4,
-    },
-    headerSubtitleTablet: {
-      fontSize: 16,
-    },
     createButton: {
-      backgroundColor: theme.color.brand.accent,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 8,
-    },
-    createButtonTablet: {
-      paddingHorizontal: 24,
-      paddingVertical: 14,
+      minHeight: 38,
+      justifyContent: 'center',
+      backgroundColor: theme.color.brand.headerBadge,
+      paddingHorizontal: 14,
+      borderRadius: theme.radii.lg,
     },
     createButtonText: {
-      color: theme.color.text.inverse,
+      color: theme.color.brand.onHeader,
       fontSize: 14,
       fontWeight: '600',
     },

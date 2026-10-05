@@ -33,6 +33,8 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { DistributionFormModal } from '@/components/Campaigns/DistributionFormModal';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CampaignProductDetailScreenProps {
   navigation: any;
@@ -52,6 +54,7 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { campaignId, productId, fromCampaignDetail, openDistributionModal } = route.params;
   const [product, setProduct] = useState<CampaignProduct | null>(null);
   const [preview, setPreview] = useState<DistributionPreviewResponse | null>(null);
@@ -207,12 +210,11 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     }
   }, [fromCampaignDetail, navigation, campaignId, productId, loadProduct]);
 
+  // La pantalla 'ManageCustomDistribution' nunca existió (el botón no hacía
+  // nada): "Gestionar" abre el mismo modal de distribución.
   const handleManageCustomDistribution = useCallback(() => {
-    navigation.navigate('ManageCustomDistribution', {
-      campaignId,
-      productId,
-    });
-  }, [navigation, campaignId, productId]);
+    void handleGenerateDistribution();
+  }, [handleGenerateDistribution]);
 
   const handleChangeToActive = useCallback(async () => {
     if (!product) {
@@ -273,32 +275,29 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity
-            onPress={() => {
-              if (fromCampaignDetail) {
-                // Navigate back with skipReloadOnce flag to prevent reload
-                navigation.navigate('CampaignDetail', {
-                  campaignId,
-                  skipReloadOnce: true,
-                });
-              } else {
-                navigation.goBack();
-              }
-            }}
-            style={styles.backButton}
-          >
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Detalle del Producto</Text>
-        </View>
+        <GradientHeader
+          title="Detalle del Producto"
+          onBack={() => {
+            if (fromCampaignDetail) {
+              // Navigate back with skipReloadOnce flag to prevent reload
+              navigation.navigate('CampaignDetail', {
+                campaignId,
+                skipReloadOnce: true,
+              });
+            } else {
+              goBack();
+            }
+          }}
+        />
 
         {/* Content */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.scrollContentTablet,
+            contentWidthStyle,
+          ]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {/* Product Info */}
@@ -658,36 +657,6 @@ const createStyles = (theme: Theme) =>
       marginTop: 12,
       fontSize: 16,
       color: theme.color.text.subtle,
-    },
-    header: {
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      paddingHorizontal: 32,
-      paddingVertical: 24,
-    },
-    backButton: {
-      marginBottom: 8,
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: theme.color.brand.primary,
-      fontWeight: '600',
-    },
-    backButtonTextTablet: {
-      fontSize: 18,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    titleTablet: {
-      fontSize: 32,
     },
     scrollView: {
       flex: 1,

@@ -19,7 +19,15 @@ import {
   PosSessionRequestDetail,
   PosSessionSaleDetail,
 } from '@/types/pos-sessions';
-import { Badge, Button, Card, Text } from '@/design-system/components';
+import {
+  Badge,
+  Button,
+  Card,
+  Text,
+  GradientHeader,
+  contentWidthStyle,
+} from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { Pagination } from '@/design-system';
 import { activeOpacity } from '@/design-system/tokens';
 import { useTheme } from '@/design-system/themes';
@@ -70,6 +78,7 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const getManualDifferenceColor = (differenceCents: number): string => {
     if (differenceCents > 0) return theme.color.state.info.text;
@@ -209,22 +218,12 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          activeOpacity={activeOpacity.medium}
-        >
-          <Text variant="titleLarge" color="secondary">←</Text>
-        </TouchableOpacity>
-
-        <View style={styles.headerCenter}>
-          <Text variant="titleLarge" color="primary">Gestión de Sesiones</Text>
-          <Text variant="caption" color="tertiary">Listado paginado de sesiones de caja</Text>
-        </View>
-
-        <View style={styles.headerSpacer} />
-      </View>
+      <GradientHeader
+        title="Gestión de Sesiones"
+        subtitle="Listado paginado de sesiones de caja"
+        onBack={goBack}
+        stat={{ value: total, label: 'Total' }}
+      />
 
       {loading ? (
         <View style={styles.center}>
@@ -238,6 +237,7 @@ export const SessionsManagementScreen: React.FC<SessionsManagementScreenProps> =
             contentContainerStyle={[
               styles.contentContainer,
               { paddingBottom: Math.max(insets.bottom + 110, 140) },
+              contentWidthStyle,
             ]}
             refreshControl={
               <RefreshControl
@@ -561,16 +561,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
   },
   backButton: {
     width: 40,

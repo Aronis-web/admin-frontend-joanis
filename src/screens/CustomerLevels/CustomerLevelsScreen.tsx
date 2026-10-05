@@ -28,6 +28,8 @@ import {
 import type { CustomerLevel, CreateCustomerLevelRequest } from '@/types/customer-levels';
 import { priceProfilesApi } from '@/services/api/price-profiles';
 import type { PriceProfile } from '@/types/price-profiles';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface FormState {
   code: string;
@@ -58,6 +60,7 @@ interface Props {
 export const CustomerLevelsScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const { data: levels = [], isLoading, isRefetching, isError, refetch } = useCustomerLevels();
   const createMutation = useCreateCustomerLevel();
@@ -294,13 +297,12 @@ export const CustomerLevelsScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Niveles de Socia</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Niveles de Socia"
+        subtitle="Trato comercial por nivel de cliente"
+        stat={{ value: sortedLevels.length, label: 'Total' }}
+      />
 
       <View style={styles.infoBanner}>
         <Text style={styles.infoBannerIcon}>💡</Text>
@@ -322,7 +324,7 @@ export const CustomerLevelsScreen: React.FC<Props> = ({ navigation }) => {
           data={sortedLevels}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[styles.listContainer, contentWidthStyle]}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -555,31 +557,6 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       color: theme.color.text.muted,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.space[5],
-      paddingVertical: theme.space[4],
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: { fontSize: 24, color: theme.color.text.heading },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      flex: 1,
-      textAlign: 'center',
-    },
-    headerSpacer: { width: 40 },
     infoBanner: {
       flexDirection: 'row',
       alignItems: 'center',

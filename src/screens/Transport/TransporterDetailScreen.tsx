@@ -15,6 +15,9 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import type { Transporter } from '@/types/transport';
 import Alert from '@/utils/alert';
+import { Ionicons } from '@expo/vector-icons';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 export const TransporterDetailScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -23,6 +26,7 @@ export const TransporterDetailScreen: React.FC = () => {
   const { hasPermission } = usePermissions();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const { transporterId } = route.params as { transporterId: string };
 
@@ -123,13 +127,7 @@ export const TransporterDetailScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalle de Transportista</Text>
-          <View style={styles.headerRight} />
-        </View>
+        <GradientHeader title="Detalle de Transportista" onBack={goBack} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando transportista...</Text>
@@ -145,21 +143,22 @@ export const TransporterDetailScreen: React.FC = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalle de Transportista</Text>
-        <View style={styles.headerRight}>
-          {canUpdate && (
+      <GradientHeader
+        title="Detalle de Transportista"
+        onBack={goBack}
+        right={
+          canUpdate ? (
             <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-              <Text style={styles.editButtonText}>✏️</Text>
+              <Ionicons name="create-outline" size={22} color={theme.color.brand.onHeader} />
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
+          ) : undefined
+        }
+      />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, contentWidthStyle]}
+      >
         {/* Status Badge */}
         <View style={styles.statusContainer}>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(transporter.status) }]}>
@@ -311,49 +310,13 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.color.background.subtle,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.color.surface.muted,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 24,
-      color: theme.color.text.heading,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      flex: 1,
-      textAlign: 'center',
-    },
-    headerRight: {
-      width: 40,
-      alignItems: 'flex-end',
-    },
     editButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.color.state.info.background,
+      width: 38,
+      height: 38,
+      borderRadius: theme.radii.lg,
+      backgroundColor: theme.color.brand.headerBadge,
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    editButtonText: {
-      fontSize: 20,
     },
     content: {
       flex: 1,

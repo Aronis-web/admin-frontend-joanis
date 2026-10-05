@@ -18,6 +18,8 @@ import { PaymentCard } from '@/components/Expenses/PaymentCard';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface ExpenseDetailScreenProps {
   navigation: any;
@@ -32,6 +34,7 @@ interface ExpenseDetailScreenProps {
 export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { expenseId, action } = route.params;
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
@@ -212,13 +215,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalle de Gasto</Text>
-          <View style={styles.headerRight} />
-        </View>
+        <GradientHeader onBack={goBack} title="Detalle de Gasto" />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.color.brand.accent} />
           <Text style={styles.loadingText}>Cargando...</Text>
@@ -230,13 +227,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
   if (!expense) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalle de Gasto</Text>
-          <View style={styles.headerRight} />
-        </View>
+        <GradientHeader onBack={goBack} title="Detalle de Gasto" />
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>No se encontró el gasto</Text>
         </View>
@@ -263,17 +254,11 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{expense.code}</Text>
-        <View style={styles.headerRight} />
-      </View>
+      <GradientHeader onBack={goBack} title={expense.code} />
       <ScrollView
         ref={scrollViewRef}
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, contentWidthStyle]}
       >
         {/* Header Card */}
         <View style={styles.card}>
@@ -538,30 +523,7 @@ export const ExpenseDetailScreen: React.FC<ExpenseDetailScreenProps> = ({ naviga
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 32,
+    backgroundColor: theme.color.background.subtle,
   },
   container: {
     flex: 1,

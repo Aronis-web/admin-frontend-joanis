@@ -13,11 +13,9 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -30,12 +28,13 @@ import {
   EmptyState,
   ErrorState,
   Pagination,
-  Title,
   useTheme,
   useThemedStyles,
 } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useSmartPurchaseGroup, useSmartPurchaseOrders } from '@/hooks/api/useSmartPurchase';
 import { useAllActiveSites } from './hooks/useAllActiveSites';
 import type { MainStackParamList } from '@/types/navigation';
@@ -61,6 +60,7 @@ const PAGE_LIMIT = 25;
 export const SmartPurchaseOrdersScreen: React.FC<Props> = ({ navigation, route }) => {
   const groupId = route.params?.groupId;
   const theme = useTheme();
+  const goBack = useGoBack();
   const styles = useThemedStyles(createStyles);
 
   const [status, setStatus] = useState<SmartPurchaseOrderStatus | 'ALL'>('ALL');
@@ -152,22 +152,16 @@ export const SmartPurchaseOrdersScreen: React.FC<Props> = ({ navigation, route }
   return (
     <ScreenLayout navigation={navigation as any}>
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <View style={styles.header}>
-          {groupId ? (
-            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={12}>
-              <Ionicons name="chevron-back" size={24} color={theme.color.text.body} />
-            </TouchableOpacity>
-          ) : null}
-          <View style={{ flex: 1 }}>
-            <Title>Órdenes sugeridas</Title>
-            <Caption color="muted">
-              {group ? `Grupo: ${group.name}` : 'Todas las órdenes del módulo.'}
-              {total > 0 ? ` · ${total} orden(es)` : ''}
-            </Caption>
-          </View>
-        </View>
+        <GradientHeader
+          icon="clipboard-outline"
+          onBack={groupId ? goBack : undefined}
+          title="Órdenes sugeridas"
+          subtitle={`${group ? `Grupo: ${group.name}` : 'Todas las órdenes del módulo.'}${
+            total > 0 ? ` · ${total} orden(es)` : ''
+          }`}
+        />
 
-        <View style={styles.filters}>
+        <View style={[styles.filters, contentWidthStyle]}>
           <ChipGroup
             options={ORDER_STATUS_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
             selected={[status]}
@@ -187,7 +181,7 @@ export const SmartPurchaseOrdersScreen: React.FC<Props> = ({ navigation, route }
             data={data?.data ?? []}
             keyExtractor={(o) => o.id}
             renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, contentWidthStyle]}
             ItemSeparatorComponent={() => <View style={{ height: spacing[2] }} />}
             ListEmptyComponent={renderEmpty()}
             refreshControl={
@@ -253,18 +247,11 @@ const Metric: React.FC<{ label: string; value: string }> = ({ label, value }) =>
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.color.background.canvas },
+    container: { flex: 1, backgroundColor: theme.color.background.subtle },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[2],
-      paddingHorizontal: spacing[6],
-      paddingTop: spacing[4],
-      paddingBottom: spacing[2],
-    },
     filters: {
       paddingHorizontal: spacing[6],
+      paddingTop: spacing[3],
       paddingBottom: spacing[2],
     },
     listContent: {

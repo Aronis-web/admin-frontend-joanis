@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import { expensesService } from '@/services/api';
 import { ExpenseProject, ProjectStatus, ProjectStatusLabels } from '@/types/expenses';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
@@ -19,6 +18,8 @@ import { MAIN_ROUTES } from '@/constants/routes';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface ExpenseProjectsScreenProps {
   navigation: any;
@@ -27,6 +28,7 @@ interface ExpenseProjectsScreenProps {
 export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [projects, setProjects] = useState<ExpenseProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -135,7 +137,7 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ na
     return (
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {projects.map((project) => (
@@ -153,13 +155,12 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ na
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Proyectos de Gastos</Text>
-        <View style={styles.headerRight} />
-      </View>
+      <GradientHeader
+        title="Proyectos de Gastos"
+        subtitle="Proyectos y sus gastos asociados"
+        onBack={goBack}
+        stat={{ value: projects.length, label: 'Total' }}
+      />
       <View style={styles.container}>
         {renderStatusFilter()}
         {renderContent()}
@@ -181,30 +182,7 @@ export const ExpenseProjectsScreen: React.FC<ExpenseProjectsScreenProps> = ({ na
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 32,
+    backgroundColor: theme.color.background.subtle,
   },
   container: {
     flex: 1,

@@ -18,6 +18,8 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import logger from '@/utils/logger';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface EmissionPointSeriesScreenProps {
   navigation: any;
@@ -36,6 +38,7 @@ export const EmissionPointSeriesScreen: React.FC<EmissionPointSeriesScreenProps>
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { emissionPointId, emissionPointName, emissionPointCode } = route.params;
   const [series, setSeries] = useState<DocumentSeries[]>([]);
   const [loading, setLoading] = useState(true);
@@ -225,28 +228,22 @@ export const EmissionPointSeriesScreen: React.FC<EmissionPointSeriesScreenProps>
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Series - {emissionPointCode}
-            </Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              {emissionPointName}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.createButton, isTablet && styles.createButtonTablet]}
-            onPress={handleCreateSeries}
-          >
-            <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
-              + Nueva Serie
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <GradientHeader
+          title={`Series - ${emissionPointCode}`}
+          subtitle={emissionPointName}
+          onBack={goBack}
+          right={
+            <TouchableOpacity style={styles.createButton} onPress={handleCreateSeries}>
+              <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
+                + Nueva Serie
+              </Text>
+            </TouchableOpacity>
+          }
+        />
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {series.length === 0 ? (
@@ -285,49 +282,15 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       color: theme.color.text.muted,
     },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      padding: 24,
-    },
-    headerInfo: {
-      flex: 1,
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 32,
-    },
-    headerSubtitle: {
-      fontSize: 14,
-      color: theme.color.text.muted,
-      marginTop: 4,
-    },
-    headerSubtitleTablet: {
-      fontSize: 16,
-    },
     createButton: {
-      backgroundColor: theme.color.brand.accent,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 8,
-    },
-    createButtonTablet: {
-      paddingHorizontal: 24,
-      paddingVertical: 14,
+      minHeight: 38,
+      justifyContent: 'center',
+      backgroundColor: theme.color.brand.headerBadge,
+      paddingHorizontal: 14,
+      borderRadius: theme.radii.lg,
     },
     createButtonText: {
-      color: theme.color.text.inverse,
+      color: theme.color.brand.onHeader,
       fontSize: 14,
       fontWeight: '600',
     },

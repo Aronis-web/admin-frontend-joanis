@@ -32,6 +32,8 @@ import { Pagination } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { durations } from '@/design-system/tokens/animations';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type Props = NativeStackScreenProps<any, 'UploadedFilesList'>;
 
@@ -240,6 +242,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { token } = useAuthStore();
   const [files, setFiles] = useState<SourceFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -419,23 +422,22 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.text.body} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Archivos Subidos</Text>
-        <TouchableOpacity
-          onPress={() => setShowFilters(!showFilters)}
-          style={[styles.filterButton, hasActiveFilters && styles.filterButtonActive]}
-        >
-          <Ionicons
-            name="filter"
-            size={22}
-            color={hasActiveFilters ? theme.color.surface.base : theme.color.text.muted}
-          />
-        </TouchableOpacity>
-      </View>
+      <GradientHeader
+        title="Archivos Subidos"
+        onBack={goBack}
+        right={
+          <TouchableOpacity
+            onPress={() => setShowFilters(!showFilters)}
+            style={[styles.filterButton, hasActiveFilters && styles.filterButtonActive]}
+          >
+            <Ionicons
+              name="filter"
+              size={22}
+              color={hasActiveFilters ? theme.color.brand.primary : theme.color.brand.onHeader}
+            />
+          </TouchableOpacity>
+        }
+      />
 
       {/* Filters */}
       {showFilters && (
@@ -505,6 +507,7 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
       {/* Files List */}
       <ScrollView
         style={styles.content}
+        contentContainerStyle={contentWidthStyle}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -645,42 +648,18 @@ export const UploadedFilesListScreen: React.FC<Props> = ({ navigation }) => {
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.color.background.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    ...theme.shadow.sm,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.background.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
+    backgroundColor: theme.color.background.subtle,
   },
   filterButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.background.muted,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: theme.color.brand.primary,
+    backgroundColor: theme.color.surface.base,
   },
   filtersContainer: {
     backgroundColor: theme.color.surface.base,

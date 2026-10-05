@@ -7,6 +7,8 @@ import { BizlinksConfig } from '../../types/bizlinks';
 import { useBizlinksConfig } from '../../hooks/useBizlinks';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type Props = NativeStackScreenProps<any, 'BizlinksConfigEdit'>;
 
@@ -15,6 +17,7 @@ export const BizlinksConfigEditScreen: React.FC<Props> = ({ navigation, route })
   const { getConfigById } = useBizlinksConfig();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [config, setConfig] = useState<BizlinksConfig | null>(params.config || null);
   const [loading, setLoading] = useState(!params.config && !!params.configId);
 
@@ -68,7 +71,8 @@ export const BizlinksConfigEditScreen: React.FC<Props> = ({ navigation, route })
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.content}>
+      <GradientHeader title="Editar Configuración" subtitle="Conexión con Bizlinks" onBack={goBack} />
+      <ScrollView style={styles.content} contentContainerStyle={formWidthStyle}>
         <BizlinksConfigForm
           config={config}
           companyId={config.companyId}

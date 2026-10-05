@@ -23,6 +23,8 @@ import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CreateTransmisionScreenProps {
   navigation: any;
@@ -31,6 +33,7 @@ interface CreateTransmisionScreenProps {
 export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TransmisionStatus>(TransmisionStatus.DRAFT);
@@ -132,16 +135,12 @@ export const CreateTransmisionScreen: React.FC<CreateTransmisionScreenProps> = (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Volver</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-            Nueva Transmisión
-          </Text>
-        </View>
+        <GradientHeader title="Nueva Transmisión" onBack={goBack} />
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.content, formWidthStyle]}
+        >
           <View style={styles.section}>
             <Text style={[styles.label, isTablet && styles.labelTablet]}>
               Nombre <Text style={styles.required}>*</Text>
@@ -237,34 +236,6 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
-    },
-    header: {
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-    },
-    backButton: {
-      paddingVertical: 8,
-      marginBottom: 8,
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: theme.color.brand.accent,
-      fontWeight: '600',
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 28,
     },
     scrollView: {
       flex: 1,

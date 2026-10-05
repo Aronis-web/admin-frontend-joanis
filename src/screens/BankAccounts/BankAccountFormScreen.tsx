@@ -33,6 +33,8 @@ import {
 } from '@/types/treasury';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
 
 type FormMode = 'create' | 'edit' | 'view';
 
@@ -88,6 +90,7 @@ const initialFormData: FormData = {
 export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { companyId, companyName, accountId, mode: initialMode } = route.params;
 
   const [mode, setMode] = useState<FormMode>(initialMode || 'create');
@@ -261,23 +264,24 @@ export const BankAccountFormScreen: React.FC<BankAccountFormScreenProps> = ({ na
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{getTitle()}</Text>
-          <Text style={styles.headerSubtitle}>{companyName}</Text>
-        </View>
-        {isViewMode && (
-          <TouchableOpacity style={styles.editButton} onPress={() => setMode('edit')}>
-            <Text style={styles.editButtonText}>✏️ Editar</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title={getTitle()}
+        subtitle={companyName}
+        right={
+          isViewMode ? (
+            <TouchableOpacity style={styles.editButton} onPress={() => setMode('edit')}>
+              <Text style={styles.editButtonText}>✏️ Editar</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={formWidthStyle}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Account Info (View Mode) */}
         {isViewMode && account && (
           <View style={styles.accountInfoCard}>
@@ -691,43 +695,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     color: theme.color.text.muted,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.brand.accent,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
   editButton: {
-    backgroundColor: theme.color.brand.accent,
+    backgroundColor: theme.color.brand.headerBadge,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    height: 36,
+    justifyContent: 'center',
+    borderRadius: theme.radii.lg,
   },
   editButtonText: {
-    color: theme.color.text.inverse,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: 'bold',
   },

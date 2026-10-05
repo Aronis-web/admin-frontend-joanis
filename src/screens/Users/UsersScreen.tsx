@@ -23,6 +23,8 @@ import { Pagination } from '@/design-system';
 import { MAIN_ROUTES } from '@/constants/routes';
 import Alert from '@/utils/alert';
 import { ProtectedFAB } from '@/components/ui/ProtectedFAB';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface UsersScreenProps {
   navigation: any;
@@ -31,6 +33,7 @@ interface UsersScreenProps {
 export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -264,19 +267,12 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitles}>
-          <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>Usuarios</Text>
-          <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-            Gestión de accesos y roles
-          </Text>
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Usuarios"
+        subtitle="Gestión de accesos y roles"
+        stat={{ value: pagination.total, label: 'Total' }}
+      />
 
       {/* Search Bar */}
       <View style={[styles.searchContainer, isTablet && styles.searchContainerTablet]}>
@@ -306,7 +302,11 @@ export const UsersScreen: React.FC<UsersScreenProps> = ({ navigation }) => {
       {/* Users List */}
       <ScrollView
         style={styles.content}
-        contentContainerStyle={[styles.contentContainer, isTablet && styles.contentContainerTablet]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          isTablet && styles.contentContainerTablet,
+          contentWidthStyle,
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
@@ -415,55 +415,6 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.color.background.subtle,
     },
     // Header
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: theme.space[5],
-      paddingVertical: theme.space[4],
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    headerTablet: {
-      paddingHorizontal: theme.space[8],
-      paddingVertical: theme.space[5],
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radii.lg,
-      backgroundColor: theme.color.surface.muted,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 20,
-      color: theme.color.text.muted,
-      fontWeight: '600',
-    },
-    headerTitles: {
-      flex: 1,
-      marginLeft: theme.space[4],
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-    },
-    headerTitleTablet: {
-      fontSize: 24,
-    },
-    headerSubtitle: {
-      fontSize: 13,
-      color: theme.color.text.muted,
-      marginTop: 2,
-    },
-    headerSubtitleTablet: {
-      fontSize: 15,
-    },
-    headerSpacer: {
-      width: 40,
-    },
     // Search
     searchContainer: {
       flexDirection: 'row',

@@ -57,6 +57,8 @@ import {
   useThemedStyles,
 } from '@/design-system';
 import type { Theme } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface RepartoParticipantDetailScreenProps {
   navigation: any;
@@ -254,6 +256,7 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { campaignId, participantId } = route.params;
   const [participant, setParticipant] = useState<CampaignParticipant | null>(null);
   const [productos, setProductos] = useState<ProductoReparto[]>([]);
@@ -1519,33 +1522,15 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <Text style={[styles.title, isTablet && styles.titleTablet]}>{participantName}</Text>
-            <View style={styles.typeBadgeContainer}>
-              <View
-                style={[
-                  styles.typeBadge,
-                  isTablet && styles.typeBadgeTablet,
-                  participant.participantType === ParticipantType.EXTERNAL_COMPANY
-                    ? styles.typeBadgeCompany
-                    : styles.typeBadgeSite,
-                ]}
-              >
-                <Text style={[styles.typeText, isTablet && styles.typeTextTablet]}>
-                  {participant.participantType === ParticipantType.EXTERNAL_COMPANY
-                    ? '🏢 Empresa'
-                    : '🏛️ Sede'}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title={participantName}
+          subtitle={
+            participant.participantType === ParticipantType.EXTERNAL_COMPANY
+              ? '🏢 Empresa'
+              : '🏛️ Sede'
+          }
+        />
 
         {/* Participant Info */}
         <View style={[styles.infoSection, isTablet && styles.infoSectionTablet]}>
@@ -1637,7 +1622,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         {productos.length === 0 ? (
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            contentContainerStyle={[
+              styles.scrollContent,
+              isTablet && styles.scrollContentTablet,
+              contentWidthStyle,
+            ]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           >
             <View style={styles.emptyContainer}>
@@ -1652,7 +1641,11 @@ export const RepartoParticipantDetailScreen: React.FC<RepartoParticipantDetailSc
         ) : (
           <FlatList
             style={styles.scrollView}
-            contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+            contentContainerStyle={[
+              styles.scrollContent,
+              isTablet && styles.scrollContentTablet,
+              contentWidthStyle,
+            ]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
             data={filteredProductos}
             renderItem={({ item }) => renderProductCard(item)}
@@ -2423,68 +2416,6 @@ const createStyles = (theme: Theme) =>
       marginTop: spacing[3],
       fontSize: 16,
       color: theme.color.text.muted,
-    },
-    header: {
-      backgroundColor: theme.color.background.canvas,
-      paddingHorizontal: spacing[4],
-      paddingVertical: spacing[4],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.default,
-    },
-    headerTablet: {
-      paddingHorizontal: spacing[8],
-      paddingVertical: spacing[6],
-    },
-    backButton: {
-      marginBottom: spacing[2],
-    },
-    backButtonText: {
-      fontSize: 16,
-      color: theme.color.brand.primary,
-      fontWeight: '600',
-    },
-    backButtonTextTablet: {
-      fontSize: 18,
-    },
-    headerInfo: {
-      marginTop: spacing[2],
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: theme.color.text.heading,
-    },
-    titleTablet: {
-      fontSize: 32,
-    },
-    typeBadgeContainer: {
-      marginTop: spacing[2],
-    },
-    typeBadge: {
-      paddingHorizontal: spacing[2.5],
-      paddingVertical: spacing[1],
-      borderRadius: borderRadius.lg,
-      borderWidth: 1,
-      alignSelf: 'flex-start',
-    },
-    typeBadgeTablet: {
-      paddingHorizontal: spacing[3.5],
-      paddingVertical: spacing[1.5],
-    },
-    typeBadgeCompany: {
-      backgroundColor: theme.color.brand.primarySoft,
-      borderColor: theme.color.brand.primary,
-    },
-    typeBadgeSite: {
-      backgroundColor: theme.color.state.success.background,
-      borderColor: theme.color.state.success.border,
-    },
-    typeText: {
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    typeTextTablet: {
-      fontSize: 14,
     },
     infoSection: {
       backgroundColor: theme.color.background.canvas,

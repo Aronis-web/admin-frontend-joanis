@@ -13,9 +13,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Alert from '@/utils/alert';
 
-import { activeOpacity } from '@/design-system/tokens';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { MAIN_ROUTES } from '@/constants/routes';
 import { photoCampaignsApi } from '@/services/api';
 import { PhotoCampaign, PhotoCampaignStatus } from '@/types/photo-campaigns';
@@ -35,6 +36,7 @@ const statusLabel: Record<PhotoCampaignStatus, string> = {
 export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -123,24 +125,22 @@ export const PhotosScreen: React.FC<PhotosScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={activeOpacity.medium}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Campañas de Fotos</Text>
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Campañas de Fotos"
+        subtitle="Sesiones de fotos de productos"
+        stat={{ value: campaigns.length, label: 'Total' }}
+        search={{
+          value: search,
+          onChangeText: setSearch,
+          placeholder: 'Buscar por código, nombre o descripción...',
+        }}
+      />
 
       <View style={styles.content}>
-        <TextInput
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Buscar por código, nombre o descripción..."
-          placeholderTextColor={theme.color.text.placeholder}
-        />
-
         <ScrollView
           style={styles.list}
+          contentContainerStyle={contentWidthStyle}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {filteredCampaigns.map((campaign) => (
@@ -256,33 +256,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background.subtle,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.radii.full,
-    backgroundColor: theme.color.surface.subtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: theme.space[2],
-  },
-  backText: {
-    fontSize: 22,
-    color: theme.color.text.heading,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
   content: {
     flex: 1,
     padding: theme.space[3],
@@ -308,16 +281,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.color.text.inverse,
     fontWeight: '700',
     fontSize: 12,
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: theme.color.border.default,
-    borderRadius: theme.radii.md,
-    backgroundColor: theme.color.surface.base,
-    color: theme.color.text.body,
-    paddingHorizontal: theme.space[3],
-    paddingVertical: theme.space[2.5],
-    marginBottom: theme.space[3],
   },
   inputLabel: {
     marginTop: theme.space[0.5],

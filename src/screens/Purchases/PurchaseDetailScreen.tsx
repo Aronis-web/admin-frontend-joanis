@@ -56,6 +56,8 @@ import {
 } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type PurchaseDetailScreenProps = ScreenProps<'PurchaseDetail'>;
 
@@ -65,6 +67,7 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { purchaseId } = route.params;
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [products, setProducts] = useState<PurchaseProduct[]>([]);
@@ -840,22 +843,17 @@ export const PurchaseDetailScreen: React.FC<PurchaseDetailScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <View style={styles.headerTitleRow}>
-            <Title size="large">{purchase.code}</Title>
-            <Badge
-              label={PurchaseStatusLabels[purchase.status]}
-              variant={getStatusVariant(purchase.status)}
-              size="small"
-            />
-          </View>
-        </View>
-      </View>
+      <GradientHeader
+        title={purchase.code}
+        onBack={goBack}
+        right={
+          <Badge
+            label={PurchaseStatusLabels[purchase.status]}
+            variant={getStatusVariant(purchase.status)}
+            size="small"
+          />
+        }
+      />
 
       <ScrollView
         style={styles.content}
@@ -2209,32 +2207,6 @@ const createStyles = (theme: Theme) =>
     },
     loadingText: {
       marginTop: theme.space[4],
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.color.surface.base,
-      paddingHorizontal: theme.space[4],
-      paddingVertical: theme.space[4],
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-      gap: theme.space[3],
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radii.full,
-      backgroundColor: theme.color.surface.subtle,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    headerContent: {
-      flex: 1,
-    },
-    headerTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.space[3],
     },
     content: {
       flex: 1,

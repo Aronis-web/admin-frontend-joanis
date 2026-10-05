@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  TextInput,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +20,8 @@ import { EditSiteModal } from '@/components/sites/EditSiteModal';
 import Alert from '@/utils/alert';
 
 import { useMenuNavigation } from '@/hooks/useMenuNavigation';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface SitesScreenProps {
   navigation: any;
@@ -36,6 +37,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
   const { user, logout } = useAuthStore();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -254,13 +256,7 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
   if (!companyId) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Gestión de Sedes</Text>
-          <View style={styles.placeholder} />
-        </View>
+        <GradientHeader onBack={goBack} title="Gestión de Sedes" />
         <View style={styles.emptyStateContainer}>
           <Text style={styles.emptyStateIcon}>🏭</Text>
           <Text style={styles.emptyStateTitle}>Empresa no seleccionada</Text>
@@ -284,16 +280,11 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Gestión de Sedes</Text>
-            {companyName && <Text style={styles.headerSubtitle}>🏭 {companyName}</Text>}
-          </View>
-          <View style={styles.placeholder} />
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title="Gestión de Sedes"
+          subtitle={companyName ? `🏭 ${companyName}` : undefined}
+        />
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Cargando sedes...</Text>
         </View>
@@ -303,39 +294,24 @@ export const SitesScreen: React.FC<SitesScreenProps> = ({ navigation, route }) =
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Gestión de Sedes</Text>
-          {companyName && <Text style={styles.headerSubtitle}>🏭 {companyName}</Text>}
-        </View>
-        <ProtectedElement
-          requiredPermissions={['sites.create']}
-          fallback={<View style={styles.placeholder} />}
-        >
-          <TouchableOpacity onPress={handleCreateSite} style={styles.addButton}>
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
-        </ProtectedElement>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar sedes..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={theme.color.text.placeholder}
-        />
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Gestión de Sedes"
+        subtitle={companyName ? `🏭 ${companyName}` : undefined}
+        right={
+          <ProtectedElement requiredPermissions={['sites.create']}>
+            <TouchableOpacity onPress={handleCreateSite} style={styles.addButton}>
+              <Text style={styles.addButtonText}>+</Text>
+            </TouchableOpacity>
+          </ProtectedElement>
+        }
+        search={{ value: searchQuery, onChangeText: setSearchQuery, placeholder: 'Buscar sedes...' }}
+      />
 
       {/* Sites List */}
       <ScrollView
         style={[styles.sitesList, isLandscape && styles.sitesListLandscape]}
+        contentContainerStyle={contentWidthStyle}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
@@ -391,58 +367,17 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background.subtle,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: theme.color.text.muted,
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-    marginTop: 2,
-  },
-  placeholder: {
-    width: 40,
-    height: 40,
-  },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.brand.accent,
+    borderRadius: theme.radii.lg,
+    backgroundColor: theme.color.brand.headerBadge,
     justifyContent: 'center',
     alignItems: 'center',
   },
   addButtonText: {
     fontSize: 24,
-    color: theme.color.text.onAction,
+    color: theme.color.brand.onHeader,
     fontWeight: '600',
   },
   loadingContainer: {
@@ -453,23 +388,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: theme.color.text.muted,
-  },
-  searchContainer: {
-    paddingHorizontal: theme.space[5],
-    paddingVertical: theme.space[4],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  searchInput: {
-    backgroundColor: theme.color.background.subtle,
-    borderWidth: 1,
-    borderColor: theme.color.border.subtle,
-    borderRadius: theme.radii.xl,
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    fontSize: 16,
-    color: theme.color.text.heading,
   },
   sitesList: {
     flex: 1,

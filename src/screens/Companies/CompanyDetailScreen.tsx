@@ -28,6 +28,8 @@ import { SiteDetailModal } from '@/components/sites/SiteDetailModal';
 import { EditSiteModal } from '@/components/sites/EditSiteModal';
 import { SiteContactsModal } from '@/components/sites/SiteContactsModal';
 import Alert from '@/utils/alert';
+import { useGoBack } from '@/hooks/useGoBack';
+import { ContentContainer, GradientHeader } from '@/design-system/components';
 
 interface CompanyDetailScreenProps {
   navigation: any;
@@ -44,6 +46,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
   const { companyId } = route.params;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<Company | null>(null);
@@ -607,14 +610,7 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{company?.alias || company?.name}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <GradientHeader onBack={goBack} title={company?.alias || company?.name || ''} />
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
@@ -653,10 +649,12 @@ export const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({ naviga
       </View>
 
       {/* Tab Content */}
-      {activeTab === 'info' && renderInfoTab()}
-      {activeTab === 'sites' && renderSitesTab()}
-      {activeTab === 'payments' && renderPaymentsTab()}
-      {activeTab === 'bank-accounts' && renderBankAccountsTab()}
+      <ContentContainer style={styles.tabBody}>
+        {activeTab === 'info' && renderInfoTab()}
+        {activeTab === 'sites' && renderSitesTab()}
+        {activeTab === 'payments' && renderPaymentsTab()}
+        {activeTab === 'bank-accounts' && renderBankAccountsTab()}
+      </ContentContainer>
 
       {/* Edit Company Modal */}
       <Modal
@@ -1142,6 +1140,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.color.background.subtle,
   },
+  tabBody: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1152,33 +1153,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: theme.color.text.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: theme.space[2],
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.brand.accent,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 40,
   },
   tabsContainer: {
     flexDirection: 'row',

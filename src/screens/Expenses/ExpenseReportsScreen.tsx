@@ -33,6 +33,8 @@ import { useAuthStore } from '@/store/auth';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface ExpenseReportsScreenProps {
   navigation: any;
@@ -51,6 +53,7 @@ type ReportView =
 export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeView, setActiveView] = useState<ReportView>('dashboard');
@@ -696,13 +699,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
   return (
     <ProtectedRoute requiredPermissions={['expenses.read']}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Reportes de Gastos</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+        <GradientHeader onBack={goBack} title="Reportes de Gastos" />
 
         {renderFilters()}
 
@@ -725,6 +722,7 @@ export const ExpenseReportsScreen: React.FC<ExpenseReportsScreenProps> = ({ navi
 
         <ScrollView
           style={styles.content}
+          contentContainerStyle={contentWidthStyle}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
@@ -774,37 +772,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.subtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 20,
-    color: theme.color.brand.accent,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  headerSpacer: {
-    width: 40,
   },
   filtersContainer: {
     backgroundColor: theme.color.surface.base,

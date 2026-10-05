@@ -28,6 +28,8 @@ import { ProtectedTouchableOpacity } from '@/components/ui/ProtectedTouchableOpa
 import { PERMISSIONS } from '@/constants/permissions';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { useGoBack } from '@/hooks/useGoBack';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 
 interface PresentationsScreenProps {
   navigation: any;
@@ -36,6 +38,7 @@ interface PresentationsScreenProps {
 export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { logout } = useAuthStore();
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,13 +233,12 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Presentaciones</Text>
-          <View style={styles.backButton} />
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title="Presentaciones"
+          subtitle="Catálogo global de presentaciones"
+          stat={{ value: presentations.length, label: 'Total' }}
+        />
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Cargando presentaciones...</Text>
         </View>
@@ -246,14 +248,12 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Presentaciones</Text>
-        <View style={styles.backButton} />
-      </View>
+      <GradientHeader
+        onBack={goBack}
+        title="Presentaciones"
+        subtitle="Catálogo global de presentaciones"
+        stat={{ value: presentations.length, label: 'Total' }}
+      />
 
       {/* Info Banner */}
       <View style={styles.infoBanner}>
@@ -325,6 +325,7 @@ export const PresentationsScreen: React.FC<PresentationsScreenProps> = ({ naviga
       {/* Presentations List */}
       <ScrollView
         style={[styles.content, isLandscape && styles.contentLandscape]}
+        contentContainerStyle={contentWidthStyle}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {filteredPresentations.length === 0 ? (
@@ -508,33 +509,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.space[4],
-    paddingVertical: theme.space[3],
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.color.surface.muted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: 24,
-    color: theme.color.text.heading,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
   },
   infoBanner: {
     flexDirection: 'row',

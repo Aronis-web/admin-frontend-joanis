@@ -24,6 +24,8 @@ import { useAuthStore } from '@/store/auth';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CreateBalanceScreenProps {
   navigation: any;
@@ -32,6 +34,7 @@ interface CreateBalanceScreenProps {
 export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [balanceType, setBalanceType] = useState<BalanceType>(BalanceType.INTERNAL);
   const [receiverCompanyId, setReceiverCompanyId] = useState('');
   const [receiverSiteId, setReceiverSiteId] = useState('');
@@ -225,15 +228,7 @@ export const CreateBalanceScreen: React.FC<CreateBalanceScreenProps> = ({ naviga
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Nuevo Balance</Text>
-        </View>
+        <GradientHeader title="Nuevo Balance" onBack={goBack} />
 
         {/* Form */}
         <ScrollView
@@ -535,38 +530,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: theme.color.brand.accent,
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  titleTablet: {
-    fontSize: 24,
   },
   scrollView: {
     flex: 1,

@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
@@ -19,6 +18,8 @@ import { MAIN_ROUTES } from '@/constants/routes';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface TemplateExpensesScreenProps {
   route: {
@@ -36,6 +37,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { templateId, templateName } = route.params;
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,15 +124,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Gastos Generados
-          </Text>
-          <View style={styles.headerRight} />
-        </View>
+        <GradientHeader onBack={goBack} title="Gastos Generados" />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={theme.color.state.danger.border} />
           <Text style={styles.loadingText}>Cargando gastos...</Text>
@@ -141,20 +135,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Gastos Generados
-          </Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
-            {templateName}
-          </Text>
-        </View>
-        <View style={styles.headerRight} />
-      </View>
+      <GradientHeader onBack={goBack} title="Gastos Generados" subtitle={templateName} />
 
       {expenses.length === 0 ? (
         <View style={styles.centerContainer}>
@@ -167,7 +148,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
       ) : (
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {/* Summary Card */}
@@ -243,39 +224,7 @@ export const TemplateExpensesScreen: React.FC<TemplateExpensesScreenProps> = ({
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitleContainer: {
-    flex: 1,
-    marginHorizontal: 12,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: theme.color.text.muted,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  headerRight: {
-    width: 32,
+    backgroundColor: theme.color.background.subtle,
   },
   scrollView: {
     flex: 1,

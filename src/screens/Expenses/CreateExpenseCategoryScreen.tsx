@@ -19,6 +19,8 @@ import { getSafeIconName, getCategoryFallbackIcon } from '@/utils/iconUtils';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CreateExpenseCategoryScreenProps {
   navigation: any;
@@ -36,6 +38,7 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [loading, setLoading] = useState(false);
   const [loadingCategory, setLoadingCategory] = useState(false);
   const [mainCategories, setMainCategories] = useState<ExpenseCategory[]>([]);
@@ -181,20 +184,16 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isEditing
+      <GradientHeader
+        onBack={goBack}
+        title={
+          isEditing
             ? (parentCategory ? 'Editar Subcategoría' : 'Editar Categoría')
             : (isCreatingSubcategory ? 'Nueva Subcategoría' : 'Nueva Categoría')
-          }
-        </Text>
-        <View style={styles.headerRight} />
-      </View>
+        }
+      />
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.container} contentContainerStyle={[styles.scrollContent, formWidthStyle]}>
         {/* Mostrar categoría padre si es subcategoría */}
         {parentCategory && (
           <View style={styles.section}>
@@ -316,7 +315,7 @@ export const CreateExpenseCategoryScreen: React.FC<CreateExpenseCategoryScreenPr
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
+    backgroundColor: theme.color.background.subtle,
   },
   centerContainer: {
     flex: 1,
@@ -328,29 +327,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: theme.color.text.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 32,
   },
   container: {
     flex: 1,

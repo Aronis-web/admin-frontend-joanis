@@ -19,6 +19,8 @@ import { useTheme } from '@/design-system/themes';
 import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface CashRegistersScreenProps {
   navigation: any;
@@ -41,6 +43,7 @@ export const CashRegistersScreen: React.FC<CashRegistersScreenProps> = ({ naviga
   const isTablet = width >= 768;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const loadCashRegisters = useCallback(async () => {
     if (!currentSite?.id || !currentCompany?.id) {
@@ -276,28 +279,22 @@ export const CashRegistersScreen: React.FC<CashRegistersScreenProps> = ({ naviga
   return (
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <View>
-            <Text style={[styles.headerTitle, isTablet && styles.headerTitleTablet]}>
-              Cajas Registradoras
-            </Text>
-            <Text style={[styles.headerSubtitle, isTablet && styles.headerSubtitleTablet]}>
-              {emissionPointCode} - {emissionPointName}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.createButton, isTablet && styles.createButtonTablet]}
-            onPress={handleCreateCashRegister}
-          >
-            <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
-              + Nueva Caja
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <GradientHeader
+          title="Cajas Registradoras"
+          subtitle={`${emissionPointCode} - ${emissionPointName}`}
+          onBack={goBack}
+          right={
+            <TouchableOpacity style={styles.createButton} onPress={handleCreateCashRegister}>
+              <Text style={[styles.createButtonText, isTablet && styles.createButtonTextTablet]}>
+                + Nueva Caja
+              </Text>
+            </TouchableOpacity>
+          }
+        />
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         >
           {cashRegisters.length === 0 ? (
@@ -340,46 +337,15 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     color: theme.color.text.muted,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    padding: 24,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  headerTitleTablet: {
-    fontSize: 32,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: theme.color.text.muted,
-    marginTop: 4,
-  },
-  headerSubtitleTablet: {
-    fontSize: 16,
-  },
   createButton: {
-    backgroundColor: theme.color.brand.accent,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  createButtonTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    minHeight: 38,
+    justifyContent: 'center',
+    backgroundColor: theme.color.brand.headerBadge,
+    paddingHorizontal: 14,
+    borderRadius: theme.radii.lg,
   },
   createButtonText: {
-    color: theme.color.text.onAction,
+    color: theme.color.brand.onHeader,
     fontSize: 14,
     fontWeight: '600',
   },

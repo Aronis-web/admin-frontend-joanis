@@ -12,11 +12,9 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
@@ -32,12 +30,13 @@ import {
   ErrorState,
   Input,
   Pagination,
-  Title,
   useTheme,
   useThemedStyles,
 } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { MainStackParamList } from '@/types/navigation';
 import type { FamilyStatus, ProductFamily, QueryFamiliesDto } from '@/types/smartPurchase';
@@ -58,6 +57,7 @@ const PAGE_LIMIT = 25;
 export const SmartPurchaseFamiliesScreen: React.FC<Props> = ({ navigation, route }) => {
   const { groupId } = route.params;
   const theme = useTheme();
+  const goBack = useGoBack();
   const styles = useThemedStyles(createStyles);
 
   const [status, setStatus] = useState<FamilyStatus | 'ALL'>('ALL');
@@ -182,23 +182,18 @@ export const SmartPurchaseFamiliesScreen: React.FC<Props> = ({ navigation, route
   return (
     <ScreenLayout navigation={navigation as any}>
       <SafeAreaView style={styles.container} edges={['bottom']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={12}>
-            <Ionicons name="chevron-back" size={24} color={theme.color.text.body} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Title>Familias del grupo</Title>
-            <Caption color="muted">
-              {total > 0 ? `${total} familia(s) · ` : ''}
-              Consolidación por SKU normalizado.
-            </Caption>
-          </View>
-          <ProtectedView requiredPermissions={['smart_purchase.products.read']}>
-            <Badge variant="default" label={`Pág. ${page}/${totalPages}`} />
-          </ProtectedView>
-        </View>
+        <GradientHeader
+          onBack={goBack}
+          title="Familias del grupo"
+          subtitle={`${total > 0 ? `${total} familia(s) · ` : ''}Consolidación por SKU normalizado.`}
+          right={
+            <ProtectedView requiredPermissions={['smart_purchase.products.read']}>
+              <Badge variant="default" label={`Pág. ${page}/${totalPages}`} />
+            </ProtectedView>
+          }
+        />
 
-        <View style={styles.filters}>
+        <View style={[styles.filters, contentWidthStyle]}>
           <Input
             leftIcon="search"
             placeholder="Buscar título o SKU..."
@@ -236,7 +231,7 @@ export const SmartPurchaseFamiliesScreen: React.FC<Props> = ({ navigation, route
             data={data?.data ?? []}
             keyExtractor={(f) => f.id}
             renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, contentWidthStyle]}
             ItemSeparatorComponent={() => <View style={{ height: spacing[2] }} />}
             ListEmptyComponent={renderEmpty()}
             refreshControl={
@@ -284,18 +279,11 @@ export const SmartPurchaseFamiliesScreen: React.FC<Props> = ({ navigation, route
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.color.background.canvas },
+    container: { flex: 1, backgroundColor: theme.color.background.subtle },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[2],
-      paddingHorizontal: spacing[6],
-      paddingTop: spacing[4],
-      paddingBottom: spacing[2],
-    },
     filters: {
       paddingHorizontal: spacing[6],
+      paddingTop: spacing[3],
       paddingBottom: spacing[2],
       gap: spacing[2],
     },

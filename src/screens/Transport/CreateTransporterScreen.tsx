@@ -24,6 +24,7 @@ import {
   AuthorizedCode,
 } from '@/types/transport';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
 import {
   PHONE_MAX_LENGTH,
   RUC_LENGTH,
@@ -224,17 +225,11 @@ export const CreateTransporterScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nuevo Transportista</Text>
-        <View style={styles.headerRight} />
-      </View>
+      <GradientHeader title="Nuevo Transportista" onBack={handleCancel} />
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, formWidthStyle]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Información Principal */}
@@ -514,38 +509,6 @@ const createStyles = (theme: Theme) =>
     container: {
       flex: 1,
       backgroundColor: theme.color.background.subtle,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: theme.color.surface.base,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.color.border.subtle,
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.color.surface.muted,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 24,
-      color: theme.color.text.heading,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      flex: 1,
-      textAlign: 'center',
-    },
-    headerRight: {
-      width: 40,
     },
     content: {
       flex: 1,

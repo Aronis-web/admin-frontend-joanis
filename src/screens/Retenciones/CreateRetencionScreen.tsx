@@ -26,6 +26,8 @@ import { Sale, DocumentType as SaleDocumentType } from '@/types/sales';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type Props = NativeStackScreenProps<any, 'CreateRetencion'>;
 
@@ -52,6 +54,7 @@ const TIPO_MONEDA_OPTIONS = [
 export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const { currentCompany, currentSite } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [loadingSeries, setLoadingSeries] = useState(true);
@@ -408,13 +411,7 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
   if (loadingSeries) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.color.text.heading} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nueva Retención</Text>
-          <View style={styles.placeholder} />
-        </View>
+        <GradientHeader title="Nueva Retención" onBack={goBack} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.color.action.primary.background} />
           <Text style={styles.loadingText}>Cargando series...</Text>
@@ -426,15 +423,12 @@ export const CreateRetencionScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.text.heading} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nueva Retención</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <GradientHeader title="Nueva Retención" onBack={goBack} />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, formWidthStyle]}
+      >
         {/* Datos Generales */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>📄 Datos Generales</Text>
@@ -1256,29 +1250,6 @@ const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.color.background.subtle,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  placeholder: {
-    width: 40,
   },
   loadingContainer: {
     flex: 1,

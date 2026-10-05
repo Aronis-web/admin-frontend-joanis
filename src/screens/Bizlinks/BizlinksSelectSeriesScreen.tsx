@@ -16,6 +16,8 @@ import { billingApi, DocumentSeries } from '@/services/api';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type Props = NativeStackScreenProps<any, 'BizlinksSelectSeries'>;
 
@@ -27,20 +29,21 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   '09': 'Guía de Remisión',
 };
 
-const DOCUMENT_TYPE_COLORS: Record<string, string> = {
-  '01': '#3B82F6',
-  '03': '#10B981',
-  '07': '#F59E0B',
-  '08': '#EF4444',
-  '09': '#8B5CF6',
-};
-
 export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route }) => {
   const { documentType, companyId, siteId } = route.params || {};
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
+
+  const DOCUMENT_TYPE_COLORS: Record<string, string> = {
+    '01': theme.color.icon.accent,
+    '03': '#10B981',
+    '07': theme.color.icon.warning,
+    '08': theme.color.icon.danger,
+    '09': '#8B5CF6',
+  };
 
   const [series, setSeries] = useState<DocumentSeries[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,27 +171,24 @@ export const BizlinksSelectSeriesScreen: React.FC<Props> = ({ navigation, route 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, isTablet && styles.headerTablet]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Seleccionar Serie</Text>
-          <View
-            style={[
-              styles.documentTypeBadge,
-              { backgroundColor: documentTypeColor + '20', borderColor: documentTypeColor },
-            ]}
-          >
-            <Text style={[styles.documentTypeText, { color: documentTypeColor }]}>
-              {DOCUMENT_TYPE_LABELS[documentType]}
-            </Text>
-          </View>
+      <GradientHeader title="Seleccionar Serie" onBack={goBack}>
+        <View
+          style={[
+            styles.documentTypeBadge,
+            { backgroundColor: documentTypeColor + '20', borderColor: documentTypeColor },
+          ]}
+        >
+          <Text style={[styles.documentTypeText, { color: documentTypeColor }]}>
+            {DOCUMENT_TYPE_LABELS[documentType]}
+          </Text>
         </View>
-      </View>
+      </GradientHeader>
 
       {/* Series List */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, contentWidthStyle]}
+      >
         {series.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-text-outline" size={64} color={theme.color.icon.disabled} />
@@ -312,37 +312,9 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 16,
     color: theme.color.text.muted,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-    gap: 12,
-  },
-  headerTablet: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerContent: {
-    flex: 1,
-    gap: 8,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-  },
-  titleTablet: {
-    fontSize: 24,
-  },
   documentTypeBadge: {
     alignSelf: 'flex-start',
+    marginTop: 8,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,

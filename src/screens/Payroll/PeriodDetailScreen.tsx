@@ -20,8 +20,9 @@ import {
   ChipGroup,
   EmptyState,
   ErrorState,
-  Title,
 } from '@/design-system';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { spacing } from '@/design-system/tokens';
@@ -78,6 +79,7 @@ const MONTH_LABELS = [
 ];
 
 export const PayrollPeriodDetailScreen: React.FC<Props> = ({ navigation, route }) => {
+  const goBack = useGoBack();
   const { periodId } = route.params;
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -193,24 +195,24 @@ export const PayrollPeriodDetailScreen: React.FC<Props> = ({ navigation, route }
   return (
     <SafeAreaView style={styles.safe}>
       <ScreenLayout navigation={navigation as any}>
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <GradientHeader
+          onBack={goBack}
+          title={`${MONTH_LABELS[period.month - 1] ?? period.month} ${period.year}${
+            period.fortnight ? ` · ${period.fortnight}a quincena` : ''
+          }`}
+          subtitle={`${period.pay_type} · ${period.period_start} → ${period.period_end}`}
+          right={<PeriodStatusChip status={period.status} />}
+        />
+        <ScrollView contentContainerStyle={[styles.scroll, contentWidthStyle]}>
           <Card style={styles.headerCard}>
-            <View style={styles.rowBetween}>
-              <View style={{ flex: 1 }}>
-                <Title>
-                  {MONTH_LABELS[period.month - 1] ?? period.month} {period.year}
-                  {period.fortnight ? ` · ${period.fortnight}a quincena` : ''}
-                </Title>
-                <Caption>
-                  {period.pay_type} · {period.period_start} → {period.period_end}
-                </Caption>
+            {period.site_id || period.closed_at ? (
+              <View>
                 {period.site_id ? <Caption>Site: {period.site_id}</Caption> : null}
                 {period.closed_at ? (
                   <Caption>Cerrado: {new Date(period.closed_at).toLocaleString('es-PE')}</Caption>
                 ) : null}
               </View>
-              <PeriodStatusChip status={period.status} />
-            </View>
+            ) : null}
 
             <View style={styles.toolbar}>
               <Button
@@ -360,7 +362,7 @@ const SlipsTab: React.FC<{
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: theme.color.background.canvas },
+    safe: { flex: 1, backgroundColor: theme.color.background.subtle },
     scroll: { padding: spacing[4], gap: spacing[3], paddingBottom: spacing[6] },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     headerCard: { padding: spacing[4], gap: spacing[3] },

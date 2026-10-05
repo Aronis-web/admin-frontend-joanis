@@ -19,6 +19,8 @@ import { Site } from '@/types/sites';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
+import { GradientHeader, formWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface AddParticipantScreenProps {
   navigation: any;
@@ -54,6 +56,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
   const { width, height } = useWindowDimensions();
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
 
   const isTablet = width >= 768 || height >= 768;
 
@@ -223,19 +226,16 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
     <ScreenLayout navigation={navigation}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={[styles.header, isTablet && styles.headerTablet]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={[styles.backButtonText, isTablet && styles.backButtonTextTablet]}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, isTablet && styles.titleTablet]}>Agregar Participante</Text>
-        </View>
+        <GradientHeader onBack={goBack} title="Agregar Participante" />
 
         {/* Form */}
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, isTablet && styles.scrollContentTablet]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && styles.scrollContentTablet,
+            formWidthStyle,
+          ]}
         >
           <View style={[styles.formCard, isTablet && styles.formCardTablet]}>
             {/* Participant Type */}
@@ -448,37 +448,7 @@ export const AddParticipantScreen: React.FC<AddParticipantScreenProps> = ({
 const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.color.background.muted,
-  },
-  header: {
-    backgroundColor: theme.color.surface.base,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  headerTablet: {
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-  },
-  backButton: {
-    marginBottom: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: theme.color.brand.primary,
-    fontWeight: '600',
-  },
-  backButtonTextTablet: {
-    fontSize: 18,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.color.text.heading,
-  },
-  titleTablet: {
-    fontSize: 32,
+    backgroundColor: theme.color.background.subtle,
   },
   scrollView: {
     flex: 1,
