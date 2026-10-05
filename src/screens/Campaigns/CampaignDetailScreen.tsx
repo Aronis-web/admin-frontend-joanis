@@ -32,6 +32,11 @@ import { inventoryApi, StockItem } from '@/services/api/inventory';
 import logger from '@/utils/logger';
 import { normalizeSearchText } from '@/utils/normalizeText';
 import {
+  isProductBalanceRow,
+  splitRepartoStockRows,
+  VARIANT_ONLY_STOCK_NOTE,
+} from '@/utils/repartos';
+import {
   Campaign,
   CampaignStatus,
   CampaignStatusLabels,
@@ -88,6 +93,9 @@ interface CampaignDetailScreenProps {
 }
 
 type TabType = 'overview' | 'participants' | 'products';
+
+// Fila de stock por (producto, almacen, area, variante); variantId null = saldo del producto.
+type CampaignStockItem = StockItem & { variantId?: string | null; variantName?: string | null };
 
 /**
  * Miniatura para cada resultado del buscador global.
@@ -275,7 +283,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   const [showGlobalSearchSuggestions, setShowGlobalSearchSuggestions] = useState(false);
   const [isGlobalSearching, setIsGlobalSearching] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
+  const [stockItems, setStockItems] = useState<CampaignStockItem[]>([]);
   const [addingQuickProduct, setAddingQuickProduct] = useState(false);
 
   // Custom add product modal states
@@ -750,11 +758,13 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
       const stockResponse: any = await inventoryApi.getAllStock({});
       // El API puede devolver un array o un objeto paginado { data: [...], total, page, limit }
       const stockArray = Array.isArray(stockResponse) ? stockResponse : stockResponse?.data || [];
-      const stockItemsData: StockItem[] = stockArray.map((item: any) => ({
-        id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}`,
+      const stockItemsData: CampaignStockItem[] = stockArray.map((item: any) => ({
+        id: `${item.productId}-${item.warehouseId}-${item.areaId || 'no-area'}-${item.variantId || 'producto'}`,
         productId: item.productId,
         warehouseId: item.warehouseId,
         areaId: item.areaId || undefined,
+        variantId: item.variantId ?? null,
+        variantName: item.variantName ?? null,
         quantityBase: item.quantityBase,
         updatedAt: item.updatedAt,
         productTitle: item.product?.title,
@@ -770,8 +780,25 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
   }, []);
 
   // Get product stock from search results (backend now returns stock structure)
+  //
+  // `available` es SOLO el saldo del producto (sin variantes): es lo unico que
+  // los repartos pueden mover. `variantAvailable` es el disponible en colores
+  // (variantes con stock propio), que se informa pero no se ofrece.
   const getProductStock = useCallback(
-    (product: any): { available: number; reserved: number; total: number } => {
+    (
+      product: any
+    ): { available: number; reserved: number; total: number; variantAvailable: number } => {
+      // El buscador v2 trae `stock.variants` (consolidado de todas las sedes)
+      // y `stockBySite` con el TOTAL (producto + variantes) por sede.
+      const searchVariants: any[] =
+        product?.stock && typeof product.stock === 'object' && Array.isArray(product.stock.variants)
+          ? product.stock.variants
+          : [];
+      const variantAvailableAll = searchVariants.reduce(
+        (sum: number, v: any) => sum + Math.max(Number(v?.available) || 0, 0),
+        0
+      );
+
       // ✅ Prioridad 1: si el backend devolvió stockBySite (v2 search), usamos
       // sólo la sede actual seleccionada en el login. Así tanto la lista
       // "Productos disponibles para agregar" como la validación de cantidad
@@ -781,15 +808,21 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           ? product.stockBySite.find((s: any) => s?.siteId === currentSiteId)
           : null;
         if (siteEntry) {
+          const siteAvailable = Number(siteEntry.available) || 0;
+          // El desglose por variante no viene por sede: restamos todo el
+          // disponible en colores (cota segura) para no ofrecer stock que el
+          // reparto no puede mover. Al agregar se consulta el saldo exacto.
+          const variantAvailable = Math.min(variantAvailableAll, Math.max(siteAvailable, 0));
           return {
-            available: Number(siteEntry.available) || 0,
+            available: Math.max(siteAvailable - variantAvailableAll, 0),
             reserved: Number(siteEntry.reserved) || 0,
             total: Number(siteEntry.total) || 0,
+            variantAvailable,
           };
         }
         // Sede actual sin stock (o no está en la lista): mostramos 0 en vez
         // de caer al consolidado para no permitir agregar más de lo real.
-        return { available: 0, reserved: 0, total: 0 };
+        return { available: 0, reserved: 0, total: 0, variantAvailable: 0 };
       }
 
       // If product has stock from backend (v2 search), use it
@@ -797,9 +830,10 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         // Backend returns stock structure for both preliminary and active products
         if (typeof product.stock === 'object') {
           return {
-            available: product.stock.available || 0,
+            available: Math.max((product.stock.available || 0) - variantAvailableAll, 0),
             reserved: product.stock.reserved || 0,
             total: product.stock.total || 0,
+            variantAvailable: variantAvailableAll,
           };
         }
         // Fallback: if stock is a number (old format)
@@ -807,26 +841,72 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
           available: product.stock,
           reserved: 0,
           total: product.stock,
+          variantAvailable: 0,
         };
       }
 
       // Fallback: calculate from stockItems (old method, shouldn't be needed with v2 search)
-      const productStockItems = stockItems.filter((item) => item.productId === product.id);
-      if (productStockItems.length === 0) {
-        return { available: 0, reserved: 0, total: 0 };
-      }
-      const totalStock = productStockItems.reduce((total: number, item: StockItem) => {
-        const quantity =
-          typeof item.availableQuantityBase === 'number'
-            ? item.availableQuantityBase
-            : typeof item.quantityBase === 'string'
-              ? parseFloat(item.quantityBase)
-              : item.quantityBase || 0;
-        return total + quantity;
-      }, 0);
-      return { available: totalStock, reserved: 0, total: totalStock };
+      const availableOf = (item: CampaignStockItem): number =>
+        typeof item.availableQuantityBase === 'number'
+          ? item.availableQuantityBase
+          : typeof item.quantityBase === 'string'
+            ? parseFloat(item.quantityBase)
+            : item.quantityBase || 0;
+      const { productRows, variantAvailable } = splitRepartoStockRows(
+        stockItems.filter((item) => item.productId === product.id),
+        availableOf
+      );
+      const totalStock = productRows.reduce(
+        (total: number, item: CampaignStockItem) => total + availableOf(item),
+        0
+      );
+      return { available: totalStock, reserved: 0, total: totalStock, variantAvailable };
     },
     [stockItems, currentSiteId]
+  );
+
+  // Saldo exacto del producto (sin variantes) en la sede actual. El buscador
+  // v2 no desglosa variantes por sede, asi que cuando el producto tiene stock
+  // en colores se consulta al agregar. null = no se pudo consultar.
+  const fetchProductBalanceAvailable = useCallback(
+    async (productId: string): Promise<number | null> => {
+      try {
+        const stockResponse: any = await inventoryApi.getAllStock({ productId });
+        const rows: any[] = Array.isArray(stockResponse)
+          ? stockResponse
+          : stockResponse?.data || [];
+        return rows
+          .filter((row) => isProductBalanceRow(row))
+          .reduce((sum, row) => {
+            const available =
+              row.availableQuantityBase !== undefined && row.availableQuantityBase !== null
+                ? Number(row.availableQuantityBase)
+                : (Number(row.quantityBase) || 0) - (Number(row.reservedQuantityBase) || 0);
+            return sum + Math.max(Number.isFinite(available) ? available : 0, 0);
+          }, 0);
+      } catch (error) {
+        logger.warn('No se pudo consultar el saldo del producto sin variantes:', error);
+        return null;
+      }
+    },
+    []
+  );
+
+  // Disponible repartible para agregar: si hay stock en colores, se reemplaza
+  // la cota del buscador por el saldo exacto del producto.
+  const resolveAddableStock = useCallback(
+    async (product: any): Promise<number> => {
+      const stockInfo = getProductStock(product);
+      if (stockInfo.variantAvailable <= 0 || product?.status === 'preliminary') {
+        return stockInfo.available;
+      }
+      const exact = await fetchProductBalanceAvailable(product.id);
+      // Nunca mas que el disponible total de la sede (producto + colores).
+      return exact === null
+        ? stockInfo.available
+        : Math.min(exact, stockInfo.available + stockInfo.variantAvailable);
+    },
+    [getProductStock, fetchProductBalanceAvailable]
   );
 
   // Global search for products not in campaign
@@ -994,29 +1074,33 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     async (product: any) => {
       if (!campaign) return;
 
-      const stockInfo = getProductStock(product);
-
-      if (stockInfo.available <= 0) {
-        Alert.alert('Sin stock', 'Este producto no tiene stock disponible');
-        return;
-      }
-
       setAddingQuickProduct(true);
       try {
+        const available = await resolveAddableStock(product);
+        if (available <= 0) {
+          Alert.alert(
+            'Sin stock',
+            getProductStock(product).variantAvailable > 0
+              ? VARIANT_ONLY_STOCK_NOTE
+              : 'Este producto no tiene stock disponible'
+          );
+          return;
+        }
+
         const actualProductStatus =
           product.status === 'preliminary' ? ProductStatus.PRELIMINARY : ProductStatus.ACTIVE;
 
         const data: AddProductRequest = {
           productId: product.id,
           sourceType: ProductSourceType.INVENTORY,
-          totalQuantity: stockInfo.available, // Use available stock (total - reserved)
+          totalQuantity: available, // Saldo disponible del producto (sin colores)
           productStatus: actualProductStatus,
           distributionType: DistributionType.ALL,
         };
 
         await campaignsService.addProduct(campaignId, data);
 
-        Alert.alert('Éxito', `Producto agregado con ${stockInfo.available} unidades disponibles`);
+        Alert.alert('Éxito', `Producto agregado con ${available} unidades disponibles`);
 
         // Don't clear search - keep it to allow adding multiple products
         // Just reload campaign to update the list
@@ -1028,18 +1112,34 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
         setAddingQuickProduct(false);
       }
     },
-    [campaign, campaignId, getProductStock, loadCampaign]
+    [campaign, campaignId, getProductStock, resolveAddableStock, loadCampaign]
   );
+
+  // Disponible exacto (sin colores) del producto abierto en "Personalizado".
+  const [customAddAvailable, setCustomAddAvailable] = useState<{
+    productId: string;
+    available: number;
+  } | null>(null);
+  const customAddProductIdRef = useRef<string | null>(null);
 
   // Open custom add modal
   const handleOpenCustomAddModal = useCallback(
-    (product: any) => {
+    async (product: any) => {
       const stockInfo = getProductStock(product);
+      customAddProductIdRef.current = product.id;
       setSelectedProductForCustomAdd(product);
+      setCustomAddAvailable({ productId: product.id, available: stockInfo.available });
       setCustomQuantity(stockInfo.available.toString());
       setShowCustomAddModal(true);
+      if (stockInfo.variantAvailable > 0) {
+        const available = await resolveAddableStock(product);
+        // Ignorar si el usuario ya abrio otro producto mientras se consultaba.
+        if (customAddProductIdRef.current !== product.id) return;
+        setCustomAddAvailable({ productId: product.id, available });
+        setCustomQuantity(available.toString());
+      }
     },
-    [getProductStock]
+    [getProductStock, resolveAddableStock]
   );
 
   // Open banner modal from global search
@@ -1109,17 +1209,20 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     if (!campaign || !selectedProductForCustomAdd) return;
 
     const quantity = parseFloat(customQuantity);
-    const stockInfo = getProductStock(selectedProductForCustomAdd);
+    const availableToAdd =
+      customAddAvailable && customAddAvailable.productId === selectedProductForCustomAdd.id
+        ? customAddAvailable.available
+        : getProductStock(selectedProductForCustomAdd).available;
 
     if (isNaN(quantity) || quantity <= 0) {
       Alert.alert('Error', 'Por favor ingresa una cantidad válida');
       return;
     }
 
-    if (quantity > stockInfo.available) {
+    if (quantity > availableToAdd) {
       Alert.alert(
         'Error',
-        `La cantidad no puede ser mayor al stock disponible (${stockInfo.available})`
+        `La cantidad no puede ser mayor al stock disponible (${availableToAdd})`
       );
       return;
     }
@@ -1162,6 +1265,7 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
     campaignId,
     selectedProductForCustomAdd,
     customQuantity,
+    customAddAvailable,
     getProductStock,
     loadCampaign,
   ]);
@@ -2770,7 +2874,17 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
             : 0;
       const pendingQty = Math.max(totalQty - distributedQty, 0);
       const stock = detail?.tenantSiteStock;
-      const availableStock = stock ? parseFloat(stock.availableQuantityBase || '0') : null;
+      // "Stock disp." es el saldo del producto (sin colores): es lo que los
+      // repartos pueden mover. El resto del disponible vive en variantes.
+      const fullAvailableStock = stock ? parseFloat(stock.availableQuantityBase || '0') : null;
+      const availableStock =
+        stock && stock.productBalanceAvailableQuantityBase !== undefined
+          ? parseFloat(stock.productBalanceAvailableQuantityBase || '0')
+          : fullAvailableStock;
+      const variantStock =
+        fullAvailableStock !== null && availableStock !== null
+          ? Math.max(fullAvailableStock - availableStock, 0)
+          : 0;
       const reservedStock = stock ? parseFloat(stock.reservedQuantityBase || '0') : 0;
       const totalStock = stock ? parseFloat(stock.quantityBase || '0') : 0;
       // ⚠️ Las fotos del endpoint compacto pueden venir como string o como
@@ -3010,6 +3124,14 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     {availableStock !== null ? Math.floor(availableStock) : '—'}
                   </Text>
                 </View>
+                {variantStock > 0 && (
+                  <View style={styles.productCompactMetric}>
+                    <Text style={styles.productCompactMetricLabel}>En colores</Text>
+                    <Text style={styles.productCompactMetricValueMuted}>
+                      {Math.floor(variantStock)}
+                    </Text>
+                  </View>
+                )}
                 {reservedStock > 0 && (
                   <View style={styles.productCompactMetric}>
                     <Text style={styles.productCompactMetricLabel}>Reserv.</Text>
@@ -3027,6 +3149,9 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                   </View>
                 )}
               </View>
+              {variantStock > 0 && (availableStock ?? 0) <= 0 && (
+                <Text style={styles.productCompactMetricLabel}>🎨 {VARIANT_ONLY_STOCK_NOTE}</Text>
+              )}
 
               {/* Línea 3: precios */}
               <View style={styles.productCompactPricesRow}>
@@ -3732,32 +3857,40 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                               {!isPreliminary && stockInfo.total !== stockInfo.available && (
                                 <Text style={styles.stockTotal}>≡ƒôè Total: {stockInfo.total}</Text>
                               )}
+                              {!isPreliminary && stockInfo.variantAvailable > 0 && (
+                                <Text style={styles.stockReserved}>
+                                  🎨 {VARIANT_ONLY_STOCK_NOTE}
+                                </Text>
+                              )}
                             </View>
                             <Text style={styles.globalSearchStatus}>
                               {product.status === 'active' ? '✔ Activo' : '⚠ Preliminar'}
                             </Text>
                           </View>
                         </View>
-                        {!isAlreadyAdded && stockInfo.available > 0 && (
-                          <View style={styles.globalSearchActions}>
-                            <TouchableOpacity
-                              style={styles.globalSearchActionButton}
-                              onPress={() => handleQuickAddProduct(product)}
-                              disabled={addingQuickProduct}
-                            >
-                              <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.globalSearchActionButtonSecondary}
-                              onPress={() => handleOpenCustomAddModal(product)}
-                              disabled={addingQuickProduct}
-                            >
-                              <Text style={styles.globalSearchActionButtonSecondaryText}>
-                                ⚙️ Personalizado
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
+                        {/* Con stock en colores el disponible del buscador es una cota
+                            conservadora: se ofrece agregar y se valida el saldo exacto. */}
+                        {!isAlreadyAdded &&
+                          (stockInfo.available > 0 || stockInfo.variantAvailable > 0) && (
+                            <View style={styles.globalSearchActions}>
+                              <TouchableOpacity
+                                style={styles.globalSearchActionButton}
+                                onPress={() => handleQuickAddProduct(product)}
+                                disabled={addingQuickProduct}
+                              >
+                                <Text style={styles.globalSearchActionButtonText}>+ Todo</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.globalSearchActionButtonSecondary}
+                                onPress={() => handleOpenCustomAddModal(product)}
+                                disabled={addingQuickProduct}
+                              >
+                                <Text style={styles.globalSearchActionButtonSecondaryText}>
+                                  ⚙️ Personalizado
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
                       </View>
                     );
                   })}
@@ -4131,16 +4264,24 @@ export const CampaignDetailScreen: React.FC<CampaignDetailScreenProps> = ({
                     {(() => {
                       const stockInfo = getProductStock(selectedProductForCustomAdd);
                       const isPreliminary = selectedProductForCustomAdd.status === 'preliminary';
+                      const availableToAdd =
+                        customAddAvailable &&
+                        customAddAvailable.productId === selectedProductForCustomAdd.id
+                          ? customAddAvailable.available
+                          : stockInfo.available;
                       return (
                         <>
                           <View style={styles.customAddModalStockRow}>
                             <Text style={styles.customAddModalStockLabel}>
                               {isPreliminary ? '📦 Stock preliminar:' : '✅ Disponible:'}
                             </Text>
-                            <Text style={styles.customAddModalStockValue}>
-                              {stockInfo.available}
-                            </Text>
+                            <Text style={styles.customAddModalStockValue}>{availableToAdd}</Text>
                           </View>
+                          {!isPreliminary && stockInfo.variantAvailable > 0 && (
+                            <Text style={styles.customAddModalStockLabel}>
+                              🎨 {VARIANT_ONLY_STOCK_NOTE}
+                            </Text>
+                          )}
                           {!isPreliminary && stockInfo.reserved > 0 && (
                             <View style={styles.customAddModalStockRow}>
                               <Text style={styles.customAddModalStockLabel}>≡ƒöÆ Reservado:</Text>

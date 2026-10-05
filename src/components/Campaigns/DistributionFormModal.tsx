@@ -15,6 +15,11 @@ import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import { campaignsService, inventoryApi } from '@/services/api';
 import logger from '@/utils/logger';
+import {
+  isProductBalanceRow,
+  splitRepartoStockRows,
+  VARIANT_ONLY_STOCK_NOTE,
+} from '@/utils/repartos';
 import { useTenantStore } from '@/store/tenant';
 import {
   CampaignProduct,
@@ -110,8 +115,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
   // (Deprecated) seleccion unica de almacen/area; ahora la seleccion se hace por checkbox + cantidad en stockAllocations.
 
-  // Helper function to get stock details from product
-  const getStockDetailsFromProduct = useCallback((): StockDetailByWarehouse[] | undefined => {
+  // Helper function to get stock details from product (todas las filas, incluidas variantes)
+  const getRawStockDetails = useCallback((): StockDetailByWarehouse[] | undefined => {
     // First check if we have local stock data from the API call
     if (localStockData && localStockData.length > 0) {
       logger.debug('✅ [STOCK] Usando stock local del API:', localStockData);
@@ -137,6 +142,8 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
       // siteId no viene en este shape; queda undefined → no filtramos por sede.
       area: item.area?.name ?? null,
       areaId: item.areaId ?? null,
+      variantId: item.variantId ?? null,
+      variantName: item.variantName ?? null,
       total: item.quantityBase || 0,
       reserved: item.reservedQuantityBase || 0,
       available: item.availableQuantityBase || item.quantityBase || 0,
@@ -145,6 +152,22 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
     logger.debug('✅ [STOCK] Stock details generados desde producto:', stockDetails);
     return stockDetails;
   }, [product, localStockData]);
+
+  // Los repartos solo mueven el saldo del producto (filas sin variante). Las
+  // filas de color se informan aparte y no se ofrecen para repartir.
+  const getStockDetailsFromProduct = useCallback((): StockDetailByWarehouse[] | undefined => {
+    const all = getRawStockDetails();
+    return all ? all.filter(isProductBalanceRow) : all;
+  }, [getRawStockDetails]);
+
+  // Disponible en colores (variantes con stock propio) en la sede actual: no repartible.
+  const variantStockAvailable = useMemo(() => {
+    const all = getRawStockDetails() || [];
+    const inSite = currentSiteId
+      ? all.filter((stock) => !stock.siteId || stock.siteId === currentSiteId)
+      : all;
+    return splitRepartoStockRows(inSite, (stock) => Number(stock.available)).variantAvailable;
+  }, [getRawStockDetails, currentSiteId]);
 
   // Stocks visibles en el modal: idealmente filtrados por la sede actual (el
   // backend ya filtra por `siteId`). Si el filtro client-side dejara la lista
@@ -1768,6 +1791,14 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                             {selectedSite?.name ? ` (${selectedSite.name})` : ''}.
                           </Text>
                         </View>
+                        {variantStockAvailable > 0 && (
+                          <View style={styles.sourceAreaWarning}>
+                            <Text style={styles.sourceAreaWarningText}>
+                              ⚠️ {VARIANT_ONLY_STOCK_NOTE} (disponible en colores:{' '}
+                              {variantStockAvailable}).
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     );
                   }
@@ -1781,8 +1812,16 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
                         Marca de qué almacén/área tomar el stock e indica cuánto. La cantidad total
                         a repartir será la suma de estas cantidades.
                       </Text>
+                      {variantStockAvailable > 0 && (
+                        <View style={styles.sourceAreaWarning}>
+                          <Text style={styles.sourceAreaWarningText}>
+                            ⚠️ {VARIANT_ONLY_STOCK_NOTE} (disponible en colores:{' '}
+                            {variantStockAvailable}).
+                          </Text>
+                        </View>
+                      )}
 
-                      {visibleStockDetails.map((stock, index) => {
+                      {visibleStockDetails.map((stock) => {
                         const key = stockKey(stock.warehouseId, stock.areaId);
                         const availableValue =
                           typeof stock.available === 'number'
@@ -1816,7 +1855,7 @@ export const DistributionFormModal: React.FC<DistributionFormModalProps> = ({
 
                         return (
                           <View
-                            key={key + index}
+                            key={key}
                             style={[
                               styles.sourceAreaCard,
                               isSelected && styles.sourceAreaCardSelected,

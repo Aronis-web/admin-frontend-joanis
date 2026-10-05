@@ -230,3 +230,43 @@ export function getValidationSummary(productos: RepartoProducto[]): {
     percentageByUnit: validated > 0 ? (validatedByUnit / validated) * 100 : 0,
   };
 }
+
+// ============================================
+// Stock repartible (variantes / colores)
+// ============================================
+
+/**
+ * Nota que se muestra cuando un producto tiene stock en variantes (colores).
+ * Los repartos y campanas solo mueven el saldo del producto (fila de stock con
+ * `variantId` null); el stock propio de cada color no se puede repartir.
+ */
+export const VARIANT_ONLY_STOCK_NOTE =
+  'Stock en colores: no se puede repartir hasta que los repartos soporten variantes';
+
+/** true si la fila de stock es el saldo del producto (sin variante). */
+export function isProductBalanceRow(
+  row: { variantId?: string | null } | null | undefined
+): boolean {
+  return !row?.variantId;
+}
+
+/**
+ * Separa filas de stock en las repartibles (saldo del producto) y suma el
+ * disponible que vive en filas de variante (no repartible).
+ */
+export function splitRepartoStockRows<T extends { variantId?: string | null }>(
+  rows: T[],
+  availableOf: (row: T) => number
+): { productRows: T[]; variantAvailable: number } {
+  const productRows: T[] = [];
+  let variantAvailable = 0;
+  for (const row of rows) {
+    if (isProductBalanceRow(row)) {
+      productRows.push(row);
+    } else {
+      const value = Number(availableOf(row));
+      variantAvailable += Number.isFinite(value) && value > 0 ? value : 0;
+    }
+  }
+  return { productRows, variantAvailable };
+}

@@ -52,6 +52,8 @@ import type { Product, ProductAutocompleteItem } from '@/services/api/products';
 import { productsApi } from '@/services/api/products';
 import { useTenantStore } from '@/store/tenant';
 import { computeStockRowsForProduct } from './stockRows';
+import { VariantStockSelector } from './components/VariantStockSelector';
+import { useStockVariants, useVariantNames } from './useChatbotVariants';
 import { getPresentationUnitPriceCents, mergeAutocompleteIntoProduct } from './utils';
 import type {
   CreateSellableProductBody,
@@ -180,6 +182,8 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
   // Batch de productos para hidratar solo la página visible con nombre / foto / SKU.
   const listProductIds = useMemo(() => pageItems.map((it) => it.productId), [pageItems]);
   const { data: productsById } = useProductsByIdsBatch(listProductIds);
+  // Nombre del color de cada fila con variante (para mostrarlo en la lista).
+  const variantNames = useVariantNames(pageItems);
 
   const createMutation = useCreateSellableProduct();
   const updateMutation = useUpdateSellableProduct();
@@ -292,11 +296,17 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
       // Stock disponible: intentamos con el endpoint específico del producto,
       // filtrando por warehouses de la sede si están disponibles. Fallback al
       // stock global si el específico aún no llegó.
-      const productRows = computeStockRowsForProduct(item.id, productStock, siteWarehouseIds);
+      // Arranca "Sin variante": solo filas del saldo del producto.
+      const productRows = computeStockRowsForProduct(
+        item.id,
+        productStock,
+        siteWarehouseIds,
+        null
+      );
       const rows =
         productRows.length > 0
           ? productRows
-          : computeStockRowsForProduct(item.id, siteStock, siteWarehouseIds);
+          : computeStockRowsForProduct(item.id, siteStock, siteWarehouseIds, null);
       const defaultRow = rows[0];
       // Precio por defecto: precio real por unidad de la presentación elegida.
       const defaultPresentationId = defaultPresentation?.presentationId ?? '';
@@ -398,19 +408,54 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     if (!isFormOpen) setSearchFocused(false);
   }, [isFormOpen]);
 
-  const stockRows = useMemo(() => {
-    const id = selectedProduct?.id ?? null;
+  // Variante (color) del formulario. El stock que se muestra y valida es el de
+  // la dimension que usaran hold/checkout: la variante si lleva stock propio,
+  // si no el saldo del producto.
+  const { stockVariants, selectedVariant, stockVariantId } = useStockVariants(
+    isFormOpen ? form.productId : null,
+    form.variantId
+  );
+
+  const computeRowsFor = (id: string | null, dimension: string | null) => {
     // Fuente preferida: endpoint específico del producto. Fallback: stock global.
     // Intento 1: filtrado por warehouses de la sede activa.
-    let rows = computeStockRowsForProduct(id, productStock, siteWarehouseIds);
-    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, siteWarehouseIds);
+    let rows = computeStockRowsForProduct(id, productStock, siteWarehouseIds, dimension);
+    if (rows.length === 0)
+      rows = computeStockRowsForProduct(id, siteStock, siteWarehouseIds, dimension);
     // Intento 2: sin filtro por sede (defensivo si getWarehouses devolvió vacío
     // o si el stock del producto vive en otra sede — mostramos todo para que
     // el usuario al menos vea que hay stock disponible).
-    if (rows.length === 0) rows = computeStockRowsForProduct(id, productStock, null);
-    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, null);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, productStock, null, dimension);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, null, dimension);
     return rows;
-  }, [selectedProduct, productStock, siteStock, siteWarehouseIds]);
+  };
+
+  const stockRows = useMemo(
+    () => computeRowsFor(selectedProduct?.id ?? null, stockVariantId),
+    // computeRowsFor solo depende de estos valores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedProduct, productStock, siteStock, siteWarehouseIds, stockVariantId]
+  );
+
+  const handleSelectVariant = (variantId: string) => {
+    const dimension = stockVariants.some((v) => v.id === variantId) ? variantId : null;
+    const rows = computeRowsFor(selectedProduct?.id ?? null, dimension);
+    setForm((f) => {
+      const keepRow = rows.some(
+        (r) => r.warehouseId === f.warehouseId && (r.areaId ?? '') === f.areaId
+      );
+      const nextRow = keepRow ? undefined : rows[0];
+      if (!nextRow) return { ...f, variantId };
+      return {
+        ...f,
+        variantId,
+        warehouseId: nextRow.warehouseId,
+        areaId: nextRow.areaId ?? '',
+        // En alta se propone el disponible de la nueva dimension; al editar se respeta el tope.
+        maxSellableQty: editing ? f.maxSellableQty : String(Math.max(0, nextRow.available)),
+      };
+    });
+  };
   const siteTotalAvailable = useMemo(
     () => stockRows.reduce((acc, r) => acc + r.available, 0),
     [stockRows]
@@ -590,6 +635,11 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                             ? `#${product.correlativeNumber} · SKU ${product.sku}`
                             : `Producto: ${item.productId.slice(0, 8)}…`}
                         </Caption>
+                        {item.variantId ? (
+                          <Caption color={theme.color.text.muted} numberOfLines={1}>
+                            Color: {variantNames.get(item.variantId) ?? '…'}
+                          </Caption>
+                        ) : null}
                       </View>
                       <View style={styles.badgeStack}>
                         <Badge
@@ -825,10 +875,24 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
                 )}
 
                 {selectedProduct && (
+                  <VariantStockSelector
+                    stockVariants={stockVariants}
+                    value={form.variantId}
+                    selectedVariant={selectedVariant}
+                    onChange={handleSelectVariant}
+                  />
+                )}
+
+                {selectedProduct && (
                   <View>
                     <View style={styles.stockHeader}>
                       <Caption color={theme.color.text.muted} style={styles.groupLabel}>
                         Stock disponible en {selectedSite?.name ?? 'sede activa'}
+                        {stockVariantId
+                          ? ` · ${selectedVariant?.name ?? 'variante'}`
+                          : stockVariants.length > 0
+                            ? ' · sin variante'
+                            : ''}
                       </Caption>
                       <Caption color={theme.color.text.muted}>Total: {siteTotalAvailable}</Caption>
                     </View>
