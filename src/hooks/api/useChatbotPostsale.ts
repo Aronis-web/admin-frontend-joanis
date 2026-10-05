@@ -5,6 +5,8 @@ import {
   type PostsaleDetail,
   type PostsaleListParams,
   type PostsaleOrder,
+  type PostsaleOverview,
+  type PostsaleStalledPage,
   type PostsalePage,
   type PostsaleScanStage,
   type PostsaleStatus,
@@ -24,7 +26,29 @@ export const chatbotPostsaleKeys = {
       p.pageSize,
     ] as const,
   detail: (id: string) => [...chatbotPostsaleKeys.all, 'detail', id] as const,
+  overview: () => [...chatbotPostsaleKeys.all, 'overview'] as const,
+  stalled: (page: number, pageSize: number) =>
+    [...chatbotPostsaleKeys.all, 'stalled', page, pageSize] as const,
 };
+
+/** Resumen de estados de pago y post venta (dashboard). */
+export const usePostsaleOverview = () =>
+  useQuery<PostsaleOverview>({
+    queryKey: chatbotPostsaleKeys.overview(),
+    queryFn: () => chatbotPostsaleApi.overview(),
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
+/** Pedidos estancados paginados. */
+export const usePostsaleStalled = (page: number, pageSize: number, enabled = true) =>
+  useQuery<PostsaleStalledPage>({
+    queryKey: chatbotPostsaleKeys.stalled(page, pageSize),
+    queryFn: () => chatbotPostsaleApi.stalled(page, pageSize),
+    enabled,
+    placeholderData: keepPreviousData,
+    staleTime: 30 * 1000,
+  });
 
 /** Pedidos de post venta. Sin `statuses`: activos + entregados últimos 7 días. */
 export const usePostsaleOrders = (statuses?: PostsaleStatus[], enabled = true) =>

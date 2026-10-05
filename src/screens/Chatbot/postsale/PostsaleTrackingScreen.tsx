@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,10 +31,17 @@ const FILTER_OPTIONS = [
 ];
 
 /** Post venta · Seguimiento: todos los pedidos, historial, reimpresión y reenvío de código. */
-export const ChatbotPostsaleTrackingScreen: React.FC<Props> = ({ navigation }) => {
+export const ChatbotPostsaleTrackingScreen: React.FC<Props> = ({ navigation, route }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
-  const [filter, setFilter] = useState<string>('ALL');
+  // Filtro inicial desde el dashboard (`{ status }`).
+  const paramStatus = (route.params as { status?: string } | undefined)?.status;
+  const [filter, setFilter] = useState<string>(() =>
+    paramStatus && (STATUS_ORDER as string[]).includes(paramStatus) ? paramStatus : 'ALL'
+  );
+  useEffect(() => {
+    if (paramStatus && (STATUS_ORDER as string[]).includes(paramStatus)) setFilter(paramStatus);
+  }, [paramStatus]);
   const statuses = useMemo<PostsaleStatus[] | undefined>(
     () => (filter === 'ALL' ? undefined : [filter as PostsaleStatus]),
     [filter]

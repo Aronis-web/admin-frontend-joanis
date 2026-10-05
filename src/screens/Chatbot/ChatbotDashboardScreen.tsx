@@ -23,6 +23,9 @@ import type { Theme } from '@/design-system/themes/defaultLight';
 import { useChatbotDashboard } from '@/hooks/api/useChatbotMetrics';
 import type { ChatbotDashboard, ChatbotMetricsParams } from '@/types/chatbot';
 import { CHANNEL_META, SALES_CHANNELS, type SalesChannel } from './utils';
+import { useQueryClient } from '@tanstack/react-query';
+import { chatbotPostsaleKeys } from '@/hooks/api/useChatbotPostsale';
+import { PostsaleOverviewSection } from './components/PostsaleOverviewSection';
 
 type Props = NativeStackScreenProps<any, 'ChatbotDashboard'>;
 
@@ -271,6 +274,13 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const chMeta = channel ? CHANNEL_META[channel] : null;
   const waOnly = !channel || channel === 'whatsapp';
   const { data, isLoading, isError, isFetching, refetch } = useChatbotDashboard(params);
+  const queryClient = useQueryClient();
+  /** Refresca el dashboard y el estado de pedidos / estancados. */
+  const refreshAll = () => {
+    refetch();
+    queryClient.invalidateQueries({ queryKey: chatbotPostsaleKeys.overview() });
+    queryClient.invalidateQueries({ queryKey: [...chatbotPostsaleKeys.all, 'stalled'] });
+  };
 
   const series = data?.series;
   const labels = useMemo(
@@ -375,7 +385,7 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
-              onRefresh={refetch}
+              onRefresh={refreshAll}
               colors={[theme.color.brand.accent]}
             />
           }
@@ -428,6 +438,9 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
               ))}
             </ScrollView>
           </View>
+
+          {/* Estado de pedidos y estancados (independiente del período elegido) */}
+          <PostsaleOverviewSection />
 
           {isLoading ? (
             <View style={styles.loadingContainer}>

@@ -171,6 +171,42 @@ export interface PostsaleDetail {
 
 export type PostsaleMediaKind = 'firma' | 'foto';
 
+/** `GET /chatbot/postsale/overview`: conteos de pago y del flujo de post venta. */
+export interface PostsaleOverview {
+  payment: { status: string; label: string; n: number; covered?: number }[];
+  postsale: { status: PostsaleStatus; label: string; n: number }[];
+  /** Pedidos que superaron el tiempo límite de su etapa. */
+  stalled: number;
+  /** Horas límite por etapa. */
+  thresholds: Record<string, number>;
+}
+
+/** Pedido estancado (`GET /chatbot/postsale/stalled`). */
+export interface PostsaleStalledItem {
+  id: string;
+  orderNo: string;
+  customerName: string | null;
+  convPhone: string | null;
+  status: string;
+  postsaleStatus: PostsaleStatus | null;
+  stage: string;
+  stageLabel: string;
+  since: string;
+  hours: number;
+  limitHours: number;
+  packages?: number;
+  route: PostsaleRoute | null;
+  totalCents: string | number | null;
+  paidCents: string | number | null;
+}
+
+export interface PostsaleStalledPage {
+  items: PostsaleStalledItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface PostsaleListParams {
   statuses?: PostsaleStatus[];
   /**
@@ -277,6 +313,17 @@ class ChatbotPostsaleService {
   async resolve(code: string): Promise<PostsaleResolved> {
     return apiClient.get<PostsaleResolved>(`${this.basePath}/resolve`, {
       params: { code: code.trim() },
+    });
+  }
+
+  async overview(): Promise<PostsaleOverview> {
+    return apiClient.get<PostsaleOverview>(`${this.basePath}/overview`);
+  }
+
+  /** Pedidos estancados, del más atrasado (horas / límite) al menos. */
+  async stalled(page: number, pageSize: number): Promise<PostsaleStalledPage> {
+    return apiClient.get<PostsaleStalledPage>(`${this.basePath}/stalled`, {
+      params: { page, pageSize },
     });
   }
 
