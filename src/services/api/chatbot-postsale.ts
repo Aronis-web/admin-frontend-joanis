@@ -56,7 +56,24 @@ export interface PostsaleSticker {
   route: PostsaleRoute;
   routeLabel: string;
   destination: string | null;
-  items: { name: string; qty: number }[];
+  /** Puede no venir en versiones nuevas del backend (el sticker ya no lista productos). */
+  items?: { name: string; qty: number }[];
+  /** Nombre completo del cliente. */
+  customerFullName?: string | null;
+  /** 9 dígitos o null. */
+  customerPhone?: string | null;
+  /** Cantidad total de artículos. */
+  units?: number | null;
+  /** Fecha de impresión (ISO). */
+  printedAt?: string | null;
+  destinationDetail?: {
+    place?: string | null;
+    address?: string | null;
+    reference?: string | null;
+    agency?: string | null;
+    city?: string | null;
+  } | null;
+  company?: { name?: string | null; ruc?: string | null; address?: string | null } | null;
 }
 
 /** Resultado de `POST /chatbot/postsale/scan`. */
