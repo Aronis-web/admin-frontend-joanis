@@ -308,6 +308,32 @@ export interface GetChatbotOrdersParams {
   status?: ChatbotOrderStatus | ChatbotOrderStatus[] | 'ALL';
 }
 
+/** Filtro de pago: cubierto (pagado ≥ total), parcial o sin pago. */
+export type ChatbotOrderPaymentFilter = 'covered' | 'partial' | 'none';
+
+/** Parámetros del listado paginado `GET /chatbot/orders?page=…`. */
+export interface ChatbotOrdersPageParams {
+  /** Lista de estados; sin estado = PENDING_PAYMENT + AWAITING_BALANCE; `ALL` = todos. */
+  status?: ChatbotOrderStatus[] | 'ALL';
+  /** Búsqueda: cada palabra contra pedido, cliente, teléfono, documento, voucher y productos. */
+  q?: string;
+  channel?: 'whatsapp' | 'messenger' | 'instagram';
+  payment?: ChatbotOrderPaymentFilter;
+  /** YYYY-MM-DD (fecha del pedido en Lima). */
+  from?: string;
+  to?: string;
+  sort?: 'oldest' | 'newest';
+  page: number;
+  pageSize: number;
+}
+
+export interface ChatbotOrdersPage {
+  items: ChatbotOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface ValidateChatbotOrderResponse {
   status: 'EMITTED' | 'VALIDATED';
   saleIds?: string[];

@@ -3,6 +3,8 @@ import type {
   ChatbotOrder,
   ExtendChatbotOrderBody,
   ExtendChatbotOrderResponse,
+  ChatbotOrdersPage,
+  ChatbotOrdersPageParams,
   GetChatbotOrdersParams,
   RejectChatbotOrderBody,
   ValidateChatbotOrderResponse,
@@ -28,6 +30,20 @@ class ChatbotOrdersService {
           }
         : undefined;
     return apiClient.get<ChatbotOrder[]>(this.basePath, { params: query });
+  }
+
+  /** Listado paginado con búsqueda y filtros (`{ items, total, page, pageSize }`). */
+  async listPage(params: ChatbotOrdersPageParams): Promise<ChatbotOrdersPage> {
+    const { status, q, channel, payment, from, to, sort, page, pageSize } = params;
+    const query: Record<string, string | number> = { page, pageSize };
+    if (status) query.status = Array.isArray(status) ? status.join(',') : status;
+    if (q?.trim()) query.q = q.trim();
+    if (channel) query.channel = channel;
+    if (payment) query.payment = payment;
+    if (from) query.from = from;
+    if (to) query.to = to;
+    if (sort) query.sort = sort;
+    return apiClient.get<ChatbotOrdersPage>(this.basePath, { params: query });
   }
 
   async validate(id: string): Promise<ValidateChatbotOrderResponse> {

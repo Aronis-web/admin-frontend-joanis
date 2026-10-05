@@ -1,7 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotOrdersApi } from '@/services/api';
 import type {
   ChatbotOrder,
+  ChatbotOrdersPage,
+  ChatbotOrdersPageParams,
   ExtendChatbotOrderBody,
   ExtendChatbotOrderResponse,
   GetChatbotOrdersParams,
@@ -17,6 +19,9 @@ export const chatbotOrdersKeys = {
   all: ['chatbot-orders'] as const,
   lists: () => [...chatbotOrdersKeys.all, 'list'] as const,
   list: (params?: GetChatbotOrdersParams) => [...chatbotOrdersKeys.lists(), params] as const,
+  // Bajo `lists()` para que las mutaciones existentes también refresquen la página.
+  page: (params: ChatbotOrdersPageParams) =>
+    [...chatbotOrdersKeys.lists(), 'page', params] as const,
 };
 
 const ORDERS_STALE_TIME = 30 * 1000;
@@ -37,6 +42,20 @@ export const useChatbotOrdersList = (
     refetchInterval: options?.refetchIntervalMs ?? false,
   });
 };
+
+/** Página de pedidos con filtros; conserva la página anterior mientras carga. */
+export const useChatbotOrdersPage = (
+  params: ChatbotOrdersPageParams,
+  options?: { refetchIntervalMs?: number }
+) =>
+  useQuery<ChatbotOrdersPage>({
+    queryKey: chatbotOrdersKeys.page(params),
+    queryFn: () => chatbotOrdersApi.listPage(params),
+    staleTime: ORDERS_STALE_TIME,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+    refetchInterval: options?.refetchIntervalMs ?? false,
+  });
 
 // ============================================
 // Mutations

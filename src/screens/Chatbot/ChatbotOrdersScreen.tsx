@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -14,6 +14,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
 import {
   Badge,
@@ -34,7 +35,7 @@ import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
 import { useConversationVouchers } from '@/hooks/api/useChatbotConversations';
 import {
-  useChatbotOrdersList,
+  useChatbotOrdersPage,
   useExtendChatbotOrderHold,
   useCancelChatbotOrder,
   useRejectChatbotOrder,
@@ -43,6 +44,7 @@ import {
 } from '@/hooks/api/useChatbotOrders';
 import type {
   ChatbotOrder,
+  ChatbotOrderPaymentFilter,
   ChatbotOrderStatus,
   ConversationVoucher,
   VoucherStatus,
@@ -50,6 +52,7 @@ import type {
 import Alert from '@/utils/alert';
 import { usePermissions } from '@/hooks/usePermissions';
 import { config } from '@/utils/config';
+import { PageControls } from './components/PageControls';
 import { VoucherLinkButton } from './components/VoucherLinkButton';
 import {
   CHANNEL_META,
@@ -62,6 +65,51 @@ import {
 } from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotOrders'>;
+
+const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 350;
+
+type PaymentFilter = ChatbotOrderPaymentFilter | 'ALL';
+const PAYMENT_OPTIONS: Array<{ label: string; value: PaymentFilter }> = [
+  { label: 'Cualquier pago', value: 'ALL' },
+  { label: 'Pagado completo', value: 'covered' },
+  { label: 'Parcial', value: 'partial' },
+  { label: 'Sin pago', value: 'none' },
+];
+
+type DateQuick = 'all' | 'today' | 'week' | 'month' | 'custom';
+const DATE_OPTIONS: Array<{ label: string; value: DateQuick }> = [
+  { label: 'Cualquier fecha', value: 'all' },
+  { label: 'Hoy', value: 'today' },
+  { label: '7 días', value: 'week' },
+  { label: 'Este mes', value: 'month' },
+];
+
+type SortOrder = 'oldest' | 'newest';
+const SORT_OPTIONS: Array<{ label: string; value: SortOrder }> = [
+  { label: 'Más antiguos', value: 'oldest' },
+  { label: 'Más recientes', value: 'newest' },
+];
+
+/** Fecha de Lima (UTC-5, sin horario de verano) como YYYY-MM-DD. */
+const limaDate = (offsetDays = 0): string =>
+  new Date(Date.now() - 5 * 3600 * 1000 + offsetDays * 86400 * 1000).toISOString().slice(0, 10);
+
+const toYmd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const fromYmd = (v: string) => {
+  const [y, m, d] = v.split('-').map(Number);
+  return new Date(y, m - 1, d, 12, 0, 0, 0);
+};
+
+const quickRange = (q: DateQuick): { from: string; to: string } => {
+  const today = limaDate();
+  if (q === 'today') return { from: today, to: today };
+  if (q === 'week') return { from: limaDate(-6), to: today };
+  if (q === 'month') return { from: `${today.slice(0, 7)}-01`, to: today };
+  return { from: '', to: '' };
+};
 
 /** Linea de entrega del pedido (recojo / delivery / agencia) para el asesor. */
 const describeOrderFulfillment = (order: ChatbotOrder): string | null => {
@@ -176,19 +224,63 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   // "Por gestionar" pide explícitamente los estados accionables porque el
   // backend, sin `status`, devuelve TODOS los pedidos.
   const isAll = filter === 'ALL';
-  const listParams = isManage ? { status: ACTIONABLE_STATUSES } : { status: filter };
   const isPolling = isAll || isManage || isActionable(filter as ChatbotOrderStatus);
-  const { data, isLoading, isFetching, isError, refetch } = useChatbotOrdersList(listParams, {
-    refetchIntervalMs: isPolling ? 20000 : undefined,
-  });
   const [channel, setChannel] = useState<SalesChannel | 'ALL'>('ALL');
-  const orders = useMemo(
-    () =>
-      (Array.isArray(data) ? data : []).filter(
-        (o) => channel === 'ALL' || channelOf(o.phone) === channel
-      ),
-    [data, channel]
+  const [payment, setPayment] = useState<PaymentFilter>('ALL');
+  // Por defecto, de los más antiguos a los más recientes en todas las vistas.
+  const [sort, setSort] = useState<SortOrder>('oldest');
+  const [dateQuick, setDateQuick] = useState<DateQuick>('all');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [picker, setPicker] = useState<'from' | 'to' | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [search, setSearch] = useState('');
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const t = setTimeout(() => setQ(search.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Cualquier cambio de filtro vuelve a la primera página.
+  useEffect(() => {
+    setPage(1);
+  }, [filter, channel, payment, sort, from, to, q]);
+
+  const applyDateQuick = (v: DateQuick) => {
+    setDateQuick(v);
+    const r = quickRange(v);
+    setFrom(r.from);
+    setTo(r.to);
+  };
+
+  const { data, isLoading, isFetching, isError, refetch } = useChatbotOrdersPage(
+    {
+      status: isManage ? ACTIONABLE_STATUSES : isAll ? 'ALL' : [filter as ChatbotOrderStatus],
+      q: q || undefined,
+      channel: channel === 'ALL' ? undefined : channel,
+      payment: payment === 'ALL' ? undefined : payment,
+      from: from || undefined,
+      to: to || undefined,
+      sort,
+      page,
+      pageSize: PAGE_SIZE,
+    },
+    { refetchIntervalMs: isPolling ? 20000 : undefined }
   );
+  const orders = data?.items ?? [];
+  const total = data?.total ?? 0;
+
+  // Si tras una acción la página quedó vacía, retrocede una.
+  useEffect(() => {
+    if (!isFetching && page > 1 && data && data.items.length === 0) {
+      setPage((p) => Math.max(1, p - 1));
+    }
+  }, [isFetching, data, page]);
+
+  const activeFilters =
+    (channel !== 'ALL' ? 1 : 0) + (payment !== 'ALL' ? 1 : 0) + (from || to ? 1 : 0);
 
   const { hasPermission } = usePermissions();
   const canValidate = hasPermission('chatbot.orders.validate');
@@ -383,15 +475,110 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
             onChange={(sel) => sel[0] && setFilter(sel[0] as OrderFilter)}
             multiple={false}
           />
-          <ChipGroup
-            options={[
-              { label: 'Todas las redes', value: 'ALL' },
-              ...SALES_CHANNELS.map((c) => ({ label: CHANNEL_META[c].label, value: c })),
-            ]}
-            selected={[channel]}
-            onChange={(sel) => sel[0] && setChannel(sel[0] as SalesChannel | 'ALL')}
-            multiple={false}
-          />
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={18} color={theme.color.text.muted} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Buscar pedido, cliente, teléfono, DNI, operación o producto"
+              placeholderTextColor={theme.color.text.muted}
+              autoCorrect={false}
+              returnKeyType="search"
+              style={styles.searchInput}
+            />
+            {isFetching && !isLoading ? (
+              <ActivityIndicator size="small" color={theme.color.brand.accent} />
+            ) : search ? (
+              <Ionicons
+                name="close-circle"
+                size={18}
+                color={theme.color.text.muted}
+                onPress={() => setSearch('')}
+                accessibilityLabel="Limpiar búsqueda"
+              />
+            ) : null}
+          </View>
+
+          <View style={styles.toolbarRow}>
+            <ChipGroup
+              options={SORT_OPTIONS}
+              selected={[sort]}
+              onChange={(sel) => sel[0] && setSort(sel[0] as SortOrder)}
+              size="small"
+            />
+            <Button
+              title={`Filtros${activeFilters ? ` (${activeFilters})` : ''}`}
+              leftIcon="options-outline"
+              variant={showFilters ? 'primary' : 'outline'}
+              size="small"
+              onPress={() => setShowFilters((v) => !v)}
+            />
+          </View>
+
+          {showFilters ? (
+            <Card style={styles.filtersCard}>
+              <Caption color={theme.color.text.muted}>Red social</Caption>
+              <ChipGroup
+                options={[
+                  { label: 'Todas las redes', value: 'ALL' },
+                  ...SALES_CHANNELS.map((c) => ({ label: CHANNEL_META[c].label, value: c })),
+                ]}
+                selected={[channel]}
+                onChange={(sel) => sel[0] && setChannel(sel[0] as SalesChannel | 'ALL')}
+                size="small"
+              />
+              <Caption color={theme.color.text.muted}>Pago</Caption>
+              <ChipGroup
+                options={PAYMENT_OPTIONS}
+                selected={[payment]}
+                onChange={(sel) => sel[0] && setPayment(sel[0] as PaymentFilter)}
+                size="small"
+              />
+              <Caption color={theme.color.text.muted}>Fecha del pedido</Caption>
+              <ChipGroup
+                options={DATE_OPTIONS}
+                selected={dateQuick === 'custom' ? [] : [dateQuick]}
+                onChange={(sel) => sel[0] && applyDateQuick(sel[0] as DateQuick)}
+                size="small"
+              />
+              <View style={styles.toolbarRow}>
+                <View style={{ flex: 1 }}>
+                  <DatePickerButton
+                    label="Desde"
+                    value={from}
+                    placeholder="Sin límite"
+                    onPress={() => setPicker('from')}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <DatePickerButton
+                    label="Hasta"
+                    value={to}
+                    placeholder="Sin límite"
+                    onPress={() => setPicker('to')}
+                  />
+                </View>
+              </View>
+              {activeFilters ? (
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Button
+                    title="Limpiar filtros"
+                    variant="ghost"
+                    size="small"
+                    onPress={() => {
+                      setChannel('ALL');
+                      setPayment('ALL');
+                      applyDateQuick('all');
+                    }}
+                  />
+                </View>
+              ) : null}
+            </Card>
+          ) : null}
+
+          <Caption color={theme.color.text.muted}>
+            {isLoading ? 'Cargando…' : `${total} pedido${total === 1 ? '' : 's'}`}
+          </Caption>
 
           {isLoading ? (
             <View style={styles.centerBox}>
@@ -407,7 +594,11 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
             <EmptyState
               icon="receipt-outline"
               title="Sin pedidos"
-              description="No hay pedidos en este estado."
+              description={
+                q || activeFilters
+                  ? 'Ningún pedido coincide con la búsqueda o los filtros.'
+                  : 'No hay pedidos en este estado.'
+              }
             />
           ) : (
             <View style={styles.list}>
@@ -554,7 +745,28 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               })}
             </View>
           )}
+          <PageControls
+            total={total}
+            page={page}
+            pageSize={PAGE_SIZE}
+            count={orders.length}
+            busy={isFetching}
+            onPage={setPage}
+          />
         </ScrollView>
+
+        <DatePicker
+          visible={picker !== null}
+          date={fromYmd((picker === 'to' ? to : from) || limaDate())}
+          title={picker === 'to' ? 'Hasta' : 'Desde'}
+          onConfirm={(d) => {
+            if (picker === 'to') setTo(toYmd(d));
+            else setFrom(toYmd(d));
+            setDateQuick('custom');
+            setPicker(null);
+          }}
+          onCancel={() => setPicker(null)}
+        />
 
         {/* Reject / cancel order modal */}
         <Modal
@@ -828,6 +1040,25 @@ const createStyles = (theme: Theme) =>
     list: {
       gap: spacing[3],
     },
+    searchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
+      borderWidth: 1,
+      borderColor: theme.color.border.default,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing[3],
+      backgroundColor: theme.color.surface.base,
+    },
+    searchInput: { flex: 1, paddingVertical: spacing[3], color: theme.color.text.body },
+    toolbarRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: spacing[2],
+    },
+    filtersCard: { padding: spacing[3], gap: spacing[2] },
     orderCard: {
       padding: spacing[3],
       gap: spacing[2],
