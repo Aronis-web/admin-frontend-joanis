@@ -457,6 +457,9 @@ const menuCategories: MenuCategory[] = [
       'chatbot.training.manage',
       'chatbot.metrics.read',
       'chatbot.settings.manage',
+      'chatbot.postsale.read',
+      'chatbot.postsale.operate',
+      'chatbot.postsale.deliver',
     ],
     items: [
       {
@@ -519,8 +522,50 @@ const menuCategories: MenuCategory[] = [
         id: 'chatbot-postsale',
         icon: 'cube-outline',
         label: 'Post venta',
-        route: MAIN_ROUTES.CHATBOT_POSTSALE,
-        requiredPermissions: ['chatbot.postsale.read'],
+        subItems: [
+          {
+            id: 'chatbot-postsale-print',
+            icon: 'print-outline',
+            label: 'Imprimir',
+            route: MAIN_ROUTES.CHATBOT_POSTSALE_PRINT,
+            requiredPermissions: ['chatbot.postsale.operate'],
+          },
+          {
+            id: 'chatbot-postsale-assembly',
+            icon: 'construct-outline',
+            label: 'Armado',
+            route: MAIN_ROUTES.CHATBOT_POSTSALE_ASSEMBLY,
+            requiredPermissions: ['chatbot.postsale.operate'],
+          },
+          {
+            id: 'chatbot-postsale-dispatch',
+            icon: 'car-outline',
+            label: 'Despacho',
+            route: MAIN_ROUTES.CHATBOT_POSTSALE_DISPATCH,
+            requiredPermissions: ['chatbot.postsale.operate'],
+          },
+          {
+            id: 'chatbot-postsale-reception',
+            icon: 'download-outline',
+            label: 'Recepción',
+            route: MAIN_ROUTES.CHATBOT_POSTSALE_RECEPTION,
+            requiredPermissions: ['chatbot.postsale.operate'],
+          },
+          {
+            id: 'chatbot-postsale-delivery',
+            icon: 'hand-left-outline',
+            label: 'Entrega',
+            route: MAIN_ROUTES.CHATBOT_POSTSALE_DELIVERY,
+            requiredPermissions: ['chatbot.postsale.deliver'],
+          },
+          {
+            id: 'chatbot-postsale-tracking',
+            icon: 'git-network-outline',
+            label: 'Seguimiento',
+            route: MAIN_ROUTES.CHATBOT_POSTSALE_TRACKING,
+            requiredPermissions: ['chatbot.postsale.read'],
+          },
+        ],
       },
       {
         id: 'chatbot-complaints',

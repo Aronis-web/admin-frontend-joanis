@@ -4,6 +4,7 @@ import {
   type PostsaleDeliverPayload,
   type PostsaleDetail,
   type PostsaleOrder,
+  type PostsaleScanStage,
   type PostsaleStatus,
 } from '@/services/api/chatbot-postsale';
 
@@ -43,7 +44,8 @@ export const usePrintPostsale = () => {
 export const useScanPostsale = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (code: string) => chatbotPostsaleApi.scan(code),
+    mutationFn: ({ code, stage }: { code: string; stage?: PostsaleScanStage }) =>
+      chatbotPostsaleApi.scan(code, stage),
     onSuccess: () => qc.invalidateQueries({ queryKey: chatbotPostsaleKeys.all }),
   });
 };

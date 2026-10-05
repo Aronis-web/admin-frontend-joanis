@@ -14,6 +14,14 @@ export type PostsaleStatus =
   | 'ENTREGADO_AGENCIA'
   | 'ENTREGADO';
 
+/**
+ * Etapa del escaneo: el backend rechaza (400) pedidos que no están en ese paso.
+ * - armado: EN_ARMADO → ARMADO_FINALIZADO
+ * - despacho: ARMADO_FINALIZADO → EN_RUTA_TIENDA / EN_RUTA_DOMICILIO / EN_RUTA_AGENCIA
+ * - recepcion: EN_RUTA_TIENDA → EN_TIENDA, EN_RUTA_AGENCIA → ENTREGADO_AGENCIA
+ */
+export type PostsaleScanStage = 'armado' | 'despacho' | 'recepcion';
+
 /** Tipo de despacho del pedido. */
 export type PostsaleRoute = 'PICKUP' | 'DELIVERY_LIMA' | 'AGENCY';
 
@@ -169,8 +177,11 @@ class ChatbotPostsaleService {
     return apiClient.post<PostsaleSticker[]>(`${this.basePath}/print`, { orderIds });
   }
 
-  async scan(code: string): Promise<PostsaleScanResult> {
-    return apiClient.post<PostsaleScanResult>(`${this.basePath}/scan`, { code });
+  async scan(code: string, stage?: PostsaleScanStage): Promise<PostsaleScanResult> {
+    return apiClient.post<PostsaleScanResult>(`${this.basePath}/scan`, {
+      code,
+      ...(stage ? { stage } : {}),
+    });
   }
 
   async deliver(id: string, payload: PostsaleDeliverPayload): Promise<PostsaleDeliverResult> {

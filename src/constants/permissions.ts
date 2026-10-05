@@ -598,6 +598,8 @@ export const PERMISSIONS = {
     COMPLAINTS_MANAGE: 'chatbot.complaints.manage',
     BROADCASTS_MANAGE: 'chatbot.broadcasts.manage',
     POSTSALE_READ: 'chatbot.postsale.read',
+    POSTSALE_OPERATE: 'chatbot.postsale.operate',
+    POSTSALE_DELIVER: 'chatbot.postsale.deliver',
   },
 
   // ========== NOTIFICATIONS WHATSAPP ==========

@@ -676,8 +676,26 @@ const ChatbotSyncRulesScreen = lazyLoad(
 const ChatbotBroadcastsScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotBroadcastsScreen }))
 );
-const ChatbotPostsaleScreen = lazyLoad(() =>
-  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsaleScreen }))
+const ChatbotPostsalePrintScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsalePrintScreen }))
+);
+const ChatbotPostsaleAssemblyScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsaleAssemblyScreen }))
+);
+const ChatbotPostsaleDispatchScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsaleDispatchScreen }))
+);
+const ChatbotPostsaleReceptionScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsaleReceptionScreen }))
+);
+const ChatbotPostsaleDeliveryScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsaleDeliveryScreen }))
+);
+const ChatbotPostsaleTrackingScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsaleTrackingScreen }))
+);
+const ChatbotPostsaleRedirectScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsaleRedirectScreen }))
 );
 const ChatbotComplaintsScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotComplaintsScreen }))
@@ -2542,7 +2560,49 @@ const MainStack = React.memo(() => {
       <MainStackNavigator.Screen name="ChatbotPostsale" options={{ title: 'Post venta' }}>
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.postsale.read']}>
-            <ChatbotPostsaleScreen {...props} />
+            <ChatbotPostsaleRedirectScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotPostsalePrint" options={{ title: 'Post venta · Imprimir' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.operate']}>
+            <ChatbotPostsalePrintScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotPostsaleAssembly" options={{ title: 'Post venta · Armado' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.operate']}>
+            <ChatbotPostsaleAssemblyScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotPostsaleDispatch" options={{ title: 'Post venta · Despacho' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.operate']}>
+            <ChatbotPostsaleDispatchScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotPostsaleReception" options={{ title: 'Post venta · Recepción' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.operate']}>
+            <ChatbotPostsaleReceptionScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotPostsaleDelivery" options={{ title: 'Post venta · Entrega' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.deliver']}>
+            <ChatbotPostsaleDeliveryScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotPostsaleTracking" options={{ title: 'Post venta · Seguimiento' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.postsale.read']}>
+            <ChatbotPostsaleTrackingScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

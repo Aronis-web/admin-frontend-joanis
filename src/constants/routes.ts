@@ -268,6 +268,12 @@ export const MAIN_ROUTES = {
   CHATBOT_COMPLAINTS: 'ChatbotComplaints',
   CHATBOT_BROADCASTS: 'ChatbotBroadcasts',
   CHATBOT_POSTSALE: 'ChatbotPostsale',
+  CHATBOT_POSTSALE_PRINT: 'ChatbotPostsalePrint',
+  CHATBOT_POSTSALE_ASSEMBLY: 'ChatbotPostsaleAssembly',
+  CHATBOT_POSTSALE_DISPATCH: 'ChatbotPostsaleDispatch',
+  CHATBOT_POSTSALE_RECEPTION: 'ChatbotPostsaleReception',
+  CHATBOT_POSTSALE_DELIVERY: 'ChatbotPostsaleDelivery',
+  CHATBOT_POSTSALE_TRACKING: 'ChatbotPostsaleTracking',
   CHATBOT_SETTINGS: 'ChatbotSettings',
 } as const;
 
@@ -558,6 +564,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   CHATBOT_COMPLAINTS: 'chatbot.complaints.manage',
   CHATBOT_BROADCASTS: 'chatbot.broadcasts.manage',
   CHATBOT_POSTSALE: 'chatbot.postsale.read',
+  CHATBOT_POSTSALE_PRINT: 'chatbot.postsale.operate',
+  CHATBOT_POSTSALE_ASSEMBLY: 'chatbot.postsale.operate',
+  CHATBOT_POSTSALE_DISPATCH: 'chatbot.postsale.operate',
+  CHATBOT_POSTSALE_RECEPTION: 'chatbot.postsale.operate',
+  CHATBOT_POSTSALE_DELIVERY: 'chatbot.postsale.deliver',
+  CHATBOT_POSTSALE_TRACKING: 'chatbot.postsale.read',
 };
 
 /**
