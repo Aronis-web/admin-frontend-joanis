@@ -22,7 +22,7 @@ import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
 import { useChatbotDashboard } from '@/hooks/api/useChatbotMetrics';
 import type { ChatbotDashboard, ChatbotMetricsParams } from '@/types/chatbot';
-import { CHANNEL_META } from './utils';
+import { CHANNEL_META, SALES_CHANNELS, type SalesChannel } from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotDashboard'>;
 
@@ -258,13 +258,18 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
-  const isTablet = width >= 768;
   const chartWidth = Math.min(width, 1200) - 64;
 
   const [filter, setFilter] = useState<QuickFilter>('today');
   const [custom, setCustom] = useState<{ from: Date; to: Date } | null>(null);
   const [showPicker, setShowPicker] = useState(false);
-  const params = useMemo(() => rangeFor(filter, custom), [filter, custom]);
+  const [channel, setChannel] = useState<SalesChannel | undefined>(undefined);
+  const params = useMemo(
+    () => ({ ...rangeFor(filter, custom), ...(channel ? { channel } : {}) }),
+    [filter, custom, channel]
+  );
+  const chMeta = channel ? CHANNEL_META[channel] : null;
+  const waOnly = !channel || channel === 'whatsapp';
   const { data, isLoading, isError, isFetching, refetch } = useChatbotDashboard(params);
 
   const series = data?.series;
@@ -305,26 +310,22 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
     },
   ];
 
-  const toneStyle = {
-    info: styles.statInfo,
-    success: styles.statSuccess,
-    warning: styles.statWarning,
-    danger: styles.statDanger,
-    primary: styles.statPrimary,
-  };
-
-  const Stat: React.FC<{
-    icon: string;
-    label: string;
-    value: string;
-    sub?: string;
-    tone: keyof typeof toneStyle;
-  }> = ({ icon, label, value, sub, tone }) => (
-    <View style={[styles.statCard, toneStyle[tone]]}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, isTablet && styles.statValueTablet]}>{value}</Text>
-      {sub ? <Text style={styles.statSubtext}>{sub}</Text> : null}
+  const Panel: React.FC<{
+    title: string;
+    color: string;
+    rows: Array<{ k: string; v: string; sub?: string }>;
+  }> = ({ title, color, rows }) => (
+    <View style={[styles.compareCard, { borderTopColor: color }]}>
+      <Text style={styles.compareName}>{title}</Text>
+      {rows.map((r) => (
+        <View key={r.k} style={styles.compareRow}>
+          <Text style={styles.compareKey}>{r.k}</Text>
+          <View style={{ alignItems: 'flex-end', flexShrink: 1 }}>
+            <Text style={styles.compareVal}>{r.v}</Text>
+            {r.sub ? <Text style={styles.panelSub}>{r.sub}</Text> : null}
+          </View>
+        </View>
+      ))}
     </View>
   );
 
@@ -353,11 +354,19 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.headerIconRow}>
             <View style={styles.headerIconContainer}>
-              <Ionicons name="logo-whatsapp" size={22} color={theme.color.brand.onHeader} />
+              <Ionicons
+                name={chMeta?.icon ?? 'share-social'}
+                size={22}
+                color={theme.color.brand.onHeader}
+              />
             </View>
             <Text style={styles.title}>Dashboard Redes Sociales</Text>
           </View>
-          <Text style={styles.subtitle}>Ventas, pagos, mensajes y gasto del bot</Text>
+          <Text style={styles.subtitle}>
+            {chMeta
+              ? `Solo ${chMeta.label}: ventas, chats y gasto`
+              : 'WhatsApp, Messenger e Instagram: ventas, chats y gasto'}
+          </Text>
         </LinearGradient>
 
         <ScrollView
@@ -371,6 +380,33 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
             />
           }
         >
+          <View style={styles.channelTabs}>
+            {([undefined, ...SALES_CHANNELS] as Array<SalesChannel | undefined>).map((ch) => {
+              const active = channel === ch;
+              const meta = ch ? CHANNEL_META[ch] : null;
+              return (
+                <TouchableOpacity
+                  key={ch ?? 'all'}
+                  style={[
+                    styles.channelTab,
+                    active && { backgroundColor: meta?.color ?? theme.color.brand.primary },
+                  ]}
+                  onPress={() => setChannel(ch)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons
+                    name={meta?.icon ?? 'apps-outline'}
+                    size={16}
+                    color={active ? '#fff' : (meta?.color ?? theme.color.text.muted)}
+                  />
+                  <Text style={[styles.channelTabText, active && styles.channelTabTextActive]}>
+                    {meta?.label ?? 'Todas'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           <View style={styles.filtersSection}>
             <Text style={styles.filtersLabel}>📅 Período de Análisis</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -408,50 +444,221 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           ) : (
             <>
-              <Text style={styles.sectionTitle}>💰 Ventas</Text>
-              <View style={styles.statsGrid}>
-                <Stat
-                  icon="🛒"
-                  label="Pedidos"
-                  value={num(data.sales.orders)}
-                  sub={`${num(data.sales.validated.count)} validados`}
-                  tone="info"
-                />
-                <Stat
-                  icon="💵"
-                  label="Monto de ventas"
-                  value={solesCents(data.sales.amountCents)}
-                  sub={`Validado ${solesCents(data.sales.validated.amountCents)}`}
-                  tone="success"
-                />
-                <Stat
-                  icon="🧾"
-                  label="Vouchers por validar"
-                  value={num(data.vouchers.awaitingValidation)}
-                  sub={solesCents(data.sales.pendingValidation.amountCents)}
-                  tone="warning"
-                />
-                <Stat
-                  icon="⏳"
-                  label="Falta saldo"
-                  value={num(data.sales.awaitingBalance.count)}
-                  sub={`Faltan ${solesCents(data.sales.awaitingBalance.missingCents)}`}
-                  tone="primary"
-                />
-                <Stat
-                  icon="🛵"
-                  label="Envíos cobrados"
-                  value={solesCents(data.sales.deliveryFeesCents)}
-                  tone="info"
-                />
-                <Stat
-                  icon="✖️"
-                  label="Rechazados / vencidos"
-                  value={num(data.sales.rejectedOrExpired)}
-                  tone="danger"
-                />
+              {/* Resumen: lo mas importante en 4 numeros */}
+              <View style={styles.kpiStrip}>
+                {[
+                  {
+                    label: 'Ventas',
+                    value: solesCents(data.sales.amountCents),
+                    sub: `${num(data.sales.orders)} pedidos`,
+                  },
+                  {
+                    label: 'Chats activos',
+                    value: num(data.conversations.active),
+                    sub: `${num(data.conversations.newChats)} nuevos`,
+                  },
+                  {
+                    label: 'Gasto',
+                    value: soles(data.totalCostPen ?? 0),
+                    sub: waOnly ? 'Meta + IA' : 'Solo IA (mensajes gratis)',
+                  },
+                  {
+                    label: 'Costo por pedido',
+                    value: data.sales.orders
+                      ? soles((data.totalCostPen ?? 0) / data.sales.orders)
+                      : '—',
+                    sub: data.sales.amountCents
+                      ? `${((((data.totalCostPen ?? 0) * 100) / data.sales.amountCents) * 100).toFixed(1)}% de las ventas`
+                      : 'sin ventas',
+                  },
+                ].map((k) => (
+                  <View key={k.label} style={styles.kpiCard}>
+                    <Text style={styles.kpiLabel}>{k.label}</Text>
+                    <Text style={styles.kpiValue}>{k.value}</Text>
+                    <Text style={styles.kpiSub}>{k.sub}</Text>
+                  </View>
+                ))}
               </View>
 
+              {!channel && data.byChannel?.length ? (
+                <>
+                  <Text style={styles.sectionTitle}>🌐 Comparativa por red social</Text>
+                  <Text style={styles.sectionHint}>
+                    Toca una red para ver todos sus datos por separado.
+                  </Text>
+                  <View style={styles.compareGrid}>
+                    {data.byChannel.map((row) => {
+                      const meta = CHANNEL_META[row.channel];
+                      const share = data.sales.amountCents
+                        ? Math.round((row.amountCents / data.sales.amountCents) * 100)
+                        : 0;
+                      return (
+                        <TouchableOpacity
+                          key={row.channel}
+                          style={[styles.compareCard, { borderTopColor: meta.color }]}
+                          onPress={() => setChannel(row.channel)}
+                          activeOpacity={0.85}
+                        >
+                          <View style={styles.compareHead}>
+                            <Ionicons name={meta.icon} size={18} color={meta.color} />
+                            <Text style={styles.compareName}>{meta.label}</Text>
+                            <Text style={styles.compareShare}>{share}% de ventas</Text>
+                          </View>
+                          <View style={styles.shareBar}>
+                            <View
+                              style={[
+                                styles.shareFill,
+                                { width: `${share}%`, backgroundColor: meta.color },
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.compareAmount}>{solesCents(row.amountCents)}</Text>
+                          {[
+                            ['Pedidos', num(row.orders)],
+                            [
+                              'Chats activos',
+                              `${num(row.activeChats)} (${num(row.newChats)} nuevos)`,
+                            ],
+                            ['Mensajes de clientes', num(row.customerMessages)],
+                            [
+                              'Gasto',
+                              `${soles(row.totalCostPen)}${
+                                row.channel === 'whatsapp'
+                                  ? ` (Meta ${row.metaCostPen != null ? soles(row.metaCostPen) : '—'} · IA ${soles(row.aiCostPen)})`
+                                  : ' (solo IA)'
+                              }`,
+                            ],
+                            [
+                              'Costo por pedido',
+                              row.costPerOrderPen != null ? soles(row.costPerOrderPen) : '—',
+                            ],
+                          ].map(([k, v]) => (
+                            <View key={k} style={styles.compareRow}>
+                              <Text style={styles.compareKey}>{k}</Text>
+                              <Text style={styles.compareVal}>{v}</Text>
+                            </View>
+                          ))}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
+
+              {/* Detalle: cada tema en una tarjeta (lo del resumen no se repite) */}
+              <View style={styles.compareGrid}>
+                <Panel
+                  title="💰 Ventas"
+                  color={c[1]}
+                  rows={[
+                    {
+                      k: 'Validadas',
+                      v: solesCents(data.sales.validated.amountCents),
+                      sub: `${num(data.sales.validated.count)} pedidos`,
+                    },
+                    {
+                      k: 'Por validar (voucher)',
+                      v: solesCents(data.sales.pendingValidation.amountCents),
+                      sub: `${num(data.vouchers.awaitingValidation)} vouchers`,
+                    },
+                    {
+                      k: 'Falta saldo',
+                      v: `Faltan ${solesCents(data.sales.awaitingBalance.missingCents)}`,
+                      sub: `${num(data.sales.awaitingBalance.count)} pedidos`,
+                    },
+                    { k: 'Envíos cobrados', v: solesCents(data.sales.deliveryFeesCents) },
+                    { k: 'Rechazados / vencidos', v: num(data.sales.rejectedOrExpired) },
+                  ]}
+                />
+                <Panel
+                  title="💬 Chats y mensajes"
+                  color={c[0]}
+                  rows={[
+                    {
+                      k: 'Identificados (DNI/RUC)',
+                      v: num(data.conversations.identified),
+                    },
+                    { k: 'Mensajes de clientes', v: num(data.messages.fromCustomers) },
+                    {
+                      k: 'Mensajes del bot',
+                      v: num(data.messages.fromBot),
+                      sub: data.messages.manual
+                        ? `${num(data.messages.manual)} manuales`
+                        : undefined,
+                    },
+                    { k: 'Dados de baja', v: num(data.conversations.optedOut) },
+                  ]}
+                />
+                <Panel
+                  title="💸 Gasto (S/ aprox.)"
+                  color={c[3] ?? c[2]}
+                  rows={[
+                    {
+                      k: 'Meta (WhatsApp)',
+                      v: !waOnly
+                        ? 'Gratis'
+                        : data.meta.available && data.meta.costPen != null
+                          ? soles(data.meta.costPen)
+                          : '—',
+                      sub: !waOnly
+                        ? `${chMeta?.label} no cobra mensajes`
+                        : data.meta.available
+                          ? `${money(data.meta.cost, data.meta.currency)} · ${num(data.meta.paidMessages)} pagados · ${num(data.meta.freeMessages)} gratis`
+                          : data.meta.error,
+                    },
+                    {
+                      k: 'IA',
+                      v: soles(data.ai.totalPen ?? 0),
+                      sub: `US$ ${data.ai.totalUsd.toFixed(2)}`,
+                    },
+                    ...(
+                      [
+                        ['deepseek', 'IA · DeepSeek'],
+                        ['gemini', 'IA · Gemini'],
+                        ['anthropic', 'IA · Claude'],
+                      ] as const
+                    )
+                      .filter(([key]) => (aiByProvider[key]?.calls ?? 0) > 0)
+                      .map(([key, label]) => ({
+                        k: label,
+                        v: soles(aiByProvider[key].pen),
+                        sub: `${num(aiByProvider[key].calls)} llamadas`,
+                      })),
+                  ]}
+                />
+                {waOnly ? (
+                  <Panel
+                    title={'📣 Anuncios "clic a WhatsApp"'}
+                    color={c[2]}
+                    rows={[
+                      {
+                        k: 'Chats desde anuncios',
+                        v: num(data.ads?.chats ?? 0),
+                        sub: data.ads?.topAds?.[0]
+                          ? `Top: ${data.ads.topAds[0].headline} (${data.ads.topAds[0].chats})`
+                          : undefined,
+                      },
+                      {
+                        k: 'Ventas desde anuncios',
+                        v: solesCents(data.ads?.amountCents ?? 0),
+                        sub: `${num(data.ads?.orders ?? 0)} pedidos · ${num(data.ads?.chatsWithOrder ?? 0)} clientes`,
+                      },
+                      {
+                        k: 'Mensajes gratis (72 h)',
+                        v: num(data.ads?.freeMessages ?? 0),
+                      },
+                      { k: 'Ahorro estimado', v: soles(data.ads?.savingsPen ?? 0) },
+                    ]}
+                  />
+                ) : null}
+              </View>
+
+              {hasSeries ? (
+                <Text style={styles.sectionTitle}>
+                  📈 Tendencia {granularityText}
+                  {chMeta ? ` · ${chMeta.label}` : ''}
+                </Text>
+              ) : null}
               {hasSeries ? (
                 <View style={styles.chartContainer}>
                   <Text style={styles.chartTitle}>Ventas {granularityText}</Text>
@@ -469,66 +676,6 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
                   />
                 </View>
               ) : null}
-
-              {data.byChannel?.length ? (
-                <>
-                  <Text style={styles.sectionTitle}>🌐 Por red social</Text>
-                  <View style={styles.statsGrid}>
-                    {data.byChannel.map((ch) => (
-                      <Stat
-                        key={ch.channel}
-                        icon={
-                          ch.channel === 'whatsapp'
-                            ? '🟢'
-                            : ch.channel === 'messenger'
-                              ? '🔵'
-                              : '🟣'
-                        }
-                        label={CHANNEL_META[ch.channel].label}
-                        value={solesCents(ch.amountCents)}
-                        sub={`${num(ch.orders)} pedidos · ${num(ch.activeChats)} chats (${num(ch.newChats)} nuevos)`}
-                        tone={
-                          ch.channel === 'whatsapp'
-                            ? 'success'
-                            : ch.channel === 'messenger'
-                              ? 'info'
-                              : 'primary'
-                        }
-                      />
-                    ))}
-                  </View>
-                </>
-              ) : null}
-
-              <Text style={styles.sectionTitle}>💬 Chats y mensajes</Text>
-              <View style={styles.statsGrid}>
-                <Stat
-                  icon="💬"
-                  label="Chats activos"
-                  value={num(data.conversations.active)}
-                  sub={`${num(data.conversations.newChats)} nuevos · ${num(data.conversations.identified)} identificados`}
-                  tone="info"
-                />
-                <Stat
-                  icon="📥"
-                  label="Mensajes de clientes"
-                  value={num(data.messages.fromCustomers)}
-                  tone="primary"
-                />
-                <Stat
-                  icon="🤖"
-                  label="Mensajes del bot"
-                  value={num(data.messages.fromBot)}
-                  sub={data.messages.manual ? `${num(data.messages.manual)} manuales` : undefined}
-                  tone="success"
-                />
-                <Stat
-                  icon="🚫"
-                  label="Dados de baja"
-                  value={num(data.conversations.optedOut)}
-                  tone="danger"
-                />
-              </View>
 
               {hasSeries ? (
                 <View style={styles.chartContainer}>
@@ -560,94 +707,6 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
                   />
                 </View>
               ) : null}
-
-              <Text style={styles.sectionTitle}>📣 Anuncios "clic a WhatsApp"</Text>
-              <View style={styles.statsGrid}>
-                <Stat
-                  icon="📣"
-                  label="Chats desde anuncios"
-                  value={num(data.ads?.chats ?? 0)}
-                  sub={
-                    data.ads?.topAds?.[0]
-                      ? `Top: ${data.ads.topAds[0].headline} (${data.ads.topAds[0].chats})`
-                      : 'Facebook / Instagram'
-                  }
-                  tone="info"
-                />
-                <Stat
-                  icon="🛍️"
-                  label="Ventas desde anuncios"
-                  value={solesCents(data.ads?.amountCents ?? 0)}
-                  sub={`${num(data.ads?.orders ?? 0)} pedidos · ${num(data.ads?.chatsWithOrder ?? 0)} clientes`}
-                  tone="success"
-                />
-                <Stat
-                  icon="🎁"
-                  label="Mensajes gratis (72 h)"
-                  value={num(data.ads?.freeMessages ?? 0)}
-                  sub="Meta no los cobra por venir de un anuncio"
-                  tone="primary"
-                />
-                <Stat
-                  icon="💰"
-                  label="Ahorro estimado"
-                  value={soles(data.ads?.savingsPen ?? 0)}
-                  sub="Mensajes gratis × costo por mensaje pagado"
-                  tone="warning"
-                />
-              </View>
-
-              <Text style={styles.sectionTitle}>💸 Gasto (aprox. en soles)</Text>
-              <View style={styles.statsGrid}>
-                <Stat
-                  icon="👛"
-                  label="Gasto total"
-                  value={soles(data.totalCostPen ?? 0)}
-                  sub="Meta + IA"
-                  tone="warning"
-                />
-                <Stat
-                  icon="🟢"
-                  label="Meta (WhatsApp)"
-                  value={
-                    data.meta.available && data.meta.costPen != null
-                      ? soles(data.meta.costPen)
-                      : '—'
-                  }
-                  sub={
-                    data.meta.available
-                      ? `Real ${money(data.meta.cost, data.meta.currency)} · ${num(data.meta.paidMessages)} pagados · ${num(data.meta.freeMessages)} gratis`
-                      : data.meta.error
-                  }
-                  tone="success"
-                />
-                <Stat
-                  icon="🧠"
-                  label="IA total"
-                  value={soles(data.ai.totalPen ?? 0)}
-                  sub={`Real US$ ${data.ai.totalUsd.toFixed(2)}`}
-                  tone="primary"
-                />
-                {(
-                  [
-                    ['deepseek', 'DeepSeek', '🐋'],
-                    ['gemini', 'Gemini', '✨'],
-                    ['anthropic', 'Claude', '🤖'],
-                  ] as const
-                ).map(([key, label, icon]) => {
-                  const a = aiByProvider[key] ?? { usd: 0, pen: 0, calls: 0 };
-                  return (
-                    <Stat
-                      key={key}
-                      icon={icon}
-                      label={label}
-                      value={soles(a.pen)}
-                      sub={`Real US$ ${a.usd.toFixed(2)} · ${num(a.calls)} llamadas`}
-                      tone="info"
-                    />
-                  );
-                })}
-              </View>
 
               {hasSeries ? (
                 <View style={styles.chartContainer}>
@@ -753,65 +812,6 @@ const createStyles = (theme: Theme) =>
       marginBottom: theme.space[3],
       marginTop: theme.space[2],
     },
-    statsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginHorizontal: -theme.space[1.5],
-      marginBottom: theme.space[4],
-    },
-    statCard: {
-      flex: 1,
-      minWidth: '30%',
-      margin: theme.space[1.5],
-      padding: theme.space[4],
-      borderRadius: theme.radii.xl,
-      alignItems: 'center',
-      borderWidth: 1,
-    },
-    statInfo: {
-      backgroundColor: theme.color.state.info.background,
-      borderColor: theme.color.state.info.background,
-    },
-    statSuccess: {
-      backgroundColor: theme.color.state.success.background,
-      borderColor: theme.color.state.success.background,
-    },
-    statWarning: {
-      backgroundColor: theme.color.state.warning.background,
-      borderColor: theme.color.state.warning.background,
-    },
-    statDanger: {
-      backgroundColor: theme.color.state.danger.background,
-      borderColor: theme.color.state.danger.background,
-    },
-    statPrimary: {
-      backgroundColor: theme.color.brand.accentSoft,
-      borderColor: theme.color.brand.accentSoft,
-    },
-    statIcon: { fontSize: 26, marginBottom: theme.space[2] },
-    statLabel: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: theme.color.text.muted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: theme.space[1],
-      textAlign: 'center',
-    },
-    statValue: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.color.text.heading,
-      textAlign: 'center',
-    },
-    statValueTablet: { fontSize: 24 },
-    statSubtext: {
-      fontSize: 10,
-      color: theme.color.text.muted,
-      marginTop: theme.space[1],
-      fontWeight: '500',
-      textAlign: 'center',
-    },
     chartContainer: {
       backgroundColor: theme.color.surface.base,
       borderRadius: theme.radii.xl,
@@ -844,4 +844,109 @@ const createStyles = (theme: Theme) =>
     },
     retryButtonText: { color: theme.color.text.onAction, fontWeight: '700' },
     footnote: { fontSize: 11, color: theme.color.text.muted, marginTop: theme.space[2] },
+    channelTabs: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[2],
+      marginBottom: theme.space[4],
+    },
+    channelTab: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.space[1.5],
+      paddingHorizontal: theme.space[4],
+      paddingVertical: theme.space[2.5],
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.color.surface.base,
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    channelTabText: { fontSize: 14, fontWeight: '700', color: theme.color.text.body },
+    channelTabTextActive: { color: '#fff' },
+    kpiStrip: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+      marginBottom: theme.space[5],
+    },
+    kpiCard: {
+      flexGrow: 1,
+      flexBasis: '45%',
+      minWidth: 150,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+    },
+    kpiLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: theme.color.text.muted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    kpiValue: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+      marginTop: theme.space[1],
+    },
+    kpiSub: { fontSize: 12, color: theme.color.text.muted, marginTop: 2 },
+    sectionHint: {
+      fontSize: 12,
+      color: theme.color.text.muted,
+      marginTop: -theme.space[2],
+      marginBottom: theme.space[3],
+    },
+    compareGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.space[3],
+      marginBottom: theme.space[5],
+    },
+    compareCard: {
+      flexGrow: 1,
+      flexBasis: 260,
+      backgroundColor: theme.color.surface.base,
+      borderRadius: theme.radii.xl,
+      padding: theme.space[4],
+      borderWidth: 1,
+      borderColor: theme.color.border.subtle,
+      borderTopWidth: 4,
+      gap: theme.space[1.5],
+    },
+    compareHead: { flexDirection: 'row', alignItems: 'center', gap: theme.space[2] },
+    compareName: { fontSize: 16, fontWeight: '800', color: theme.color.text.heading, flex: 1 },
+    compareShare: { fontSize: 12, fontWeight: '700', color: theme.color.text.muted },
+    shareBar: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.color.background.subtle,
+      overflow: 'hidden',
+    },
+    shareFill: { height: 6, borderRadius: 3 },
+    compareAmount: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: theme.color.text.heading,
+      marginVertical: theme.space[1],
+    },
+    compareRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: theme.space[2],
+      paddingVertical: 3,
+      borderTopWidth: 1,
+      borderTopColor: theme.color.border.subtle,
+    },
+    compareKey: { fontSize: 12, color: theme.color.text.muted, flexShrink: 1 },
+    panelSub: { fontSize: 10, color: theme.color.text.muted, textAlign: 'right' },
+    compareVal: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: theme.color.text.body,
+      flexShrink: 1,
+      textAlign: 'right',
+    },
   });
