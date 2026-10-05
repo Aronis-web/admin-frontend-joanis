@@ -208,6 +208,8 @@ export interface TransferItem {
   // Variante (color) opcional. Cuando la variante tiene tracksStock=true el
   // traslado mueve el saldo de esa variante entre ubicaciones.
   variantId?: string | null;
+  // Nombre de la variante (incluye borradas, para historicos). null = saldo del producto.
+  variantName?: string | null;
 
   // Presentacion (empaque) opcional. Solo trazabilidad; la cantidad canonica
   // sigue viajando en unidad base.
@@ -398,15 +400,15 @@ export interface TransferStatusHistory {
 
 /**
  * Item de traslado. La quantity SIEMPRE va en unidad base.
- * - variantId: opcional. Enviar solo para variantes con tracksStock=true;
- *   en traslados el backend NO colapsa variantes descriptivas.
+ * - variantId: opcional. Variante de la fila de stock de origen; el backend la
+ *   normaliza (descriptiva/borrada -> saldo del producto, de otro producto -> 400).
  * - presentationId/factorToBase/quantityPresentation: metadata de trazabilidad
  *   (empaque). No altera la aritmetica.
  */
 export interface TransferItemDto {
   productId: string;
   quantity: number; // SIEMPRE en unidad base
-  variantId?: string;
+  variantId?: string | null;
   presentationId?: string;
   factorToBase?: number;
   quantityPresentation?: number;

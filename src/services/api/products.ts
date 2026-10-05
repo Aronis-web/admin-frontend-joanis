@@ -87,6 +87,9 @@ export interface StockItem {
   productId: string;
   warehouseId: string;
   areaId: string | null;
+  // Variante con stock propio de la fila (null = saldo del producto)
+  variantId?: string | null;
+  variantName?: string | null;
   quantityBase: number;
   reservedQuantityBase?: number;
   availableQuantityBase?: number;
