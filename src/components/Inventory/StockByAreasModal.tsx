@@ -248,7 +248,7 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                 <View style={styles.summaryCard}>
                   <Label size="medium" color={theme.color.text.inverse} style={styles.summaryLabel}>Stock Disponible</Label>
                   <Numeric size="large" color={theme.color.text.inverse}>{getTotalStock().toFixed(2)} unidades</Numeric>
-                  <Caption color={theme.color.text.inverse}>En {stockItems.length} ubicación(es)</Caption>
+                  <Caption color={theme.color.text.inverse}>En {new Set(stockItems.map((i) => `${i.warehouseId}-${i.areaId ?? ''}`)).size} ubicación(es)</Caption>
                 </View>
 
                 {/* Warehouse Sections */}
@@ -285,7 +285,7 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                       </View>
 
                       {/* Areas within this warehouse */}
-                      {items.map((item, index) => {
+                      {items.map((item) => {
                         const quantity =
                           typeof item.availableQuantityBase === 'number'
                             ? item.availableQuantityBase
@@ -294,7 +294,10 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                               : item.quantityBase || 0;
 
                         return (
-                          <View key={index} style={styles.areaCard}>
+                          <View
+                            key={`${item.areaId ?? 'sin-area'}-${item.variantId ?? 'producto'}`}
+                            style={styles.areaCard}
+                          >
                             <View style={styles.areaCardContent}>
                               <View style={styles.areaCardLeft}>
                                 <Text variant="bodyLarge">📍</Text>
@@ -303,7 +306,11 @@ export const StockByAreasModal: React.FC<StockByAreasModalProps> = ({
                                     {item.area
                                       ? item.area.name || `Área ${item.area.code}` || 'Sin nombre'
                                       : 'Sin área específica'}
+                                    {item.variantName ? ` · ${item.variantName}` : ''}
                                   </Body>
+                                  {item.variantName && (
+                                    <Caption color="secondary">Color: {item.variantName}</Caption>
+                                  )}
                                   {item.area?.code && item.area?.name && (
                                     <Caption color="tertiary">Código: {item.area.code}</Caption>
                                   )}

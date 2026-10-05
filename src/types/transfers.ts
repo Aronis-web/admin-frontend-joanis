@@ -316,6 +316,10 @@ export interface StockMovement {
   warehouseId: string;
   areaId?: string | null;
 
+  // Variante con stock propio (null = saldo del producto)
+  variantId?: string | null;
+  variantName?: string | null;
+
   // Movement type
   movementType: MovementType;
 
