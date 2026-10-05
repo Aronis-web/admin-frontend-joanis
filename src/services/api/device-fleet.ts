@@ -46,11 +46,54 @@ export interface DeviceFleetRow {
   hasDeviceToken: boolean;
   device: DeviceReport | null;
   updateCommand: DeviceUpdateCommand | null;
+  accessRequest: {
+    requestId: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'DELIVERED';
+    deviceLabel: string | null;
+    requestedAt: string;
+    requestedByName: string | null;
+  } | null;
+  online: boolean;
+  outdated: boolean;
 }
 
+export type DeviceFilter =
+  | 'all'
+  | 'requests'
+  | 'outdated'
+  | 'no_access'
+  | 'online'
+  | 'offline'
+  | 'pending_sales';
+
+export interface DeviceFleetQuery {
+  page?: number;
+  limit?: number;
+  siteId?: string;
+  search?: string;
+  filter?: DeviceFilter;
+}
+
+export interface DeviceFleetPage {
+  items: DeviceFleetRow[];
+  total: number;
+  page: number;
+  limit: number;
+  latestVersion: string | null;
+  sites: { id: string; name: string }[];
+  counts: Record<DeviceFilter, number>;
+}
+
+/** App y plataforma con las que se publica CajaGrit escritorio en Versiones de App. */
+export const CAJAGRIT_APP_ID = 'pos';
+export const CAJAGRIT_PLATFORM = 'windows';
+
 export const deviceFleetApi = {
-  list: async (): Promise<DeviceFleetRow[]> => {
-    return apiClient.get<DeviceFleetRow[]>('/pos/devices');
+  list: async (query: DeviceFleetQuery = {}): Promise<DeviceFleetPage> => {
+    const params = Object.fromEntries(
+      Object.entries(query).filter(([, value]) => value !== undefined && value !== '')
+    );
+    return apiClient.get<DeviceFleetPage>('/pos/devices', { params });
   },
 
   update: async (

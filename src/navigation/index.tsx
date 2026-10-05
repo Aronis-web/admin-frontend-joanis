@@ -70,10 +70,6 @@ const AppVersionsScreen = lazyLoad(
   () => import('@/screens/AppVersions').then((m) => ({ default: m.AppVersionsScreen })),
   'Cargando versiones...'
 );
-const OfflineAccessScreen = lazyLoad(
-  () => import('@/screens/OfflineAccess').then((m) => ({ default: m.OfflineAccessScreen })),
-  'Cargando solicitudes...'
-);
 const DeviceFleetScreen = lazyLoad(
   () => import('@/screens/DeviceFleet').then((m) => ({ default: m.DeviceFleetScreen })),
   'Cargando cajas...'
@@ -956,21 +952,9 @@ const MainStack = React.memo(() => {
         )}
       </MainStackNavigator.Screen>
       <MainStackNavigator.Screen
-        name={MAIN_ROUTES.OFFLINE_ACCESS}
-        options={{
-          title: 'Acceso offline de cajas',
-        }}
-      >
-        {() => (
-          <ProtectedRoute requiredPermissions={['apps.manage']}>
-            <OfflineAccessScreen />
-          </ProtectedRoute>
-        )}
-      </MainStackNavigator.Screen>
-      <MainStackNavigator.Screen
         name={MAIN_ROUTES.DEVICE_FLEET}
         options={{
-          title: 'Versiones de cajas',
+          title: 'Cajas: acceso y versiones',
         }}
       >
         {() => (

@@ -27,12 +27,6 @@ export interface OfflineAccessRequest {
 }
 
 export const offlineAccessApi = {
-  list: async (status: OfflineAccessStatus = 'PENDING'): Promise<OfflineAccessRequest[]> => {
-    return apiClient.get<OfflineAccessRequest[]>('/pos/offline-access/requests', {
-      params: { status },
-    });
-  },
-
   approve: async (cashRegisterId: string, requestId: string) => {
     return apiClient.post(`/pos/offline-access/requests/${cashRegisterId}/approve`, {
       requestId,
