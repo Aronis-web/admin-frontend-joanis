@@ -52,6 +52,7 @@ interface ExternalTransfersScreenProps {
 }
 
 interface TransferItemInput {
+  rowKey: string; // key estable de la línea en el formulario
   productId: string;
   quantity: string;
   notes: string;
@@ -59,9 +60,35 @@ interface TransferItemInput {
   selectedStockLocation?: {
     warehouseId: string;
     areaId: string | null;
+    variantId: string | null; // null = saldo del producto
+    variantName: string | null;
     availableStock: number;
   };
 }
+
+let transferItemRowSeq = 0;
+const createEmptyTransferItem = (): TransferItemInput => ({
+  rowKey: `item-${++transferItemRowSeq}`,
+  productId: '',
+  quantity: '',
+  notes: '',
+  product: undefined,
+  selectedStockLocation: undefined,
+});
+
+/** Nombre de la línea para mensajes: "Producto · Color" si la fila es de una variante. */
+const transferItemLabel = (item: TransferItemInput) => {
+  const title = item.product?.title || 'Sin nombre';
+  const variantName = item.selectedStockLocation?.variantName;
+  return variantName ? `${title} · ${variantName}` : title;
+};
+
+/** Key única de una fila de stock: ubicación + variante. */
+const stockRowKey = (stockItem: {
+  warehouseId: string;
+  areaId: string | null;
+  variantId?: string | null;
+}) => `${stockItem.warehouseId}-${stockItem.areaId || 'null'}-${stockItem.variantId || 'base'}`;
 
 export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = ({ navigation }) => {
   const theme = useTheme();
@@ -100,14 +127,8 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
   const [destinationWarehouseId, setDestinationWarehouseId] = useState('');
   const [destinationAreaId, setDestinationAreaId] = useState('');
   const [transferNotes, setTransferNotes] = useState('');
-  const [transferItems, setTransferItems] = useState<TransferItemInput[]>([
-    {
-      productId: '',
-      quantity: '',
-      notes: '',
-      product: undefined,
-      selectedStockLocation: undefined,
-    },
+  const [transferItems, setTransferItems] = useState<TransferItemInput[]>(() => [
+    createEmptyTransferItem(),
   ]);
 
   // Detail modal states
@@ -386,28 +407,11 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     setDestinationWarehouseId('');
     setDestinationAreaId('');
     setTransferNotes('');
-    setTransferItems([
-      {
-        productId: '',
-        quantity: '',
-        notes: '',
-        product: undefined,
-        selectedStockLocation: undefined,
-      },
-    ]);
+    setTransferItems([createEmptyTransferItem()]);
   };
 
   const addTransferItem = () => {
-    setTransferItems([
-      ...transferItems,
-      {
-        productId: '',
-        quantity: '',
-        notes: '',
-        product: undefined,
-        selectedStockLocation: undefined,
-      },
-    ]);
+    setTransferItems([...transferItems, createEmptyTransferItem()]);
   };
 
   const removeTransferItem = (index: number) => {
@@ -469,6 +473,8 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
     newItems[index].selectedStockLocation = {
       warehouseId: stockItem.warehouseId,
       areaId: stockItem.areaId,
+      variantId: stockItem.variantId ?? null,
+      variantName: stockItem.variantName ?? null,
       availableStock: parsedStock,
     };
     setTransferItems(newItems);
@@ -559,21 +565,21 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       if (item.productId && !item.selectedStockLocation) {
         Alert.alert(
           'Error de Validación',
-          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nSelecciona la ubicación de origen`
+          `Producto ${i + 1} (${transferItemLabel(item)}):\nSelecciona la ubicación de origen`
         );
         return false;
       }
       if (item.productId && item.selectedStockLocation && !item.quantity) {
         Alert.alert(
           'Error de Validación',
-          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nIngresa la cantidad a trasladar`
+          `Producto ${i + 1} (${transferItemLabel(item)}):\nIngresa la cantidad a trasladar`
         );
         return false;
       }
       if (item.productId && item.selectedStockLocation && parseFloat(item.quantity) <= 0) {
         Alert.alert(
           'Error de Validación',
-          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\nLa cantidad debe ser mayor a 0`
+          `Producto ${i + 1} (${transferItemLabel(item)}):\nLa cantidad debe ser mayor a 0`
         );
         return false;
       }
@@ -584,7 +590,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
       ) {
         Alert.alert(
           'Error de Validación',
-          `Producto ${i + 1} (${item.product?.title || 'Sin nombre'}):\n\n` +
+          `Producto ${i + 1} (${transferItemLabel(item)}):\n\n` +
             `Cantidad ingresada: ${parseFloat(item.quantity).toFixed(2)}\n` +
             `Stock disponible: ${item.selectedStockLocation.availableStock.toFixed(2)}\n\n` +
             `La cantidad excede el stock disponible`
@@ -633,6 +639,8 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
         const validItems = items.map((item) => ({
           productId: item.productId,
           quantity: parseFloat(item.quantity),
+          // Variante de la fila de origen elegida (sin variante = saldo del producto)
+          variantId: item.selectedStockLocation!.variantId || undefined,
           notes: item.notes || undefined,
         }));
 
@@ -946,7 +954,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                 </View>
 
                 {transferItems.map((item, index) => (
-                  <View key={index} style={styles.itemContainer}>
+                  <View key={item.rowKey} style={styles.itemContainer}>
                     <View style={styles.itemHeader}>
                       <Text style={styles.itemNumber}>Producto {index + 1}</Text>
                       {transferItems.length > 1 && (
@@ -991,10 +999,12 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                         </Text>
 
                         {item.product.stockItems && item.product.stockItems.length > 0 ? (
-                          item.product.stockItems.map((stockItem, stockIndex) => {
+                          item.product.stockItems.map((stockItem, _i, stockRows) => {
+                            const hasVariantRows = stockRows.some((row) => !!row.variantId);
                             const isSelected =
                               item.selectedStockLocation?.warehouseId === stockItem.warehouseId &&
-                              item.selectedStockLocation?.areaId === stockItem.areaId;
+                              item.selectedStockLocation?.areaId === stockItem.areaId &&
+                              item.selectedStockLocation?.variantId === (stockItem.variantId ?? null);
 
                             // Usar availableQuantityBase (stock disponible = total - reservado)
                             const availableStock =
@@ -1014,7 +1024,7 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
 
                             return (
                               <TouchableOpacity
-                                key={stockIndex}
+                                key={stockRowKey(stockItem)}
                                 style={[
                                   styles.locationCard,
                                   isSelected && styles.locationCardSelected,
@@ -1034,6 +1044,11 @@ export const ExternalTransfersScreen: React.FC<ExternalTransfersScreenProps> = (
                                   <Text style={styles.locationArea}>
                                     📍 Área: {stockItem.area?.name || 'Sin área asignada'}
                                   </Text>
+                                  {(stockItem.variantName || hasVariantRows) && (
+                                    <Text style={styles.locationArea}>
+                                      🎨 Color: {stockItem.variantName || 'Sin variante'}
+                                    </Text>
+                                  )}
                                   <Text
                                     style={[
                                       styles.locationStock,

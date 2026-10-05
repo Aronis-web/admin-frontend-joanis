@@ -1031,6 +1031,9 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
               {item.product?.title || 'Producto sin nombre'}
             </Text>
             <Text style={styles.validateItemSku}>Código: {item.product?.sku || 'N/A'}</Text>
+            {item.variantName && (
+              <Text style={styles.validateItemSku}>Color: {item.variantName}</Text>
+            )}
             <Text style={styles.validateItemSku}>
               Correlativo:{' '}
               {item.product?.correlativeNumber ? `#${item.product.correlativeNumber}` : 'N/A'}
@@ -1145,9 +1148,13 @@ export const ReceptionsScreen: React.FC<ReceptionsScreenProps> = ({ navigation }
                   const title = item.product?.title?.toLowerCase() || '';
                   const sku = item.product?.sku?.toLowerCase() || '';
                   const correlative = String(item.product?.correlativeNumber || '').toLowerCase();
+                  const variant = item.variantName?.toLowerCase() || '';
 
                   return (
-                    title.includes(search) || sku.includes(search) || correlative.includes(search)
+                    title.includes(search) ||
+                    sku.includes(search) ||
+                    correlative.includes(search) ||
+                    variant.includes(search)
                   );
                 })
                 .sort((a, b) => {
