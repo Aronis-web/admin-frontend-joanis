@@ -9,17 +9,26 @@ import ViewShot from 'react-native-view-shot';
 interface SignatureCaptureProps {
   onSignatureCapture: (signature: string) => void;
   onCancel: () => void;
+  /** Título del panel. Default "Firma del Supervisor". */
+  title?: string;
+  /** Subtítulo del panel. */
+  subtitle?: string;
 }
 
 export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
   onSignatureCapture,
   onCancel,
+  title = 'Firma del Supervisor',
+  subtitle = 'Por favor, firme en el área de abajo',
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const [paths, setPaths] = useState<string[]>([]);
   const [currentPath, setCurrentPath] = useState<string>('');
   const viewShotRef = useRef<ViewShot>(null);
+  // El PanResponder se crea una sola vez: leemos el trazo actual desde un ref
+  // para no perder trazos al soltar (el state capturado quedaría desactualizado).
+  const currentPathRef = useRef<string>('');
 
   const panResponder = useRef(
     PanResponder.create({
@@ -27,15 +36,19 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        setCurrentPath(`M${locationX},${locationY}`);
+        currentPathRef.current = `M${locationX},${locationY}`;
+        setCurrentPath(currentPathRef.current);
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
-        setCurrentPath((prev) => `${prev} L${locationX},${locationY}`);
+        currentPathRef.current = `${currentPathRef.current} L${locationX},${locationY}`;
+        setCurrentPath(currentPathRef.current);
       },
       onPanResponderRelease: () => {
-        if (currentPath) {
-          setPaths((prev) => [...prev, currentPath]);
+        const finished = currentPathRef.current;
+        if (finished) {
+          setPaths((prev) => [...prev, finished]);
+          currentPathRef.current = '';
           setCurrentPath('');
         }
       },
@@ -43,6 +56,7 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
   ).current;
 
   const handleClear = () => {
+    currentPathRef.current = '';
     setPaths([]);
     setCurrentPath('');
   };
@@ -58,7 +72,9 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
 
     // Si hay un trazo actual sin guardar, guardarlo primero
     if (currentPath) {
-      setPaths((prev) => [...prev, currentPath]);
+      const pending = currentPath;
+      setPaths((prev) => [...prev, pending]);
+      currentPathRef.current = '';
       setCurrentPath('');
       // Esperar un momento para que se actualice el estado
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -79,8 +95,8 @@ export const SignatureCapture: React.FC<SignatureCaptureProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Firma del Supervisor</Text>
-      <Text style={styles.subtitle}>Por favor, firme en el área de abajo</Text>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.subtitle}>{subtitle}</Text>
 
       <ViewShot ref={viewShotRef} style={styles.signatureContainer}>
         <View style={styles.canvas} {...panResponder.panHandlers}>

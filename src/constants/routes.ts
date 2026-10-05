@@ -267,6 +267,7 @@ export const MAIN_ROUTES = {
   CHATBOT_TRAINING: 'ChatbotTraining',
   CHATBOT_COMPLAINTS: 'ChatbotComplaints',
   CHATBOT_BROADCASTS: 'ChatbotBroadcasts',
+  CHATBOT_POSTSALE: 'ChatbotPostsale',
   CHATBOT_SETTINGS: 'ChatbotSettings',
 } as const;
 
@@ -556,6 +557,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   CHATBOT_TRAINING: 'chatbot.training.manage',
   CHATBOT_COMPLAINTS: 'chatbot.complaints.manage',
   CHATBOT_BROADCASTS: 'chatbot.broadcasts.manage',
+  CHATBOT_POSTSALE: 'chatbot.postsale.read',
 };
 
 /**

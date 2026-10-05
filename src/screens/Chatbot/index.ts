@@ -10,3 +10,4 @@ export { ChatbotSettingsScreen } from './ChatbotSettingsScreen';
 export { ChatbotDashboardScreen } from './ChatbotDashboardScreen';
 export { ChatbotComplaintsScreen } from './ChatbotComplaintsScreen';
 export { ChatbotBroadcastsScreen } from './ChatbotBroadcastsScreen';
+export { ChatbotPostsaleScreen } from './ChatbotPostsaleScreen';

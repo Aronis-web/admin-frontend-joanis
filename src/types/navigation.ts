@@ -372,6 +372,7 @@ export type MainStackParamList = {
   ChatbotTraining: undefined;
   ChatbotComplaints: undefined;
   ChatbotBroadcasts: undefined;
+  ChatbotPostsale: undefined;
 
   // Contaduría · Dashboard
   ContaduriaDashboard: undefined;

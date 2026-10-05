@@ -516,6 +516,13 @@ const menuCategories: MenuCategory[] = [
         requiredPermissions: ['chatbot.broadcasts.manage'],
       },
       {
+        id: 'chatbot-postsale',
+        icon: 'cube-outline',
+        label: 'Post venta',
+        route: MAIN_ROUTES.CHATBOT_POSTSALE,
+        requiredPermissions: ['chatbot.postsale.read'],
+      },
+      {
         id: 'chatbot-complaints',
         icon: 'book-outline',
         label: 'Libro de reclamaciones',
