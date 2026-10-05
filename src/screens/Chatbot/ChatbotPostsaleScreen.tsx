@@ -57,6 +57,7 @@ import {
   type PostsaleStatus,
 } from '@/services/api/chatbot-postsale';
 import { printOrderStickers } from '@/utils/priceLabel/orderStickerPrint';
+import { printPickingSheets } from '@/utils/priceLabel/orderPickingSheet';
 import {
   isElectronPrinting,
   listPrinters,
@@ -280,6 +281,32 @@ export const ChatbotPostsaleScreen: React.FC<Props> = ({ navigation }) => {
     [printMutation, printer, supportsPrinterSelection]
   );
 
+  const [pickingBusy, setPickingBusy] = useState(false);
+
+  /** Hoja de armado (A4) de uno o varios pedidos, en un solo documento. */
+  const printPicking = useCallback(async (orderIds: string[]) => {
+    if (!orderIds.length) return;
+    setPickingBusy(true);
+    try {
+      let sheets;
+      try {
+        sheets = await Promise.all(orderIds.map((id) => chatbotPostsaleApi.picking(id)));
+      } catch (err) {
+        Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo cargar la hoja de armado'));
+        return;
+      }
+      try {
+        await printPickingSheets(sheets);
+      } catch (err) {
+        logger.error('Error generando hoja de armado', err);
+        Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo generar la hoja de armado'));
+      }
+    } finally {
+      setPickingBusy(false);
+    }
+  }, []);
+  const picking: PickingAction = { run: printPicking, busy: pickingBusy };
+
   const startDelivery = useCallback((target: DeliverTarget) => {
     setDeliverTarget(target);
     setTab('deliver');
@@ -346,7 +373,7 @@ export const ChatbotPostsaleScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {tab === 'print' && (
-          <PrintTab printOrders={printOrders} printing={printMutation.isPending}>
+          <PrintTab printOrders={printOrders} printing={printMutation.isPending} picking={picking}>
             {printerPicker}
           </PrintTab>
         )}
@@ -358,6 +385,7 @@ export const ChatbotPostsaleScreen: React.FC<Props> = ({ navigation }) => {
           <TrackTab
             printOrders={printOrders}
             printing={printMutation.isPending}
+            picking={picking}
             onDeliver={startDelivery}
           >
             {printerPicker}
@@ -367,6 +395,11 @@ export const ChatbotPostsaleScreen: React.FC<Props> = ({ navigation }) => {
     </ScreenLayout>
   );
 };
+
+interface PickingAction {
+  run: (orderIds: string[]) => Promise<void>;
+  busy: boolean;
+}
 
 interface DeliverTarget {
   id: string;
@@ -442,8 +475,9 @@ const OrderRow: React.FC<{
 const PrintTab: React.FC<{
   printOrders: (ids: string[]) => Promise<boolean>;
   printing: boolean;
+  picking: PickingAction;
   children?: React.ReactNode;
-}> = ({ printOrders, printing, children }) => {
+}> = ({ printOrders, printing, picking, children }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const orders = usePostsaleOrders(['PAGADO']);
@@ -499,6 +533,15 @@ const PrintTab: React.FC<{
             onPress={() => void doPrint()}
             disabled={!selected.length || printing}
             loading={printing}
+          />
+          <Button
+            title={`Hoja de armado (PDF)${selected.length ? ` (${selected.length})` : ''}`}
+            leftIcon="document-text-outline"
+            variant="outline"
+            size="small"
+            onPress={() => void picking.run(selected)}
+            disabled={!selected.length || picking.busy}
+            loading={picking.busy}
           />
         </View>
       </Card>
@@ -1152,9 +1195,10 @@ const DeliverTab: React.FC<{
 const TrackTab: React.FC<{
   printOrders: (ids: string[]) => Promise<boolean>;
   printing: boolean;
+  picking: PickingAction;
   onDeliver: (t: DeliverTarget) => void;
   children?: React.ReactNode;
-}> = ({ printOrders, printing, onDeliver, children }) => {
+}> = ({ printOrders, printing, picking, onDeliver, children }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const orders = usePostsaleOrders();
@@ -1229,6 +1273,7 @@ const TrackTab: React.FC<{
         orderId={openId}
         fallback={openOrder}
         printing={printing}
+        picking={picking}
         onClose={() => setOpenId(null)}
         onReprint={(id) => void printOrders([id])}
         onDeliver={(t) => {
@@ -1244,10 +1289,11 @@ const OrderDetailModal: React.FC<{
   orderId: string | null;
   fallback: PostsaleOrder | null;
   printing: boolean;
+  picking: PickingAction;
   onClose: () => void;
   onReprint: (id: string) => void;
   onDeliver: (t: DeliverTarget) => void;
-}> = ({ orderId, fallback, printing, onClose, onReprint, onDeliver }) => {
+}> = ({ orderId, fallback, printing, picking, onClose, onReprint, onDeliver }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const detail = usePostsaleDetail(orderId);
@@ -1314,6 +1360,15 @@ const OrderDetailModal: React.FC<{
               onPress={() => orderId && onReprint(orderId)}
               disabled={printing}
               loading={printing}
+            />
+            <Button
+              title="Hoja de armado (PDF)"
+              leftIcon="document-text-outline"
+              variant="outline"
+              size="small"
+              onPress={() => orderId && void picking.run([orderId])}
+              disabled={picking.busy}
+              loading={picking.busy}
             />
             {deliverable ? (
               <>

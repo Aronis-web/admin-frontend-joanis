@@ -231,7 +231,7 @@ const buildOrderStickersHtml = async (stickers: OrderStickerData[]): Promise<str
 };
 
 /** Imprime el HTML en navegador puro mediante un iframe oculto. */
-const printHtmlOnWeb = (html: string): void => {
+export const printHtmlOnWeb = (html: string): void => {
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';

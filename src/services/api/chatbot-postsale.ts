@@ -97,6 +97,39 @@ export interface PostsaleDetail {
 
 export type PostsaleMediaKind = 'firma' | 'foto';
 
+export interface PostsalePickingItem {
+  name: string;
+  sku: string | null;
+  barcode: string | null;
+  variant: string | null;
+  presentation: string | null;
+  warehouse: string | null;
+  qty: number;
+  unitPriceCents: string | number | null;
+}
+
+/** Hoja de armado `GET /chatbot/postsale/:id/picking` (items por almacén y nombre). */
+export interface PostsalePicking {
+  orderId: string;
+  orderNo: string;
+  qr: string;
+  status: PostsaleStatus;
+  statusLabel: string;
+  /** Nombre completo del cliente. */
+  customerName: string | null;
+  /** 9 dígitos o null. */
+  customerPhone: string | null;
+  route: PostsaleRoute;
+  routeLabel: string;
+  place: string | null;
+  address: string | null;
+  reference: string | null;
+  orderNotes: string | null;
+  deliveryNotes: string | null;
+  totalCents: string | number | null;
+  items: PostsalePickingItem[];
+}
+
 /** Estados en los que se entrega con código + firma + foto. */
 export const POSTSALE_DELIVERABLE: PostsaleStatus[] = ['EN_TIENDA', 'EN_RUTA_DOMICILIO'];
 
@@ -142,6 +175,10 @@ class ChatbotPostsaleService {
 
   async deliver(id: string, payload: PostsaleDeliverPayload): Promise<PostsaleDeliverResult> {
     return apiClient.post<PostsaleDeliverResult>(`${this.basePath}/${id}/deliver`, payload);
+  }
+
+  async picking(id: string): Promise<PostsalePicking> {
+    return apiClient.get<PostsalePicking>(`${this.basePath}/${id}/picking`);
   }
 
   async resendCode(id: string): Promise<{ ok: true }> {
