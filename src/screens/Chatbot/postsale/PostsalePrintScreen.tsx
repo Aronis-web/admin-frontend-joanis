@@ -18,6 +18,7 @@ import { QrInput } from './scanner';
 import { OrderRow, PostsaleShell, createPostsaleStyles } from './shared';
 import { SoldReportModal } from './SoldReportModal';
 import { usePostsalePrinting } from './usePostsalePrinting';
+import { PackageActions } from './PackageActions';
 
 type Props = NativeStackScreenProps<any, 'ChatbotPostsalePrint'>;
 
@@ -71,6 +72,14 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
       setSelected([]);
       if (scanned && selected.includes(scanned.id)) setScanned(null);
     }
+  };
+
+  /** Refresca el pedido mostrado (estado, contadores, bultos). */
+  const refreshScanned = () => {
+    if (!scanned) return;
+    lookupOrder(`GRITPED:${scanned.id}`)
+      .then((o) => o && setScanned(o))
+      .catch(() => undefined);
   };
 
   const printScanned = async () => {
@@ -130,17 +139,27 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
               disabled={printing.printingPicking}
               loading={printing.printingPicking}
             />
-            <Button
-              title={
-                scanned.postsaleStatus === 'PAGADO' ? 'Imprimir sticker' : 'Reimprimir sticker'
-              }
-              leftIcon="print-outline"
-              size="small"
-              onPress={() => printScanned()}
-              disabled={printing.printingStickers}
-              loading={printing.printingStickers}
-            />
+            {scanned.postsaleStatus === 'PAGADO' ? (
+              <Button
+                title="Imprimir sticker"
+                leftIcon="print-outline"
+                size="small"
+                onPress={() => printScanned()}
+                disabled={printing.printingStickers}
+                loading={printing.printingStickers}
+              />
+            ) : null}
           </View>
+          <PackageActions
+            orderId={scanned.id}
+            packages={scanned.packages ?? 1}
+            printing={printing}
+            canAdd
+            canReprint={scanned.postsaleStatus !== 'PAGADO'}
+            onResult={(res) => {
+              if (res.ok) refreshScanned();
+            }}
+          />
         </Card>
       ) : null}
 

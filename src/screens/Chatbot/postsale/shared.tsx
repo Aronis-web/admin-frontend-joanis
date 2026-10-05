@@ -75,9 +75,10 @@ export const ACTION_LABEL: Record<string, string> = {
   IMPRESO: 'Sticker impreso',
   REIMPRESO: 'Sticker reimpreso',
   HOJA_ARMADO: 'Hoja de armado impresa',
+  BULTO_AGREGADO: 'Bulto agregado',
 };
 
-export const PRINT_ACTIONS = ['IMPRESO', 'REIMPRESO', 'HOJA_ARMADO'];
+export const PRINT_ACTIONS = ['IMPRESO', 'REIMPRESO', 'HOJA_ARMADO', 'BULTO_AGREGADO'];
 
 export const timesLabel = (n: number | undefined) => {
   const v = n ?? 0;
@@ -92,6 +93,12 @@ export const statusLabel = (status: PostsaleStatus, serverLabel?: string | null)
   serverLabel || STATUS_LABEL[status] || status;
 
 export const formatOrderNo = (orderNo: string) => `#${String(orderNo ?? '').replace(/^#/, '')}`;
+
+/** `GRITPED:<uuid>` o `GRITPED:<uuid>:<bulto>` → uuid y bulto (si viene). */
+export const parseOrderQrFull = (code: string): { id: string; packageNo: number | null } | null => {
+  const m = /^GRITPED:([0-9a-f-]{36})(?::(\d+))?$/i.exec(code.trim());
+  return m ? { id: m[1].toLowerCase(), packageNo: m[2] ? Number(m[2]) : null } : null;
+};
 
 /** `GRITPED:<uuid>` o `GRITPED:<uuid>:<bulto>` → uuid. */
 export const parseOrderQr = (code: string): string | null => {
@@ -235,7 +242,12 @@ export const OrderRow: React.FC<{
       ) : null}
       <View style={{ flex: 1, gap: 2 }}>
         <View style={styles.rowBetween}>
-          <Body style={styles.orderNo}>{formatOrderNo(order.orderNo)}</Body>
+          <View style={styles.metaRow}>
+            <Body style={styles.orderNo}>{formatOrderNo(order.orderNo)}</Body>
+            {(order.packages ?? 1) > 1 ? (
+              <Badge variant="default" size="small" label={`📦 ${order.packages}`} />
+            ) : null}
+          </View>
           <Badge
             variant={STATUS_VARIANT[order.postsaleStatus] ?? 'default'}
             label={statusLabel(order.postsaleStatus, order.statusLabel)}

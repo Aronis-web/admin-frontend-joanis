@@ -23,6 +23,7 @@ import { OrderSearchBox, Pager, usePagedOrders, type PagedOrders } from './pagin
 import { StageScanner } from './scanner';
 import { OrderRow, PostsaleShell, ROUTE_ICON, ROUTE_ORDER, createPostsaleStyles } from './shared';
 import { usePostsalePrinting, type PostsalePrinting } from './usePostsalePrinting';
+import { PackageActions } from './PackageActions';
 
 type Props = NativeStackScreenProps<any, any>;
 
@@ -160,11 +161,15 @@ const StageScreen: React.FC<{
   groups?: Group[];
   showPickingButton?: boolean;
   allowDeliver?: boolean;
+  /** Armado: "Bultos: N", agregar bulto y reimprimir en la tarjeta del escaneo. */
+  showPackageActions?: boolean;
 }> = (p) => {
   const paged = usePagedOrders(p.statuses);
   const printing = usePostsalePrinting();
   const { hasPermission } = usePermissions();
   const canDeliver = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_DELIVER);
+  const canPrint = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_PRINT);
+  const canAddPackage = canPrint || hasPermission(PERMISSIONS.CHATBOT.POSTSALE_ASSEMBLE);
   const [open, setOpen] = useState<PostsaleOrder | null>(null);
   const goDeliver = (orderId: string) =>
     p.navigation.navigate(MAIN_ROUTES.CHATBOT_POSTSALE_DELIVERY, { orderId });
@@ -184,6 +189,19 @@ const StageScreen: React.FC<{
         stage={p.stage}
         description={p.description}
         onDeliver={p.allowDeliver && canDeliver ? goDeliver : undefined}
+        renderExtra={
+          p.showPackageActions
+            ? (r) => (
+                <PackageActions
+                  orderId={r.orderId}
+                  packages={r.packages ?? 1}
+                  printing={printing}
+                  canAdd={canAddPackage}
+                  canReprint={canPrint}
+                />
+              )
+            : undefined
+        }
       />
       <PendingList
         title={p.listTitle}
@@ -218,6 +236,7 @@ export const ChatbotPostsaleAssemblyScreen: React.FC<Props> = ({ navigation }) =
     listTitle="En armado"
     emptyText="No hay pedidos en armado. Imprime stickers en Post venta · Imprimir."
     showPickingButton
+    showPackageActions
   />
 );
 

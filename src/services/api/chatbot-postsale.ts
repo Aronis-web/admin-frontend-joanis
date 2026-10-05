@@ -43,6 +43,8 @@ export interface PostsaleOrder {
   updatedAt: string;
   customerName: string | null;
   convPhone: string | null;
+  /** Bultos del pedido (1 si no viene). */
+  packages?: number;
 }
 
 /** Sticker devuelto por `POST /chatbot/postsale/print`. */
@@ -89,6 +91,9 @@ export interface PostsaleScanResult {
   customerName: string | null;
   /** Clave de agencia: solo se muestra una vez. */
   agencyCode?: string | null;
+  /** Bultos del pedido y bulto escaneado. */
+  packages?: number;
+  packageNo?: number | null;
 }
 
 export interface PostsaleDeliverPayload {
@@ -98,6 +103,8 @@ export interface PostsaleDeliverPayload {
   signature: string;
   /** Data URL de la foto (`data:image/jpeg;base64,...`). */
   photo: string;
+  /** Bultos confirmados (deben cubrir 1..N cuando hay más de uno). */
+  packages?: number[];
 }
 
 export interface PostsaleDeliverResult {
@@ -126,6 +133,8 @@ export interface PostsaleDetail {
   hasPhoto: boolean;
   stickerPrints?: number;
   sheetPrints?: number;
+  /** Bultos del pedido (1 si no viene). */
+  packages?: number;
   events: PostsaleEvent[];
 }
 
@@ -226,8 +235,22 @@ class ChatbotPostsaleService {
   }
 
   /** Primera impresión pasa PAGADO → EN_ARMADO; reimpresiones solo se registran. */
-  async print(orderIds: string[]): Promise<PostsaleSticker[]> {
-    return apiClient.post<PostsaleSticker[]>(`${this.basePath}/print`, { orderIds });
+  /**
+   * Sin `packageNo`: un sticker por bulto (1..N). Con `packageNo`: solo ese bulto
+   * (reimpresión puntual).
+   */
+  async print(orderIds: string[], packageNo?: number): Promise<PostsaleSticker[]> {
+    return apiClient.post<PostsaleSticker[]>(`${this.basePath}/print`, {
+      orderIds,
+      ...(packageNo ? { packageNo } : {}),
+    });
+  }
+
+  /** Agrega un bulto al pedido; devuelve el total y el sticker del bulto nuevo. */
+  async addPackage(id: string): Promise<{ packages: number; sticker: PostsaleSticker }> {
+    return apiClient.post<{ packages: number; sticker: PostsaleSticker }>(
+      `${this.basePath}/${id}/packages`
+    );
   }
 
   /** Escaneo de una etapa (obligatoria; 403 sin el permiso de esa etapa). */

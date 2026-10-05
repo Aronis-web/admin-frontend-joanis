@@ -42,7 +42,8 @@ import {
   statusLabel,
   timesLabel,
 } from './shared';
-import type { PostsalePrinting } from './usePostsalePrinting';
+import type { PostsalePrinting, PrintResult } from './usePostsalePrinting';
+import { PackageActions } from './PackageActions';
 import { PrinterPickerModal, PrinterRow } from './PrinterPicker';
 import { usePostsalePrinterStore } from './printerStore';
 
@@ -89,13 +90,12 @@ export const OrderDetailModal: React.FC<{
     setAskResend(false);
   }, [orderId]);
 
-  const reprint = async () => {
-    if (!orderId) return;
-    setNotice(null);
-    const res = await printing.printStickers([orderId], { notify: false });
+  /** Resultado de agregar bulto / reimprimir (desde PackageActions). */
+  const onPackageResult = (res: PrintResult) => {
     setNotice({ ok: res.ok, text: res.message });
     if (res.ok) detail.refetch();
   };
+  const packages = d?.packages ?? fallback?.packages ?? 1;
 
   const printSheet = async () => {
     if (!orderId) return;
@@ -148,18 +148,19 @@ export const OrderDetailModal: React.FC<{
           ) : null}
           {fallback?.customerName ? <Body>{fallback.customerName}</Body> : null}
 
+          {orderId ? (
+            <PackageActions
+              orderId={orderId}
+              packages={packages}
+              printing={printing}
+              canAdd={canPicking}
+              canReprint={canPrint}
+              onResult={onPackageResult}
+              hideNotice
+            />
+          ) : null}
+
           <View style={styles.actionsRow}>
-            {canPrint ? (
-              <Button
-                title="Reimprimir sticker"
-                leftIcon="print-outline"
-                variant="outline"
-                size="small"
-                onPress={() => reprint()}
-                disabled={printing.printingStickers}
-                loading={printing.printingStickers}
-              />
-            ) : null}
             {canPicking ? (
               <Button
                 title="Hoja de armado (PDF)"
@@ -283,7 +284,8 @@ export const OrderDetailModal: React.FC<{
                   <Caption color={theme.color.text.muted}>Impresiones</Caption>
                   <Body>
                     Sticker: {timesLabel(d?.stickerPrints ?? fallback?.stickerPrints)} · Hoja de
-                    armado: {timesLabel(d?.sheetPrints ?? fallback?.sheetPrints)}
+                    armado: {timesLabel(d?.sheetPrints ?? fallback?.sheetPrints)} · Bultos:{' '}
+                    {packages}
                   </Body>
                 </View>
 

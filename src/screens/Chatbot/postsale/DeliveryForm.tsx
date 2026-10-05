@@ -3,7 +3,15 @@
  * El código solo vive en el estado de este componente mientras dura la entrega.
  */
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, StyleSheet, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -31,13 +39,17 @@ import {
   photoToDataUrl,
   statusLabel,
   uriToDataUrl,
+  parseOrderQrFull,
 } from './shared';
+import { QrInput } from './scanner';
 
 export const DeliveryForm: React.FC<{
   order: PostsaleOrder;
+  /** Bulto ya escaneado al abrir el pedido (se marca de inicio). */
+  initialPackage?: number | null;
   onChangeOrder: () => void;
   onDelivered: () => void;
-}> = ({ order, onChangeOrder, onDelivered }) => {
+}> = ({ order, initialPackage, onChangeOrder, onDelivered }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   const deliver = useDeliverPostsale();
@@ -46,6 +58,9 @@ export const DeliveryForm: React.FC<{
   const [photo, setPhoto] = useState<string | null>(null);
   const [step, setStep] = useState<'form' | 'signature' | 'photo'>('form');
   const [converting, setConverting] = useState(false);
+  const packages = Math.max(1, order.packages ?? 1);
+  const [ticked, setTicked] = useState<number[]>([]);
+  const [pkgMsg, setPkgMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   // Al cambiar de pedido se descarta todo lo capturado.
   useEffect(() => {
@@ -53,7 +68,34 @@ export const DeliveryForm: React.FC<{
     setSignature(null);
     setPhoto(null);
     setStep('form');
-  }, [order.id]);
+    setPkgMsg(null);
+    setTicked(initialPackage && initialPackage >= 1 ? [initialPackage] : []);
+  }, [order.id, initialPackage]);
+
+  const togglePackage = (n: number) =>
+    setTicked((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
+
+  /** Escaneo de un sticker de bulto (`GRITPED:<uuid>:<n>`): marca ese bulto. */
+  const onPackageScan = (raw: string) => {
+    const parsed = parseOrderQrFull(raw);
+    if (!parsed) {
+      setPkgMsg({ ok: false, text: 'Ese código no es un sticker de pedido.' });
+      return;
+    }
+    if (parsed.id !== order.id.toLowerCase()) {
+      setPkgMsg({ ok: false, text: 'Ese bulto es de otro pedido.' });
+      return;
+    }
+    const n = parsed.packageNo ?? 1;
+    if (n < 1 || n > packages) {
+      setPkgMsg({ ok: false, text: `El bulto ${n} no existe en este pedido (tiene ${packages}).` });
+      return;
+    }
+    setTicked((prev) => (prev.includes(n) ? prev : [...prev, n]));
+    setPkgMsg({ ok: true, text: `Bulto ${n} confirmado.` });
+  };
+
+  const allPackages = packages === 1 || ticked.length >= packages;
 
   const onSignature = async (uri: string) => {
     setStep('form');
@@ -82,7 +124,8 @@ export const DeliveryForm: React.FC<{
   };
 
   const codeOk = /^\d{6}$/.test(code);
-  const canSubmit = codeOk && !!signature && !!photo && !deliver.isPending && !converting;
+  const canSubmit =
+    codeOk && !!signature && !!photo && allPackages && !deliver.isPending && !converting;
 
   const submit = () => {
     if (!signature || !photo) return;
@@ -90,8 +133,13 @@ export const DeliveryForm: React.FC<{
       Alert.alert('Código', 'Ingresa el código de 6 dígitos que te dicta el cliente.');
       return;
     }
+    if (!allPackages) {
+      Alert.alert('Bultos', 'Confirma todos los bultos antes de entregar.');
+      return;
+    }
+    const confirmed = packages === 1 ? [1] : [...ticked].sort((a, b) => a - b);
     deliver.mutate(
-      { id: order.id, payload: { code, signature, photo } },
+      { id: order.id, payload: { code, signature, photo, packages: confirmed } },
       {
         onSuccess: (res) => {
           setCode('');
@@ -124,6 +172,54 @@ export const DeliveryForm: React.FC<{
           <Button title="Cambiar pedido" variant="ghost" size="small" onPress={onChangeOrder} />
         </View>
       </Card>
+
+      {packages > 1 ? (
+        <Card style={styles.card}>
+          <View style={styles.rowBetween}>
+            <Title>📦 Bultos</Title>
+            <Caption
+              color={allPackages ? theme.color.state.success.text : theme.color.state.warning.text}
+            >
+              {ticked.length} de {packages} confirmados
+            </Caption>
+          </View>
+          <Caption color={theme.color.text.muted}>
+            Escanea el sticker de cada bulto (o márcalo a mano) antes de entregar.
+          </Caption>
+          <QrInput onCode={onPackageScan} placeholder="GRITPED:…:n" buttonTitle="Marcar" />
+          {pkgMsg ? (
+            <Caption
+              style={{
+                fontWeight: '600',
+                color: pkgMsg.ok ? theme.color.state.success.text : theme.color.state.danger.text,
+              }}
+            >
+              {pkgMsg.text}
+            </Caption>
+          ) : null}
+          <View style={styles.metaRow}>
+            {Array.from({ length: packages }, (_, i) => i + 1).map((n) => {
+              const on = ticked.includes(n);
+              return (
+                <Pressable
+                  key={n}
+                  onPress={() => togglePackage(n)}
+                  style={[styles.orderRow, on && styles.orderRowOn, { paddingVertical: 8 }]}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: on }}
+                >
+                  <Ionicons
+                    name={on ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={on ? theme.color.brand.accent : theme.color.text.muted}
+                  />
+                  <Body style={{ fontWeight: '700' }}>Bulto {n}</Body>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Card>
+      ) : null}
 
       <Card style={styles.card}>
         <Title>1. Código de entrega</Title>

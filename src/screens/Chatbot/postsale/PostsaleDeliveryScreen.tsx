@@ -13,7 +13,7 @@ import Alert from '@/utils/alert';
 import { DeliveryForm } from './DeliveryForm';
 import { OrderSearchBox, Pager, lookupOrder, usePagedOrders } from './paging';
 import { QrInput } from './scanner';
-import { OrderRow, PostsaleShell, createPostsaleStyles } from './shared';
+import { OrderRow, PostsaleShell, createPostsaleStyles, parseOrderQrFull } from './shared';
 
 type Props = NativeStackScreenProps<any, 'ChatbotPostsaleDelivery'>;
 
@@ -23,6 +23,8 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
   const styles = useThemedStyles(createPostsaleStyles);
   const paged = usePagedOrders(POSTSALE_DELIVERABLE);
   const [target, setTarget] = useState<PostsaleOrder | null>(null);
+  /** Bulto escaneado al abrir el pedido (queda confirmado en el formulario). */
+  const [initialPackage, setInitialPackage] = useState<number | null>(null);
   const [looking, setLooking] = useState(false);
 
   /** Abre el formulario del pedido escaneado / escrito (solo si se puede entregar). */
@@ -32,6 +34,8 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
       const found = await lookupOrder(raw, POSTSALE_DELIVERABLE);
       if (found) {
         setTarget(found);
+        // `GRITPED:<uuid>:<n>`: el bulto escaneado queda marcado.
+        setInitialPackage(parseOrderQrFull(raw)?.packageNo ?? null);
       } else {
         Alert.alert(
           'Pedido no disponible',
@@ -68,6 +72,7 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
       {target ? (
         <DeliveryForm
           order={target}
+          initialPackage={initialPackage}
           onChangeOrder={() => setTarget(null)}
           onDelivered={() => setTarget(null)}
         />
@@ -114,7 +119,10 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
               <OrderRow
                 key={o.id}
                 order={o}
-                onPress={() => setTarget(o)}
+                onPress={() => {
+                  setInitialPackage(null);
+                  setTarget(o);
+                }}
                 right={<Ionicons name="chevron-forward" size={20} color={theme.color.text.muted} />}
               />
             ))

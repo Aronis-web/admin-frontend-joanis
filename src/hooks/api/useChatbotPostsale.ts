@@ -58,7 +58,16 @@ export const usePostsaleDetail = (id: string | null) =>
 export const usePrintPostsale = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (orderIds: string[]) => chatbotPostsaleApi.print(orderIds),
+    mutationFn: ({ orderIds, packageNo }: { orderIds: string[]; packageNo?: number }) =>
+      chatbotPostsaleApi.print(orderIds, packageNo),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chatbotPostsaleKeys.all }),
+  });
+};
+
+export const useAddPostsalePackage = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId: string) => chatbotPostsaleApi.addPackage(orderId),
     onSuccess: () => qc.invalidateQueries({ queryKey: chatbotPostsaleKeys.all }),
   });
 };

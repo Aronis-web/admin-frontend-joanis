@@ -13,7 +13,11 @@
 import { useCallback, useState } from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { chatbotPostsaleKeys, usePrintPostsale } from '@/hooks/api/useChatbotPostsale';
+import {
+  chatbotPostsaleKeys,
+  useAddPostsalePackage,
+  usePrintPostsale,
+} from '@/hooks/api/useChatbotPostsale';
 import { chatbotPostsaleApi, postsaleErrorMessage } from '@/services/api/chatbot-postsale';
 import { printOrderStickers } from '@/utils/priceLabel/orderStickerPrint';
 import { printPickingSheets } from '@/utils/priceLabel/orderPickingSheet';
@@ -29,6 +33,8 @@ export interface PrintResult {
 export interface PrintOptions {
   /** Mostrar también un Alert con el resultado (por defecto true). */
   notify?: boolean;
+  /** Reimprimir solo este bulto (sin él: todos los bultos). */
+  packageNo?: number;
 }
 
 export interface PostsalePrinting {
@@ -38,7 +44,14 @@ export interface PostsalePrinting {
   /** Hoja de armado A4 de uno o varios pedidos, en un solo documento. */
   printPicking: (orderIds: string[], options?: PrintOptions) => Promise<PrintResult>;
   printingPicking: boolean;
+  /** Agrega un bulto al pedido e imprime su sticker al instante. */
+  addPackage: (orderId: string, options?: PrintOptions) => Promise<PrintResult>;
+  addingPackage: boolean;
 }
+
+/** Nombre legible de la impresora destino. */
+const destinationLabel = (device: string | null) =>
+  device ? printerDisplayName(usePostsalePrinterStore.getState().printers, device) : 'impresión';
 
 const NEED_PRINTER =
   'Elige la impresora de stickers en el selector que se abrió y vuelve a intentarlo.';
@@ -46,7 +59,34 @@ const NEED_PRINTER =
 export const usePostsalePrinting = (): PostsalePrinting => {
   const [printingPicking, setPrintingPicking] = useState(false);
   const printMutation = usePrintPostsale();
+  const addPackageMutation = useAddPostsalePackage();
   const queryClient = useQueryClient();
+
+  /** Impresora lista para stickers, o el resultado de error a devolver. */
+  const prepareStickerPrinter = useCallback(
+    async (
+      fail: (title: string, message: string) => PrintResult
+    ): Promise<{ device: string | null } | { error: PrintResult }> => {
+      // Estado fresco de la impresora (Godex directa salvo elección manual).
+      const target = await resolveStickerPrinter();
+      if (target.kind === 'none') {
+        // Sin impresora: se abre el selector en lugar de fallar.
+        usePostsalePrinterStore.getState().openPicker();
+        return { error: { ok: false, message: NEED_PRINTER } };
+      }
+      if (target.kind === 'unavailable') {
+        // No se envía: el aviso se muestra en pantalla (no se registra la impresión).
+        return {
+          error: fail(
+            'Impresora no disponible',
+            `${target.name} no está disponible (${target.reason}). Revisa que esté encendida, conectada y con etiquetas, y vuelve a intentarlo.`
+          ),
+        };
+      }
+      return { device: target.kind === 'ready' ? target.name : null };
+    },
+    []
+  );
 
   const printStickers = useCallback(
     async (orderIds: string[], options: PrintOptions = {}): Promise<PrintResult> => {
@@ -57,26 +97,14 @@ export const usePostsalePrinting = (): PostsalePrinting => {
       };
       if (!orderIds.length) return { ok: false, message: 'No hay pedidos seleccionados.' };
 
-      // Estado fresco de la impresora (Godex directa salvo elección manual).
-      const target = await resolveStickerPrinter();
-      if (target.kind === 'none') {
-        // Sin impresora: se abre el selector en lugar de fallar.
-        usePostsalePrinterStore.getState().openPicker();
-        return { ok: false, message: NEED_PRINTER };
-      }
-      if (target.kind === 'unavailable') {
-        // No se envía: el aviso se muestra en pantalla (no se registra la impresión).
-        return fail(
-          'Impresora no disponible',
-          `${target.name} no está disponible (${target.reason}). Revisa que esté encendida, conectada y con etiquetas, y vuelve a intentarlo.`
-        );
-      }
-      const device = target.kind === 'ready' ? target.name : null;
+      const prepared = await prepareStickerPrinter(fail);
+      if ('error' in prepared) return prepared.error;
+      const { device } = prepared;
 
       let stickers;
       try {
-        logger.info('[postsale] POST /print', { orderIds, device });
-        stickers = await printMutation.mutateAsync(orderIds);
+        logger.info('[postsale] POST /print', { orderIds, device, packageNo: options.packageNo });
+        stickers = await printMutation.mutateAsync({ orderIds, packageNo: options.packageNo });
       } catch (err) {
         logger.error('[postsale] Error registrando la impresión de stickers', err);
         return fail('Error', postsaleErrorMessage(err, 'No se pudo generar los stickers'));
@@ -91,15 +119,53 @@ export const usePostsalePrinting = (): PostsalePrinting => {
         );
       }
       const n = stickers.length;
-      const what = n === 1 ? 'Sticker enviado' : `${n} stickers enviados`;
-      const printers = usePostsalePrinterStore.getState().printers;
-      const message = device
-        ? `${what} a ${printerDisplayName(printers, device)}.`
-        : `${what} a impresión.`;
+      const what = options.packageNo
+        ? `Bulto ${options.packageNo} enviado`
+        : n === 1
+          ? 'Sticker enviado'
+          : `${n} stickers enviados`;
+      const message = `${what} a ${destinationLabel(device)}.`;
       if (notify) Alert.alert('Impresión', message);
       return { ok: true, message };
     },
-    [printMutation]
+    [printMutation, prepareStickerPrinter]
+  );
+
+  const addPackage = useCallback(
+    async (orderId: string, options: PrintOptions = {}): Promise<PrintResult> => {
+      const notify = options.notify ?? true;
+      const fail = (title: string, message: string): PrintResult => {
+        if (notify) Alert.alert(title, message);
+        return { ok: false, message };
+      };
+      // Primero la impresora: no se agrega un bulto que no se pueda imprimir.
+      const prepared = await prepareStickerPrinter(fail);
+      if ('error' in prepared) return prepared.error;
+      const { device } = prepared;
+
+      let res;
+      try {
+        logger.info('[postsale] POST /:id/packages', { orderId, device });
+        res = await addPackageMutation.mutateAsync(orderId);
+      } catch (err) {
+        logger.error('[postsale] Error agregando bulto', err);
+        return fail('Error', postsaleErrorMessage(err, 'No se pudo agregar el bulto'));
+      }
+      const n = res.sticker?.packageNo ?? res.packages;
+      try {
+        await printOrderStickers([res.sticker], { deviceName: device ?? undefined });
+      } catch (err) {
+        logger.error('[postsale] Error imprimiendo sticker del bulto', err);
+        return fail(
+          'No se pudo imprimir',
+          `Bulto ${n} agregado, pero no se pudo imprimir: ${postsaleErrorMessage(err, 'error de impresora')}. Usa "Reimprimir" para ese bulto.`
+        );
+      }
+      const message = `Bulto ${n} impreso en ${destinationLabel(device)}. El pedido tiene ${res.packages} bultos.`;
+      if (notify) Alert.alert('Bulto agregado', message);
+      return { ok: true, message };
+    },
+    [addPackageMutation, prepareStickerPrinter]
   );
 
   const printPicking = useCallback(
@@ -149,5 +215,7 @@ export const usePostsalePrinting = (): PostsalePrinting => {
     printingStickers: printMutation.isPending,
     printPicking,
     printingPicking,
+    addPackage,
+    addingPackage: addPackageMutation.isPending,
   };
 };

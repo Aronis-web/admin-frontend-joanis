@@ -26,7 +26,7 @@
  *   │   #ABC123    │ Tienda Comas / Agencia / dirección…      │
  *   │ Inicio:      │ ┌──────────────────────────────────────┐ │
  *   │ 05/10 14:32  │ │ CANTIDAD DE ARTÍCULOS             3  │ │
- *   │ [BULTO 2 / 3]│ (solo si el sticker trae packageNo)      │
+ *   │ [ BULTO n ]  │ (siempre; BULTO 1 por defecto, sin total)  │
  *   └──────────────┴─┴──────────────────────────────────────┴─┘
  */
 
@@ -79,7 +79,10 @@ export interface OrderStickerData {
     city?: string | null;
   } | null;
   company?: { name?: string | null; ruc?: string | null; address?: string | null } | null;
-  /** Bulto de este sticker (1..N) y total de bultos; sin dato = bulto único, sin rótulo. */
+  /**
+   * Bulto de este sticker (1..N; sin dato = 1). Se imprime solo "BULTO n", sin
+   * el total, porque el total cambia si luego se agregan bultos.
+   */
   packageNo?: number | null;
   packages?: number | null;
 }
@@ -247,9 +250,7 @@ const buildSticker = async (data: OrderStickerData): Promise<string> => {
   const name = clean(data.customerFullName) || clean(data.customer) || '—';
   const phone = formatPhone(data.customerPhone);
   const when = limaDateParts(data.printedAt);
-  const pkgNo = Number(data.packageNo) || 0;
-  const pkgTotal = Number(data.packages) || 0;
-  const bulto = pkgNo > 0 ? `BULTO ${pkgNo}${pkgTotal > 1 ? ` / ${pkgTotal}` : ''}` : '';
+  const bulto = `BULTO ${Math.max(1, Math.floor(Number(data.packageNo) || 1))}`;
 
   return `<div class="label">
     <div class="a brand" style="font-size:${fitFontPt(

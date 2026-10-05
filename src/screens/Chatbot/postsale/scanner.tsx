@@ -199,7 +199,9 @@ export const ScanResultCard: React.FC<{
   highlight?: boolean;
   compact?: boolean;
   onDeliver?: (orderId: string) => void;
-}> = ({ entry, highlight, compact, onDeliver }) => {
+  /** Contenido extra bajo el resultado (p. ej. acciones de bultos). */
+  renderExtra?: (r: PostsaleScanResult) => React.ReactNode;
+}> = ({ entry, highlight, compact, onDeliver, renderExtra }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   if (entry.error) {
@@ -237,6 +239,9 @@ export const ScanResultCard: React.FC<{
         />
         <Caption color={theme.color.text.muted}>
           {ROUTE_LABEL[r.route] ?? r.route}
+          {(r.packages ?? 1) > 1
+            ? ` · 📦 ${r.packageNo ? `bulto ${r.packageNo} de ${r.packages}` : `${r.packages} bultos`}`
+            : ''}
           {!compact ? ` · ${formatDateTime(entry.at)}` : ''}
         </Caption>
       </View>
@@ -267,6 +272,7 @@ export const ScanResultCard: React.FC<{
           />
         </View>
       ) : null}
+      {renderExtra ? renderExtra(r) : null}
     </Card>
   );
 };
@@ -280,7 +286,8 @@ export const StageScanner: React.FC<{
   stage: PostsaleScanStage;
   description: string;
   onDeliver?: (orderId: string) => void;
-}> = ({ stage, description, onDeliver }) => {
+  renderExtra?: (r: PostsaleScanResult) => React.ReactNode;
+}> = ({ stage, description, onDeliver, renderExtra }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   const scan = useScanPostsale();
@@ -328,6 +335,7 @@ export const StageScanner: React.FC<{
           highlight={i === 0}
           compact={i > 0}
           onDeliver={onDeliver}
+          renderExtra={i === 0 ? renderExtra : undefined}
         />
       ))}
     </>
