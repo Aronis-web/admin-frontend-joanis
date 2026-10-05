@@ -162,6 +162,8 @@ interface PostsaleShellProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   children: React.ReactNode;
+  /** Contenido fijo al pie, fuera del scroll (p. ej. la paginación). */
+  footer?: React.ReactNode;
 }
 
 /** Cabecera estándar + cuerpo desplazable centrado. */
@@ -174,6 +176,7 @@ export const PostsaleShell: React.FC<PostsaleShellProps> = ({
   refreshing,
   onRefresh,
   children,
+  footer,
 }) => {
   const styles = useThemedStyles(createPostsaleStyles);
   return (
@@ -192,6 +195,7 @@ export const PostsaleShell: React.FC<PostsaleShellProps> = ({
         >
           {children}
         </ScrollView>
+        {footer}
       </SafeAreaView>
     </ScreenLayout>
   );

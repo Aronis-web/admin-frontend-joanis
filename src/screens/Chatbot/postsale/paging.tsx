@@ -6,13 +6,14 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Button, Caption, useTheme, useThemedStyles } from '@/design-system';
+import { useTheme, useThemedStyles } from '@/design-system';
 import { usePostsalePage } from '@/hooks/api/useChatbotPostsale';
 import {
   chatbotPostsaleApi,
   type PostsaleOrder,
   type PostsaleStatus,
 } from '@/services/api/chatbot-postsale';
+import { PageControls } from '../components/PageControls';
 import { createPostsaleStyles, parseOrderQr } from './shared';
 
 const SEARCH_DEBOUNCE_MS = 350;
@@ -92,38 +93,20 @@ export const OrderSearchBox: React.FC<{ paged: PagedOrders; placeholder?: string
   );
 };
 
-/** Controles de página: anterior / siguiente + "X–Y de N". */
-export const Pager: React.FC<{ paged: PagedOrders }> = ({ paged }) => {
-  const theme = useTheme();
-  const styles = useThemedStyles(createPostsaleStyles);
-  const { total, page, pageSize, items } = paged;
-  if (total === 0) return null;
-  const from = (page - 1) * pageSize + 1;
-  const to = (page - 1) * pageSize + items.length;
-  const lastPage = Math.max(1, Math.ceil(total / pageSize));
-  return (
-    <View style={styles.pager}>
-      <Button
-        title="Anterior"
-        leftIcon="chevron-back"
-        variant="outline"
-        size="small"
-        onPress={() => paged.setPage(Math.max(1, page - 1))}
-        disabled={page <= 1 || paged.query.isFetching}
-      />
-      <Caption color={theme.color.text.muted}>
-        {from}–{to} de {total}
-      </Caption>
-      <Button
-        title="Siguiente"
-        variant="outline"
-        size="small"
-        onPress={() => paged.setPage(Math.min(lastPage, page + 1))}
-        disabled={page >= lastPage || paged.query.isFetching}
-      />
-    </View>
-  );
-};
+/**
+ * Paginación fija al pie. Renderizar fuera del ScrollView (prop `footer` de
+ * `PostsaleShell`): eleva los botones flotantes para que no la tapen.
+ */
+export const Pager: React.FC<{ paged: PagedOrders }> = ({ paged }) => (
+  <PageControls
+    total={paged.total}
+    page={paged.page}
+    pageSize={paged.pageSize}
+    count={paged.items.length}
+    busy={paged.query.isFetching}
+    onPage={paged.setPage}
+  />
+);
 
 /**
  * Busca un pedido por QR (`GRITPED:<uuid>`, exacto) o por número de pedido.

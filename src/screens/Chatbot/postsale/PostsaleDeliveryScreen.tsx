@@ -63,6 +63,7 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
       stat={{ value: paged.total, label: 'Por entregar' }}
       refreshing={paged.query.isFetching && !paged.query.isLoading}
       onRefresh={() => paged.query.refetch()}
+      footer={target ? null : <Pager paged={paged} />}
     >
       {target ? (
         <DeliveryForm
@@ -118,7 +119,6 @@ export const ChatbotPostsaleDeliveryScreen: React.FC<Props> = ({ navigation, rou
               />
             ))
           )}
-          <Pager paged={paged} />
         </>
       )}
     </PostsaleShell>

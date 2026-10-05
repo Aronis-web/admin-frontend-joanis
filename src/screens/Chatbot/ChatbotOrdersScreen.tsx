@@ -12,10 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { ScreenLayout } from '@/components/Layout/ScreenLayout';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
 import {
   Badge,
   Body,
@@ -25,7 +25,6 @@ import {
   ChipGroup,
   EmptyState,
   ErrorState,
-  Text,
   Title,
   useTheme,
   useThemedStyles,
@@ -445,26 +444,16 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScreenLayout navigation={navigation as any}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <LinearGradient
-          colors={[theme.color.brand.headerFrom, theme.color.brand.headerTo]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <View style={styles.headerTitleContainer}>
-            <View style={styles.headerIconRow}>
-              <View style={styles.headerIconContainer}>
-                <Ionicons name="cart-outline" size={22} color={theme.color.brand.onHeader} />
-              </View>
-              <Text style={styles.headerTitle}>Pedidos Redes Sociales</Text>
-            </View>
-            <Text style={styles.headerSubtitle}>Pedidos, saldo y validación de vouchers</Text>
-          </View>
-        </LinearGradient>
+        <GradientHeader
+          icon="cart-outline"
+          title="Pedidos Redes Sociales"
+          subtitle="Pedidos, saldo y validación de vouchers"
+          stat={{ value: isLoading ? '…' : total, label: 'Pedidos' }}
+        />
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
           refreshControl={
             <RefreshControl refreshing={isFetching && !isLoading} onRefresh={() => refetch()} />
           }
@@ -745,15 +734,16 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               })}
             </View>
           )}
-          <PageControls
-            total={total}
-            page={page}
-            pageSize={PAGE_SIZE}
-            count={orders.length}
-            busy={isFetching}
-            onPage={setPage}
-          />
         </ScrollView>
+        {/* Paginación fija al pie (fuera del scroll); eleva los botones flotantes. */}
+        <PageControls
+          total={total}
+          page={page}
+          pageSize={PAGE_SIZE}
+          count={orders.length}
+          busy={isFetching}
+          onPage={setPage}
+        />
 
         <DatePicker
           visible={picker !== null}

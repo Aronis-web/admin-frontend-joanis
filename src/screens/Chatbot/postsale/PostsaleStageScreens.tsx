@@ -109,7 +109,6 @@ const PendingList: React.FC<{
       ) : (
         items.map(renderRow)
       )}
-      <Pager paged={paged} />
     </>
   );
 };
@@ -179,6 +178,7 @@ const StageScreen: React.FC<{
       stat={{ value: paged.total, label: p.statLabel }}
       refreshing={paged.query.isFetching && !paged.query.isLoading}
       onRefresh={() => paged.query.refetch()}
+      footer={<Pager paged={paged} />}
     >
       <StageScanner
         stage={p.stage}

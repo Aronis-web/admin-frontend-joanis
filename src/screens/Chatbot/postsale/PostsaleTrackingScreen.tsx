@@ -71,6 +71,7 @@ export const ChatbotPostsaleTrackingScreen: React.FC<Props> = ({ navigation }) =
       stat={{ value: paged.total, label: 'Pedidos' }}
       refreshing={paged.query.isFetching && !paged.query.isLoading}
       onRefresh={() => paged.query.refetch()}
+      footer={<Pager paged={paged} />}
     >
       {printing.printerPicker}
       <Card style={styles.card}>
@@ -115,7 +116,6 @@ export const ChatbotPostsaleTrackingScreen: React.FC<Props> = ({ navigation }) =
           />
         ))
       )}
-      <Pager paged={paged} />
 
       <OrderDetailModal
         orderId={open?.id ?? null}

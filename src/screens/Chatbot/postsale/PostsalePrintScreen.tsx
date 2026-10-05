@@ -94,6 +94,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
       stat={{ value: paged.total, label: 'Por imprimir' }}
       refreshing={paged.query.isFetching && !paged.query.isLoading}
       onRefresh={() => paged.query.refetch()}
+      footer={<Pager paged={paged} />}
     >
       <View style={styles.actionsRow}>
         <Button
@@ -211,7 +212,6 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
           />
         ))
       )}
-      <Pager paged={paged} />
     </PostsaleShell>
   );
 };
