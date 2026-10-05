@@ -23,9 +23,34 @@ const buildScreensMap = (routes: Record<string, string>): ScreensMap =>
     return acc;
   }, {});
 
+/**
+ * Pantallas registradas en el navegador con nombre literal (no están en
+ * MAIN_ROUTES). Sin esta lista su URL no se reconocía al recargar (F5) o al
+ * usar atrás/adelante del navegador.
+ */
+const EXTRA_ROUTES = [
+  'Warehouses',
+  'WarehouseAreas',
+  'EditCampaignParticipant',
+  'RepartoCampaignDetail',
+  'RepartoParticipantDetail',
+  'BizlinksEmitirBoleta',
+  'BizlinksEmitirNotaCredito',
+  'BizlinksEmitirNotaDebito',
+  'BizlinksEmitirGuiaRemision',
+  'Vehicles',
+  'VehicleDetail',
+  'Drivers',
+  'DriverDetail',
+  'Transporters',
+  'TransporterDetail',
+  'CreateTransporter',
+];
+
 const screens: ScreensMap = {
   ...buildScreensMap(AUTH_ROUTES),
   ...buildScreensMap(MAIN_ROUTES),
+  ...buildScreensMap(Object.fromEntries(EXTRA_ROUTES.map((r) => [r, r]))),
 };
 
 /**
@@ -41,11 +66,23 @@ const prefixes = [
   ...(Platform.OS === 'web' && typeof window !== 'undefined' ? [window.location.origin] : []),
 ];
 
-export const linking: LinkingOptions<Record<string, unknown>> = {
+/**
+ * `initialRouteName`: al abrir o recargar (F5) una URL profunda en web, React
+ * Navigation solo crea esa pantalla y el botón "volver" de la app no tiene a
+ * dónde ir. Con esta opción la pantalla inicial (Dashboard/Inicio) queda debajo
+ * en la pila, así "volver" siempre funciona. Las rutas que no existen en el
+ * navegador actual (p. ej. Dashboard estando en Login) se descartan solas.
+ */
+export const buildLinking = (
+  initialRouteName?: string
+): LinkingOptions<Record<string, unknown>> => ({
   prefixes,
   config: {
+    ...(initialRouteName ? { initialRouteName } : {}),
     screens,
   },
-};
+});
+
+export const linking = buildLinking();
 
 export default linking;
