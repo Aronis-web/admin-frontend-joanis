@@ -22,6 +22,7 @@ import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
 import {
   useConversationCounts,
+  useConversation,
   useConversationsList,
   useConversationsSearch,
 } from '@/hooks/api/useChatbotConversations';
@@ -91,9 +92,11 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
     { enabled: isSearching }
   );
 
+  // Del listado visible o, si no esta (busqueda, otro filtro), del backend.
+  const selectedQuery = useConversation(selectedId);
   const selected = useMemo(
-    () => conversations.find((c) => c.id === selectedId) ?? null,
-    [conversations, selectedId]
+    () => conversations.find((c) => c.id === selectedId) ?? selectedQuery.data ?? null,
+    [conversations, selectedId, selectedQuery.data]
   );
 
   const handleSelect = useCallback(

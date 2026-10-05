@@ -190,6 +190,11 @@ class ChatbotConversationsService {
    * (array plano) por compatibilidad.
    */
   /** Conteos de las vistas rápidas. `GET /chatbot/conversations/counts`. */
+  /** Un chat por id (mismo formato que la bandeja). */
+  async getOne(id: string): Promise<ChatConversation> {
+    return apiClient.get<ChatConversation>(`${this.basePath}/${id}`);
+  }
+
   async getCounts(): Promise<ConversationCounts> {
     return apiClient.get<ConversationCounts>(`${this.basePath}/counts`);
   }

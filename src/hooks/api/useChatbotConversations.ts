@@ -27,6 +27,8 @@ export const chatbotConversationsKeys = {
   vouchers: (conversationId: string) =>
     [...chatbotConversationsKeys.all, 'vouchers', conversationId] as const,
   counts: () => [...chatbotConversationsKeys.all, 'counts'] as const,
+  detail: (conversationId: string) =>
+    [...chatbotConversationsKeys.all, 'detail', conversationId] as const,
   escalations: (conversationId: string) =>
     [...chatbotConversationsKeys.all, 'escalations', conversationId] as const,
 };
@@ -39,6 +41,33 @@ export const useConversationCounts = (options?: { refetchIntervalMs?: number }) 
     staleTime: 15 * 1000,
     refetchInterval: options?.refetchIntervalMs ?? false,
   });
+
+/**
+ * Un chat por id. Usa primero lo que ya esté en cualquier bandeja cargada
+ * (con o sin filtros) y lo pide al backend si no está.
+ */
+export const useConversation = (conversationId?: string) => {
+  const qc = useQueryClient();
+  const cached = (() => {
+    if (!conversationId) return undefined;
+    for (const [, d] of qc.getQueriesData<{ pages?: PagedConversations[] }>({
+      queryKey: chatbotConversationsKeys.lists(),
+    })) {
+      const hit = d?.pages?.flatMap((p) => p.items).find((c) => c.id === conversationId);
+      if (hit) return hit;
+    }
+    return undefined;
+  })();
+  return useQuery({
+    queryKey: chatbotConversationsKeys.detail(conversationId ?? ''),
+    queryFn: () => chatbotConversationsApi.getOne(conversationId as string),
+    enabled: !!conversationId,
+    initialData: cached,
+    staleTime: CONVERSATIONS_STALE_TIME_DETAIL,
+    refetchInterval: 15 * 1000,
+  });
+};
+const CONVERSATIONS_STALE_TIME_DETAIL = 15 * 1000;
 
 /** Casos escalados pendientes de una conversación. */
 export const useConversationEscalations = (conversationId?: string) =>
