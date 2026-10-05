@@ -728,12 +728,17 @@ export interface ChatbotMetricsParams {
   from?: string;
   /** ISO date final (inclusive). */
   to?: string;
+  /** Red social (solo dashboard): filtra todos los datos. */
+  channel?: 'whatsapp' | 'messenger' | 'instagram';
 }
 
 /** Tablero de ventas WhatsApp (`GET /chatbot/metrics/dashboard`). Montos en centavos. */
 export interface ChatbotDashboard {
   range: { from: string; to: string };
   /** Chats, mensajes y ventas vigentes por red social. */
+  /** Red filtrada (null = todas). */
+  channel?: 'whatsapp' | 'messenger' | 'instagram' | null;
+  /** Comparativa por red social (solo sin filtro de red). */
   byChannel?: Array<{
     channel: 'whatsapp' | 'messenger' | 'instagram';
     activeChats: number;
@@ -741,6 +746,10 @@ export interface ChatbotDashboard {
     customerMessages: number;
     orders: number;
     amountCents: number;
+    aiCostPen: number;
+    metaCostPen: number | null;
+    totalCostPen: number;
+    costPerOrderPen: number | null;
   }>;
   sales: {
     orders: number;
