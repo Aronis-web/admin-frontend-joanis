@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { transfersApi } from '@/services/api/transfers';
 import { StockMovement } from '@/types/transfers';
+import { useProductVariants } from '@/hooks/api/useProductVariants';
 import Alert from '@/utils/alert';
 
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -23,6 +24,7 @@ import {
   Card,
   IconButton,
   EmptyState,
+  Chip,
 } from '@/design-system/components';
 
 interface StockMovementHistoryModalProps {
@@ -45,19 +47,35 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
   const [loading, setLoading] = useState(false);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [limit, setLimit] = useState(50);
+  // undefined = todos los movimientos del producto (producto + variantes).
+  const [variantFilter, setVariantFilter] = useState<string | undefined>(undefined);
+
+  // Solo las variantes con stock propio tienen movimientos propios en el kardex.
+  const { data: productVariants } = useProductVariants(productId, visible && !!productId);
+  const stockVariants = useMemo(
+    () => (productVariants || []).filter((v) => v.tracksStock),
+    [productVariants]
+  );
+
+  useEffect(() => {
+    setVariantFilter(undefined);
+  }, [productId]);
 
   useEffect(() => {
     if (visible && productId) {
       loadMovements();
     }
-  }, [visible, productId, limit]);
+  }, [visible, productId, limit, variantFilter]);
 
   const loadMovements = async () => {
     try {
       setLoading(true);
       console.log('📜 Loading stock movements for product:', productId);
 
-      const response = await transfersApi.getProductStockMovementsHistory(productId, { limit });
+      const response = await transfersApi.getProductStockMovementsHistory(productId, {
+        limit,
+        variantId: variantFilter,
+      });
       console.log('✅ Stock movements loaded:', response);
 
       // Extract the data array from the paginated response
@@ -167,6 +185,29 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
                 <Caption color={theme.color.brand.onHeaderMuted}>Mostrando últimos {limit} registros</Caption>
               </View>
             )}
+            {stockVariants.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.variantChipsRow}
+              >
+                <Chip
+                  label="Todas las variantes"
+                  variant={!variantFilter ? 'filled' : 'outlined'}
+                  onPress={() => setVariantFilter(undefined)}
+                  size="small"
+                />
+                {stockVariants.map((v) => (
+                  <Chip
+                    key={v.id}
+                    label={v.name}
+                    variant={variantFilter === v.id ? 'filled' : 'outlined'}
+                    onPress={() => setVariantFilter(v.id)}
+                    size="small"
+                  />
+                ))}
+              </ScrollView>
+            )}
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.color.brand.primary} />
@@ -185,7 +226,7 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
                   const isPositive = movement.quantity > 0;
 
                   return (
-                    <Card key={movement.id || index} variant="outlined" padding="none" style={styles.movementCard}>
+                    <Card key={movement.id || `${index}-${movement.variantId ?? 'producto'}`} variant="outlined" padding="none" style={styles.movementCard}>
                       {/* Movement Header */}
                       <View style={styles.movementHeader}>
                         <View style={styles.movementTypeContainer}>
@@ -229,6 +270,13 @@ export const StockMovementHistoryModal: React.FC<StockMovementHistoryModalProps>
                           <View style={styles.detailRow}>
                             <Caption color="secondary">📍 Área:</Caption>
                             <Body size="small" color="primary">{movement.area.name || movement.area.code}</Body>
+                          </View>
+                        )}
+
+                        {movement.variantName && (
+                          <View style={styles.detailRow}>
+                            <Caption color="secondary">🎨 Color:</Caption>
+                            <Body size="small" color="primary">{movement.variantName}</Body>
                           </View>
                         )}
 
@@ -341,6 +389,12 @@ const createStyles = (theme: Theme) =>
     },
     loadingText: {
       marginTop: theme.space[3],
+    },
+    variantChipsRow: {
+      flexDirection: 'row',
+      gap: theme.space[2],
+      paddingHorizontal: theme.space[5],
+      paddingBottom: theme.space[3],
     },
     movementsList: {
       paddingHorizontal: theme.space[5],

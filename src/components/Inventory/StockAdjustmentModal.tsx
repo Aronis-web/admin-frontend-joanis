@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,7 +8,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { inventoryApi, AdjustStockDto, StockAdjustmentReason } from '@/services/api/inventory';
+import {
+  inventoryApi,
+  AdjustStockDto,
+  StockAdjustmentReason,
+  StockItemResponse,
+} from '@/services/api/inventory';
+import { useProductVariants } from '@/hooks/api/useProductVariants';
 import { warehousesApi, warehouseAreasApi } from '@/services/api/warehouses';
 import { Warehouse, WarehouseArea } from '@/types/warehouses';
 import { useAuthStore } from '@/store/auth';
@@ -64,10 +70,27 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
     productId: '',
     warehouseId: '',
     areaId: '',
+    // '' = saldo del producto (sin variante); uuid = variante con stock propio.
+    variantId: '',
     deltaBase: '',
     reason: 'ADJUST' as StockAdjustmentReason,
     clientOperationId: '',
   });
+  // Filas de stock del producto: una por (almacén, área, variante).
+  const [stockRows, setStockRows] = useState<StockItemResponse[]>([]);
+  const [loadingStockRows, setLoadingStockRows] = useState(false);
+  const [stockRowsFailed, setStockRowsFailed] = useState(false);
+
+  const isProductIdComplete = /^[0-9a-f-]{36}$/i.test(formData.productId.trim());
+  const { data: productVariants } = useProductVariants(
+    formData.productId.trim(),
+    visible && isProductIdComplete
+  );
+  // Solo las variantes con stock propio son una dimensión de stock ajustable.
+  const stockVariants = useMemo(
+    () => (productVariants || []).filter((v) => v.tracksStock),
+    [productVariants]
+  );
 
   useEffect(() => {
     if (visible) {
@@ -77,6 +100,64 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       }
     }
   }, [visible, productId]);
+
+  const loadStockRows = async (id: string) => {
+    try {
+      setLoadingStockRows(true);
+      setStockRowsFailed(false);
+      const rows = await inventoryApi.getStockByProductWithAreas(id);
+      setStockRows(Array.isArray(rows) ? rows : []);
+    } catch (error: any) {
+      console.error('❌ Error loading stock rows:', error);
+      setStockRows([]);
+      setStockRowsFailed(true);
+    } finally {
+      setLoadingStockRows(false);
+    }
+  };
+
+  useEffect(() => {
+    // Solo hace falta el saldo por fila si el producto tiene variantes con stock propio.
+    if (visible && isProductIdComplete && stockVariants.length > 0) {
+      loadStockRows(formData.productId.trim());
+    } else {
+      setStockRows([]);
+    }
+  }, [visible, formData.productId, isProductIdComplete, stockVariants.length]);
+
+  // Si la variante elegida ya no es una dimensión de stock, volver al saldo del producto.
+  useEffect(() => {
+    if (formData.variantId && !stockVariants.some((v) => v.id === formData.variantId)) {
+      setFormData((prev) => ({ ...prev, variantId: '' }));
+    }
+  }, [stockVariants, formData.variantId]);
+
+  // Saldo físico de la fila exacta (almacén, área, variante) que se va a ajustar.
+  // Las filas con saldo 0 no vienen del backend: ausencia = 0.
+  const currentRowStock = useMemo(() => {
+    // null = saldo desconocido (cargando o error): no se valida en el cliente.
+    if (!formData.warehouseId || !formData.areaId || loadingStockRows || stockRowsFailed) {
+      return null;
+    }
+    const row = stockRows.find(
+      (r) =>
+        r.warehouseId === formData.warehouseId &&
+        (r.areaId ?? '') === formData.areaId &&
+        (r.variantId ?? '') === formData.variantId
+    );
+    return row ? Number(row.quantityBase) || 0 : 0;
+  }, [
+    stockRows,
+    loadingStockRows,
+    stockRowsFailed,
+    formData.warehouseId,
+    formData.areaId,
+    formData.variantId,
+  ]);
+
+  const selectedVariantName = formData.variantId
+    ? stockVariants.find((v) => v.id === formData.variantId)?.name || 'Variante'
+    : 'Sin variante (saldo del producto)';
 
   const loadWarehouses = async () => {
     try {
@@ -161,6 +242,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       productId: productId || '',
       warehouseId: '',
       areaId: '',
+      variantId: '',
       deltaBase: '',
       reason: 'ADJUST',
       clientOperationId: '',
@@ -188,6 +270,23 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       return false;
     }
 
+    // Producto con variantes con stock propio: un ajuste negativo se valida
+    // contra el saldo de ESA fila (almacén, área, variante), no contra el total.
+    const delta = parseFloat(formData.deltaBase);
+    if (
+      stockVariants.length > 0 &&
+      delta < 0 &&
+      currentRowStock !== null &&
+      currentRowStock + delta < 0
+    ) {
+      Alert.alert(
+        'Stock insuficiente',
+        `El saldo de ${selectedVariantName} en esta ubicación es ${currentRowStock} unidades; ` +
+          `no se puede restar ${Math.abs(delta)}.`
+      );
+      return false;
+    }
+
     return true;
   };
 
@@ -202,6 +301,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
         productId: formData.productId,
         warehouseId: formData.warehouseId,
         areaId: formData.areaId || undefined,
+        variantId: formData.variantId || undefined,
         deltaBase: parseFloat(formData.deltaBase),
         reason: formData.reason,
         clientOperationId: formData.clientOperationId || undefined,
@@ -219,7 +319,10 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       resetForm();
     } catch (error: any) {
       console.error('Error adjusting stock:', error);
-      Alert.alert('Error', error.message || 'No se pudo ajustar el stock');
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || error.message || 'No se pudo ajustar el stock'
+      );
     } finally {
       setLoading(false);
     }
@@ -395,6 +498,51 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
               </View>
             )}
 
+            {stockVariants.length > 0 && (
+              <View style={styles.formGroup}>
+                <Label size="medium" color="secondary">
+                  Variante
+                </Label>
+                <TouchableOpacity
+                  style={styles.picker}
+                  onPress={() => {
+                    const options = [
+                      {
+                        text: 'Sin variante (saldo del producto)',
+                        onPress: () => setFormData({ ...formData, variantId: '' }),
+                      },
+                      ...stockVariants.map((v) => ({
+                        text: v.name,
+                        onPress: () => setFormData({ ...formData, variantId: v.id }),
+                      })),
+                    ];
+
+                    Alert.alert('Seleccionar Variante', '', [
+                      ...options,
+                      { text: 'Cancelar', style: 'cancel' },
+                    ]);
+                  }}
+                >
+                  <Body size="medium" color="primary">{selectedVariantName}</Body>
+                </TouchableOpacity>
+                <Caption color="tertiary" style={styles.helpText}>
+                  Solo se listan las variantes con stock propio. Las demás usan el saldo del producto.
+                </Caption>
+              </View>
+            )}
+
+            {stockVariants.length > 0 && formData.warehouseId && formData.areaId && (
+              <View style={styles.formGroup}>
+                <Caption color="secondary">
+                  {loadingStockRows
+                    ? 'Cargando saldo actual...'
+                    : stockRowsFailed
+                      ? 'No se pudo cargar el saldo actual'
+                      : `Saldo actual (${selectedVariantName}): ${currentRowStock ?? 0} unidades`}
+                </Caption>
+              </View>
+            )}
+
             <View style={styles.formGroup}>
               <Label size="medium" color="secondary">
                 Cantidad (Unidades Base) <Text variant="labelMedium" color={theme.color.text.danger}>*</Text>
@@ -492,6 +640,14 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                   : 'No seleccionada'}
               </Body>
             </View>
+            {stockVariants.length > 0 && (
+              <View style={styles.summaryRow}>
+                <Body size="small" color="secondary">Variante:</Body>
+                <Body size="small" color="primary" style={styles.summaryValue}>
+                  {selectedVariantName}
+                </Body>
+              </View>
+            )}
             <View style={styles.summaryRow}>
               <Body size="small" color="secondary">Ajuste:</Body>
               <Text

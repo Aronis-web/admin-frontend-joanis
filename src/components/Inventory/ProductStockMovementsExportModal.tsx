@@ -6,6 +6,7 @@ import {
   useWarehouses,
   useWarehouseAreas,
 } from '@/hooks/api/useStock';
+import { useProductVariants } from '@/hooks/api/useProductVariants';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -77,6 +78,15 @@ export const ProductStockMovementsExportModal: React.FC<ProductStockMovementsExp
   );
   const [areaFilter, setAreaFilter] = useState<string | undefined>(undefined);
   const [movementTypeFilter, setMovementTypeFilter] = useState<MovementType | undefined>(undefined);
+  // undefined = todos los movimientos del producto (producto + variantes).
+  const [variantFilter, setVariantFilter] = useState<string | undefined>(undefined);
+
+  // Solo las variantes con stock propio tienen movimientos propios en el kardex.
+  const { data: productVariants } = useProductVariants(productId || '', visible && !!productId);
+  const stockVariants = useMemo(
+    () => (productVariants || []).filter((v) => v.tracksStock),
+    [productVariants]
+  );
 
   const [fromPickerOpen, setFromPickerOpen] = useState(false);
   const [toPickerOpen, setToPickerOpen] = useState(false);
@@ -89,6 +99,7 @@ export const ProductStockMovementsExportModal: React.FC<ProductStockMovementsExp
     setWarehouseFilter(initialWarehouseId || 'ALL');
     setAreaFilter(undefined);
     setMovementTypeFilter(undefined);
+    setVariantFilter(undefined);
   }, [visible, initialWarehouseId]);
 
   // Solo almacenes de la sede seleccionada en el login.
@@ -142,6 +153,7 @@ export const ProductStockMovementsExportModal: React.FC<ProductStockMovementsExp
         movementType: movementTypeFilter,
         dateFrom: useCustomRange ? fromDate || undefined : undefined,
         dateTo: useCustomRange ? toDate || undefined : undefined,
+        variantId: variantFilter,
       };
 
       const blob = await exportMutation.mutateAsync({ productId, params });
@@ -305,6 +317,35 @@ export const ProductStockMovementsExportModal: React.FC<ProductStockMovementsExp
                 ))}
               </ScrollView>
             </View>
+
+            {stockVariants.length > 0 && (
+              <View style={styles.section}>
+                <Caption color="tertiary" style={styles.sectionLabel}>
+                  Variante (opcional)
+                </Caption>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipsRow}
+                >
+                  <Chip
+                    label="Todas"
+                    variant={!variantFilter ? 'filled' : 'outlined'}
+                    onPress={() => setVariantFilter(undefined)}
+                    size="small"
+                  />
+                  {stockVariants.map((v) => (
+                    <Chip
+                      key={v.id}
+                      label={v.name}
+                      variant={variantFilter === v.id ? 'filled' : 'outlined'}
+                      onPress={() => setVariantFilter(v.id)}
+                      size="small"
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             <Divider spacing="small" />
 
