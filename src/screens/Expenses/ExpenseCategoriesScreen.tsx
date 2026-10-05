@@ -18,6 +18,8 @@ import { CategoryCard } from '@/components/Expenses/CategoryCard';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
 import Alert from '@/utils/alert';
+import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { useGoBack } from '@/hooks/useGoBack';
 
 interface ExpenseCategoriesScreenProps {
   navigation: any;
@@ -26,6 +28,7 @@ interface ExpenseCategoriesScreenProps {
 export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
+  const goBack = useGoBack();
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,7 +105,7 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
     return (
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, contentWidthStyle]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <View style={styles.infoCard}>
@@ -127,13 +130,12 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.color.icon.default} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Categorías de Gastos</Text>
-        <View style={styles.headerRight} />
-      </View>
+      <GradientHeader
+        title="Categorías de Gastos"
+        subtitle="Categorías y subcategorías de gastos"
+        onBack={goBack}
+        stat={{ value: categories.length, label: 'Total' }}
+      />
       <View style={styles.container}>
         {renderContent()}
         <ProtectedFAB
@@ -154,30 +156,7 @@ export const ExpenseCategoriesScreen: React.FC<ExpenseCategoriesScreenProps> = (
 const createStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.color.surface.base,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.color.surface.base,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.color.border.subtle,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.color.text.heading,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 32,
+    backgroundColor: theme.color.background.subtle,
   },
   container: {
     flex: 1,

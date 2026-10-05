@@ -83,6 +83,12 @@ export {
   Section,
   Row,
   Spacer,
+  GradientHeader,
+  ContentContainer,
+  CONTENT_MAX_WIDTH,
+  FORM_MAX_WIDTH,
+  contentWidthStyle,
+  formWidthStyle,
 } from './layout';
 
 export type {
@@ -93,6 +99,8 @@ export type {
   SectionProps,
   RowProps,
   SpacerProps,
+  GradientHeaderProps,
+  ContentContainerProps,
 } from './layout';
 
 // ============================================
