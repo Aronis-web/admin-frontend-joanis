@@ -22,6 +22,7 @@ import { useThemedStyles } from '@/design-system/themes/useThemedStyles';
 import type { Theme } from '@/design-system/themes/defaultLight';
 import { useChatbotDashboard } from '@/hooks/api/useChatbotMetrics';
 import type { ChatbotDashboard, ChatbotMetricsParams } from '@/types/chatbot';
+import { CHANNEL_META } from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotDashboard'>;
 
@@ -252,7 +253,7 @@ const BarChart: React.FC<{
   );
 };
 
-/** Tablero de ventas por WhatsApp (mismo estilo que el Dashboard principal). */
+/** Tablero de ventas por redes sociales (mismo estilo que el Dashboard principal). */
 export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
@@ -354,7 +355,7 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.headerIconContainer}>
               <Ionicons name="logo-whatsapp" size={22} color={theme.color.brand.onHeader} />
             </View>
-            <Text style={styles.title}>Dashboard WhatsApp</Text>
+            <Text style={styles.title}>Dashboard Redes Sociales</Text>
           </View>
           <Text style={styles.subtitle}>Ventas, pagos, mensajes y gasto del bot</Text>
         </LinearGradient>
@@ -467,6 +468,36 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
                     theme={theme}
                   />
                 </View>
+              ) : null}
+
+              {data.byChannel?.length ? (
+                <>
+                  <Text style={styles.sectionTitle}>🌐 Por red social</Text>
+                  <View style={styles.statsGrid}>
+                    {data.byChannel.map((ch) => (
+                      <Stat
+                        key={ch.channel}
+                        icon={
+                          ch.channel === 'whatsapp'
+                            ? '🟢'
+                            : ch.channel === 'messenger'
+                              ? '🔵'
+                              : '🟣'
+                        }
+                        label={CHANNEL_META[ch.channel].label}
+                        value={solesCents(ch.amountCents)}
+                        sub={`${num(ch.orders)} pedidos · ${num(ch.activeChats)} chats (${num(ch.newChats)} nuevos)`}
+                        tone={
+                          ch.channel === 'whatsapp'
+                            ? 'success'
+                            : ch.channel === 'messenger'
+                              ? 'info'
+                              : 'primary'
+                        }
+                      />
+                    ))}
+                  </View>
+                </>
               ) : null}
 
               <Text style={styles.sectionTitle}>💬 Chats y mensajes</Text>

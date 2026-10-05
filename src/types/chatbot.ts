@@ -191,6 +191,8 @@ export interface GetConversationsParams {
   status?: ConversationStatus;
   /** Vista rápida: escalados, sin responder, en humano o por validar. */
   view?: ConversationView;
+  /** Red social: whatsapp, messenger o instagram. */
+  channel?: 'whatsapp' | 'messenger' | 'instagram';
 }
 
 /** Vistas rápidas de la bandeja (`GET /chatbot/conversations?view=`). */
@@ -731,6 +733,15 @@ export interface ChatbotMetricsParams {
 /** Tablero de ventas WhatsApp (`GET /chatbot/metrics/dashboard`). Montos en centavos. */
 export interface ChatbotDashboard {
   range: { from: string; to: string };
+  /** Chats, mensajes y ventas vigentes por red social. */
+  byChannel?: Array<{
+    channel: 'whatsapp' | 'messenger' | 'instagram';
+    activeChats: number;
+    newChats: number;
+    customerMessages: number;
+    orders: number;
+    amountCents: number;
+  }>;
   sales: {
     orders: number;
     amountCents: number;

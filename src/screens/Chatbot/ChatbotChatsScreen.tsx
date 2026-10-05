@@ -41,6 +41,7 @@ import {
   PURCHASE_STAGE_LABEL,
   PURCHASE_STAGE_VARIANT,
 } from './utils';
+import { CHANNEL_META, SALES_CHANNELS, type SalesChannel } from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotChats'>;
 
@@ -61,6 +62,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const [stageFilter, setStageFilter] = useState<PurchaseStage | undefined>(undefined);
   const [stagePickerOpen, setStagePickerOpen] = useState(false);
   const [view, setView] = useState<ConversationView | undefined>(undefined);
+  const [channel, setChannel] = useState<SalesChannel | undefined>(undefined);
   const countsQuery = useConversationCounts({ refetchIntervalMs: 15000 });
 
   // Buscador con debounce
@@ -74,7 +76,10 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const isSearching = debouncedQuery.length > 0;
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useConversationsList({ limit: 30, stage: stageFilter, view }, { refetchIntervalMs: 15000 });
+    useConversationsList(
+      { limit: 30, stage: stageFilter, view, channel },
+      { refetchIntervalMs: 15000 }
+    );
 
   const conversations = useMemo<ChatConversation[]>(
     () => data?.pages.flatMap((p) => p.items) ?? [],
@@ -156,6 +161,39 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
             >
               {v.label}
               {count ? ` · ${count}` : ''}
+            </Caption>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+
+  const renderChannelChips = () => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.chipsScroll}
+      contentContainerStyle={styles.chipsRow}
+    >
+      {([undefined, ...SALES_CHANNELS] as Array<SalesChannel | undefined>).map((ch) => {
+        const active = channel === ch;
+        const meta = ch ? CHANNEL_META[ch] : null;
+        return (
+          <Pressable
+            key={ch ?? 'all'}
+            onPress={() => setChannel(ch)}
+            style={[styles.chip, active && styles.chipActive]}
+          >
+            <Ionicons
+              name={meta?.icon ?? 'share-social-outline'}
+              size={14}
+              color={active ? theme.color.text.onAction : (meta?.color ?? theme.color.text.muted)}
+            />
+            <Caption
+              color={active ? theme.color.text.onAction : theme.color.text.body}
+              style={styles.chipText}
+            >
+              {meta?.label ?? 'Todas las redes'}
             </Caption>
           </Pressable>
         );
@@ -332,6 +370,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
       {!isSearching ? renderViewChips() : null}
+      {!isSearching ? renderChannelChips() : null}
       {!isSearching ? renderStageFilter() : null}
       {renderStagePickerModal()}
       <View style={{ flex: 1 }}>
@@ -383,12 +422,12 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.headerTitleContainer}>
               <View style={styles.headerIconRow}>
                 <View style={styles.headerIconContainer}>
-                  <Ionicons name="logo-whatsapp" size={22} color={theme.color.brand.onHeader} />
+                  <Ionicons name="chatbubbles" size={22} color={theme.color.brand.onHeader} />
                 </View>
-                <Text style={styles.headerTitle}>Chats WhatsApp</Text>
+                <Text style={styles.headerTitle}>Chats Redes Sociales</Text>
               </View>
               <Text style={styles.headerSubtitle}>
-                Bandeja de conversaciones del chatbot de ventas
+                WhatsApp, Messenger e Instagram en una sola bandeja
               </Text>
             </View>
             <View style={styles.headerActionsRow}>

@@ -442,11 +442,11 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
-  // Ventas WhatsApp (Chatbot)
+  // Ventas Redes Sociales (Chatbot: WhatsApp, Messenger, Instagram)
   {
     id: 'ventas-whatsapp',
-    title: 'Ventas WhatsApp',
-    icon: 'logo-whatsapp',
+    title: 'Ventas Redes Sociales',
+    icon: 'share-social-outline',
     requiredPermissions: [
       'chatbot.dashboard.read',
       'chatbot.read',
