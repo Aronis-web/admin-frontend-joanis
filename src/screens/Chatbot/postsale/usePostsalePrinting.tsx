@@ -1,5 +1,5 @@
 /**
- * Impresión de stickers (Godex 104 × 100 mm) y hojas de armado (A4) de Post venta.
+ * Impresión de stickers (Godex 104 × 75 mm) y hojas de armado (A4) de Post venta.
  * En Electron incluye el selector de impresora de stickers (se recuerda por equipo).
  */
 import React, { useCallback, useEffect, useState } from 'react';
@@ -143,7 +143,7 @@ export const usePostsalePrinting = (withPrinterPicker = true): PostsalePrinting 
     withPrinterPicker && supportsPrinterSelection ? (
       <Card style={styles.card}>
         <View style={styles.rowBetween}>
-          <Caption color={theme.color.text.muted}>Impresora de stickers (104 × 100 mm)</Caption>
+          <Caption color={theme.color.text.muted}>Impresora de stickers (104 × 75 mm)</Caption>
           <Pressable onPress={() => loadPrinters()} disabled={loadingPrinters} hitSlop={8}>
             <Caption color={theme.color.text.link}>
               {loadingPrinters ? 'Buscando…' : 'Actualizar'}
