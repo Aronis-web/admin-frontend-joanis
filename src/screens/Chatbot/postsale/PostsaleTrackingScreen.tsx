@@ -110,6 +110,7 @@ export const ChatbotPostsaleTrackingScreen: React.FC<Props> = ({ navigation }) =
             key={o.id}
             order={o}
             onPress={() => setOpen(o)}
+            showPrintCounts
             right={<Ionicons name="chevron-forward" size={20} color={theme.color.text.muted} />}
           />
         ))

@@ -6,7 +6,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Caption, Card, ChipGroup, useTheme, useThemedStyles } from '@/design-system';
-import { usePrintPostsale } from '@/hooks/api/useChatbotPostsale';
+import { useQueryClient } from '@tanstack/react-query';
+import { chatbotPostsaleKeys, usePrintPostsale } from '@/hooks/api/useChatbotPostsale';
 import { chatbotPostsaleApi, postsaleErrorMessage } from '@/services/api/chatbot-postsale';
 import { printOrderStickers } from '@/utils/priceLabel/orderStickerPrint';
 import { printPickingSheets } from '@/utils/priceLabel/orderPickingSheet';
@@ -57,6 +58,7 @@ export const usePostsalePrinting = (withPrinterPicker = true): PostsalePrinting 
   const [loadingPrinters, setLoadingPrinters] = useState(false);
   const [printingPicking, setPrintingPicking] = useState(false);
   const printMutation = usePrintPostsale();
+  const queryClient = useQueryClient();
 
   const loadPrinters = useCallback(async () => {
     if (!supportsPrinterSelection) return;
@@ -110,27 +112,32 @@ export const usePostsalePrinting = (withPrinterPicker = true): PostsalePrinting 
     [printMutation, printer, supportsPrinterSelection]
   );
 
-  const printPicking = useCallback(async (orderIds: string[]) => {
-    if (!orderIds.length) return;
-    setPrintingPicking(true);
-    try {
-      let sheets;
+  const printPicking = useCallback(
+    async (orderIds: string[]) => {
+      if (!orderIds.length) return;
+      setPrintingPicking(true);
       try {
-        sheets = await Promise.all(orderIds.map((id) => chatbotPostsaleApi.picking(id)));
-      } catch (err) {
-        Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo cargar la hoja de armado'));
-        return;
+        let sheets;
+        try {
+          sheets = await Promise.all(orderIds.map((id) => chatbotPostsaleApi.picking(id)));
+        } catch (err) {
+          Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo cargar la hoja de armado'));
+          return;
+        }
+        // Cada descarga registra una impresión (HOJA_ARMADO): refresca contadores e historial.
+        queryClient.invalidateQueries({ queryKey: chatbotPostsaleKeys.all });
+        try {
+          await printPickingSheets(sheets);
+        } catch (err) {
+          logger.error('Error generando hoja de armado', err);
+          Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo generar la hoja de armado'));
+        }
+      } finally {
+        setPrintingPicking(false);
       }
-      try {
-        await printPickingSheets(sheets);
-      } catch (err) {
-        logger.error('Error generando hoja de armado', err);
-        Alert.alert('Error', postsaleErrorMessage(err, 'No se pudo generar la hoja de armado'));
-      }
-    } finally {
-      setPrintingPicking(false);
-    }
-  }, []);
+    },
+    [queryClient]
+  );
 
   const printerPicker =
     withPrinterPicker && supportsPrinterSelection ? (

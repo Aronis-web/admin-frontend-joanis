@@ -69,6 +69,20 @@ export const ROUTE_ICON: Record<PostsaleRoute, keyof typeof Ionicons.glyphMap> =
   AGENCY: 'bus-outline',
 };
 
+/** Acciones del historial con etiqueta propia (las demás muestran el estado). */
+export const ACTION_LABEL: Record<string, string> = {
+  IMPRESO: 'Sticker impreso',
+  REIMPRESO: 'Sticker reimpreso',
+  HOJA_ARMADO: 'Hoja de armado impresa',
+};
+
+export const PRINT_ACTIONS = ['IMPRESO', 'REIMPRESO', 'HOJA_ARMADO'];
+
+export const timesLabel = (n: number | undefined) => {
+  const v = n ?? 0;
+  return `${v} ${v === 1 ? 'vez' : 'veces'}`;
+};
+
 export const ROUTE_ORDER: PostsaleRoute[] = ['PICKUP', 'DELIVERY_LIMA', 'AGENCY'];
 
 export const CAN_USE_CAMERA = Platform.OS !== 'web';
@@ -191,7 +205,9 @@ export const OrderRow: React.FC<{
   selected?: boolean;
   selectable?: boolean;
   right?: React.ReactNode;
-}> = ({ order, onPress, selected, selectable, right }) => {
+  /** Muestra cuántas veces se imprimió el sticker (🏷️) y la hoja de armado (📄). */
+  showPrintCounts?: boolean;
+}> = ({ order, onPress, selected, selectable, right, showPrintCounts }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   return (
@@ -229,9 +245,19 @@ export const OrderRow: React.FC<{
               ? ` · ${formatSolesFromCents(String(order.totalCents))}`
               : ''}
             {` · ${formatDateTime(order.updatedAt)}`}
-            {order.printedAt ? ' · 🖨️' : ''}
+            {order.printedAt && !showPrintCounts ? ' · 🖨️' : ''}
           </Caption>
         </View>
+        {showPrintCounts && ((order.stickerPrints ?? 0) > 0 || (order.sheetPrints ?? 0) > 0) ? (
+          <View style={styles.metaRow}>
+            {(order.stickerPrints ?? 0) > 0 ? (
+              <Badge variant="default" size="small" label={`🏷️ ${order.stickerPrints}`} />
+            ) : null}
+            {(order.sheetPrints ?? 0) > 0 ? (
+              <Badge variant="default" size="small" label={`📄 ${order.sheetPrints}`} />
+            ) : null}
+          </View>
+        ) : null}
       </View>
       {right}
     </Pressable>
@@ -420,6 +446,12 @@ export const createPostsaleStyles = (theme: Theme) =>
       backgroundColor: '#FFFFFF',
       borderWidth: 1,
       borderColor: theme.color.border.default,
+    },
+    block: {
+      gap: spacing[1],
+      padding: spacing[3],
+      borderRadius: borderRadius.md,
+      backgroundColor: theme.color.background.subtle,
     },
     timelineItem: { flexDirection: 'row', gap: spacing[3], alignItems: 'flex-start' },
     timelineDot: {

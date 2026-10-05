@@ -108,7 +108,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
             <Title>Pedido encontrado</Title>
             <Button title="Quitar" variant="ghost" size="small" onPress={() => setScanned(null)} />
           </View>
-          <OrderRow order={scanned} />
+          <OrderRow order={scanned} showPrintCounts />
           <View style={styles.actionsRow}>
             <Button
               title="Hoja de armado (PDF)"

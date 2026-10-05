@@ -36,6 +36,10 @@ export interface PostsaleOrder {
   totalCents: string | number | null;
   validatedAt: string | null;
   printedAt: string | null;
+  /** Veces que se imprimió el sticker (primera impresión + reimpresiones). */
+  stickerPrints?: number;
+  /** Veces que se imprimió la hoja de armado. */
+  sheetPrints?: number;
   updatedAt: string;
   customerName: string | null;
   convPhone: string | null;
@@ -100,6 +104,8 @@ export interface PostsaleDetail {
   statusLabel: string;
   hasSignature: boolean;
   hasPhoto: boolean;
+  stickerPrints?: number;
+  sheetPrints?: number;
   events: PostsaleEvent[];
 }
 

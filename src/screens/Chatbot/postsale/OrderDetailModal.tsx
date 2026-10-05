@@ -32,6 +32,8 @@ import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
 import { formatDateTime } from '../utils';
 import {
+  ACTION_LABEL,
+  PRINT_ACTIONS,
   ROUTE_LABEL,
   STATUS_LABEL,
   STATUS_VARIANT,
@@ -39,6 +41,7 @@ import {
   createPostsaleStyles,
   formatOrderNo,
   statusLabel,
+  timesLabel,
 } from './shared';
 import type { PostsalePrinting } from './usePostsalePrinting';
 
@@ -86,9 +89,10 @@ export const OrderDetailModal: React.FC<{
     );
   };
 
-  const events = [...(d?.events ?? [])].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const [onlyPrints, setOnlyPrints] = useState(false);
+  const events = [...(d?.events ?? [])]
+    .filter((ev) => !onlyPrints || PRINT_ACTIONS.includes(ev.action))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
     <Modal visible={!!orderId} animationType="slide" transparent onRequestClose={onClose}>
@@ -185,23 +189,43 @@ export const OrderDetailModal: React.FC<{
                   </View>
                 ) : null}
 
-                <Title>Historial</Title>
+                <View style={styles.block}>
+                  <Caption color={theme.color.text.muted}>Impresiones</Caption>
+                  <Body>
+                    Sticker: {timesLabel(d?.stickerPrints ?? fallback?.stickerPrints)} · Hoja de
+                    armado: {timesLabel(d?.sheetPrints ?? fallback?.sheetPrints)}
+                  </Body>
+                </View>
+
+                <View style={styles.rowBetween}>
+                  <Title>Historial</Title>
+                  <Button
+                    title={onlyPrints ? 'Ver todo' : 'Solo impresiones'}
+                    variant="ghost"
+                    size="small"
+                    leftIcon={onlyPrints ? 'list-outline' : 'print-outline'}
+                    onPress={() => setOnlyPrints((v) => !v)}
+                  />
+                </View>
                 {events.length === 0 ? (
-                  <Caption color={theme.color.text.muted}>Sin movimientos registrados.</Caption>
+                  <Caption color={theme.color.text.muted}>
+                    {onlyPrints ? 'Sin impresiones registradas.' : 'Sin movimientos registrados.'}
+                  </Caption>
                 ) : (
                   events.map((ev, i) => (
                     <View key={`${ev.createdAt}-${i}`} style={styles.timelineItem}>
                       <View style={styles.timelineDot} />
                       <View style={{ flex: 1, gap: 2 }}>
                         <Body style={{ fontWeight: '700' }}>
-                          {ev.toStatus ? (STATUS_LABEL[ev.toStatus] ?? ev.toStatus) : ev.action}
+                          {ACTION_LABEL[ev.action] ??
+                            (ev.toStatus ? (STATUS_LABEL[ev.toStatus] ?? ev.toStatus) : ev.action)}
                         </Body>
                         {ev.fromStatus && ev.toStatus && ev.fromStatus !== ev.toStatus ? (
                           <Caption color={theme.color.text.muted}>
                             {STATUS_LABEL[ev.fromStatus] ?? ev.fromStatus} →{' '}
                             {STATUS_LABEL[ev.toStatus] ?? ev.toStatus}
                           </Caption>
-                        ) : ev.toStatus ? (
+                        ) : ev.toStatus && !ACTION_LABEL[ev.action] ? (
                           <Caption color={theme.color.text.muted}>{ev.action}</Caption>
                         ) : null}
                         {ev.note ? <Caption>{ev.note}</Caption> : null}
