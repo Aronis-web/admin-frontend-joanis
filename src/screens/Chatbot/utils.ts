@@ -174,3 +174,28 @@ export const formatRelative = (iso: string | null | undefined): string => {
   if (days < 7) return `hace ${days} d`;
   return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: '2-digit' });
 };
+
+/** Red social de un chat segun su `phone` (fb_ Messenger, ig_ Instagram, celular WhatsApp). */
+export type SalesChannel = 'whatsapp' | 'messenger' | 'instagram';
+
+export const CHANNEL_META: Record<
+  SalesChannel,
+  { label: string; icon: 'logo-whatsapp' | 'logo-facebook' | 'logo-instagram'; color: string }
+> = {
+  whatsapp: { label: 'WhatsApp', icon: 'logo-whatsapp', color: '#25D366' },
+  messenger: { label: 'Messenger', icon: 'logo-facebook', color: '#0084FF' },
+  instagram: { label: 'Instagram', icon: 'logo-instagram', color: '#E1306C' },
+};
+
+export const SALES_CHANNELS: SalesChannel[] = ['whatsapp', 'messenger', 'instagram'];
+
+export const channelOf = (phone: string | null | undefined): SalesChannel => {
+  const p = String(phone ?? '').replace(/^test\d*_/, '');
+  if (p.startsWith('fb_')) return 'messenger';
+  if (p.startsWith('ig_')) return 'instagram';
+  return 'whatsapp';
+};
+
+/** Celular en WhatsApp; en Messenger/Instagram el id no sirve, se muestra el canal. */
+export const displayPhone = (phone: string | null | undefined): string =>
+  channelOf(phone) === 'whatsapp' ? String(phone ?? '') : CHANNEL_META[channelOf(phone)].label;

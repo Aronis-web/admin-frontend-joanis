@@ -326,7 +326,7 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.headerTitle}>Venta por cajón</Text>
             </View>
             <Text style={styles.headerSubtitle}>
-              Catálogo curado a precio fijo para compartir por WhatsApp
+              Catálogo curado a precio fijo para compartir por redes sociales
             </Text>
           </View>
           <View style={styles.headerToggle}>

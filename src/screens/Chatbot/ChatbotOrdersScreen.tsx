@@ -52,7 +52,15 @@ import Alert from '@/utils/alert';
 import { usePermissions } from '@/hooks/usePermissions';
 import { config } from '@/utils/config';
 import { downloadWithAuth } from '@/utils/downloadWithAuth';
-import { formatDateTime, formatSolesFromCents } from './utils';
+import {
+  CHANNEL_META,
+  channelOf,
+  displayPhone,
+  formatDateTime,
+  formatSolesFromCents,
+  SALES_CHANNELS,
+  type SalesChannel,
+} from './utils';
 
 type Props = NativeStackScreenProps<any, 'ChatbotOrders'>;
 
@@ -193,7 +201,14 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, isFetching, isError, refetch } = useChatbotOrdersList(listParams, {
     refetchIntervalMs: isPolling ? 20000 : undefined,
   });
-  const orders = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+  const [channel, setChannel] = useState<SalesChannel | 'ALL'>('ALL');
+  const orders = useMemo(
+    () =>
+      (Array.isArray(data) ? data : []).filter(
+        (o) => channel === 'ALL' || channelOf(o.phone) === channel
+      ),
+    [data, channel]
+  );
 
   const { hasPermission } = usePermissions();
   const canValidate = hasPermission('chatbot.orders.validate');
@@ -369,7 +384,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.headerIconContainer}>
                 <Ionicons name="cart-outline" size={22} color={theme.color.brand.onHeader} />
               </View>
-              <Text style={styles.headerTitle}>Pedidos WhatsApp</Text>
+              <Text style={styles.headerTitle}>Pedidos Redes Sociales</Text>
             </View>
             <Text style={styles.headerSubtitle}>Pedidos, saldo y validación de vouchers</Text>
           </View>
@@ -386,6 +401,15 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
             options={STATUS_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
             selected={[filter]}
             onChange={(sel) => sel[0] && setFilter(sel[0] as OrderFilter)}
+            multiple={false}
+          />
+          <ChipGroup
+            options={[
+              { label: 'Todas las redes', value: 'ALL' },
+              ...SALES_CHANNELS.map((c) => ({ label: CHANNEL_META[c].label, value: c })),
+            ]}
+            selected={[channel]}
+            onChange={(sel) => sel[0] && setChannel(sel[0] as SalesChannel | 'ALL')}
             multiple={false}
           />
 
@@ -418,18 +442,26 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       ? theme.color.text.warning
                       : theme.color.text.success;
                 const delivery = describeOrderFulfillment(order);
-                const who = order.customerName?.trim() || order.phone || null;
+                const who =
+                  order.customerName?.trim() || (order.phone ? displayPhone(order.phone) : null);
+                const ch = CHANNEL_META[channelOf(order.phone)];
                 return (
                   <Card key={order.id} style={styles.orderCard}>
                     {/* Cabecera: cliente, pedido y estado */}
                     <View style={styles.orderHeader}>
                       <View style={{ flex: 1, gap: 2 }}>
-                        <Title numberOfLines={1}>{who ?? `Pedido #${order.id.slice(0, 8)}`}</Title>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Ionicons name={ch.icon} size={16} color={ch.color} />
+                          <Title numberOfLines={1} style={{ flexShrink: 1 }}>
+                            {who ?? `Pedido #${order.id.slice(0, 8)}`}
+                          </Title>
+                        </View>
                         <Caption color={theme.color.text.muted} numberOfLines={1}>
                           #{order.id.slice(0, 8)}
                           {who && order.phone && order.customerName
-                            ? ` · ${order.phone}`
-                            : ''} · {formatDateTime(order.createdAt)}
+                            ? ` · ${displayPhone(order.phone)}`
+                            : ''}{' '}
+                          · {formatDateTime(order.createdAt)}
                         </Caption>
                       </View>
                       <Badge variant={badge.variant} label={badge.label} />

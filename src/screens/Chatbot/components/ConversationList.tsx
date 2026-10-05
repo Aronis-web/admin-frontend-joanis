@@ -5,7 +5,14 @@ import { Badge, Body, Caption, EmptyState, useTheme, useThemedStyles } from '@/d
 import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
 import type { ChatConversation } from '@/types/chatbot';
-import { formatRelative, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
+import {
+  CHANNEL_META,
+  channelOf,
+  displayPhone,
+  formatRelative,
+  PURCHASE_STAGE_LABEL,
+  PURCHASE_STAGE_VARIANT,
+} from '../utils';
 
 interface Props {
   conversations: ChatConversation[];
@@ -49,7 +56,7 @@ export const ConversationList: React.FC<Props> = ({
         description={
           emptyTitle
             ? 'No hay chats en este filtro.'
-            : 'Cuando lleguen mensajes por WhatsApp aparecerán aquí.'
+            : 'Cuando lleguen mensajes por WhatsApp, Messenger o Instagram aparecerán aquí.'
         }
       />
     );
@@ -72,7 +79,8 @@ export const ConversationList: React.FC<Props> = ({
       }
       renderItem={({ item }) => {
         const isSelected = item.id === selectedId;
-        const displayName = item.customerName?.trim() || item.phone;
+        const displayName = item.customerName?.trim() || displayPhone(item.phone);
+        const ch = CHANNEL_META[channelOf(item.phone)];
         const stage = item.purchaseStage;
         return (
           <TouchableOpacity
@@ -87,6 +95,9 @@ export const ConversationList: React.FC<Props> = ({
                 <Ionicons name="person" size={20} color={theme.color.text.muted} />
               )}
               {item.awaitingReply ? <View style={styles.unreadDot} /> : null}
+              <View style={[styles.channelBadge, { backgroundColor: ch.color }]}>
+                <Ionicons name={ch.icon} size={10} color="#fff" />
+              </View>
             </View>
             <View style={styles.rowContent}>
               <View style={styles.rowTop}>
@@ -108,7 +119,7 @@ export const ConversationList: React.FC<Props> = ({
                 </Caption>
               ) : item.customerName ? (
                 <Caption color={theme.color.text.muted} numberOfLines={1}>
-                  {item.phone}
+                  {displayPhone(item.phone)}
                 </Caption>
               ) : null}
               {item.pendingEscalations ? (
@@ -172,6 +183,18 @@ const createStyles = (theme: Theme) =>
     avatarText: {
       fontWeight: '700',
       color: theme.color.text.muted,
+    },
+    channelBadge: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1.5,
+      borderColor: theme.color.surface.base,
     },
     unreadDot: {
       position: 'absolute',

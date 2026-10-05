@@ -207,7 +207,7 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
     if (!ids.length) return;
     Alert.alert(
       'Eliminar seleccionados',
-      `¿Eliminar ${ids.length} producto(s) del catálogo? Salen del bot, de la web y de WhatsApp.`,
+      `¿Eliminar ${ids.length} producto(s) del catálogo? Salen del bot, de la web y de las redes sociales.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -436,7 +436,9 @@ export const ChatbotCatalogScreen: React.FC<Props> = ({ navigation }) => {
               </View>
               <Text style={styles.headerTitle}>Catálogo vendible</Text>
             </View>
-            <Text style={styles.headerSubtitle}>Whitelist de productos vendibles por WhatsApp</Text>
+            <Text style={styles.headerSubtitle}>
+              Productos vendibles por WhatsApp, Messenger e Instagram
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.headerAction}

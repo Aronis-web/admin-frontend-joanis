@@ -178,7 +178,7 @@ export const ChatbotMetricsScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.headerIconContainer}>
                 <Ionicons name="bar-chart-outline" size={22} color={theme.color.brand.onHeader} />
               </View>
-              <Text style={styles.headerTitle}>Métricas WhatsApp</Text>
+              <Text style={styles.headerTitle}>Métricas Redes Sociales</Text>
             </View>
             <Text style={styles.headerSubtitle}>Embudo de compra y consumo del bot</Text>
           </View>
