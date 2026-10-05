@@ -23,6 +23,7 @@ import { CustomerAutocomplete } from '@/components/Bizlinks/CustomerAutocomplete
 import { ProductAutocomplete } from '@/components/Bizlinks/ProductAutocomplete';
 import { Customer } from '@/types/customers';
 import { Product } from '@/services/api/products';
+import { productVariantsApi, ProductVariant } from '@/services/api/product-variants';
 import { StockItemResponse } from '@/services/api/inventory';
 import { Warehouse } from '@/types/warehouses';
 import { PaymentMethod, Company } from '@/types/companies';
@@ -45,13 +46,49 @@ const AFECTACION_IGV_OPTIONS = [
   { value: '15', label: 'Bonificación', icon: 'gift' },
 ];
 
+// Fila de GET /inventory/stock/product/:productId: una por (almacen, area,
+// variante). variantId null = saldo del producto.
+type SaleStockRow = StockItemResponse & {
+  variantId?: string | null;
+  variantName?: string | null;
+};
+
+// Dimension de stock elegible: saldo del producto (variantId null) o una
+// variante con stock propio (tracksStock=true).
+interface StockDimensionOption {
+  variantId: string | null;
+  label: string;
+}
+
+const getLineKey = (productId: string, variantId?: string | null) =>
+  `${productId}::${variantId ?? 'base'}`;
+
+// Stock disponible de UNA dimension (producto o variante) y el almacen con
+// mas saldo de esa dimension.
+const resolveDimensionStock = (rows: SaleStockRow[], variantId: string | null) => {
+  const dimensionRows = rows.filter((r) => (r.variantId ?? null) === variantId);
+  const availableStock = dimensionRows.reduce((sum, r) => sum + r.availableQuantityBase, 0);
+  const best =
+    dimensionRows.length > 0
+      ? dimensionRows.reduce((prev, current) =>
+          current.availableQuantityBase > prev.availableQuantityBase ? current : prev
+        )
+      : null;
+  return { availableStock, best };
+};
+
 interface SaleItem {
   product: Product;
   quantity: number;
   unitPriceCents: number;
   discountCents: number;
-  stock: StockItemResponse[];
+  // Todas las filas de stock de la sede (todas las dimensiones).
+  stock: SaleStockRow[];
+  // Stock disponible de la dimension elegida (producto o variante).
   availableStock: number;
+  // Opciones del selector de variante. Vacio = producto sin variantes con
+  // stock propio (sin selector, comportamiento historico).
+  stockOptions: StockDimensionOption[];
   warehouseId?: string;
   warehouseName?: string;
   selectedPresentationId?: string;
@@ -59,9 +96,10 @@ interface SaleItem {
   // unidad base.
   factorToBase?: number;
   quantityPresentation?: number;
-  // Variante (color) opcional. Se envia al backend si esta seteada; el
-  // backend colapsa a nivel producto si la variante no controla stock.
+  // Variante (color) con stock propio elegida en el selector. Solo se setea
+  // para variantes tracksStock=true; undefined = saldo del producto.
   variantId?: string;
+  variantName?: string;
   codigoAfectacionIgv: string;
   notes?: string;
 }
@@ -183,7 +221,14 @@ export const CreateSaleScreen: React.FC = () => {
   const handleSelectProduct = useCallback(
     async (product: Product) => {
       try {
-        const stockResponse = await inventoryApi.getStockByProductWithAreas(product.id);
+        // El endpoint devuelve una fila por (almacen, area, variante) con
+        // variantId/variantName (null = saldo del producto).
+        const [stockResponse, variants] = await Promise.all([
+          inventoryApi.getStockByProductWithAreas(product.id) as Promise<SaleStockRow[]>,
+          productVariantsApi
+            .getVariants(product.id)
+            .catch((): ProductVariant[] => product.variants ?? []),
+        ]);
 
         if (!stockResponse || stockResponse.length === 0) {
           Alert.alert('Sin Stock', 'Este producto no tiene stock disponible.');
@@ -199,11 +244,51 @@ export const CreateSaleScreen: React.FC = () => {
           }
         }
 
-        const warehouseWithMostStock = filteredStock.reduce((prev, current) =>
-          current.availableQuantityBase > prev.availableQuantityBase ? current : prev
-        );
+        // Solo las variantes con stock propio son dimension de stock; las
+        // descriptivas se venden contra el saldo del producto.
+        const variantOptions: StockDimensionOption[] = variants
+          .filter((v) => v.tracksStock && !v.deletedAt)
+          .map((v) => ({ variantId: v.id, label: v.name }));
+        filteredStock.forEach((row) => {
+          if (row.variantId && !variantOptions.some((o) => o.variantId === row.variantId)) {
+            variantOptions.push({ variantId: row.variantId, label: row.variantName || 'Variante' });
+          }
+        });
+        const stockOptions: StockDimensionOption[] =
+          variantOptions.length > 0
+            ? [{ variantId: null, label: 'Sin variante' }, ...variantOptions]
+            : [];
 
-        const totalStock = filteredStock.reduce((sum, s) => sum + s.availableQuantityBase, 0);
+        // Dimension inicial: la primera con stock que aun no tenga linea en la
+        // venta (linea = producto + variante).
+        const usedKeys = new Set(items.map((it) => getLineKey(it.product.id, it.variantId)));
+        const candidates = stockOptions.length > 0 ? stockOptions : [{ variantId: null, label: '' }];
+        let selectedOption: StockDimensionOption | null = null;
+        let dimension: ReturnType<typeof resolveDimensionStock> | null = null;
+        for (const option of candidates) {
+          if (usedKeys.has(getLineKey(product.id, option.variantId))) continue;
+          const resolved = resolveDimensionStock(filteredStock, option.variantId);
+          // Sin variantes con stock propio: mismo comportamiento historico.
+          if (resolved.best && (resolved.availableStock > 0 || stockOptions.length === 0)) {
+            selectedOption = option;
+            dimension = resolved;
+            break;
+          }
+        }
+
+        if (!selectedOption || !dimension?.best) {
+          const allUsed = candidates.every((o) => usedKeys.has(getLineKey(product.id, o.variantId)));
+          Alert.alert(
+            allUsed ? 'Producto ya agregado' : 'Sin Stock',
+            allUsed
+              ? 'Este producto ya está en la venta.'
+              : 'No hay stock disponible para las variantes restantes de este producto.'
+          );
+          return;
+        }
+
+        const warehouseWithMostStock = dimension.best;
+        const totalStock = dimension.availableStock;
 
         let unitPriceCents = product.costCents || 0;
         if (selectedPriceProfile && product.salePrices && product.salePrices.length > 0) {
@@ -228,6 +313,9 @@ export const CreateSaleScreen: React.FC = () => {
           discountCents: 0,
           stock: filteredStock,
           availableStock: totalStock,
+          stockOptions,
+          variantId: selectedOption.variantId ?? undefined,
+          variantName: selectedOption.variantId ? selectedOption.label : undefined,
           warehouseId: warehouseWithMostStock.warehouseId,
           warehouseName: warehouseWithMostStock.warehouse?.name || 'Almacén',
           codigoAfectacionIgv: CODIGO_AFECTACION_IGV.GRAVADO_ONEROSA,
@@ -251,6 +339,42 @@ export const CreateSaleScreen: React.FC = () => {
       return;
     }
     newItems[index].quantity = quantity;
+    setItems(newItems);
+  };
+
+  // Cambia la dimension de stock (producto o variante con stock propio) de la
+  // linea. Recalcula stock y almacen de ESA dimension.
+  const handleSelectVariant = (index: number, option: StockDimensionOption) => {
+    const item = items[index];
+    if ((item.variantId ?? null) === option.variantId) return;
+
+    const duplicated = items.some(
+      (other, i) =>
+        i !== index &&
+        other.product.id === item.product.id &&
+        (other.variantId ?? null) === option.variantId
+    );
+    if (duplicated) {
+      Alert.alert('Variante ya agregada', 'Esta variante ya tiene su propia línea en la venta.');
+      return;
+    }
+
+    const { availableStock, best } = resolveDimensionStock(item.stock, option.variantId);
+    if (availableStock <= 0 || !best) {
+      Alert.alert('Sin Stock', `No hay stock disponible para "${option.label}" en esta sede.`);
+      return;
+    }
+
+    const newItems = [...items];
+    newItems[index] = {
+      ...item,
+      variantId: option.variantId ?? undefined,
+      variantName: option.variantId ? option.label : undefined,
+      availableStock,
+      warehouseId: best.warehouseId,
+      warehouseName: best.warehouse?.name || 'Almacén',
+      quantity: Math.min(item.quantity, availableStock),
+    };
     setItems(newItems);
   };
 
@@ -333,8 +457,9 @@ export const CreateSaleScreen: React.FC = () => {
         discountCents: item.discountCents,
         codigoAfectacionIgv: item.codigoAfectacionIgv,
         notes: item.notes || undefined,
-        // Variante (color) opcional resuelta desde el scan/seleccion.
-        variantId: item.variantId,
+        // Variante (color) solo cuando la linea descuenta de una variante con
+        // stock propio; sin variante = saldo del producto.
+        variantId: item.variantId || undefined,
         // Trazabilidad de presentacion (empaque). No altera la aritmetica:
         // quantity ya viaja en unidad base.
         presentationId: item.selectedPresentationId,
@@ -731,7 +856,11 @@ export const CreateSaleScreen: React.FC = () => {
           <ProductAutocomplete
             onSelectProduct={handleSelectProduct}
             placeholder="Buscar producto por nombre, SKU..."
-            excludeProductIds={items.map((item) => item.product.id)}
+            // Productos con variantes de stock propio pueden repetirse (una
+            // linea por variante).
+            excludeProductIds={items
+              .filter((item) => item.stockOptions.length === 0)
+              .map((item) => item.product.id)}
           />
 
           {items.length === 0 ? (
@@ -743,7 +872,10 @@ export const CreateSaleScreen: React.FC = () => {
           ) : (
             <View style={styles.productsList}>
               {items.map((item, index) => (
-                <View key={`${item.product.id}-${index}`} style={styles.productCard}>
+                <View
+                  key={getLineKey(item.product.id, item.variantId)}
+                  style={styles.productCard}
+                >
                   <View style={styles.productHeader}>
                     <View style={styles.productHeaderLeft}>
                       <Text style={styles.productName} numberOfLines={2}>
@@ -767,10 +899,39 @@ export const CreateSaleScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
 
+                  {item.stockOptions.length > 0 && (
+                    <View style={styles.igvSection}>
+                      <Text style={styles.igvLabel}>Variante:</Text>
+                      <View style={styles.igvButtons}>
+                        {item.stockOptions.map((option) => {
+                          const active = (item.variantId ?? null) === option.variantId;
+                          const optionStock = resolveDimensionStock(
+                            item.stock,
+                            option.variantId
+                          ).availableStock;
+                          return (
+                            <TouchableOpacity
+                              key={option.variantId ?? 'base'}
+                              style={[styles.igvButton, active && styles.igvButtonActive]}
+                              onPress={() => handleSelectVariant(index, option)}
+                            >
+                              <Text
+                                style={[styles.igvButtonText, active && styles.igvButtonTextActive]}
+                              >
+                                {option.label} ({optionStock})
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  )}
+
                   <View style={styles.stockInfo}>
                     <Ionicons name="layers-outline" size={14} color={theme.color.icon.success} />
                     <Text style={styles.stockText}>
-                      Stock disponible: {item.availableStock} uds.
+                      Stock disponible{item.variantName ? ` (${item.variantName})` : ''}:{' '}
+                      {item.availableStock} uds.
                     </Text>
                   </View>
 

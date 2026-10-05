@@ -56,6 +56,9 @@ export interface CreditNoteItem {
   unidadMedida: string;
   valorUnitario: number;
   precioVentaUnitario: number;
+  // Linea original de la venta: repone stock a su misma variante. Requerido
+  // por el backend cuando un SKU tiene varias lineas de distinta variante.
+  saleItemId?: string;
 }
 
 /**
@@ -97,6 +100,8 @@ export interface SaleItem {
   // Variante (color) opcional. Solo descuenta stock por variante si esta lleva
   // saldo propio (tracksStock=true); si no, cae a nivel producto.
   variantId?: string | null;
+  // Descripcion de la linea ("Producto - Variante" en ventas con variante).
+  productName?: string;
 
   // Presentacion (empaque) opcional. Solo trazabilidad; la quantity canonica
   // sigue viajando en unidad base.
@@ -112,6 +117,9 @@ export interface SaleItem {
     description: string;
     barcode: string;
     imageUrl?: string;
+    // Variante vendida (solo ventas con variante, fase 1+).
+    variantId?: string | null;
+    variantName?: string | null;
   };
 
   createdAt: string;
