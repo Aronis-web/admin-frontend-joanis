@@ -439,9 +439,6 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
             </ScrollView>
           </View>
 
-          {/* Estado de pedidos y estancados (independiente del período elegido) */}
-          <PostsaleOverviewSection />
-
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={theme.color.brand.accent} />
@@ -749,6 +746,9 @@ export const ChatbotDashboardScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             </>
           )}
+
+          {/* Al final: estado de pedidos y, por ultimo, la alerta de estancados (no dependen del periodo). */}
+          <PostsaleOverviewSection />
         </ScrollView>
 
         <DateRangePicker

@@ -100,41 +100,6 @@ export const PostsaleOverviewSection: React.FC = () => {
 
   return (
     <>
-      {/* Alerta de pedidos estancados */}
-      <View
-        style={[
-          styles.alertCard,
-          { borderColor: alertColors.border, backgroundColor: alertColors.background },
-        ]}
-      >
-        <Ionicons
-          name={stalled > 0 ? 'warning' : 'checkmark-circle'}
-          size={28}
-          color={alertColors.text}
-        />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.alertTitle, { color: alertColors.text }]}>
-            {stalled > 0
-              ? `${stalled} pedido${stalled === 1 ? '' : 's'} estancado${stalled === 1 ? '' : 's'}`
-              : 'Sin pedidos estancados'}
-          </Text>
-          <Text style={[styles.alertSub, { color: alertColors.text }]}>
-            {stalled > 0
-              ? 'Superaron el tiempo límite de su etapa.'
-              : 'Todos los pedidos están dentro del tiempo de su etapa.'}
-          </Text>
-        </View>
-        {stalled > 0 ? (
-          <TouchableOpacity
-            style={[styles.alertButton, { backgroundColor: alertColors.text }]}
-            onPress={() => setStalledOpen(true)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.alertButtonText}>Ver estancados</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
       <Text style={styles.sectionTitle}>📦 Estado de pedidos</Text>
       <Text style={styles.sectionHint}>Pago</Text>
       <View style={styles.grid}>
@@ -169,6 +134,41 @@ export const PostsaleOverviewSection: React.FC = () => {
             </View>
           </TouchableOpacity>
         ))}
+      </View>
+
+      {/* Alerta de pedidos estancados */}
+      <View
+        style={[
+          styles.alertCard,
+          { borderColor: alertColors.border, backgroundColor: alertColors.background },
+        ]}
+      >
+        <Ionicons
+          name={stalled > 0 ? 'warning' : 'checkmark-circle'}
+          size={28}
+          color={alertColors.text}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.alertTitle, { color: alertColors.text }]}>
+            {stalled > 0
+              ? `${stalled} pedido${stalled === 1 ? '' : 's'} estancado${stalled === 1 ? '' : 's'}`
+              : 'Sin pedidos estancados'}
+          </Text>
+          <Text style={[styles.alertSub, { color: alertColors.text }]}>
+            {stalled > 0
+              ? 'Superaron el tiempo límite de su etapa.'
+              : 'Todos los pedidos están dentro del tiempo de su etapa.'}
+          </Text>
+        </View>
+        {stalled > 0 ? (
+          <TouchableOpacity
+            style={[styles.alertButton, { backgroundColor: alertColors.text }]}
+            onPress={() => setStalledOpen(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.alertButtonText}>Ver estancados</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <StalledModal
