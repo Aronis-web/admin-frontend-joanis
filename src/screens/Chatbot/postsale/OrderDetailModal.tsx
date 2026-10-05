@@ -11,7 +11,6 @@ import {
   Body,
   Button,
   Caption,
-  ChipGroup,
   Text,
   Title,
   useTheme,
@@ -44,6 +43,8 @@ import {
   timesLabel,
 } from './shared';
 import type { PostsalePrinting } from './usePostsalePrinting';
+import { PrinterPickerModal, PrinterRow } from './PrinterPicker';
+import { usePostsalePrinterStore } from './printerStore';
 
 export const OrderDetailModal: React.FC<{
   orderId: string | null;
@@ -74,6 +75,13 @@ export const OrderDetailModal: React.FC<{
    */
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [askResend, setAskResend] = useState(false);
+
+  // Mientras la hoja está abierta, el selector de impresora se muestra encima de ella.
+  const setPickerHost = usePostsalePrinterStore((st) => st.setPickerHost);
+  useEffect(() => {
+    setPickerHost(orderId ? 'sheet' : 'screen');
+    return () => setPickerHost('screen');
+  }, [orderId, setPickerHost]);
 
   // Al cambiar de pedido se limpian avisos y confirmaciones.
   useEffect(() => {
@@ -184,35 +192,7 @@ export const OrderDetailModal: React.FC<{
             ) : null}
           </View>
 
-          {canPrint && printing.supportsPrinterSelection ? (
-            <View style={styles.metaRow}>
-              <Caption color={theme.color.text.muted}>Impresora:</Caption>
-              {printing.printers.length ? (
-                <ChipGroup
-                  options={printing.printers.map((p) => ({
-                    label: p.displayName || p.name,
-                    value: p.name,
-                  }))}
-                  selected={printing.printer ? [printing.printer] : []}
-                  onChange={(sel) => {
-                    if (sel[0]) printing.selectPrinter(sel[0]);
-                  }}
-                  size="small"
-                />
-              ) : (
-                <Caption color={theme.color.state.warning.text}>
-                  {printing.loadingPrinters ? 'Buscando…' : 'No se detecta ninguna impresora.'}
-                </Caption>
-              )}
-              <Pressable
-                onPress={() => printing.reloadPrinters()}
-                disabled={printing.loadingPrinters}
-                hitSlop={8}
-              >
-                <Caption color={theme.color.text.link}>Actualizar</Caption>
-              </Pressable>
-            </View>
-          ) : null}
+          {canPrint || canPicking ? <PrinterRow /> : null}
 
           {askResend ? (
             <View style={styles.block}>
@@ -351,6 +331,7 @@ export const OrderDetailModal: React.FC<{
           </ScrollView>
         </View>
       </View>
+      <PrinterPickerModal host="sheet" />
     </Modal>
   );
 };

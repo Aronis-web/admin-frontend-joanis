@@ -1,54 +1,25 @@
 /**
  * Impresión de stickers (Godex 104 × 75 mm) y hojas de armado (A4) de Post venta.
- * En Electron resuelve la impresora de stickers (la recordada en el equipo, si
- * no una Godex, si no la predeterminada) y espera la lista si aún carga.
+ *
+ * La impresora (solo Electron) vive en `usePostsalePrinterStore`, compartida por
+ * todas las pantallas: la fila "🖨️ Impresora · Cambiar" de `PostsaleShell` la
+ * muestra y permite cambiarla. Si al imprimir no hay ninguna elegida, se abre
+ * el selector en vez de fallar.
  *
  * Las acciones devuelven `{ ok, message }` para que quien llama muestre el
  * resultado donde el usuario lo vea (p. ej. dentro de la hoja de detalle).
  * Con `notify` (por defecto) también se muestra un Alert.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useCallback, useState } from 'react';
 
-import { Caption, Card, ChipGroup, useTheme, useThemedStyles } from '@/design-system';
 import { useQueryClient } from '@tanstack/react-query';
 import { chatbotPostsaleKeys, usePrintPostsale } from '@/hooks/api/useChatbotPostsale';
 import { chatbotPostsaleApi, postsaleErrorMessage } from '@/services/api/chatbot-postsale';
 import { printOrderStickers } from '@/utils/priceLabel/orderStickerPrint';
 import { printPickingSheets } from '@/utils/priceLabel/orderPickingSheet';
-import {
-  isElectronPrinting,
-  listPrinters,
-  type PrinterInfo,
-} from '@/utils/priceLabel/priceLabelPrint';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
-import { createPostsaleStyles } from './shared';
-
-const PRINTER_STORAGE_KEY = 'postsale.stickerPrinter';
-
-const readStoredPrinter = (): string | null => {
-  try {
-    return typeof localStorage !== 'undefined' ? localStorage.getItem(PRINTER_STORAGE_KEY) : null;
-  } catch {
-    return null;
-  }
-};
-
-const storePrinter = (name: string) => {
-  try {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(PRINTER_STORAGE_KEY, name);
-  } catch {
-    /* noop */
-  }
-};
-
-/** Elige la impresora: la actual si sigue conectada, si no una Godex, si no la predeterminada. */
-const pickPrinter = (list: PrinterInfo[], current: string | null): string | null => {
-  if (current && list.some((p) => p.name === current)) return current;
-  const godex = list.find((p) => /godex/i.test(p.name) || /godex/i.test(p.displayName));
-  return (godex || list.find((p) => p.isDefault) || list[0])?.name ?? null;
-};
+import { printerDisplayName, usePostsalePrinterStore } from './printerStore';
 
 export interface PrintResult {
   ok: boolean;
@@ -67,78 +38,15 @@ export interface PostsalePrinting {
   /** Hoja de armado A4 de uno o varios pedidos, en un solo documento. */
   printPicking: (orderIds: string[], options?: PrintOptions) => Promise<PrintResult>;
   printingPicking: boolean;
-  /** Selector de impresora de stickers (solo Electron; null en otras plataformas). */
-  printerPicker: React.ReactNode;
-  /** Electron: hay selección de impresora. */
-  supportsPrinterSelection: boolean;
-  printers: PrinterInfo[];
-  printer: string | null;
-  selectPrinter: (name: string) => void;
-  loadingPrinters: boolean;
-  reloadPrinters: () => Promise<string | null>;
 }
 
-const printerLabel = (list: PrinterInfo[], name: string | null) =>
-  list.find((p) => p.name === name)?.displayName || name || '';
+const NEED_PRINTER =
+  'Elige la impresora de stickers en el selector que se abrió y vuelve a intentarlo.';
 
-export const usePostsalePrinting = (withPrinterPicker = true): PostsalePrinting => {
-  const theme = useTheme();
-  const styles = useThemedStyles(createPostsaleStyles);
-  const supportsPrinterSelection = isElectronPrinting();
-  const [printers, setPrinters] = useState<PrinterInfo[]>([]);
-  const [printer, setPrinter] = useState<string | null>(() => readStoredPrinter());
-  const [loadingPrinters, setLoadingPrinters] = useState(false);
+export const usePostsalePrinting = (): PostsalePrinting => {
   const [printingPicking, setPrintingPicking] = useState(false);
   const printMutation = usePrintPostsale();
   const queryClient = useQueryClient();
-  // Refs para leer el valor actual dentro de callbacks asíncronos.
-  const printerRef = useRef(printer);
-  const printersRef = useRef(printers);
-  const loadingRef = useRef<Promise<string | null> | null>(null);
-  printerRef.current = printer;
-  printersRef.current = printers;
-
-  /** Lista las impresoras y devuelve la elegida (comparte la carga en curso). */
-  const reloadPrinters = useCallback(async (): Promise<string | null> => {
-    if (!supportsPrinterSelection) return null;
-    if (loadingRef.current) return loadingRef.current;
-    const run = (async () => {
-      setLoadingPrinters(true);
-      try {
-        const list = await listPrinters();
-        setPrinters(list);
-        printersRef.current = list;
-        const chosen = pickPrinter(list, printerRef.current);
-        setPrinter(chosen);
-        printerRef.current = chosen;
-        return chosen;
-      } finally {
-        setLoadingPrinters(false);
-        loadingRef.current = null;
-      }
-    })();
-    loadingRef.current = run;
-    return run;
-  }, [supportsPrinterSelection]);
-
-  useEffect(() => {
-    reloadPrinters();
-  }, [reloadPrinters]);
-
-  const selectPrinter = useCallback((name: string) => {
-    setPrinter(name);
-    printerRef.current = name;
-    storePrinter(name);
-  }, []);
-
-  /** Impresora lista para usar: espera la lista si aún carga o no está validada. */
-  const resolvePrinter = useCallback(async (): Promise<string | null> => {
-    if (!supportsPrinterSelection) return null;
-    if (loadingRef.current) return loadingRef.current;
-    const current = printerRef.current;
-    if (current && printersRef.current.some((p) => p.name === current)) return current;
-    return reloadPrinters();
-  }, [supportsPrinterSelection, reloadPrinters]);
 
   const printStickers = useCallback(
     async (orderIds: string[], options: PrintOptions = {}): Promise<PrintResult> => {
@@ -149,12 +57,12 @@ export const usePostsalePrinting = (withPrinterPicker = true): PostsalePrinting 
       };
       if (!orderIds.length) return { ok: false, message: 'No hay pedidos seleccionados.' };
 
-      const device = await resolvePrinter();
-      if (supportsPrinterSelection && !device) {
-        return fail(
-          'Sin impresora',
-          'No se detecta ninguna impresora. Enciende la Godex y pulsa Actualizar.'
-        );
+      const store = usePostsalePrinterStore.getState();
+      const device = await store.resolve();
+      if (store.supported && !device) {
+        // Sin impresora: se abre el selector en lugar de fallar.
+        usePostsalePrinterStore.getState().openPicker();
+        return { ok: false, message: NEED_PRINTER };
       }
 
       let stickers;
@@ -176,13 +84,14 @@ export const usePostsalePrinting = (withPrinterPicker = true): PostsalePrinting 
       }
       const n = stickers.length;
       const what = n === 1 ? 'Sticker enviado' : `${n} stickers enviados`;
+      const printers = usePostsalePrinterStore.getState().printers;
       const message = device
-        ? `${what} a ${printerLabel(printersRef.current, device)}.`
+        ? `${what} a ${printerDisplayName(printers, device)}.`
         : `${what} a impresión.`;
       if (notify) Alert.alert('Impresión', message);
       return { ok: true, message };
     },
-    [printMutation, resolvePrinter, supportsPrinterSelection]
+    [printMutation]
   );
 
   const printPicking = useCallback(
@@ -206,7 +115,9 @@ export const usePostsalePrinting = (withPrinterPicker = true): PostsalePrinting 
           queryClient.invalidateQueries({ queryKey: chatbotPostsaleKeys.all });
         }
         try {
-          await printPickingSheets(sheets);
+          // En Electron el diálogo abre con la impresora elegida preseleccionada.
+          const device = usePostsalePrinterStore.getState().printer ?? undefined;
+          await printPickingSheets(sheets, device);
         } catch (err) {
           logger.error('[postsale] Error generando hoja de armado', err);
           return fail(postsaleErrorMessage(err, 'No se pudo generar la hoja de armado'));
@@ -225,47 +136,10 @@ export const usePostsalePrinting = (withPrinterPicker = true): PostsalePrinting 
     [queryClient]
   );
 
-  const printerPicker =
-    withPrinterPicker && supportsPrinterSelection ? (
-      <Card style={styles.card}>
-        <View style={styles.rowBetween}>
-          <Caption color={theme.color.text.muted}>Impresora de stickers (104 × 75 mm)</Caption>
-          <Pressable onPress={() => reloadPrinters()} disabled={loadingPrinters} hitSlop={8}>
-            <Caption color={theme.color.text.link}>
-              {loadingPrinters ? 'Buscando…' : 'Actualizar'}
-            </Caption>
-          </Pressable>
-        </View>
-        {printers.length === 0 ? (
-          <Caption color={theme.color.state.warning.text}>
-            {loadingPrinters
-              ? 'Buscando impresoras…'
-              : 'No se detecta ninguna impresora. Enciende y conecta la Godex, luego pulsa Actualizar.'}
-          </Caption>
-        ) : (
-          <ChipGroup
-            options={printers.map((p) => ({ label: p.displayName || p.name, value: p.name }))}
-            selected={printer ? [printer] : []}
-            onChange={(sel) => {
-              if (sel[0]) selectPrinter(sel[0]);
-            }}
-            size="small"
-          />
-        )}
-      </Card>
-    ) : null;
-
   return {
     printStickers,
     printingStickers: printMutation.isPending,
     printPicking,
     printingPicking,
-    printerPicker,
-    supportsPrinterSelection,
-    printers,
-    printer,
-    selectPrinter,
-    loadingPrinters,
-    reloadPrinters,
   };
 };

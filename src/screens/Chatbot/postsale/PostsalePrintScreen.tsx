@@ -106,8 +106,6 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
       </View>
       <SoldReportModal visible={reportOpen} onClose={() => setReportOpen(false)} />
 
-      {printing.printerPicker}
-
       <Card style={styles.card}>
         <Caption color={theme.color.text.muted}>
           Escanea o escribe un pedido para imprimir o reimprimir su sticker y su hoja de armado.

@@ -162,7 +162,7 @@ const StageScreen: React.FC<{
   allowDeliver?: boolean;
 }> = (p) => {
   const paged = usePagedOrders(p.statuses);
-  const printing = usePostsalePrinting(false);
+  const printing = usePostsalePrinting();
   const { hasPermission } = usePermissions();
   const canDeliver = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_DELIVER);
   const [open, setOpen] = useState<PostsaleOrder | null>(null);

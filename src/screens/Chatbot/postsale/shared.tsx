@@ -17,6 +17,7 @@ import type { Theme } from '@/design-system/themes';
 import { spacing, borderRadius } from '@/design-system/tokens';
 import type { PostsaleOrder, PostsaleRoute, PostsaleStatus } from '@/services/api/chatbot-postsale';
 import { logger } from '@/utils/logger';
+import { PrinterPickerModal, PrinterRow } from './PrinterPicker';
 import { formatDateTime, formatSolesFromCents } from '../utils';
 
 // ── Etiquetas ──────────────────────────────────────────────────────────────
@@ -164,6 +165,8 @@ interface PostsaleShellProps {
   children: React.ReactNode;
   /** Contenido fijo al pie, fuera del scroll (p. ej. la paginación). */
   footer?: React.ReactNode;
+  /** Mostrar la fila de impresora (solo Electron). Por defecto true. */
+  showPrinter?: boolean;
 }
 
 /** Cabecera estándar + cuerpo desplazable centrado. */
@@ -177,6 +180,7 @@ export const PostsaleShell: React.FC<PostsaleShellProps> = ({
   onRefresh,
   children,
   footer,
+  showPrinter = true,
 }) => {
   const styles = useThemedStyles(createPostsaleStyles);
   return (
@@ -193,9 +197,11 @@ export const PostsaleShell: React.FC<PostsaleShellProps> = ({
             ) : undefined
           }
         >
+          {showPrinter ? <PrinterRow /> : null}
           {children}
         </ScrollView>
         {footer}
+        <PrinterPickerModal host="screen" />
       </SafeAreaView>
     </ScreenLayout>
   );

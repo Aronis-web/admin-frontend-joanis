@@ -323,7 +323,11 @@ export const buildPickingSheetsHtml = async (
  * Genera la hoja de armado de uno o varios pedidos (un solo documento) y la
  * manda a imprimir / guardar como PDF según la plataforma.
  */
-export const printPickingSheets = async (sheets: PostsalePicking[]): Promise<void> => {
+export const printPickingSheets = async (
+  sheets: PostsalePicking[],
+  /** Electron: impresora preseleccionada en el diálogo (no imprime en silencio). */
+  deviceName?: string
+): Promise<void> => {
   if (!sheets.length) return;
 
   if (Platform.OS === 'web') {
@@ -333,6 +337,7 @@ export const printPickingSheets = async (sheets: PostsalePicking[]): Promise<voi
       const result = await api.printHTML({
         html,
         silent: false,
+        ...(deviceName ? { deviceName } : {}),
         // Micrones: A4 (210 × 297 mm).
         pageSize: { width: PAGE_WIDTH_MM * 1000, height: PAGE_HEIGHT_MM * 1000 },
         landscape: false,
