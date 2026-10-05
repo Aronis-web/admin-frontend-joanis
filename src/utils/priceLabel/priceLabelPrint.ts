@@ -45,6 +45,11 @@ export interface PrinterInfo {
   description: string;
   status: number;
   isDefault: boolean;
+  /**
+   * Claves de estado del SO (solo en versiones de escritorio que las exponen):
+   * `printer-state`, `printer-state-reasons`, `printer-is-accepting-jobs`…
+   */
+  options?: Record<string, string>;
 }
 
 interface ElectronPrintApi {

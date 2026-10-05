@@ -19,7 +19,7 @@ import { printOrderStickers } from '@/utils/priceLabel/orderStickerPrint';
 import { printPickingSheets } from '@/utils/priceLabel/orderPickingSheet';
 import Alert from '@/utils/alert';
 import { logger } from '@/utils/logger';
-import { printerDisplayName, usePostsalePrinterStore } from './printerStore';
+import { printerDisplayName, resolveStickerPrinter, usePostsalePrinterStore } from './printerStore';
 
 export interface PrintResult {
   ok: boolean;
@@ -57,13 +57,21 @@ export const usePostsalePrinting = (): PostsalePrinting => {
       };
       if (!orderIds.length) return { ok: false, message: 'No hay pedidos seleccionados.' };
 
-      const store = usePostsalePrinterStore.getState();
-      const device = await store.resolve();
-      if (store.supported && !device) {
+      // Estado fresco de la impresora (Godex directa salvo elección manual).
+      const target = await resolveStickerPrinter();
+      if (target.kind === 'none') {
         // Sin impresora: se abre el selector en lugar de fallar.
         usePostsalePrinterStore.getState().openPicker();
         return { ok: false, message: NEED_PRINTER };
       }
+      if (target.kind === 'unavailable') {
+        // No se envía: el aviso se muestra en pantalla (no se registra la impresión).
+        return fail(
+          'Impresora no disponible',
+          `${target.name} no está disponible (${target.reason}). Revisa que esté encendida, conectada y con etiquetas, y vuelve a intentarlo.`
+        );
+      }
+      const device = target.kind === 'ready' ? target.name : null;
 
       let stickers;
       try {

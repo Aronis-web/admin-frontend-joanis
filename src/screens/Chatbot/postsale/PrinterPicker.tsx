@@ -10,38 +10,92 @@ import { Ionicons } from '@expo/vector-icons';
 import { Badge, Body, Button, Caption, Title, useTheme, useThemedStyles } from '@/design-system';
 import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
-import { printerDisplayName, usePostsalePrinterStore, type PickerHost } from './printerStore';
+import type { PrinterInfo } from '@/utils/priceLabel/priceLabelPrint';
+import {
+  printerAvailability,
+  printerDisplayName,
+  usePostsalePrinterStore,
+  type PickerHost,
+} from './printerStore';
 
-/** Fila compacta con la impresora en uso y el botón "Cambiar". */
+/** Cada cuánto se refresca el estado de la impresora con la pantalla abierta. */
+const STATUS_REFRESH_MS = 15000;
+
+/** Chip de estado: 🟢 lista / 🔴 no disponible (motivo). */
+export const PrinterStatusChip: React.FC<{ label: string; info: PrinterInfo | undefined }> = ({
+  label,
+  info,
+}) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const a = printerAvailability(info);
+  const color = a.ok ? theme.color.state.success : theme.color.state.danger;
+  return (
+    <View style={[styles.chip, { borderColor: color.border, backgroundColor: color.background }]}>
+      <Caption style={{ color: color.text, fontWeight: '700' }} numberOfLines={1}>
+        {a.ok
+          ? `🟢 ${label} lista`
+          : `🔴 ${label} no disponible${a.reason ? ` (${a.reason})` : ''}`}
+      </Caption>
+    </View>
+  );
+};
+
+/**
+ * Fila de impresora: con Godex muestra su estado en vivo (🟢/🔴) y los stickers
+ * van directo a ella; "Cambiar" permite elegir otra. Se refresca cada 15 s.
+ */
 export const PrinterRow: React.FC = () => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
-  const { supported, printers, printer, auto, loading, loaded, load, openPicker } =
+  const { supported, printers, printer, auto, godex, loading, loaded, load, openPicker } =
     usePostsalePrinterStore();
 
   useEffect(() => {
-    if (supported && !loaded) load();
-  }, [supported, loaded, load]);
+    if (!supported) return undefined;
+    load();
+    const t = setInterval(() => load(), STATUS_REFRESH_MS);
+    return () => clearInterval(t);
+  }, [supported, load]);
 
   if (!supported) return null;
+  const current = printers.find((p) => p.name === printer);
+  const godexInfo = printers.find((p) => p.name === godex);
+  const usingGodex = !!godex && printer === godex;
   const name = printerDisplayName(printers, printer);
+
   return (
     <View style={styles.printerRow}>
-      <Body numberOfLines={1} style={{ flex: 1 }}>
-        🖨️ Impresora:{' '}
+      <View style={{ flex: 1, gap: 4 }}>
         {loading && !loaded ? (
-          <Caption color={theme.color.text.muted}>buscando…</Caption>
+          <Caption color={theme.color.text.muted}>🖨️ Buscando impresoras…</Caption>
+        ) : godex ? (
+          <>
+            <PrinterStatusChip label="Godex" info={godexInfo} />
+            {usingGodex ? (
+              <Caption color={theme.color.text.muted} numberOfLines={1}>
+                Stickers directo a {printerDisplayName(printers, godex)}
+              </Caption>
+            ) : (
+              <Caption color={theme.color.state.warning.text} numberOfLines={1}>
+                Stickers a {name} (elegida manualmente)
+              </Caption>
+            )}
+          </>
         ) : printer ? (
-          <Body style={{ fontWeight: '700' }}>
-            {name}
-            {auto ? (
-              <Caption color={theme.color.text.muted}> (elegida automáticamente)</Caption>
+          <>
+            <Body numberOfLines={1}>
+              🖨️ Impresora: <Body style={{ fontWeight: '700' }}>{name}</Body>
+              {auto ? <Caption color={theme.color.text.muted}> (predeterminada)</Caption> : null}
+            </Body>
+            {!printerAvailability(current).ok ? (
+              <PrinterStatusChip label={name} info={current} />
             ) : null}
-          </Body>
+          </>
         ) : (
-          <Caption color={theme.color.state.warning.text}>sin impresora</Caption>
+          <Caption color={theme.color.state.warning.text}>🖨️ Sin impresora</Caption>
         )}
-      </Body>
+      </View>
       <Button title="Cambiar" variant="outline" size="small" onPress={openPicker} />
     </View>
   );
@@ -58,11 +112,14 @@ export const PrinterPickerModal: React.FC<{ host: PickerHost }> = ({ host }) => 
     supported,
     printers,
     printer,
+    auto,
+    godex,
     loading,
     pickerOpen,
     pickerHost,
     load,
     select,
+    clearOverride,
     closePicker,
   } = usePostsalePrinterStore();
 
@@ -82,7 +139,19 @@ export const PrinterPickerModal: React.FC<{ host: PickerHost }> = ({ host }) => 
           <Caption color={theme.color.text.muted}>
             Se usa para los stickers (104 × 75 mm) y se preselecciona para la hoja de armado. Se
             recuerda en este equipo.
+            {godex
+              ? ' Si hay una Godex, los stickers van directo a ella salvo que elijas otra.'
+              : ''}
           </Caption>
+          {godex && !auto && printer !== godex ? (
+            <Button
+              title="Volver a la Godex automáticamente"
+              leftIcon="flash-outline"
+              variant="outline"
+              size="small"
+              onPress={clearOverride}
+            />
+          ) : null}
           <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: 8 }}>
             {loading && !printers.length ? (
               <View style={styles.centerBox}>
@@ -120,6 +189,7 @@ export const PrinterPickerModal: React.FC<{ host: PickerHost }> = ({ host }) => 
                     {p.isDefault ? (
                       <Badge variant="info" size="small" label="Predeterminada" />
                     ) : null}
+                    <Caption>{printerAvailability(p).ok ? '🟢' : '🔴'}</Caption>
                   </Pressable>
                 );
               })
@@ -187,6 +257,13 @@ const createStyles = (theme: Theme) =>
       borderWidth: 1,
       borderColor: theme.color.border.default,
       backgroundColor: theme.color.surface.base,
+    },
+    chip: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: spacing[2],
+      paddingVertical: 2,
+      borderRadius: borderRadius.full,
+      borderWidth: 1,
     },
     orderRowOn: { borderColor: theme.color.brand.accent, borderWidth: 2 },
     actionsRow: {

@@ -358,6 +358,21 @@ ipcMain.handle('get-app-version', async () => {
 
 // ===== HANDLERS IPC PARA IMPRESIÓN (etiquetas térmicas 80mm) =====
 
+const PRINTER_STATUS_OPTION_KEYS = [
+  'printer-state',
+  'printer-state-reasons',
+  'printer-is-accepting-jobs',
+  'printer-state-message',
+];
+const pickPrinterStatusOptions = (options) => {
+  const out = {};
+  if (!options || typeof options !== 'object') return out;
+  for (const key of PRINTER_STATUS_OPTION_KEYS) {
+    if (options[key] !== undefined && options[key] !== null) out[key] = String(options[key]);
+  }
+  return out;
+};
+
 // Lista las impresoras detectadas por el sistema operativo. Sirve para
 // diagnosticar la conexión: si la impresora térmica no aparece aquí, el
 // problema es de driver/conexión a nivel de Windows, no de la app.
@@ -372,6 +387,10 @@ ipcMain.handle('get-printers', async () => {
       description: p.description || '',
       status: p.status,
       isDefault: !!p.isDefault,
+      // Estado de la impresora para mostrar disponibilidad (en CUPS: printer-state
+      // 3 libre / 4 imprimiendo / 5 detenida; en Windows `status` es la máscara
+      // PRINTER_STATUS_*, 0 = lista). Solo se copian claves de estado.
+      options: pickPrinterStatusOptions(p.options),
     }));
   } catch (err) {
     console.error('[PRINT] Error listando impresoras:', err);
