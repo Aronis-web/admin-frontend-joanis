@@ -36,6 +36,7 @@ import {
   formatOrderNo,
   statusLabel,
 } from './shared';
+import { OLD_STICKER_MESSAGE, isOldSticker } from './paging';
 
 /** Ignora el mismo QR si se vuelve a leer dentro de esta ventana (ms). */
 const SCAN_DEBOUNCE_MS = 3000;
@@ -337,6 +338,10 @@ export const StageScanner: React.FC<{
     async (code: string) => {
       const at = new Date().toISOString();
       const key = `${at}-${Math.random().toString(36).slice(2, 8)}`;
+      if (isOldSticker(code)) {
+        setEntries((prev) => [{ key, at, error: OLD_STICKER_MESSAGE }, ...prev].slice(0, 5));
+        return;
+      }
       try {
         const result = await scan.mutateAsync({ code, stage });
         setEntries((prev) => [{ key, at, result }, ...prev].slice(0, 5));

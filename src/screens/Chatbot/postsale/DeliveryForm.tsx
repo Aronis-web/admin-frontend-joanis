@@ -45,6 +45,7 @@ import {
   uriToDataUrl,
 } from './shared';
 import { QrInput } from './scanner';
+import { OLD_STICKER_MESSAGE, isOldSticker } from './paging';
 
 export const DeliveryForm: React.FC<{
   order: PostsaleOrder;
@@ -83,6 +84,10 @@ export const DeliveryForm: React.FC<{
    * de qué pedido y bulto es (`/resolve`); si es de este pedido, marca el bulto.
    */
   const onPackageScan = async (raw: string) => {
+    if (isOldSticker(raw)) {
+      setPkgMsg({ ok: false, text: OLD_STICKER_MESSAGE });
+      return;
+    }
     let resolved;
     try {
       resolved = await chatbotPostsaleApi.resolve(raw);

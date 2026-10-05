@@ -176,9 +176,11 @@ export interface PostsaleListParams {
   /**
    * Búsqueda: cada palabra contra número de pedido (con o sin #), cliente,
    * teléfono, tienda/agencia/dirección y productos (nombre, SKU, código).
-   * El QR cifrado del sticker (`GP1.…`) o el formato antiguo `GRITPED:<uuid>` devuelve exactamente ese pedido.
+   * El QR cifrado del sticker (`GP1.…`) devuelve exactamente ese pedido.
    */
   q?: string;
+  /** Un pedido concreto por id (para refrescar su fila). */
+  orderId?: string;
   page: number;
   pageSize: number;
 }
@@ -254,15 +256,22 @@ class ChatbotPostsaleService {
   }
 
   /** Listado paginado con búsqueda. */
-  async listPage({ statuses, q, page, pageSize }: PostsaleListParams): Promise<PostsalePage> {
+  async listPage({
+    statuses,
+    q,
+    orderId,
+    page,
+    pageSize,
+  }: PostsaleListParams): Promise<PostsalePage> {
     const params: Record<string, string | number> = { page, pageSize };
     if (statuses?.length) params.status = statuses.join(',');
     if (q?.trim()) params.q = q.trim();
+    if (orderId) params.orderId = orderId;
     return apiClient.get<PostsalePage>(this.basePath, { params });
   }
 
   /**
-   * Interpreta un texto escaneado (QR cifrado por bulto o formato antiguo):
+   * Interpreta un texto escaneado (QR cifrado por bulto `GP1.…`):
    * devuelve pedido y bulto. 400 con mensaje si no es un pedido o fue alterado.
    */
   async resolve(code: string): Promise<PostsaleResolved> {

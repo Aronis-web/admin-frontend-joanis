@@ -108,8 +108,12 @@ export const Pager: React.FC<{ paged: PagedOrders }> = ({ paged }) => (
   />
 );
 
-/** Texto escaneado de un sticker (QR cifrado `GP1.…` o formato antiguo `GRITPED:…`). */
+/** Texto escaneado de un sticker (QR cifrado `GP1.…` o el formato antiguo `GRITPED:…`). */
 export const looksLikeOrderCode = (text: string): boolean => /^(GP1\.|GRITPED:)/i.test(text.trim());
+
+/** Los stickers antiguos (`GRITPED:`) ya no se aceptan: hay que reimprimirlos. */
+export const OLD_STICKER_MESSAGE = 'Sticker viejo: reimprime el sticker del pedido.';
+export const isOldSticker = (text: string): boolean => /^GRITPED:/i.test(text.trim());
 
 /**
  * Busca un pedido por el texto escaneado de su sticker o por número de pedido,
@@ -123,9 +127,10 @@ export const lookupOrderWithPackage = async (
 ): Promise<{ order: PostsaleOrder | null; packageNo: number | null }> => {
   const text = raw.trim();
   if (!text) return { order: null, packageNo: null };
+  if (isOldSticker(text)) throw new Error(OLD_STICKER_MESSAGE);
   if (looksLikeOrderCode(text)) {
     const resolved = await chatbotPostsaleApi.resolve(text);
-    const order = await lookupOrderById(resolved.orderId, statuses, text);
+    const order = await lookupOrderById(resolved.orderId, statuses);
     return { order, packageNo: resolved.packageNo ?? null };
   }
   const res = await chatbotPostsaleApi.listPage({ statuses, q: text, page: 1, pageSize: 5 });
@@ -143,13 +148,11 @@ export const lookupOrder = async (
   statuses?: PostsaleStatus[]
 ): Promise<PostsaleOrder | null> => (await lookupOrderWithPackage(raw, statuses)).order;
 
-/** Fila del listado de un pedido por id (para refrescarlo). */
+/** Fila del listado de un pedido por id (`?orderId=`), opcionalmente filtrada por estado. */
 export const lookupOrderById = async (
   orderId: string,
-  statuses?: PostsaleStatus[],
-  /** Texto de búsqueda; el listado acepta el QR cifrado o el formato antiguo por id. */
-  q = `GRITPED:${orderId}`
+  statuses?: PostsaleStatus[]
 ): Promise<PostsaleOrder | null> => {
-  const res = await chatbotPostsaleApi.listPage({ statuses, q, page: 1, pageSize: 5 });
+  const res = await chatbotPostsaleApi.listPage({ statuses, orderId, page: 1, pageSize: 1 });
   return (res.items ?? []).find((o) => o.id === orderId) ?? null;
 };
