@@ -4,7 +4,7 @@
  * en caché y se abre el menú para compartir.
  */
 import React, { useState } from 'react';
-import { Modal, Pressable, View } from 'react-native';
+import { Modal, Platform, Pressable, View } from 'react-native';
 
 import { DatePicker, DatePickerButton } from '@/components/DatePicker';
 import { Button, Caption, ChipGroup, Title, useTheme, useThemedStyles } from '@/design-system';
@@ -75,6 +75,8 @@ export const SoldReportModal: React.FC<{ visible: boolean; onClose: () => void }
   const [to, setTo] = useState(() => limaDate());
   const [picker, setPicker] = useState<'from' | 'to' | null>(null);
   const [downloading, setDownloading] = useState(false);
+  /** Web: la pregunta "¿Incluir pedidos sin validar?" se muestra dentro del panel. */
+  const [askPending, setAskPending] = useState(false);
 
   const applyQuick = (q: Quick) => {
     setQuick(q);
@@ -85,17 +87,14 @@ export const SoldReportModal: React.FC<{ visible: boolean; onClose: () => void }
     }
   };
 
-  const download = async () => {
-    if (from > to) {
-      Alert.alert('Fechas', 'La fecha inicial no puede ser posterior a la final.');
-      return;
-    }
+  const download = async (includePending: boolean) => {
+    setAskPending(false);
     setDownloading(true);
     try {
-      const blob = await chatbotPostsaleApi.soldReport(from, to);
+      const blob = await chatbotPostsaleApi.soldReport(from, to, includePending);
       await saveAndShareExcel(
         blob,
-        `stock-vendido-redes_${from}_${to}.xlsx`,
+        `stock-vendido-redes_${from}_${to}${includePending ? '_con-pendientes' : ''}.xlsx`,
         'Reporte de stock vendido'
       );
     } catch (err) {
@@ -104,6 +103,27 @@ export const SoldReportModal: React.FC<{ visible: boolean; onClose: () => void }
     } finally {
       setDownloading(false);
     }
+  };
+
+  /** Antes de descargar pregunta si se incluyen pedidos aún no validados. */
+  const askAndDownload = () => {
+    if (from > to) {
+      Alert.alert('Fechas', 'La fecha inicial no puede ser posterior a la final.');
+      return;
+    }
+    if (Platform.OS === 'web') {
+      setAskPending(true);
+      return;
+    }
+    Alert.alert(
+      '¿Incluir pedidos sin validar?',
+      'Los pedidos sin validar (por pagar o con saldo pendiente) se cuentan por su fecha de creación y se marcan como "Sin validar".',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Solo validados', onPress: () => download(false) },
+        { text: 'Incluir sin validar', onPress: () => download(true) },
+      ]
+    );
   };
 
   return (
@@ -129,17 +149,42 @@ export const SoldReportModal: React.FC<{ visible: boolean; onClose: () => void }
               <DatePickerButton label="Hasta" value={to} onPress={() => setPicker('to')} />
             </View>
           </View>
-          <View style={styles.actionsRow}>
-            <Button title="Cerrar" variant="ghost" size="small" onPress={onClose} />
-            <Button
-              title="Descargar Excel"
-              leftIcon="download-outline"
-              size="small"
-              onPress={() => download()}
-              disabled={downloading}
-              loading={downloading}
-            />
-          </View>
+          {askPending ? (
+            <View style={styles.block}>
+              <Title>¿Incluir pedidos sin validar?</Title>
+              <Caption color={theme.color.text.muted}>
+                Los pedidos sin validar (por pagar o con saldo pendiente) se cuentan por su fecha de
+                creación y se marcan como &quot;Sin validar&quot;.
+              </Caption>
+              <View style={styles.actionsRow}>
+                <Button
+                  title="Cancelar"
+                  variant="ghost"
+                  size="small"
+                  onPress={() => setAskPending(false)}
+                />
+                <Button
+                  title="Solo validados"
+                  variant="outline"
+                  size="small"
+                  onPress={() => download(false)}
+                />
+                <Button title="Incluir sin validar" size="small" onPress={() => download(true)} />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.actionsRow}>
+              <Button title="Cerrar" variant="ghost" size="small" onPress={onClose} />
+              <Button
+                title="Descargar Excel"
+                leftIcon="download-outline"
+                size="small"
+                onPress={askAndDownload}
+                disabled={downloading}
+                loading={downloading}
+              />
+            </View>
+          )}
 
           <DatePicker
             visible={picker !== null}

@@ -231,8 +231,11 @@ class ChatbotPostsaleService {
    * Reporte Excel de stock vendido (hojas "Consolidado" y "Detalle"). Fechas
    * YYYY-MM-DD en hora de Lima (validación del pago).
    */
-  async soldReport(from: string, to: string): Promise<Blob> {
-    const qs = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  async soldReport(from: string, to: string, includePending = false): Promise<Blob> {
+    // includePending=1: también pedidos sin validar (por fecha de creación).
+    const qs =
+      `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
+      (includePending ? '&includePending=1' : '');
     return downloadWithAuth(`${config.API_URL}${this.basePath}/sold-report?${qs}`);
   }
 
