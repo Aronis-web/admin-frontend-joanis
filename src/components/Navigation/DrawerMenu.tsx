@@ -894,6 +894,13 @@ const menuCategories: MenuCategory[] = [
             requiredPermissions: ['apps.manage', 'apps.read'],
           },
           {
+            id: 'offline-access',
+            icon: 'cloud-offline-outline',
+            label: 'Acceso offline de cajas',
+            route: MAIN_ROUTES.OFFLINE_ACCESS,
+            requiredPermissions: ['apps.manage'],
+          },
+          {
             id: 'theme-playground',
             icon: 'color-palette-outline',
             label: 'Theme Playground',

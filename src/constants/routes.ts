@@ -130,6 +130,7 @@ export const MAIN_ROUTES = {
   // Configuration
   APPS: 'Apps',
   APP_VERSIONS: 'AppVersions',
+  OFFLINE_ACCESS: 'OfflineAccess',
   PRICE_PROFILES: 'PriceProfiles',
   PRESENTATIONS: 'Presentations',
   ATTENDANCE_TERMINALS: 'AttendanceTerminals',
@@ -428,6 +429,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Configuration
   APPS: 'apps.manage',
   APP_VERSIONS: 'apps.manage',
+  OFFLINE_ACCESS: 'apps.manage',
   PRICE_PROFILES: 'price_profiles.read',
   PRESENTATIONS: 'presentations.read',
   ATTENDANCE_TERMINALS: 'attendance.terminals.read',
