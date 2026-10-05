@@ -49,10 +49,13 @@ export interface PostsaleOrder {
 export interface PostsaleSticker {
   orderId: string;
   orderNo: string;
-  /** Texto a codificar en el QR (`GRITPED:<uuid>`). */
+  /** Texto a codificar en el QR (`GRITPED:<uuid>` o `GRITPED:<uuid>:<bulto>`). */
   qr: string;
   /** Cliente ya abreviado ("Nombre I."). */
   customer: string;
+  /** Bulto de este sticker (1..N) y total de bultos del pedido. */
+  packageNo?: number | null;
+  packages?: number | null;
   route: PostsaleRoute;
   routeLabel: string;
   destination: string | null;

@@ -93,9 +93,9 @@ export const statusLabel = (status: PostsaleStatus, serverLabel?: string | null)
 
 export const formatOrderNo = (orderNo: string) => `#${String(orderNo ?? '').replace(/^#/, '')}`;
 
-/** `GRITPED:<uuid>` → uuid. */
+/** `GRITPED:<uuid>` o `GRITPED:<uuid>:<bulto>` → uuid. */
 export const parseOrderQr = (code: string): string | null => {
-  const m = /^GRITPED:([0-9a-f-]{36})$/i.exec(code.trim());
+  const m = /^GRITPED:([0-9a-f-]{36})(?::\d+)?$/i.exec(code.trim());
   return m ? m[1].toLowerCase() : null;
 };
 

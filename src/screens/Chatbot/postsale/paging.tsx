@@ -118,9 +118,11 @@ export const lookupOrder = async (
 ): Promise<PostsaleOrder | null> => {
   const text = raw.trim();
   if (!text) return null;
-  const res = await chatbotPostsaleApi.listPage({ statuses, q: text, page: 1, pageSize: 5 });
-  const items = res.items ?? [];
+  // Los stickers por bulto llevan `GRITPED:<uuid>:<n>`: se busca por el pedido.
   const id = parseOrderQr(text);
+  const q = id ? `GRITPED:${id}` : text;
+  const res = await chatbotPostsaleApi.listPage({ statuses, q, page: 1, pageSize: 5 });
+  const items = res.items ?? [];
   const norm = text.replace(/^#/, '').toUpperCase();
   return (
     items.find(

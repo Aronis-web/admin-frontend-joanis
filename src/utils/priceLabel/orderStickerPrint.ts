@@ -16,7 +16,7 @@
  * amarilla). Cada bloque de texto tiene alto fijo + overflow hidden + "…":
  *
  *   ┌───────────────────────────────────────┬────────────────┐
- *   │ GRIT LABS SAC                         │ TIPO DE ENVÍO  │
+ *   │ GRIT LABS (grande)                    │ TIPO DE ENVÍO  │
  *   │ RUC 20607381047                       │ RECOJO EN TIENDA│
  *   │ Dirección de la empresa…              └────────────────┤
  *   ├──────────────┬──────────────────────────────────────────┤
@@ -26,6 +26,7 @@
  *   │   #ABC123    │ Tienda Comas / Agencia / dirección…      │
  *   │ Inicio:      │ ┌──────────────────────────────────────┐ │
  *   │ 05/10 14:32  │ │ CANTIDAD DE ARTÍCULOS             3  │ │
+ *   │ [BULTO 2 / 3]│ (solo si el sticker trae packageNo)      │
  *   └──────────────┴─┴──────────────────────────────────────┴─┘
  */
 
@@ -48,6 +49,8 @@ const LEFT_COL_X_MM = 2;
 const LEFT_COL_W_MM = 30;
 /** Recuadro "Tipo de envío" (arriba a la derecha). */
 const SHIP_W_MM = 42;
+/** Ancho del nombre de la empresa (hasta el recuadro de envío). */
+const BRAND_W_MM = PAGE_WIDTH_MM - 3 - 3 - SHIP_W_MM - 2;
 
 export interface OrderStickerData {
   orderNo: string;
@@ -76,6 +79,9 @@ export interface OrderStickerData {
     city?: string | null;
   } | null;
   company?: { name?: string | null; ruc?: string | null; address?: string | null } | null;
+  /** Bulto de este sticker (1..N) y total de bultos; sin dato = bulto único, sin rótulo. */
+  packageNo?: number | null;
+  packages?: number | null;
 }
 
 export interface OrderStickerPrintOptions {
@@ -241,9 +247,17 @@ const buildSticker = async (data: OrderStickerData): Promise<string> => {
   const name = clean(data.customerFullName) || clean(data.customer) || '—';
   const phone = formatPhone(data.customerPhone);
   const when = limaDateParts(data.printedAt);
+  const pkgNo = Number(data.packageNo) || 0;
+  const pkgTotal = Number(data.packages) || 0;
+  const bulto = pkgNo > 0 ? `BULTO ${pkgNo}${pkgTotal > 1 ? ` / ${pkgTotal}` : ''}` : '';
 
   return `<div class="label">
-    <div class="a brand">${escapeHtml(truncate(companyName, 40))}</div>
+    <div class="a brand" style="font-size:${fitFontPt(
+      companyName,
+      BRAND_W_MM,
+      18,
+      10
+    )}pt">${escapeHtml(truncate(companyName, 40))}</div>
     <div class="a co">${ruc ? `<div class="co-l">RUC ${escapeHtml(ruc)}</div>` : ''}${
       companyAddress ? `<div class="co-l">${escapeHtml(truncate(companyAddress, 90))}</div>` : ''
     }</div>
@@ -257,6 +271,11 @@ const buildSticker = async (data: OrderStickerData): Promise<string> => {
     <div class="a qr" style="left:${mm(qrLeft)};width:${mm(qrMm)};height:${mm(qrMm)}">${qrSvg}</div>
     <div class="a code" style="font-size:${fitFontPt(orderNo, LEFT_COL_W_MM - 1, 15, 9)}pt">${escapeHtml(orderNo)}</div>
     <div class="a date"><div>Inicio: ${escapeHtml(when.date)}</div><div>${escapeHtml(when.time)}</div></div>
+    ${
+      bulto
+        ? `<div class="a bulto" style="font-size:${fitFontPt(bulto, LEFT_COL_W_MM - 2, 13, 8)}pt">${escapeHtml(bulto)}</div>`
+        : ''
+    }
     <div class="a vr"></div>
     <div class="a dest">
       <div class="lbl">DESTINATARIO</div>
@@ -296,12 +315,12 @@ const buildOrderStickersHtml = async (stickers: OrderStickerData[]): Promise<str
   .nw { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
   /* Cabecera: empresa */
   .brand {
-    left: 3mm; top: 2.5mm; width: ${mm(PAGE_WIDTH_MM - 3 - 3 - SHIP_W_MM - 2)}; height: 5.4mm;
-    line-height: 5.4mm; font-size: 12pt; font-weight: 900; letter-spacing: 0.3mm;
+    left: 3mm; top: 1.8mm; width: ${mm(BRAND_W_MM)}; height: 6.6mm;
+    line-height: 6.6mm; font-weight: 900; letter-spacing: 0.2mm;
     white-space: nowrap; text-overflow: ellipsis;
   }
   .co {
-    left: 3mm; top: 8mm; width: ${mm(PAGE_WIDTH_MM - 3 - 3 - SHIP_W_MM - 2)}; height: 6.6mm;
+    left: 3mm; top: 8.4mm; width: ${mm(BRAND_W_MM)}; height: 6.6mm;
     font-size: 6.5pt; font-weight: 700;
   }
   .co-l { height: 3.3mm; line-height: 3.3mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -329,6 +348,11 @@ const buildOrderStickersHtml = async (stickers: OrderStickerData[]): Promise<str
     text-align: center; font-size: 7pt; font-weight: 700;
   }
   .date > div { height: 3.4mm; line-height: 3.4mm; white-space: nowrap; overflow: hidden; }
+  .bulto {
+    left: ${LEFT_COL_X_MM + 1}mm; top: ${QR_TOP_MM + QR_BOX_MM + 16}mm; width: ${LEFT_COL_W_MM - 2}mm; height: 8mm;
+    line-height: 7mm; text-align: center; font-weight: 900; white-space: nowrap;
+    border: 0.6mm solid #000; border-radius: 1.2mm;
+  }
   .vr { left: 33.5mm; top: 18mm; width: 0; height: 54mm; border-left: 0.4mm solid #000; overflow: visible; }
   /* Destinatario */
   .dest { left: 36mm; top: 17.5mm; right: 3mm; height: 39.5mm; }
