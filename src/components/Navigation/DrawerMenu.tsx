@@ -898,7 +898,7 @@ const menuCategories: MenuCategory[] = [
             icon: 'desktop-outline',
             label: 'Cajas: acceso y versiones',
             route: MAIN_ROUTES.DEVICE_FLEET,
-            requiredPermissions: ['apps.manage'],
+            requiredPermissions: ['app_releases.upload'],
           },
           {
             id: 'theme-playground',

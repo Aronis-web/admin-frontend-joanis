@@ -958,7 +958,7 @@ const MainStack = React.memo(() => {
         }}
       >
         {() => (
-          <ProtectedRoute requiredPermissions={['apps.manage']}>
+          <ProtectedRoute requiredPermissions={['app_releases.upload']}>
             <DeviceFleetScreen />
           </ProtectedRoute>
         )}

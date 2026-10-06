@@ -429,7 +429,7 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   // Configuration
   APPS: 'apps.manage',
   APP_VERSIONS: 'apps.manage',
-  DEVICE_FLEET: 'apps.manage',
+  DEVICE_FLEET: 'app_releases.upload',
   PRICE_PROFILES: 'price_profiles.read',
   PRESENTATIONS: 'presentations.read',
   ATTENDANCE_TERMINALS: 'attendance.terminals.read',
