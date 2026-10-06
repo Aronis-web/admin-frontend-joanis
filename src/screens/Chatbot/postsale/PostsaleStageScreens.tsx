@@ -305,7 +305,6 @@ export const ChatbotPostsaleDispatchScreen: React.FC<Props> = ({ navigation }) =
     groups={DISPATCH_GROUPS}
     showDispatchBatches
     showEmitButton
-    emitPendingOnly
     noteFor={pickupDispatchNote}
   />
 );
