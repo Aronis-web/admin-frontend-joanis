@@ -256,6 +256,28 @@ export interface ChatbotOrderFulfillment {
   deliveryNotes?: string | null;
 }
 
+export type ChatbotInvoiceType = 'BOLETA' | 'FACTURA';
+
+export interface ChatbotOrderInvoice {
+  /** Comprobante efectivo a emitir. */
+  type: ChatbotInvoiceType;
+  /** Elección explícita (cliente o asesor); null = deducido del documento. */
+  chosen: ChatbotInvoiceType | null;
+  customerDocumentType: string | null;
+  customerDocumentNumber: string | null;
+  customerName: string | null;
+}
+
+export interface ChatbotOrderDocument {
+  saleId: string;
+  documentNumber: string | null;
+  bizlinksDocumentId: string | null;
+  /** '01' factura, '03' boleta. */
+  documentType: string | null;
+  status: string | null;
+  statusWs: string | null;
+}
+
 export interface ChatbotOrder {
   id: string;
   cartId: string;
@@ -281,6 +303,10 @@ export interface ChatbotOrder {
   deliveryFeeCents?: string;
   /** Modalidad de entrega elegida al cerrar el pedido (null en pedidos antiguos). */
   fulfillment?: ChatbotOrderFulfillment | null;
+  /** Comprobante que se emitirá (elegido por el cliente o deducido del documento). */
+  invoice?: ChatbotOrderInvoice;
+  /** Comprobantes ya emitidos para las ventas del pedido. */
+  documents?: ChatbotOrderDocument[];
   rejectedReason: string | null;
   validatedBy: string | null;
   validatedAt: string | null;

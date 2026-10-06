@@ -38,17 +38,21 @@ import {
   useExtendChatbotOrderHold,
   useCancelChatbotOrder,
   useRejectChatbotOrder,
+  useSetChatbotOrderInvoiceType,
   useValidateChatbotOrder,
   useVerifyChatbotVoucher,
 } from '@/hooks/api/useChatbotOrders';
 import type {
   ChatbotOrder,
+  ChatbotOrderDocument,
   ChatbotOrderPaymentFilter,
   ChatbotOrderStatus,
   ConversationVoucher,
   VoucherStatus,
 } from '@/types/chatbot';
 import Alert from '@/utils/alert';
+import { saveAndSharePdf } from '@/utils/fileDownload';
+import { bizlinksApi } from '@/services/api/bizlinks';
 import { usePermissions } from '@/hooks/usePermissions';
 import { config } from '@/utils/config';
 import { PageControls } from './components/PageControls';
@@ -123,6 +127,42 @@ const describeOrderFulfillment = (order: ChatbotOrder): string | null => {
     return `🛵 Delivery: ${f.address ?? 'sin dirección'}${km}${fee ? ` · envío ${fee}` : ''}`;
   }
   return `🚚 ${f.name ?? 'Agencia'} → ${f.destination ?? 'provincia'}${fee ? ` · envío ${fee}` : ' · pago en destino'}`;
+};
+
+/** Boleta o factura a emitir, con el documento del cliente. */
+const describeOrderInvoice = (order: ChatbotOrder): string | null => {
+  const inv = order.invoice;
+  if (!inv) return null;
+  const doc =
+    inv.customerDocumentType && inv.customerDocumentNumber
+      ? ` · ${inv.customerDocumentType} ${inv.customerDocumentNumber}`
+      : '';
+  const who = inv.customerName ? ` a ${inv.customerName}` : '';
+  return `🧾 ${inv.type === 'FACTURA' ? 'Factura' : 'Boleta'}${who}${doc}${
+    inv.chosen ? '' : ' (deducido del documento)'
+  }`;
+};
+
+/** Se puede cambiar boleta/factura mientras no exista la venta. */
+const canChangeInvoice = (order: ChatbotOrder): boolean =>
+  order.status === 'PENDING_PAYMENT' ||
+  order.status === 'AWAITING_BALANCE' ||
+  (order.status === 'VALIDATED' && !(order.saleIds && order.saleIds.length > 0));
+
+/** Estado del comprobante en SUNAT (vía Bizlinks), en palabras del asesor. */
+const documentStatusLabel = (doc: ChatbotOrderDocument): string => {
+  const ws = doc.statusWs ?? '';
+  const st = doc.status ?? '';
+  if (ws === 'SIGNED/RC_05' || st === 'REJECTED') return 'Rechazado por SUNAT';
+  if (
+    ws.startsWith('SIGNED/PE_02') ||
+    ws === 'SIGNED/AC_03' ||
+    st === 'ACCEPTED' ||
+    st === 'COMPLETED'
+  )
+    return 'Aceptado';
+  if (st === 'FAILED' || st === 'NEEDS_RECONCILIATION') return 'Con error';
+  return 'En proceso';
 };
 
 /**
@@ -289,6 +329,47 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
   const rejectMutation = useRejectChatbotOrder();
   const extendMutation = useExtendChatbotOrderHold();
   const verifyMutation = useVerifyChatbotVoucher();
+  const invoiceMutation = useSetChatbotOrderInvoiceType();
+
+  const handleToggleInvoice = (order: ChatbotOrder) => {
+    const next = order.invoice?.type === 'FACTURA' ? 'BOLETA' : 'FACTURA';
+    setConfirm({
+      title: next === 'FACTURA' ? 'Emitir factura' : 'Emitir boleta',
+      message:
+        next === 'FACTURA'
+          ? 'Se emitirá factura al RUC del cliente. Se verifica en SUNAT que el RUC esté activo y habido.'
+          : 'Se emitirá boleta en lugar de factura.',
+      confirmLabel: next === 'FACTURA' ? 'Sí, factura' : 'Sí, boleta',
+      onConfirm: () =>
+        invoiceMutation.mutate(
+          { id: order.id, invoiceType: next },
+          {
+            onError: (err: any) =>
+              Alert.alert(
+                'No se pudo cambiar',
+                err?.message ?? 'No se pudo cambiar el comprobante'
+              ),
+          }
+        ),
+    });
+  };
+
+  const openDocumentPdf = async (doc: ChatbotOrderDocument) => {
+    if (!doc.bizlinksDocumentId) return;
+    try {
+      const blob = await bizlinksApi.downloadPDF(doc.bizlinksDocumentId);
+      const name = (doc.documentNumber || `comprobante-${doc.saleId.slice(0, 8)}`).replace(
+        /[\\/:*?"<>|]/g,
+        '-'
+      );
+      await saveAndSharePdf(blob, name, `Comprobante ${doc.documentNumber ?? ''}`.trim());
+    } catch (err: any) {
+      Alert.alert(
+        'PDF no disponible',
+        err?.message ?? 'El PDF aún no está listo. Intenta en unos minutos.'
+      );
+    }
+  };
 
   const voucherLabel = (v: ConversationVoucher) =>
     `${formatSolesFromCents(v.amountCents == null ? null : String(v.amountCents))}${
@@ -690,10 +771,70 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                         Motivo rechazo: {order.rejectedReason}
                       </Caption>
                     ) : null}
-                    {order.saleIds && order.saleIds.length > 0 ? (
-                      <Caption color={theme.color.text.muted}>
-                        Ventas: {order.saleIds.join(', ')}
-                      </Caption>
+                    {/* Comprobante: boleta/factura a emitir y los ya emitidos */}
+                    {describeOrderInvoice(order) || (order.documents?.length ?? 0) > 0 ? (
+                      <View style={styles.infoBox}>
+                        {(order.documents?.length ?? 0) === 0 && describeOrderInvoice(order) ? (
+                          <Caption color={theme.color.text.body}>
+                            {describeOrderInvoice(order)}
+                          </Caption>
+                        ) : null}
+                        {order.documents?.map((doc) => (
+                          <View
+                            key={doc.saleId}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                          >
+                            <Caption color={theme.color.text.body} style={{ flex: 1 }}>
+                              🧾 {doc.documentType === '01' ? 'Factura' : 'Boleta'}{' '}
+                              {doc.documentNumber ?? 'en preparación'} · {documentStatusLabel(doc)}
+                            </Caption>
+                            {doc.bizlinksDocumentId ? (
+                              <Button
+                                title="PDF"
+                                variant="ghost"
+                                size="small"
+                                leftIcon="document-text-outline"
+                                onPress={() => openDocumentPdf(doc)}
+                              />
+                            ) : null}
+                          </View>
+                        ))}
+                        {canValidate && canChangeInvoice(order) ? (
+                          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                            {order.invoice?.type === 'FACTURA' ||
+                            order.invoice?.customerDocumentType === 'RUC' ? (
+                              <Button
+                                title={
+                                  order.invoice?.type === 'FACTURA'
+                                    ? 'Cambiar a boleta'
+                                    : 'Cambiar a factura'
+                                }
+                                variant="ghost"
+                                size="small"
+                                leftIcon="swap-horizontal-outline"
+                                onPress={() => handleToggleInvoice(order)}
+                                loading={
+                                  invoiceMutation.isPending &&
+                                  invoiceMutation.variables?.id === order.id
+                                }
+                              />
+                            ) : null}
+                            {order.status === 'VALIDATED' ? (
+                              <Button
+                                title="Reintentar emisión"
+                                variant="outline"
+                                size="small"
+                                leftIcon="refresh-outline"
+                                onPress={() => runValidate(order)}
+                                loading={
+                                  validateMutation.isPending &&
+                                  validateMutation.variables === order.id
+                                }
+                              />
+                            ) : null}
+                          </View>
+                        ) : null}
+                      </View>
                     ) : null}
 
                     {isActionable(order.status) && (canValidate || canCancel) ? (

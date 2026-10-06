@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatbotOrdersApi } from '@/services/api';
 import type {
+  ChatbotInvoiceType,
   ChatbotOrder,
   ChatbotOrdersPage,
   ChatbotOrdersPageParams,
@@ -80,6 +81,21 @@ export const useVerifyChatbotVoucher = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['chatbot-conversations'] });
+    },
+  });
+};
+
+/** Cambia boleta/factura del pedido antes de emitir. */
+export const useSetChatbotOrderInvoiceType = () => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { id: string; invoiceType: ChatbotInvoiceType },
+    Error,
+    { id: string; invoiceType: ChatbotInvoiceType }
+  >({
+    mutationFn: ({ id, invoiceType }) => chatbotOrdersApi.setInvoiceType(id, invoiceType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: chatbotOrdersKeys.lists() });
     },
   });
 };
