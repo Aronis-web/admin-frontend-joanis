@@ -25,6 +25,7 @@ import { photoCampaignsApi } from '@/services/api/photo-campaigns';
 import { ProductSalePrice, PriceProfile } from '@/types/price-profiles';
 import { DistributionFormModalV2 as DistributionFormModal } from './DistributionFormModalV2';
 import logger from '@/utils/logger';
+import { isProductBalanceRow, VARIANT_ONLY_STOCK_NOTE } from '@/utils/repartos';
 import { useTenantStore } from '@/store/tenant';
 import { useCampaignProductFull } from '@/hooks/api/useCampaigns';
 
@@ -84,6 +85,8 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
   const [stockData, setStockData] = useState<{
     stock?: number;
     preliminaryStock?: number;
+    /** Disponible en colores (variantes con stock propio): no repartible. */
+    variantStock?: number;
   }>({});
   // Breakdown por bodega/sede para el banner de recomendaciones cuando
   // el endpoint /full devuelve 404 y no podemos usar `fullData.stockBySite`.
@@ -92,6 +95,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
       warehouseId?: string;
       warehouseName: string;
       siteName?: string;
+      areaId?: string | null;
+      variantId?: string | null;
+      variantName?: string | null;
       quantityBase: number;
       reservedQuantityBase?: number;
       availableQuantityBase?: number;
@@ -287,10 +293,16 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         };
 
         let totalStock = 0;
+        // Disponible en filas de variante (colores): los repartos/campanas
+        // solo mueven el saldo del producto, asi que no suma a totalStock.
+        let variantStock = 0;
         const breakdown: Array<{
           warehouseId?: string;
           warehouseName: string;
           siteName?: string;
+          areaId?: string | null;
+          variantId?: string | null;
+          variantName?: string | null;
           quantityBase: number;
           reservedQuantityBase?: number;
           availableQuantityBase?: number;
@@ -299,9 +311,16 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         if (Array.isArray(raw)) {
           for (const item of raw) {
             const qty = toNum(item?.availableQuantityBase ?? item?.quantityBase ?? item?.stock);
-            totalStock += qty;
+            if (isProductBalanceRow(item)) {
+              totalStock += qty;
+            } else {
+              variantStock += qty;
+            }
             breakdown.push({
               warehouseId: item?.warehouseId,
+              areaId: item?.areaId ?? null,
+              variantId: item?.variantId ?? null,
+              variantName: item?.variantName ?? null,
               warehouseName:
                 item?.warehouseName || item?.siteName || item?.warehouse?.name || 'Almacén',
               siteName: item?.siteName || item?.site?.name,
@@ -332,6 +351,7 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
         setStockData({
           stock: totalStock,
           preliminaryStock: totalStock,
+          variantStock,
         });
         setStockByWarehouseFallback(breakdown);
       }
@@ -898,6 +918,9 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
             item.warehouse?.siteId ?? item.warehouse?.site?.id ?? item.siteId ?? currentSiteId,
           area: item.area?.name ?? null,
           areaId: item.areaId ?? item.area?.id ?? null,
+          // El modal de reparto separa el saldo del producto de los colores.
+          variantId: item.variantId ?? null,
+          variantName: item.variantName ?? null,
           // ⚠️ Usar ?? (no ||) para que un disponible legítimo de 0 (todo
           // reservado) no degrade al total. Antes mostrábamos el total como
           // "disponible" cuando availableQuantityBase venía 0.
@@ -1341,6 +1364,11 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                         Stock disponible:{' '}
                         {stockData.stock !== undefined ? stockData.stock : 'Cargando...'}
                       </Text>
+                      {(stockData.variantStock ?? 0) > 0 && (
+                        <Text style={styles.stockAvailableText}>
+                          {VARIANT_ONLY_STOCK_NOTE} ({stockData.variantStock})
+                        </Text>
+                      )}
                       <View style={styles.quantityActionButtons}>
                         <TouchableOpacity
                           style={styles.cancelQuantityButton}
@@ -1568,11 +1596,15 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                 stockByWarehouseFallback.length > 0 && (
                   <View style={[styles.bannerSection, styles.bannerSectionAlt]}>
                     <Text style={styles.bannerLabel}>STOCK POR SEDE</Text>
-                    {stockByWarehouseFallback.map((wh, idx) => (
-                      <View key={`${wh.warehouseId || 'wh'}-${idx}`} style={styles.detailRow}>
+                    {stockByWarehouseFallback.map((wh) => (
+                      <View
+                        key={`${wh.warehouseId || 'wh'}-${wh.areaId || 'no-area'}-${wh.variantId || 'producto'}`}
+                        style={styles.detailRow}
+                      >
                         <Text style={styles.detailRowTitle}>
                           {wh.siteName ? `${wh.siteName} · ` : ''}
                           {wh.warehouseName}
+                          {wh.variantName ? ` · ${wh.variantName}` : ''}
                         </Text>
                         <View style={styles.detailStockChips}>
                           <View style={styles.stockChip}>
@@ -1689,6 +1721,16 @@ export const CampaignProductBannerModal: React.FC<CampaignProductBannerModalProp
                             {site.availableQuantityBase}
                           </Text>
                         </View>
+                        {site.productBalanceAvailableQuantityBase !== undefined &&
+                          site.productBalanceAvailableQuantityBase !==
+                            site.availableQuantityBase && (
+                            <View style={styles.stockChip}>
+                              <Text style={styles.stockChipLabel}>Repartible (sin color)</Text>
+                              <Text style={styles.stockChipValue}>
+                                {site.productBalanceAvailableQuantityBase}
+                              </Text>
+                            </View>
+                          )}
                       </View>
                     </View>
                   ))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,20 @@ import {
 } from 'react-native';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { Product } from '@/services/api/products';
-import { inventoryApi } from '@/services/api/inventory';
+import { Product, StockItem } from '@/services/api/products';
+import { inventoryApi, ProductStockDetailArea } from '@/services/api/inventory';
 import { logger } from '@/utils/logger';
+
+/** Área del detalle de stock con el desglose por variante con saldo propio. */
+type AreaWithVariants = ProductStockDetailArea & {
+  variants?: {
+    variantId: string;
+    name: string | null;
+    quantity: number;
+    reserved: number;
+    available: number;
+  }[];
+};
 
 interface ProductAutocompleteProps {
   products: Product[]; // ⚠️ DEPRECATED - Ya no se usa, búsqueda en tiempo real con V2
@@ -39,6 +50,11 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [loadingVariantStock, setLoadingVariantStock] = useState(false);
+  // La selección termina tras un await: usar siempre el callback más reciente
+  // para no pisar el estado del formulario con un closure viejo.
+  const onSelectProductRef = useRef(onSelectProduct);
+  onSelectProductRef.current = onSelectProduct;
 
   // Cargar producto seleccionado si existe
   useEffect(() => {
@@ -116,12 +132,88 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleSelectProduct = (product: Product) => {
-    setSelectedProduct(product);
-    onSelectProduct(product);
+  /**
+   * El buscador devuelve el stock de cada área sumado (saldo del producto +
+   * variantes con stock propio). Para trasladar hay que elegir la dimensión
+   * exacta, así que se consulta el detalle por producto (respeta X-Site-Id) y
+   * cada área con variantes se parte en: fila "saldo del producto"
+   * (variantId null) + una fila por variante. Sin variantes con stock propio,
+   * el producto queda igual que antes.
+   */
+  const expandVariantStock = async (product: Product): Promise<Product> => {
+    try {
+      const detail = await inventoryApi.getProductStockDetail(product.id, {
+        includeBatches: false,
+        includeMovements: false,
+      });
+      const warehouses = detail?.warehouses || [];
+      const hasVariants = warehouses.some((w) =>
+        (w.areas || []).some((a) => ((a as AreaWithVariants).variants || []).length > 0)
+      );
+      if (!hasVariants) {
+        return product;
+      }
+
+      const stockItems: StockItem[] = warehouses.flatMap((w) =>
+        (w.areas || []).flatMap((a) => {
+          const variants = (a as AreaWithVariants).variants || [];
+          const base = {
+            productId: product.id,
+            warehouseId: w.warehouseId,
+            areaId: a.areaId,
+            updatedAt: '',
+            warehouse: { id: w.warehouseId, name: w.warehouseName, code: w.warehouseCode || '' },
+            area: { id: a.areaId, name: a.areaName || '' },
+          };
+          const variantTotal = variants.reduce((s, v) => s + Number(v.quantity || 0), 0);
+          const variantReserved = variants.reduce((s, v) => s + Number(v.reserved || 0), 0);
+          const productTotal = Number(a.totalStock || 0) - variantTotal;
+          const productReserved = Number(a.reservedStock || 0) - variantReserved;
+
+          const rows: StockItem[] = [];
+          if (variants.length === 0 || productTotal > 0 || productReserved > 0) {
+            rows.push({
+              ...base,
+              variantId: null,
+              variantName: null,
+              quantityBase: productTotal,
+              reservedQuantityBase: productReserved,
+              availableQuantityBase: productTotal - productReserved,
+            });
+          }
+          variants.forEach((v) => {
+            if (Number(v.quantity || 0) <= 0 && Number(v.reserved || 0) <= 0) {
+              return; // variante sin saldo en esta área
+            }
+            rows.push({
+              ...base,
+              variantId: v.variantId,
+              variantName: v.name ?? null,
+              quantityBase: Number(v.quantity || 0),
+              reservedQuantityBase: Number(v.reserved || 0),
+              availableQuantityBase: Number(v.available || 0),
+            });
+          });
+          return rows;
+        })
+      );
+
+      return { ...product, stockItems };
+    } catch (error) {
+      logger.error('❌ Error cargando stock por variante:', error);
+      return product;
+    }
+  };
+
+  const handleSelectProduct = async (product: Product) => {
     setSearchQuery('');
     setShowDropdown(false);
     setFilteredProducts([]);
+    setLoadingVariantStock(true);
+    const expanded = await expandVariantStock(product);
+    setLoadingVariantStock(false);
+    setSelectedProduct(expanded);
+    onSelectProductRef.current(expanded);
   };
 
   const getProductStock = (product: Product): number => {
@@ -129,15 +221,13 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
       return 0;
     }
 
-    // Si hay warehouseId específico, buscar solo ese almacén
-    if (warehouseId) {
-      const stockItem = product.stockItems.find((item) => item.warehouseId === warehouseId);
-      // Usar availableQuantityBase (stock disponible = total - reservado)
-      return stockItem?.availableQuantityBase || stockItem?.quantityBase || 0;
-    }
+    // Si hay warehouseId específico, sumar solo ese almacén (puede haber varias
+    // filas por área/variante)
+    const items = warehouseId
+      ? product.stockItems.filter((item) => item.warehouseId === warehouseId)
+      : product.stockItems;
 
-    // Si no hay warehouseId, sumar todo el stock disponible
-    return product.stockItems.reduce((total, item) => {
+    return items.reduce((total, item) => {
       // Usar availableQuantityBase si existe, sino quantityBase
       const available = item.availableQuantityBase ?? item.quantityBase ?? 0;
       return total + (typeof available === 'number' ? available : parseFloat(available) || 0);
@@ -179,15 +269,15 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
         <>
           <View style={styles.inputContainer}>
             <TextInput
-              style={[styles.input, disabled && styles.inputDisabled]}
-              placeholder={placeholder}
+              style={[styles.input, (disabled || loadingVariantStock) && styles.inputDisabled]}
+              placeholder={loadingVariantStock ? 'Cargando stock por ubicación...' : placeholder}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFocus={() => setShowDropdown(true)}
-              editable={!disabled}
+              editable={!disabled && !loadingVariantStock}
               placeholderTextColor={theme.color.text.placeholder}
             />
-            {isSearching && (
+            {(isSearching || loadingVariantStock) && (
               <ActivityIndicator
                 size="small"
                 color={theme.color.brand.accent}

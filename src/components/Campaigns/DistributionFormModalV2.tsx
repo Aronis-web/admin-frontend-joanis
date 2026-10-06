@@ -287,6 +287,7 @@ export const DistributionFormModalV2: React.FC<DistributionFormModalV2Props> = (
               onAllocate={form.setStockAllocation}
               total={form.totalFromAllocations}
               siteName={form.currentSite?.name}
+              variantStockAvailable={form.variantStockAvailable}
             />
 
             {/* Tabla de participantes */}

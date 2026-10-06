@@ -34,6 +34,7 @@ import {
   type PrinterInfo,
 } from '@/utils/priceLabel/priceLabelPrint';
 import { printPriceStickers } from '@/utils/priceLabel/stickerLabelPrint';
+import { useProductVariants, useUpdateProductVariant } from '@/hooks/api/useProductVariants';
 import { logger } from '@/utils/logger';
 import Alert from '@/utils/alert';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
@@ -135,14 +136,40 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
   const [barcodeSaved, setBarcodeSaved] = useState(false);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(false);
+  // null = etiqueta del producto; id = etiqueta con el codigo propio de esa variante.
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
   const supportsPrinterSelection = isElectronPrinting();
 
+  // Variantes con SKU/barcode propio: se puede imprimir su etiqueta.
+  const { data: productVariants } = useProductVariants(
+    product?.productId || '',
+    visible && !!product?.productId
+  );
+  const labelVariants = useMemo(
+    () => (productVariants || []).filter((v) => !!(v.barcode || v.sku)),
+    [productVariants]
+  );
+  const selectedVariant = labelVariants.find((v) => v.id === selectedVariantId) || null;
+  const updateVariantMut = useUpdateProductVariant();
+
   const currency = product?.currency || 'PEN';
 
-  // El SKU impreso siempre es el original del producto (no se genera).
-  const originalSku = (product?.sku || '').trim();
-  const originalBarcode = (product?.barcode || product?.sku || '').trim();
+  // El SKU impreso siempre es el original (no se genera): el de la variante
+  // elegida o, si no hay variante, el del producto.
+  const originalSku = (selectedVariant ? selectedVariant.sku || '' : product?.sku || '').trim();
+  const originalBarcode = (
+    selectedVariant
+      ? selectedVariant.barcode || selectedVariant.sku || ''
+      : product?.barcode || product?.sku || ''
+  ).trim();
+  const originalProductCode = (product?.barcode || product?.sku || '').trim();
+  // Nombre impreso: producto + nombre de la variante elegida.
+  const labelName = product
+    ? selectedVariant
+      ? `${product.name} - ${selectedVariant.name}`
+      : product.name
+    : '';
   const effectiveSku = originalSku;
   // Código de barras efectivo: editable como texto libre. Se inicializa con el
   // del producto y se actualiza al generar uno aleatorio o al escribirlo.
@@ -253,6 +280,7 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
       setUseRandomBarcode(false);
       setBarcodeText((product.barcode || product.sku || '').trim());
       setBarcodeSaved(false);
+      setSelectedVariantId(null);
       setProductImageUrl(null);
       void loadPrices();
       void loadPrinters();
@@ -266,9 +294,28 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
       setUseRandomBarcode(false);
       setBarcodeText('');
       setBarcodeSaved(false);
+      setSelectedVariantId(null);
       setProductImageUrl(null);
     }
   }, [visible, product, loadPrices, loadPrinters, loadProductImage]);
+
+  // Cambia entre la etiqueta del producto y la de una variante con codigo propio.
+  const handleSelectVariant = useCallback(
+    (variantId: string | null) => {
+      if (!product) return;
+      const variant = labelVariants.find((v) => v.id === variantId) || null;
+      setSelectedVariantId(variant?.id ?? null);
+      setBarcodeText(
+        (variant
+          ? variant.barcode || variant.sku || ''
+          : product.barcode || product.sku || ''
+        ).trim()
+      );
+      setUseRandomBarcode(false);
+      setBarcodeSaved(false);
+    },
+    [product, labelVariants]
+  );
 
   const handleSelectProfile = useCallback((option: PriceOption) => {
     setSelectedProfileId(option.profileId);
@@ -302,11 +349,22 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
     if (!product || !barcodeValue) return;
     try {
       setSavingBarcode(true);
-      await productsApi.updateProduct(product.productId, { barcode: barcodeValue });
+      if (selectedVariant) {
+        // Codigo propio de la variante (el backend lo refleja como codigo alterno).
+        await updateVariantMut.mutateAsync({
+          productId: product.productId,
+          variantId: selectedVariant.id,
+          data: { barcode: barcodeValue },
+        });
+      } else {
+        await productsApi.updateProduct(product.productId, { barcode: barcodeValue });
+      }
       setBarcodeSaved(true);
       Alert.alert(
         'Código de barras guardado',
-        'El código de barras se guardó correctamente en el producto.'
+        selectedVariant
+          ? `El código de barras se guardó correctamente en la variante "${selectedVariant.name}".`
+          : 'El código de barras se guardó correctamente en el producto.'
       );
     } catch (error) {
       logger.error('Error guardando código de barras', error);
@@ -314,7 +372,7 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
     } finally {
       setSavingBarcode(false);
     }
-  }, [product, barcodeValue]);
+  }, [product, barcodeValue, selectedVariant, updateVariantMut]);
 
   // El código de barras difiere del guardado en el producto.
   const canSaveBarcode =
@@ -382,7 +440,7 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
       if (activeTab === 'sticker') {
         const qtyNum = Math.max(1, Math.min(200, Math.floor(Number(stickerQty) || 1)));
         await printPriceStickers({
-          productName: product.name,
+          productName: labelName,
           barcodeValue,
           sku: effectiveSku,
           priceCents,
@@ -393,7 +451,7 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
       } else {
         const copiesNum = Math.max(1, Math.min(50, Math.floor(Number(copies) || 1)));
         await printPriceLabel({
-          productName: product.name,
+          productName: labelName,
           barcodeValue,
           priceCents,
           currency,
@@ -413,6 +471,7 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
     }
   }, [
     product,
+    labelName,
     priceCents,
     copies,
     stickerQty,
@@ -488,7 +547,7 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
                 <View style={styles.previewCard}>
                   <Text style={styles.previewBrand}>Joanis</Text>
                   <Text style={styles.previewName} numberOfLines={2}>
-                    {product?.name || '—'}
+                    {labelName || '—'}
                   </Text>
                   <Text style={styles.previewPrice}>{formatLabelPrice(priceCents, currency)}</Text>
                   <View style={styles.previewBarcode}>
@@ -518,7 +577,7 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
                       <View key={idx} style={styles.stickerCard}>
                         <Text style={styles.stickerBrand}>Joanis</Text>
                         <Text style={styles.stickerName} numberOfLines={1}>
-                          {product?.name || '—'}
+                          {labelName || '—'}
                         </Text>
                         <Text style={styles.stickerPrice} numberOfLines={1}>
                           {formatLabelPrice(priceCents, currency)}
@@ -542,6 +601,44 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
                     por fila.
                   </Caption>
                 </View>
+              )}
+
+              {/* Variante con código propio (solo si el producto tiene alguna) */}
+              {labelVariants.length > 0 && (
+                <>
+                  <Caption color="secondary" style={styles.sectionLabel}>
+                    Variante
+                  </Caption>
+                  <View style={styles.profileRow}>
+                    {[
+                      { id: null as string | null, name: 'Producto', code: originalProductCode },
+                      ...labelVariants.map((v) => ({
+                        id: v.id as string | null,
+                        name: v.name,
+                        code: v.barcode || v.sku || '',
+                      })),
+                    ].map((option) => {
+                      const active = option.id === selectedVariantId;
+                      return (
+                        <Pressable
+                          key={option.id ?? 'producto'}
+                          onPress={() => handleSelectVariant(option.id)}
+                          style={[styles.profileChip, active && styles.profileChipActive]}
+                        >
+                          <Text
+                            variant="labelMedium"
+                            color={active ? theme.color.text.inverse : 'primary'}
+                          >
+                            {option.name}
+                          </Text>
+                          <Caption color={active ? theme.color.text.inverse : 'tertiary'}>
+                            {option.code || 'Sin código'}
+                          </Caption>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
               )}
 
               {/* Selección de perfil de precio */}
@@ -633,7 +730,9 @@ export const PriceLabelPrintModal: React.FC<PriceLabelPrintModalProps> = ({
                       : useRandomBarcode
                         ? 'Código aleatorio verificado (sin duplicar)'
                         : barcodeValue === originalBarcode
-                          ? 'Código original del producto'
+                          ? selectedVariant
+                            ? `Código propio de la variante ${selectedVariant.name}`
+                            : 'Código original del producto'
                           : 'Código editado manualmente'}
                   </Caption>
                 </View>

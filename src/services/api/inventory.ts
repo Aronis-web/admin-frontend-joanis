@@ -48,6 +48,8 @@ export interface AdjustStockDto {
   productId: string;
   warehouseId: string;
   areaId?: string;
+  /** Variante con stock propio a ajustar; omitido/null = saldo del producto. */
+  variantId?: string | null;
   deltaBase: number;
   reason: StockAdjustmentReason;
   clientOperationId?: string;
@@ -75,6 +77,9 @@ export interface StockItemResponse {
   productId: string;
   warehouseId: string;
   areaId: string | null;
+  /** null = saldo del producto; uuid = fila de una variante con stock propio. */
+  variantId?: string | null;
+  variantName?: string | null;
   quantityBase: number;
   reservedQuantityBase: number;
   availableQuantityBase: number;
@@ -293,6 +298,19 @@ export interface ProductStockDetailArea {
   availableStock: number;
   availableValueCents?: number;
   batches?: ProductStockBatch[];
+  /**
+   * Desglose por variante con saldo propio en esta ubicacion. El resto de
+   * totalStock es saldo del producto (sin variante).
+   */
+  variants?: ProductStockDetailVariant[];
+}
+
+export interface ProductStockDetailVariant {
+  variantId: string;
+  name: string | null;
+  quantity: number;
+  reserved: number;
+  available: number;
 }
 
 export interface ProductStockDetailWarehouse {

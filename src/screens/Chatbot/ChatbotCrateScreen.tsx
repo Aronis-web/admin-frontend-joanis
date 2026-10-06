@@ -58,6 +58,8 @@ import type {
 } from '@/types/chatbot';
 import Alert from '@/utils/alert';
 import { computeStockRowsForProduct } from './stockRows';
+import { VariantStockSelector } from './components/VariantStockSelector';
+import { useStockVariants, useVariantNames } from './useChatbotVariants';
 import {
   formatSolesFromCents,
   getPresentationUnitPriceCents,
@@ -68,6 +70,8 @@ type Props = NativeStackScreenProps<any, 'ChatbotCrate'>;
 
 interface CrateFormState {
   productId: string;
+  /** Variante (color) elegida; '' = sin variante (saldo del producto). */
+  variantId: string;
   warehouseId: string;
   areaId: string;
   presentationId: string;
@@ -80,6 +84,7 @@ interface CrateFormState {
 
 const emptyForm: CrateFormState = {
   productId: '',
+  variantId: '',
   warehouseId: '',
   areaId: '',
   presentationId: '',
@@ -92,6 +97,7 @@ const emptyForm: CrateFormState = {
 
 const toForm = (item: ChatbotCrateProduct): CrateFormState => ({
   productId: item.productId,
+  variantId: item.variantId ?? '',
   warehouseId: item.warehouseId,
   areaId: item.areaId ?? '',
   presentationId: item.presentationId ?? '',
@@ -104,7 +110,7 @@ const toForm = (item: ChatbotCrateProduct): CrateFormState => ({
 
 const buildBody = (form: CrateFormState): UpsertCrateProductBody => ({
   productId: form.productId.trim(),
-  variantId: null,
+  variantId: form.variantId.trim() || null,
   warehouseId: form.warehouseId.trim(),
   areaId: form.areaId.trim() || null,
   presentationId: form.presentationId.trim() || null,
@@ -148,6 +154,8 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
 
   const listProductIds = useMemo(() => items.map((it) => it.productId), [items]);
   const { data: productsById } = useProductsByIdsBatch(listProductIds);
+  // Nombre del color de cada fila con variante (para mostrarlo en la lista).
+  const variantNames = useVariantNames(items);
 
   const createMutation = useCreateCrateProduct();
   const updateMutation = useUpdateCrateProduct();
@@ -209,16 +217,23 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
       // Precio por defecto: precio real por unidad de la presentación elegida.
       const defaultPrice = getPresentationUnitPriceCents(product, defaultPresentationId);
       // Stock disponible: endpoint específico del producto con fallback al global.
-      const productRows = computeStockRowsForProduct(item.id, productStock, siteWarehouseIds);
+      // Arranca "Sin variante": solo filas del saldo del producto.
+      const productRows = computeStockRowsForProduct(
+        item.id,
+        productStock,
+        siteWarehouseIds,
+        null
+      );
       const rows =
         productRows.length > 0
           ? productRows
-          : computeStockRowsForProduct(item.id, siteStock, siteWarehouseIds);
+          : computeStockRowsForProduct(item.id, siteStock, siteWarehouseIds, null);
       const defaultRow = rows[0];
 
       setForm((f) => ({
         ...f,
         productId: item.id,
+        variantId: '',
         presentationId: defaultPresentationId,
         warehouseId: defaultRow?.warehouseId ?? '',
         areaId: defaultRow?.areaId ?? '',
@@ -288,14 +303,49 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
   const isFormOpen = creating || !!editing;
   const presentations = selectedProduct?.presentations ?? [];
 
-  const stockRows = useMemo(() => {
-    const id = selectedProduct?.id ?? null;
-    let rows = computeStockRowsForProduct(id, productStock, siteWarehouseIds);
-    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, siteWarehouseIds);
-    if (rows.length === 0) rows = computeStockRowsForProduct(id, productStock, null);
-    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, null);
+  // Variante (color) del formulario. El stock que se muestra es el de la
+  // dimension que usaran hold/checkout: la variante si lleva stock propio,
+  // si no el saldo del producto.
+  const { stockVariants, selectedVariant, stockVariantId } = useStockVariants(
+    isFormOpen ? form.productId : null,
+    form.variantId
+  );
+
+  const computeRowsFor = (id: string | null, dimension: string | null) => {
+    let rows = computeStockRowsForProduct(id, productStock, siteWarehouseIds, dimension);
+    if (rows.length === 0)
+      rows = computeStockRowsForProduct(id, siteStock, siteWarehouseIds, dimension);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, productStock, null, dimension);
+    if (rows.length === 0) rows = computeStockRowsForProduct(id, siteStock, null, dimension);
     return rows;
-  }, [selectedProduct, productStock, siteStock, siteWarehouseIds]);
+  };
+
+  const stockRows = useMemo(
+    () => computeRowsFor(selectedProduct?.id ?? null, stockVariantId),
+    // computeRowsFor solo depende de estos valores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedProduct, productStock, siteStock, siteWarehouseIds, stockVariantId]
+  );
+
+  const handleSelectVariant = (variantId: string) => {
+    const dimension = stockVariants.some((v) => v.id === variantId) ? variantId : null;
+    const rows = computeRowsFor(selectedProduct?.id ?? null, dimension);
+    setForm((f) => {
+      const keepRow = rows.some(
+        (r) => r.warehouseId === f.warehouseId && (r.areaId ?? '') === f.areaId
+      );
+      const nextRow = keepRow ? undefined : rows[0];
+      if (!nextRow) return { ...f, variantId };
+      return {
+        ...f,
+        variantId,
+        warehouseId: nextRow.warehouseId,
+        areaId: nextRow.areaId ?? '',
+        // En alta se propone el disponible de la nueva dimension; al editar se respeta el tope.
+        maxSellableQty: editing ? f.maxSellableQty : String(Math.max(0, nextRow.available)),
+      };
+    });
+  };
   const siteTotalAvailable = useMemo(
     () => stockRows.reduce((acc, r) => acc + r.available, 0),
     [stockRows]
@@ -397,6 +447,11 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
                         <Caption color={theme.color.text.muted} numberOfLines={1}>
                           {product ? `#${product.correlativeNumber} · SKU ${product.sku}` : ''}
                         </Caption>
+                        {item.variantId ? (
+                          <Caption color={theme.color.text.muted} numberOfLines={1}>
+                            Color: {variantNames.get(item.variantId) ?? '…'}
+                          </Caption>
+                        ) : null}
                       </View>
                       <Badge
                         variant={item.isActive ? 'success' : 'default'}
@@ -460,6 +515,7 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
                           setForm((f) => ({
                             ...f,
                             productId: '',
+                            variantId: '',
                             warehouseId: '',
                             areaId: '',
                             presentationId: '',
@@ -567,11 +623,26 @@ export const ChatbotCrateScreen: React.FC<Props> = ({ navigation }) => {
                   </View>
                 )}
 
+                {selectedProduct && (
+                  <VariantStockSelector
+                    stockVariants={stockVariants}
+                    value={form.variantId}
+                    selectedVariant={selectedVariant}
+                    onChange={handleSelectVariant}
+                  />
+                )}
+
                 {selectedProduct ? (
                   <View>
                     <View style={styles.stockHeader}>
                       <Caption color={theme.color.text.muted} style={styles.groupLabel}>
-                        Dónde sacar stock ({selectedSite?.name ?? 'sede activa'})
+                        Dónde sacar stock ({selectedSite?.name ?? 'sede activa'}
+                        {stockVariantId
+                          ? ` · ${selectedVariant?.name ?? 'variante'}`
+                          : stockVariants.length > 0
+                            ? ' · sin variante'
+                            : ''}
+                        )
                       </Caption>
                       <Caption color={theme.color.text.muted}>Total: {siteTotalAvailable}</Caption>
                     </View>

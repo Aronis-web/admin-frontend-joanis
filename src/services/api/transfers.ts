@@ -60,6 +60,8 @@ export interface ExportProductStockMovementsParams {
   dateFrom?: string;
   /** ISO date (YYYY-MM-DD). */
   dateTo?: string;
+  /** Solo movimientos de esa variante con stock propio. */
+  variantId?: string;
 }
 
 export const transfersApi = {
@@ -402,7 +404,7 @@ export const transfersApi = {
    */
   getProductStockMovementsHistory: async (
     productId: string,
-    params?: { warehouseId?: string; limit?: number }
+    params?: { warehouseId?: string; limit?: number; variantId?: string }
   ): Promise<StockMovement[]> => {
     return apiClient.get<StockMovement[]>(`/transfers/stock-movements/product/${productId}`, {
       params,
@@ -433,6 +435,7 @@ export const transfersApi = {
     if (params?.movementType) query.append('movementType', params.movementType);
     if (params?.dateFrom) query.append('dateFrom', params.dateFrom);
     if (params?.dateTo) query.append('dateTo', params.dateTo);
+    if (params?.variantId) query.append('variantId', params.variantId);
 
     const qs = query.toString();
     const url = `${config.API_URL}/transfers/stock-movements/product/${productId}/export${qs ? `?${qs}` : ''}`;
