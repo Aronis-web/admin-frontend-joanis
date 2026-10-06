@@ -3,7 +3,7 @@
  * caja virtual) e imprime el comprobante. Si ya se emitió, solo reimprime.
  * El escaneo de Armado se bloquea hasta que el comprobante esté emitido.
  */
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { Button } from '@/design-system';
 import Alert from '@/utils/alert';
@@ -44,11 +44,15 @@ export const EmitInvoiceButton: React.FC<{
   onEmitted?: () => void;
 }> = ({ order, onEmitted }) => {
   const [busy, setBusy] = useState(false);
+  // Candado sincrono: un doble toque no alcanza a ver el estado "busy".
+  const running = useRef(false);
   if (order.emission !== 'PENDING' && order.emission !== 'EMITTED') return null;
   const emitted = order.emission === 'EMITTED';
   const name = docName(order);
 
   const run = async () => {
+    if (running.current) return;
+    running.current = true;
     setBusy(true);
     try {
       const res = await chatbotPostsaleApi.emit(order.id);
@@ -70,8 +74,32 @@ export const EmitInvoiceButton: React.FC<{
     } catch (err) {
       Alert.alert('No se pudo emitir', postsaleErrorMessage(err));
     } finally {
+      running.current = false;
       setBusy(false);
     }
+  };
+
+  // Emitir crea la venta y el comprobante en SUNAT: se confirma antes.
+  const confirmAndRun = () => {
+    if (running.current) return;
+    if (emitted) {
+      run().catch(() => undefined);
+      return;
+    }
+    Alert.alert(
+      `Emitir ${name}`,
+      `Pedido #${order.orderNo}: se emite la ${name} desde la caja virtual y se descuenta el stock. No se puede deshacer (solo con nota de crédito).`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: `Emitir ${name}`,
+          style: 'default',
+          onPress: () => {
+            run().catch(() => undefined);
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -80,7 +108,7 @@ export const EmitInvoiceButton: React.FC<{
       leftIcon={emitted ? 'print-outline' : 'receipt-outline'}
       variant={emitted ? 'outline' : 'primary'}
       size="small"
-      onPress={() => run()}
+      onPress={confirmAndRun}
       disabled={busy}
       loading={busy}
     />
