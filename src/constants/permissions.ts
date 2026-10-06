@@ -603,6 +603,7 @@ export const PERMISSIONS = {
     POSTSALE_DISPATCH: 'chatbot.postsale.dispatch',
     POSTSALE_RECEIVE: 'chatbot.postsale.receive',
     POSTSALE_DELIVER: 'chatbot.postsale.deliver',
+    POSTSALE_EMIT: 'chatbot.postsale.emit',
   },
 
   // ========== NOTIFICATIONS WHATSAPP ==========

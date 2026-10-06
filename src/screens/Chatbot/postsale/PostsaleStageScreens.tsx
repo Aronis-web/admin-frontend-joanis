@@ -24,6 +24,7 @@ import { StageScanner } from './scanner';
 import { OrderRow, PostsaleShell, ROUTE_ICON, ROUTE_ORDER, createPostsaleStyles } from './shared';
 import { usePostsalePrinting, type PostsalePrinting } from './usePostsalePrinting';
 import { PackageActions } from './PackageActions';
+import { EmitInvoiceButton } from './EmitInvoiceButton';
 
 type Props = NativeStackScreenProps<any, any>;
 
@@ -42,8 +43,10 @@ const PendingList: React.FC<{
   groups?: Group[];
   printing: PostsalePrinting;
   showPickingButton?: boolean;
+  /** Armado: botón para emitir (o reimprimir) la boleta/factura. */
+  showEmitButton?: boolean;
   onOpen: (o: PostsaleOrder) => void;
-}> = ({ title, emptyText, paged, groups, printing, showPickingButton, onOpen }) => {
+}> = ({ title, emptyText, paged, groups, printing, showPickingButton, showEmitButton, onOpen }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   const { query, items } = paged;
@@ -54,15 +57,24 @@ const PendingList: React.FC<{
       order={o}
       onPress={() => onOpen(o)}
       right={
-        showPickingButton ? (
-          <Button
-            title="Hoja"
-            leftIcon="document-text-outline"
-            variant="outline"
-            size="small"
-            onPress={() => printing.printPicking([o.id])}
-            disabled={printing.printingPicking}
-          />
+        showPickingButton || showEmitButton ? (
+          <View
+            style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}
+          >
+            {showEmitButton ? (
+              <EmitInvoiceButton order={o} onEmitted={() => query.refetch()} />
+            ) : null}
+            {showPickingButton ? (
+              <Button
+                title="Hoja"
+                leftIcon="document-text-outline"
+                variant="outline"
+                size="small"
+                onPress={() => printing.printPicking([o.id])}
+                disabled={printing.printingPicking}
+              />
+            ) : null}
+          </View>
         ) : (
           <Ionicons name="chevron-forward" size={20} color={theme.color.text.muted} />
         )
@@ -163,6 +175,8 @@ const StageScreen: React.FC<{
   allowDeliver?: boolean;
   /** Armado: "Bultos: N", agregar bulto y reimprimir en la tarjeta del escaneo. */
   showPackageActions?: boolean;
+  /** Armado: emitir la boleta/factura antes de escanear. */
+  showEmitButton?: boolean;
 }> = (p) => {
   const paged = usePagedOrders(p.statuses);
   const printing = usePostsalePrinting();
@@ -170,6 +184,7 @@ const StageScreen: React.FC<{
   const canDeliver = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_DELIVER);
   const canPrint = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_PRINT);
   const canAddPackage = canPrint || hasPermission(PERMISSIONS.CHATBOT.POSTSALE_ASSEMBLE);
+  const canEmit = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_EMIT);
   const [open, setOpen] = useState<PostsaleOrder | null>(null);
   const goDeliver = (orderId: string) =>
     p.navigation.navigate(MAIN_ROUTES.CHATBOT_POSTSALE_DELIVERY, { orderId });
@@ -210,6 +225,7 @@ const StageScreen: React.FC<{
         groups={p.groups}
         printing={printing}
         showPickingButton={p.showPickingButton}
+        showEmitButton={p.showEmitButton && canEmit}
         onOpen={setOpen}
       />
       <OrderDetailModal
@@ -232,11 +248,12 @@ export const ChatbotPostsaleAssemblyScreen: React.FC<Props> = ({ navigation }) =
     title="Post venta · Armado"
     subtitle="Arma los pedidos y escanea su sticker al terminar"
     statLabel="Por armar"
-    description="Escanea el sticker cuando termines de armar: el pedido pasa a Armado finalizado y quedas como responsable."
+    description="Emite la boleta o factura del pedido y mándala con los bultos. Luego escanea el sticker cuando termines de armar: el pedido pasa a Armado finalizado y quedas como responsable."
     listTitle="En armado"
     emptyText="No hay pedidos en armado. Imprime stickers en Post venta · Imprimir."
     showPickingButton
     showPackageActions
+    showEmitButton
   />
 );
 

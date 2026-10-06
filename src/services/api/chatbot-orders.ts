@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type {
+  ChatbotInvoiceType,
   ChatbotOrder,
   ExtendChatbotOrderBody,
   ExtendChatbotOrderResponse,
@@ -55,6 +56,17 @@ class ChatbotOrdersService {
     return apiClient.post<VerifyChatbotVoucherResponse>(
       `${this.basePath}/${id}/vouchers/${voucherId}/verify`,
       {}
+    );
+  }
+
+  /** Cambia el comprobante (boleta/factura) antes de emitir. */
+  async setInvoiceType(
+    id: string,
+    invoiceType: ChatbotInvoiceType
+  ): Promise<{ id: string; invoiceType: ChatbotInvoiceType }> {
+    return apiClient.post<{ id: string; invoiceType: ChatbotInvoiceType }>(
+      `${this.basePath}/${id}/invoice-type`,
+      { invoiceType }
     );
   }
 
