@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import { config } from '@/utils/config';
 import { downloadWithAuth } from '@/utils/downloadWithAuth';
+import type { ChatbotInvoiceType, ChatbotOrderDocument } from '@/types/chatbot';
 
 /** Estados del flujo de post venta de un pedido de redes sociales. */
 export type PostsaleStatus =
@@ -45,6 +46,21 @@ export interface PostsaleOrder {
   convPhone: string | null;
   /** Bultos del pedido (1 si no viene). */
   packages?: number;
+  /**
+   * Boleta/factura: PENDING = se emite con el botón de Armado, EMITTED = ya
+   * emitida, null = se emite en POS (pedidos con envío o anteriores).
+   */
+  emission?: 'PENDING' | 'EMITTED' | null;
+  /** Elegido por el cliente o el asesor; null = se deduce del documento. */
+  invoiceType?: ChatbotInvoiceType | null;
+}
+
+/** Respuesta de `POST /chatbot/postsale/:id/emit`. */
+export interface PostsaleEmitResult {
+  orderId: string;
+  status: string;
+  saleIds: string[];
+  documents: ChatbotOrderDocument[];
 }
 
 /** Sticker devuelto por `POST /chatbot/postsale/print`. */
@@ -344,6 +360,11 @@ class ChatbotPostsaleService {
   }
 
   /** Agrega un bulto al pedido; devuelve el total y el sticker del bulto nuevo. */
+  /** Emite la boleta/factura del pedido (Armado). Si ya se emitió, devuelve sus comprobantes. */
+  async emit(id: string): Promise<PostsaleEmitResult> {
+    return apiClient.post<PostsaleEmitResult>(`${this.basePath}/${id}/emit`);
+  }
+
   async addPackage(id: string): Promise<{ packages: number; sticker: PostsaleSticker }> {
     return apiClient.post<{ packages: number; sticker: PostsaleSticker }>(
       `${this.basePath}/${id}/packages`

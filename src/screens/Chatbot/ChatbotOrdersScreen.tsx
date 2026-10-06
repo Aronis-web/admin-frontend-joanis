@@ -381,7 +381,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
       title: 'Validar este pago',
       message:
         `¿Confirmas que el pago ${voucherLabel(v)} llegó a la cuenta?\n\n` +
-        'Si es el último pago pendiente del pedido, el pedido se valida y se emite la venta.',
+        'Si es el último pago pendiente del pedido, el pedido se valida. La boleta o factura se emite en Armado.',
       confirmLabel: 'Sí, validar pago',
       onConfirm: () =>
         verifyMutation.mutate(
@@ -419,7 +419,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
     }
     setConfirm({
       title: 'Validar pedido',
-      message: 'Se confirmará el pedido y se intentará emitir el comprobante en el POS.',
+      message: 'Se confirmará el pedido. La boleta o factura se emite en Post venta · Armado.',
       confirmLabel: 'Sí, validar pedido',
       onConfirm: () => runValidate(order),
     });
@@ -816,19 +816,6 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                                 loading={
                                   invoiceMutation.isPending &&
                                   invoiceMutation.variables?.id === order.id
-                                }
-                              />
-                            ) : null}
-                            {order.status === 'VALIDATED' ? (
-                              <Button
-                                title="Reintentar emisión"
-                                variant="outline"
-                                size="small"
-                                leftIcon="refresh-outline"
-                                onPress={() => runValidate(order)}
-                                loading={
-                                  validateMutation.isPending &&
-                                  validateMutation.variables === order.id
                                 }
                               />
                             ) : null}
