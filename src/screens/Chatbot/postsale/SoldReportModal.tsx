@@ -158,24 +158,38 @@ export const SoldReportModal: React.FC<{ visible: boolean; onClose: () => void }
               </Caption>
               <View style={styles.actionsRow}>
                 <Button
+                  guardDoubleTap
                   title="Cancelar"
                   variant="ghost"
                   size="small"
                   onPress={() => setAskPending(false)}
                 />
                 <Button
+                  guardDoubleTap
                   title="Solo validados"
                   variant="outline"
                   size="small"
                   onPress={() => download(false)}
                 />
-                <Button title="Incluir sin validar" size="small" onPress={() => download(true)} />
+                <Button
+                  guardDoubleTap
+                  title="Incluir sin validar"
+                  size="small"
+                  onPress={() => download(true)}
+                />
               </View>
             </View>
           ) : (
             <View style={styles.actionsRow}>
-              <Button title="Cerrar" variant="ghost" size="small" onPress={onClose} />
               <Button
+                guardDoubleTap
+                title="Cerrar"
+                variant="ghost"
+                size="small"
+                onPress={onClose}
+              />
+              <Button
+                guardDoubleTap
                 title="Descargar Excel"
                 leftIcon="download-outline"
                 size="small"

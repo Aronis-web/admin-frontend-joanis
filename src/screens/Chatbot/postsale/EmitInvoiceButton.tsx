@@ -104,6 +104,7 @@ export const EmitInvoiceButton: React.FC<{
 
   return (
     <Button
+      guardDoubleTap
       title={emitted ? `Imprimir ${name}` : `Emitir ${name}`}
       leftIcon={emitted ? 'print-outline' : 'receipt-outline'}
       variant={emitted ? 'outline' : 'primary'}

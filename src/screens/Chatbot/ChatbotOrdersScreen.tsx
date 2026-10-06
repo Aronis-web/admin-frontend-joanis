@@ -577,6 +577,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               size="small"
             />
             <Button
+              guardDoubleTap
               title={`Filtros${activeFilters ? ` (${activeFilters})` : ''}`}
               leftIcon="options-outline"
               variant={showFilters ? 'primary' : 'outline'}
@@ -632,6 +633,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               {activeFilters ? (
                 <View style={{ alignItems: 'flex-end' }}>
                   <Button
+                    guardDoubleTap
                     title="Limpiar filtros"
                     variant="ghost"
                     size="small"
@@ -790,6 +792,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                             </Caption>
                             {doc.bizlinksDocumentId ? (
                               <Button
+                                guardDoubleTap
                                 title="PDF"
                                 variant="ghost"
                                 size="small"
@@ -804,6 +807,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                             {order.invoice?.type === 'FACTURA' ||
                             order.invoice?.customerDocumentType === 'RUC' ? (
                               <Button
+                                guardDoubleTap
                                 title={
                                   order.invoice?.type === 'FACTURA'
                                     ? 'Cambiar a boleta'
@@ -828,6 +832,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       <View style={styles.actionsRow}>
                         {canValidate ? (
                           <Button
+                            guardDoubleTap
                             title="Dar más tiempo"
                             variant="ghost"
                             size="small"
@@ -837,6 +842,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                         ) : null}
                         {canCancel ? (
                           <Button
+                            guardDoubleTap
                             title="Cancelar pedido"
                             variant="outline"
                             size="small"
@@ -846,6 +852,7 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                         ) : null}
                         {canValidate && order.status === 'PENDING_PAYMENT' && !order.voucherUrl ? (
                           <Button
+                            guardDoubleTap
                             title="Validar pedido"
                             size="small"
                             leftIcon="checkmark-circle-outline"
@@ -908,8 +915,14 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                 multiline
               />
               <View style={styles.rejectActions}>
-                <Button title="Volver" variant="outline" onPress={() => setRejectTarget(null)} />
                 <Button
+                  guardDoubleTap
+                  title="Volver"
+                  variant="outline"
+                  onPress={() => setRejectTarget(null)}
+                />
+                <Button
+                  guardDoubleTap
                   title="Cancelar pedido"
                   onPress={confirmReject}
                   loading={cancelMutation.isPending}
@@ -942,8 +955,14 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardType="number-pad"
               />
               <View style={styles.rejectActions}>
-                <Button title="Cancelar" variant="outline" onPress={() => setExtendTarget(null)} />
                 <Button
+                  guardDoubleTap
+                  title="Cancelar"
+                  variant="outline"
+                  onPress={() => setExtendTarget(null)}
+                />
+                <Button
+                  guardDoubleTap
                   title="Extender"
                   onPress={confirmExtend}
                   loading={extendMutation.isPending}
@@ -965,8 +984,14 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               <Title>{confirm?.title}</Title>
               <Body color={theme.color.text.body}>{confirm?.message}</Body>
               <View style={styles.rejectActions}>
-                <Button title="Volver" variant="outline" onPress={() => setConfirm(null)} />
                 <Button
+                  guardDoubleTap
+                  title="Volver"
+                  variant="outline"
+                  onPress={() => setConfirm(null)}
+                />
+                <Button
+                  guardDoubleTap
                   title={confirm?.confirmLabel ?? 'Confirmar'}
                   variant={confirm?.danger ? 'danger' : 'primary'}
                   onPress={() => {
@@ -1077,6 +1102,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
               {hasImage ? <VoucherLinkButton voucherId={v.id} /> : null}
               {allowActions && !closed ? (
                 <Button
+                  guardDoubleTap
                   title="Descartar"
                   variant="outline"
                   size="small"
@@ -1087,6 +1113,7 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
               ) : null}
               {canVerify ? (
                 <Button
+                  guardDoubleTap
                   title="Validar pago"
                   size="small"
                   leftIcon="checkmark-circle-outline"

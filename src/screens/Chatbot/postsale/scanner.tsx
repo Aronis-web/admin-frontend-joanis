@@ -101,6 +101,7 @@ export const QrInput: React.FC<{
     <View style={{ gap: 8 }}>
       {CAN_USE_CAMERA ? (
         <Button
+          guardDoubleTap
           title={open ? 'Cerrar cámara' : '📷 Escanear'}
           variant={open ? 'outline' : 'primary'}
           size="small"
@@ -188,7 +189,13 @@ export const ManualCodeInput: React.FC<{
         returnKeyType="go"
         style={[styles.input, { flex: 1 }]}
       />
-      <Button title={buttonTitle} size="small" onPress={submit} disabled={busy || !value.trim()} />
+      <Button
+        guardDoubleTap
+        title={buttonTitle}
+        size="small"
+        onPress={submit}
+        disabled={busy || !value.trim()}
+      />
     </View>
   );
 };
@@ -306,6 +313,7 @@ export const ScanResultCard: React.FC<{
       {onDeliver && isPostsaleDeliverable(r.status) ? (
         <View style={styles.actionsRow}>
           <Button
+            guardDoubleTap
             title="Entregar"
             leftIcon="hand-left-outline"
             size="small"

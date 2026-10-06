@@ -96,7 +96,7 @@ export const PrinterRow: React.FC = () => {
           <Caption color={theme.color.state.warning.text}>🖨️ Sin impresora</Caption>
         )}
       </View>
-      <Button title="Cambiar" variant="outline" size="small" onPress={openPicker} />
+      <Button guardDoubleTap title="Cambiar" variant="outline" size="small" onPress={openPicker} />
     </View>
   );
 };
@@ -145,6 +145,7 @@ export const PrinterPickerModal: React.FC<{ host: PickerHost }> = ({ host }) => 
           </Caption>
           {godex && !auto && printer !== godex ? (
             <Button
+              guardDoubleTap
               title="Volver a la Godex automáticamente"
               leftIcon="flash-outline"
               variant="outline"
@@ -197,6 +198,7 @@ export const PrinterPickerModal: React.FC<{ host: PickerHost }> = ({ host }) => 
           </ScrollView>
           <View style={styles.actionsRow}>
             <Button
+              guardDoubleTap
               title={loading ? 'Buscando…' : 'Actualizar'}
               leftIcon="refresh"
               variant="ghost"
@@ -204,7 +206,13 @@ export const PrinterPickerModal: React.FC<{ host: PickerHost }> = ({ host }) => 
               onPress={() => load()}
               disabled={loading}
             />
-            <Button title="Cerrar" variant="outline" size="small" onPress={closePicker} />
+            <Button
+              guardDoubleTap
+              title="Cerrar"
+              variant="outline"
+              size="small"
+              onPress={closePicker}
+            />
           </View>
         </Pressable>
       </Pressable>

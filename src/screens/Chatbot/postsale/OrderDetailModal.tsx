@@ -165,6 +165,7 @@ export const OrderDetailModal: React.FC<{
           <View style={styles.actionsRow}>
             {canPicking ? (
               <Button
+                guardDoubleTap
                 title="Hoja de armado (PDF)"
                 leftIcon="document-text-outline"
                 variant="outline"
@@ -176,6 +177,7 @@ export const OrderDetailModal: React.FC<{
             ) : null}
             {deliverable && canResend ? (
               <Button
+                guardDoubleTap
                 title="Reenviar código"
                 leftIcon="chatbubble-ellipses-outline"
                 variant="outline"
@@ -187,6 +189,7 @@ export const OrderDetailModal: React.FC<{
             ) : null}
             {deliverable && canDeliver && onDeliver && orderId ? (
               <Button
+                guardDoubleTap
                 title="Entregar"
                 leftIcon="hand-left-outline"
                 size="small"
@@ -205,12 +208,13 @@ export const OrderDetailModal: React.FC<{
               </Body>
               <View style={styles.actionsRow}>
                 <Button
+                  guardDoubleTap
                   title="Cancelar"
                   variant="ghost"
                   size="small"
                   onPress={() => setAskResend(false)}
                 />
-                <Button title="Reenviar" size="small" onPress={doResend} />
+                <Button guardDoubleTap title="Reenviar" size="small" onPress={doResend} />
               </View>
             </View>
           ) : null}
@@ -296,6 +300,7 @@ export const OrderDetailModal: React.FC<{
                 <View style={styles.rowBetween}>
                   <Title>Historial</Title>
                   <Button
+                    guardDoubleTap
                     title={onlyPrints ? 'Ver todo' : 'Solo impresiones'}
                     variant="ghost"
                     size="small"

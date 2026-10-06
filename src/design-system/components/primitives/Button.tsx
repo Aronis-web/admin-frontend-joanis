@@ -4,7 +4,7 @@
  * Botón moderno con múltiples variantes y estados.
  */
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   TouchableOpacity,
   View,
@@ -79,7 +79,17 @@ export interface ButtonProps {
    * Estilos adicionales del texto
    */
   textStyle?: TextStyle;
+
+  /**
+   * Protección de doble toque: ignora toques mientras la acción anterior sigue
+   * en curso (si onPress devuelve una promesa, hasta que termine, mostrando
+   * "cargando"; si no, durante un instante). Para acciones que escriben datos.
+   */
+  guardDoubleTap?: boolean;
 }
+
+/** Tiempo mínimo entre dos toques de un botón protegido (ms). */
+const DOUBLE_TAP_COOLDOWN_MS = 700;
 
 export const Button: React.FC<ButtonProps> = ({
   title,
@@ -93,10 +103,42 @@ export const Button: React.FC<ButtonProps> = ({
   rightIcon,
   style,
   textStyle,
+  guardDoubleTap = false,
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
-  const isDisabled = disabled || loading;
+  const inFlight = useRef(false);
+  const [pending, setPending] = useState(false);
+  const isLoading = loading || pending;
+  const isDisabled = disabled || isLoading;
+
+  const handlePress = () => {
+    if (!guardDoubleTap) {
+      onPress();
+      return;
+    }
+    if (inFlight.current) return;
+    inFlight.current = true;
+    const release = () => {
+      setTimeout(() => {
+        inFlight.current = false;
+        setPending(false);
+      }, DOUBLE_TAP_COOLDOWN_MS);
+    };
+    let result: unknown;
+    try {
+      result = (onPress as () => unknown)();
+    } catch (err) {
+      release();
+      throw err;
+    }
+    if (result && typeof (result as Promise<unknown>).then === 'function') {
+      setPending(true);
+      (result as Promise<unknown>).then(release, release);
+    } else {
+      release();
+    }
+  };
   const action = theme.color.action[variant];
 
   const containerStyles = [
@@ -138,11 +180,11 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <TouchableOpacity
       style={containerStyles}
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
       activeOpacity={activeOpacity.medium}
     >
-      {loading ? (
+      {isLoading ? (
         <ActivityIndicator color={getLoaderColor()} size="small" />
       ) : (
         <View style={styles.content}>
@@ -169,146 +211,147 @@ export const Button: React.FC<ButtonProps> = ({
   );
 };
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  // ============================================
-  // BASE STYLES
-  // ============================================
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: theme.radii.md,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    // ============================================
+    // BASE STYLES
+    // ============================================
+    base: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: theme.radii.md,
+      borderWidth: 1.5,
+      borderColor: 'transparent',
+    },
 
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    content: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  fullWidth: {
-    width: '100%',
-  },
+    fullWidth: {
+      width: '100%',
+    },
 
-  disabled: {
-    opacity: 0.5,
-  },
+    disabled: {
+      opacity: 0.5,
+    },
 
-  // ============================================
-  // VARIANT STYLES
-  // ============================================
-  variant_primary: {
-    backgroundColor: theme.color.action.primary.background,
-    borderColor: theme.color.action.primary.border,
-  },
+    // ============================================
+    // VARIANT STYLES
+    // ============================================
+    variant_primary: {
+      backgroundColor: theme.color.action.primary.background,
+      borderColor: theme.color.action.primary.border,
+    },
 
-  variant_secondary: {
-    backgroundColor: theme.color.action.secondary.background,
-    borderColor: theme.color.action.secondary.border,
-  },
+    variant_secondary: {
+      backgroundColor: theme.color.action.secondary.background,
+      borderColor: theme.color.action.secondary.border,
+    },
 
-  variant_outline: {
-    backgroundColor: theme.color.action.outline.background,
-    borderColor: theme.color.action.outline.border,
-  },
+    variant_outline: {
+      backgroundColor: theme.color.action.outline.background,
+      borderColor: theme.color.action.outline.border,
+    },
 
-  variant_ghost: {
-    backgroundColor: theme.color.action.ghost.background,
-    borderColor: theme.color.action.ghost.border,
-  },
+    variant_ghost: {
+      backgroundColor: theme.color.action.ghost.background,
+      borderColor: theme.color.action.ghost.border,
+    },
 
-  variant_danger: {
-    backgroundColor: theme.color.action.danger.background,
-    borderColor: theme.color.action.danger.border,
-  },
+    variant_danger: {
+      backgroundColor: theme.color.action.danger.background,
+      borderColor: theme.color.action.danger.border,
+    },
 
-  variant_success: {
-    backgroundColor: theme.color.action.success.background,
-    borderColor: theme.color.action.success.border,
-  },
+    variant_success: {
+      backgroundColor: theme.color.action.success.background,
+      borderColor: theme.color.action.success.border,
+    },
 
-  // ============================================
-  // SIZE STYLES
-  // ============================================
-  size_small: {
-    paddingVertical: theme.space[2],
-    paddingHorizontal: theme.space[3],
-    minHeight: touchTargets.small,
-    borderRadius: theme.radii.sm,
-  },
+    // ============================================
+    // SIZE STYLES
+    // ============================================
+    size_small: {
+      paddingVertical: theme.space[2],
+      paddingHorizontal: theme.space[3],
+      minHeight: touchTargets.small,
+      borderRadius: theme.radii.sm,
+    },
 
-  size_medium: {
-    paddingVertical: theme.space[2.5],
-    paddingHorizontal: theme.space[4],
-    minHeight: touchTargets.medium,
-  },
+    size_medium: {
+      paddingVertical: theme.space[2.5],
+      paddingHorizontal: theme.space[4],
+      minHeight: touchTargets.medium,
+    },
 
-  size_large: {
-    paddingVertical: theme.space[3],
-    paddingHorizontal: theme.space[6],
-    minHeight: touchTargets.large,
-    borderRadius: theme.radii.lg,
-  },
+    size_large: {
+      paddingVertical: theme.space[3],
+      paddingHorizontal: theme.space[6],
+      minHeight: touchTargets.large,
+      borderRadius: theme.radii.lg,
+    },
 
-  // ============================================
-  // TEXT STYLES
-  // ============================================
-  text: {
-    ...textVariants.buttonMedium,
-  },
+    // ============================================
+    // TEXT STYLES
+    // ============================================
+    text: {
+      ...textVariants.buttonMedium,
+    },
 
-  text_primary: {
-    color: theme.color.action.primary.text,
-  },
+    text_primary: {
+      color: theme.color.action.primary.text,
+    },
 
-  text_secondary: {
-    color: theme.color.action.secondary.text,
-  },
+    text_secondary: {
+      color: theme.color.action.secondary.text,
+    },
 
-  text_outline: {
-    color: theme.color.action.outline.text,
-  },
+    text_outline: {
+      color: theme.color.action.outline.text,
+    },
 
-  text_ghost: {
-    color: theme.color.action.ghost.text,
-  },
+    text_ghost: {
+      color: theme.color.action.ghost.text,
+    },
 
-  text_danger: {
-    color: theme.color.action.danger.text,
-  },
+    text_danger: {
+      color: theme.color.action.danger.text,
+    },
 
-  text_success: {
-    color: theme.color.action.success.text,
-  },
+    text_success: {
+      color: theme.color.action.success.text,
+    },
 
-  text_small: {
-    ...textVariants.buttonSmall,
-  },
+    text_small: {
+      ...textVariants.buttonSmall,
+    },
 
-  text_medium: {
-    ...textVariants.buttonMedium,
-  },
+    text_medium: {
+      ...textVariants.buttonMedium,
+    },
 
-  text_large: {
-    ...textVariants.buttonLarge,
-  },
+    text_large: {
+      ...textVariants.buttonLarge,
+    },
 
-  textDisabled: {
-    color: theme.color.text.disabled,
-  },
+    textDisabled: {
+      color: theme.color.text.disabled,
+    },
 
-  // ============================================
-  // ICON STYLES
-  // ============================================
-  leftIcon: {
-    marginRight: theme.space[2],
-  },
+    // ============================================
+    // ICON STYLES
+    // ============================================
+    leftIcon: {
+      marginRight: theme.space[2],
+    },
 
-  rightIcon: {
-    marginLeft: theme.space[2],
-  },
-});
+    rightIcon: {
+      marginLeft: theme.space[2],
+    },
+  });
 
 export default Button;

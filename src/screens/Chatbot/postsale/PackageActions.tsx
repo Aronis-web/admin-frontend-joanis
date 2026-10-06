@@ -57,6 +57,7 @@ export const PackageActions: React.FC<{
         <View style={{ flex: 1 }} />
         {canAdd ? (
           <Button
+            guardDoubleTap
             title="➕ Agregar bulto"
             variant="outline"
             size="small"
@@ -67,6 +68,7 @@ export const PackageActions: React.FC<{
         ) : null}
         {canReprint ? (
           <Button
+            guardDoubleTap
             title={n > 1 ? 'Reimprimir…' : 'Reimprimir sticker'}
             leftIcon="print-outline"
             variant="outline"
@@ -95,12 +97,14 @@ export const PackageActions: React.FC<{
           />
           <View style={styles.actionsRow}>
             <Button
+              guardDoubleTap
               title="Cancelar"
               variant="ghost"
               size="small"
               onPress={() => setChooser(false)}
             />
             <Button
+              guardDoubleTap
               title={choice === 'ALL' ? `Imprimir ${n} stickers` : `Imprimir bulto ${choice}`}
               leftIcon="print-outline"
               size="small"

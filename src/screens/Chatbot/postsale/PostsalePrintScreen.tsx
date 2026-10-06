@@ -107,6 +107,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
     >
       <View style={styles.actionsRow}>
         <Button
+          guardDoubleTap
           title="📊 Reporte de stock vendido"
           variant="outline"
           size="small"
@@ -126,11 +127,18 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
         <Card style={StyleSheet.flatten([styles.card, styles.highlightCard])}>
           <View style={styles.rowBetween}>
             <Title>Pedido encontrado</Title>
-            <Button title="Quitar" variant="ghost" size="small" onPress={() => setScanned(null)} />
+            <Button
+              guardDoubleTap
+              title="Quitar"
+              variant="ghost"
+              size="small"
+              onPress={() => setScanned(null)}
+            />
           </View>
           <OrderRow order={scanned} showPrintCounts />
           <View style={styles.actionsRow}>
             <Button
+              guardDoubleTap
               title="Hoja de armado (PDF)"
               leftIcon="document-text-outline"
               variant="outline"
@@ -141,6 +149,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
             />
             {scanned.postsaleStatus === 'PAGADO' ? (
               <Button
+                guardDoubleTap
                 title="Imprimir sticker"
                 leftIcon="print-outline"
                 size="small"
@@ -172,6 +181,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
       </Caption>
       <View style={styles.actionsRow}>
         <Button
+          guardDoubleTap
           title={pageAllOn ? 'Quitar página' : 'Seleccionar página'}
           variant="ghost"
           size="small"
@@ -179,6 +189,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
           disabled={!pageItems.length}
         />
         <Button
+          guardDoubleTap
           title={`Hoja de armado (PDF)${selected.length ? ` (${selected.length})` : ''}`}
           leftIcon="document-text-outline"
           variant="outline"
@@ -188,6 +199,7 @@ export const ChatbotPostsalePrintScreen: React.FC<Props> = ({ navigation }) => {
           loading={printing.printingPicking}
         />
         <Button
+          guardDoubleTap
           title={`Imprimir stickers${selected.length ? ` (${selected.length})` : ''}`}
           leftIcon="print-outline"
           size="small"

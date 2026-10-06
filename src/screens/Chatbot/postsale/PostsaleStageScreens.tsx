@@ -83,6 +83,7 @@ const PendingList: React.FC<{
               {emit ? <EmitInvoiceButton order={o} onEmitted={() => query.refetch()} /> : null}
               {showPickingButton ? (
                 <Button
+                  guardDoubleTap
                   title="Hoja"
                   leftIcon="document-text-outline"
                   variant="outline"

@@ -98,6 +98,7 @@ export const DispatchBatchesSection: React.FC = () => {
           <Title>Despachos a tiendas</Title>
         </View>
         <Button
+          guardDoubleTap
           title="Iniciar despacho"
           leftIcon="play-outline"
           size="small"
@@ -126,6 +127,7 @@ export const DispatchBatchesSection: React.FC = () => {
               {b.error ? <Caption color={theme.color.state.danger.text}>{b.error}</Caption> : null}
             </View>
             <Button
+              guardDoubleTap
               title="Continuar"
               variant="outline"
               size="small"
@@ -402,7 +404,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
           title="No se pudo cargar el despacho"
           description={postsaleErrorMessage(query.error)}
         />
-        <Button title="Volver" variant="outline" size="small" onPress={onBack} />
+        <Button guardDoubleTap title="Volver" variant="outline" size="small" onPress={onBack} />
       </Card>
     );
   }
@@ -459,6 +461,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
             {!d.guide.isDevelopment && d.guide.bizlinksDocumentId ? (
               <View style={styles.actionsRow}>
                 <Button
+                  guardDoubleTap
                   title="Imprimir guía"
                   leftIcon="print-outline"
                   variant="outline"
@@ -516,6 +519,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
             </View>
             {isOpen ? (
               <Button
+                guardDoubleTap
                 title="Sacar"
                 leftIcon="remove-circle-outline"
                 variant="ghost"
@@ -536,6 +540,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
 
       <View style={styles.actionsRow}>
         <Button
+          guardDoubleTap
           title="Volver"
           leftIcon="arrow-back-outline"
           variant="outline"
@@ -544,6 +549,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
         />
         {isOpen && !d.guide ? (
           <Button
+            guardDoubleTap
             title="Cancelar despacho"
             leftIcon="close-circle-outline"
             variant="danger"
@@ -555,6 +561,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
         ) : null}
         {isOpen ? (
           <Button
+            guardDoubleTap
             title="Terminar despacho"
             leftIcon="checkmark-done-outline"
             size="small"

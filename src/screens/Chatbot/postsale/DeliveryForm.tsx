@@ -188,7 +188,13 @@ export const DeliveryForm: React.FC<{
         <Body>{order.customerName || 'Sin nombre'}</Body>
         <Caption color={theme.color.text.muted}>{ROUTE_LABEL[order.route] ?? order.route}</Caption>
         <View style={styles.actionsRow}>
-          <Button title="Cambiar pedido" variant="ghost" size="small" onPress={onChangeOrder} />
+          <Button
+            guardDoubleTap
+            title="Cambiar pedido"
+            variant="ghost"
+            size="small"
+            onPress={onChangeOrder}
+          />
         </View>
       </Card>
 
@@ -270,6 +276,7 @@ export const DeliveryForm: React.FC<{
           <Image source={{ uri: signature }} style={styles.signaturePreview} resizeMode="contain" />
         ) : null}
         <Button
+          guardDoubleTap
           title={signature ? 'Volver a firmar' : 'Capturar firma'}
           variant={signature ? 'outline' : 'primary'}
           leftIcon="create-outline"
@@ -290,6 +297,7 @@ export const DeliveryForm: React.FC<{
           <Image source={{ uri: photo }} style={styles.photoPreview} resizeMode="contain" />
         ) : null}
         <Button
+          guardDoubleTap
           title={photo ? 'Tomar otra foto' : 'Tomar foto'}
           variant={photo ? 'outline' : 'primary'}
           leftIcon="camera-outline"
@@ -301,6 +309,7 @@ export const DeliveryForm: React.FC<{
 
       {converting ? <ActivityIndicator color={theme.color.brand.accent} /> : null}
       <Button
+        guardDoubleTap
         title="Confirmar entrega"
         leftIcon="checkmark-done-outline"
         variant="success"
