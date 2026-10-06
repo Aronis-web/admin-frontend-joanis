@@ -231,6 +231,7 @@ export type MainStackParamList = {
   // Configuration
   Apps: undefined;
   AppVersions: undefined;
+  DeviceFleet: undefined;
   PriceProfiles: undefined;
   Presentations: undefined;
   AttendanceTerminals: undefined;

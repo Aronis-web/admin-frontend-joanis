@@ -70,6 +70,10 @@ const AppVersionsScreen = lazyLoad(
   () => import('@/screens/AppVersions').then((m) => ({ default: m.AppVersionsScreen })),
   'Cargando versiones...'
 );
+const DeviceFleetScreen = lazyLoad(
+  () => import('@/screens/DeviceFleet').then((m) => ({ default: m.DeviceFleetScreen })),
+  'Cargando cajas...'
+);
 const AttendanceTerminalsScreen = lazyLoad(
   () => import('@/screens/Attendance').then((m) => ({ default: m.AttendanceTerminalsScreen })),
   'Cargando terminales...'
@@ -944,6 +948,18 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['apps.manage', 'apps.read']} requireAll={false}>
             <AppVersionsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen
+        name={MAIN_ROUTES.DEVICE_FLEET}
+        options={{
+          title: 'Cajas: acceso y versiones',
+        }}
+      >
+        {() => (
+          <ProtectedRoute requiredPermissions={['app_releases.upload']}>
+            <DeviceFleetScreen />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

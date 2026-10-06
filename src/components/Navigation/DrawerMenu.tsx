@@ -894,6 +894,13 @@ const menuCategories: MenuCategory[] = [
             requiredPermissions: ['apps.manage', 'apps.read'],
           },
           {
+            id: 'device-fleet',
+            icon: 'desktop-outline',
+            label: 'Cajas: acceso y versiones',
+            route: MAIN_ROUTES.DEVICE_FLEET,
+            requiredPermissions: ['app_releases.upload'],
+          },
+          {
             id: 'theme-playground',
             icon: 'color-palette-outline',
             label: 'Theme Playground',

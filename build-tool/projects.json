@@ -10,6 +10,7 @@
       "primaryVersionFile": "app.json",
       "primaryVersionPath": "expo.version",
       "versionFiles": ["app.json", "package.json", "electron/package.json"],
+      "gitRemoteUrl": "https://github.com/Aronis-web/admin-frontend-joanis.git",
       "apk": {
         "supported": true,
         "arch": "arm64-v8a"
@@ -18,6 +19,9 @@
         "supported": true,
         "npmScript": "build:electron:win",
         "exeGlob": "ERP-aio Setup *.exe"
+      },
+      "upload": {
+        "apk": { "appId": "erp-aio", "platform": "android" }
       }
     },
     {
@@ -29,6 +33,7 @@
       "primaryVersionFile": "package.json",
       "primaryVersionPath": "version",
       "versionFiles": ["package.json"],
+      "gitRemoteUrl": "https://github.com/Aronis-web/caja-frontend-joanis.git",
       "apk": {
         "supported": true,
         "arch": "arm64-v8a"
@@ -37,6 +42,9 @@
         "supported": true,
         "npmScript": "electron:build",
         "exeGlob": "CajaGrit-*-setup.exe"
+      },
+      "upload": {
+        "exe": { "appId": "pos", "platform": "windows" }
       }
     }
   ]

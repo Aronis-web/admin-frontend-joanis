@@ -89,6 +89,8 @@ ipcMain.handle('get-projects', () => {
     productName: p.productName,
     apk: !!(p.apk && p.apk.supported),
     electron: !!(p.electron && p.electron.supported),
+    uploadApk: !!(p.upload && p.upload.apk),
+    uploadExe: !!(p.upload && p.upload.exe),
   }));
 });
 
@@ -118,6 +120,8 @@ ipcMain.handle('run-release', (_e, opts) => {
   ];
   if (opts.buildApk) args.push('-BuildApk');
   if (opts.buildElectron) args.push('-BuildElectron');
+  if (opts.upload) args.push('-Upload');
+  if (opts.upload && opts.changelog) args.push('-Changelog', String(opts.changelog));
   if (opts.commitPush) args.push('-CommitPush');
 
   send('release-log', { type: 'sys', text: `> powershell ${args.join(' ')}` });
@@ -177,6 +181,7 @@ function emitLine(line, isErr) {
 
   if (raw.startsWith('@@STEP@@')) { type = 'step'; text = raw.replace('@@STEP@@', '').trim(); }
   else if (raw.startsWith('@@OK@@')) { type = 'ok'; text = raw.replace('@@OK@@', '').trim(); }
+  else if (raw.startsWith('@@WARN@@')) { type = 'warn'; text = raw.replace('@@WARN@@', '').trim(); }
   else if (raw.startsWith('@@ERR@@')) { type = 'err'; text = raw.replace('@@ERR@@', '').trim(); }
   else if (raw.startsWith('@@RESULT@@')) {
     type = 'result';
