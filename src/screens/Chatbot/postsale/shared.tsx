@@ -213,7 +213,9 @@ export const OrderRow: React.FC<{
   right?: React.ReactNode;
   /** Muestra cuántas veces se imprimió el sticker (🏷️) y la hoja de armado (📄). */
   showPrintCounts?: boolean;
-}> = ({ order, onPress, selected, selectable, right, showPrintCounts }) => {
+  /** Aviso bajo los datos del pedido. */
+  note?: string;
+}> = ({ order, onPress, selected, selectable, right, showPrintCounts, note }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   return (
@@ -268,6 +270,11 @@ export const OrderRow: React.FC<{
               <Badge variant="default" size="small" label={`📄 ${order.sheetPrints}`} />
             ) : null}
           </View>
+        ) : null}
+        {note ? (
+          <Caption color={theme.color.state.info.text} style={{ fontWeight: '600' }}>
+            {note}
+          </Caption>
         ) : null}
       </View>
       {right}

@@ -1,7 +1,14 @@
 import { apiClient } from './client';
 import { config } from '@/utils/config';
 import { downloadWithAuth } from '@/utils/downloadWithAuth';
-import type { ChatbotInvoiceType, ChatbotOrderDocument } from '@/types/chatbot';
+import type {
+  ChatbotDispatch,
+  ChatbotDispatchClosePayload,
+  ChatbotDispatchScanResult,
+  ChatbotDispatchSite,
+  ChatbotInvoiceType,
+  ChatbotOrderDocument,
+} from '@/types/chatbot';
 
 /** Estados del flujo de post venta de un pedido de redes sociales. */
 export type PostsaleStatus =
@@ -277,6 +284,9 @@ export interface PostsalePicking {
   items: PostsalePickingItem[];
 }
 
+/** Filtro del listado de despachos a tiendas. */
+export type ChatbotDispatchListStatus = 'OPEN' | 'CLOSED' | 'ALL';
+
 /** Estados en los que se entrega con código + firma + foto. */
 export const POSTSALE_DELIVERABLE: PostsaleStatus[] = ['EN_TIENDA', 'EN_RUTA_DOMICILIO'];
 
@@ -398,6 +408,56 @@ class ChatbotPostsaleService {
       `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` +
       (includePending ? '&includePending=1' : '');
     return downloadWithAuth(`${config.API_URL}${this.basePath}/sold-report?${qs}`);
+  }
+
+  // ── Despacho consolidado a tiendas (una guía de remisión por viaje) ──
+
+  /** Abre el despacho de una tienda (o devuelve el que ya está abierto). */
+  async openDispatch(siteId: string): Promise<ChatbotDispatch> {
+    return apiClient.post<ChatbotDispatch>(`${this.basePath}/dispatches`, { siteId });
+  }
+
+  /** Despachos, del más reciente al más antiguo. */
+  async listDispatches(status: ChatbotDispatchListStatus = 'OPEN'): Promise<ChatbotDispatch[]> {
+    return apiClient.get<ChatbotDispatch[]>(`${this.basePath}/dispatches`, {
+      params: { status },
+    });
+  }
+
+  async getDispatch(id: string): Promise<ChatbotDispatch> {
+    return apiClient.get<ChatbotDispatch>(`${this.basePath}/dispatches/${id}`);
+  }
+
+  /** Tiendas con pedidos de recojo armados esperando despacho. */
+  async dispatchSites(): Promise<ChatbotDispatchSite[]> {
+    return apiClient.get<ChatbotDispatchSite[]>(`${this.basePath}/dispatches/sites`);
+  }
+
+  /** Escanea un bulto (texto del QR del sticker) dentro del despacho. 400 con mensaje si no corresponde. */
+  async scanDispatch(id: string, code: string): Promise<ChatbotDispatchScanResult> {
+    return apiClient.post<ChatbotDispatchScanResult>(`${this.basePath}/dispatches/${id}/scan`, {
+      code,
+    });
+  }
+
+  /** Saca un pedido de un despacho abierto. */
+  async removeDispatchOrder(id: string, orderId: string): Promise<ChatbotDispatch> {
+    return apiClient.post<ChatbotDispatch>(
+      `${this.basePath}/dispatches/${id}/orders/${orderId}/remove`
+    );
+  }
+
+  /** Cancela un despacho abierto (sin guía). */
+  async cancelDispatch(id: string): Promise<ChatbotDispatch> {
+    return apiClient.post<ChatbotDispatch>(`${this.basePath}/dispatches/${id}/cancel`);
+  }
+
+  /**
+   * Termina el despacho: emite UNA guía de remisión (motivo 04, almacén virtual →
+   * tienda) para todos sus pedidos y los pasa a En ruta a tienda.
+   */
+  async closeDispatch(id: string, payload: ChatbotDispatchClosePayload): Promise<ChatbotDispatch> {
+    return apiClient.post<ChatbotDispatch>(`${this.basePath}/dispatches/${id}/close`, payload);
   }
 
   /** Descarga la firma o foto de entrega (endpoint autenticado). */

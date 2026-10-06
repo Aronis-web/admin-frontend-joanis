@@ -1014,3 +1014,80 @@ export interface VerifyChatbotVoucherResponse {
   note?: string;
   error?: string;
 }
+
+// ── Post venta · Despacho consolidado a tiendas ────────────────────────────
+
+/** Estado de un despacho (lote de pedidos de recojo hacia una tienda). */
+export type ChatbotDispatchStatus = 'OPEN' | 'CLOSED' | 'CANCELLED';
+
+/** Pedido dentro de un despacho. */
+export interface ChatbotDispatchOrder {
+  orderId: string;
+  orderNo: string;
+  customerName: string | null;
+  /** Bultos del pedido y cuántos ya se escanearon en este despacho. */
+  packages: number;
+  scannedPackages: number;
+  /** Todos sus bultos escaneados. */
+  complete: boolean;
+  /** Números de boleta/factura. */
+  documents: string[];
+}
+
+/** Guía de remisión del despacho (una por viaje). */
+export interface ChatbotDispatchGuide {
+  bizlinksDocumentId: string | null;
+  number: string;
+  status: string;
+  /** Emitida en desarrollo: no hay PDF real. */
+  isDevelopment: boolean;
+}
+
+/**
+ * Despacho consolidado de pedidos de recojo hacia una tienda: se escanean los
+ * bultos y al terminar se emite UNA guía de remisión (almacén virtual → tienda).
+ */
+export interface ChatbotDispatch {
+  id: string;
+  siteId: string;
+  siteName: string;
+  status: ChatbotDispatchStatus;
+  createdAt: string;
+  createdByName: string | null;
+  closedAt: string | null;
+  /** Último error al emitir la guía. */
+  error: string | null;
+  orders: ChatbotDispatchOrder[];
+  totals: { orders: number; packages: number; units: number };
+  guide: ChatbotDispatchGuide | null;
+}
+
+/** Tienda con pedidos de recojo armados esperando despacho. */
+export interface ChatbotDispatchSite {
+  siteId: string;
+  siteName: string;
+  pendingOrders: number;
+}
+
+/** Bulto escaneado dentro de un despacho. */
+export interface ChatbotDispatchScanInfo {
+  orderId: string;
+  orderNo: string;
+  packageNo: number | null;
+  packages: number;
+  /** Bultos del pedido que faltan escanear en este despacho. */
+  pendingPackages: number[];
+  message?: string | null;
+}
+
+export interface ChatbotDispatchScanResult {
+  dispatch: ChatbotDispatch;
+  scan: ChatbotDispatchScanInfo;
+}
+
+/** Transporte privado = vehículo + conductor; público = transportista. */
+export interface ChatbotDispatchClosePayload {
+  vehicleId?: string;
+  driverId?: string;
+  transporterId?: string;
+}

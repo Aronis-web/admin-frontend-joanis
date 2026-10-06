@@ -25,6 +25,7 @@ import { OrderRow, PostsaleShell, ROUTE_ICON, ROUTE_ORDER, createPostsaleStyles 
 import { usePostsalePrinting, type PostsalePrinting } from './usePostsalePrinting';
 import { PackageActions } from './PackageActions';
 import { EmitInvoiceButton } from './EmitInvoiceButton';
+import { DispatchBatchesSection } from './DispatchBatches';
 
 type Props = NativeStackScreenProps<any, any>;
 
@@ -45,42 +46,59 @@ const PendingList: React.FC<{
   showPickingButton?: boolean;
   /** Armado: botón para emitir (o reimprimir) la boleta/factura. */
   showEmitButton?: boolean;
+  /** Despacho: solo se muestra el botón en pedidos con la boleta/factura por emitir. */
+  emitPendingOnly?: boolean;
+  /** Aviso por pedido bajo sus datos. */
+  noteFor?: (o: PostsaleOrder) => string | undefined;
   onOpen: (o: PostsaleOrder) => void;
-}> = ({ title, emptyText, paged, groups, printing, showPickingButton, showEmitButton, onOpen }) => {
+}> = ({
+  title,
+  emptyText,
+  paged,
+  groups,
+  printing,
+  showPickingButton,
+  showEmitButton,
+  emitPendingOnly,
+  noteFor,
+  onOpen,
+}) => {
   const theme = useTheme();
   const styles = useThemedStyles(createPostsaleStyles);
   const { query, items } = paged;
 
-  const renderRow = (o: PostsaleOrder) => (
-    <OrderRow
-      key={o.id}
-      order={o}
-      onPress={() => onOpen(o)}
-      right={
-        showPickingButton || showEmitButton ? (
-          <View
-            style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}
-          >
-            {showEmitButton ? (
-              <EmitInvoiceButton order={o} onEmitted={() => query.refetch()} />
-            ) : null}
-            {showPickingButton ? (
-              <Button
-                title="Hoja"
-                leftIcon="document-text-outline"
-                variant="outline"
-                size="small"
-                onPress={() => printing.printPicking([o.id])}
-                disabled={printing.printingPicking}
-              />
-            ) : null}
-          </View>
-        ) : (
-          <Ionicons name="chevron-forward" size={20} color={theme.color.text.muted} />
-        )
-      }
-    />
-  );
+  const renderRow = (o: PostsaleOrder) => {
+    const emit = !!showEmitButton && (!emitPendingOnly || o.emission === 'PENDING');
+    return (
+      <OrderRow
+        key={o.id}
+        order={o}
+        onPress={() => onOpen(o)}
+        note={noteFor?.(o)}
+        right={
+          showPickingButton || emit ? (
+            <View
+              style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}
+            >
+              {emit ? <EmitInvoiceButton order={o} onEmitted={() => query.refetch()} /> : null}
+              {showPickingButton ? (
+                <Button
+                  title="Hoja"
+                  leftIcon="document-text-outline"
+                  variant="outline"
+                  size="small"
+                  onPress={() => printing.printPicking([o.id])}
+                  disabled={printing.printingPicking}
+                />
+              ) : null}
+            </View>
+          ) : (
+            <Ionicons name="chevron-forward" size={20} color={theme.color.text.muted} />
+          )
+        }
+      />
+    );
+  };
 
   return (
     <>
@@ -177,6 +195,11 @@ const StageScreen: React.FC<{
   showPackageActions?: boolean;
   /** Armado: emitir la boleta/factura antes de escanear. */
   showEmitButton?: boolean;
+  /** Mostrar el botón de emitir solo en pedidos con la boleta/factura pendiente. */
+  emitPendingOnly?: boolean;
+  /** Despacho: sección "Despachos a tiendas" (una guía por viaje). */
+  showDispatchBatches?: boolean;
+  noteFor?: (o: PostsaleOrder) => string | undefined;
 }> = (p) => {
   const paged = usePagedOrders(p.statuses);
   const printing = usePostsalePrinting();
@@ -185,6 +208,7 @@ const StageScreen: React.FC<{
   const canPrint = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_PRINT);
   const canAddPackage = canPrint || hasPermission(PERMISSIONS.CHATBOT.POSTSALE_ASSEMBLE);
   const canEmit = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_EMIT);
+  const canDispatch = hasPermission(PERMISSIONS.CHATBOT.POSTSALE_DISPATCH);
   const [open, setOpen] = useState<PostsaleOrder | null>(null);
   const goDeliver = (orderId: string) =>
     p.navigation.navigate(MAIN_ROUTES.CHATBOT_POSTSALE_DELIVERY, { orderId });
@@ -200,6 +224,7 @@ const StageScreen: React.FC<{
       onRefresh={() => paged.query.refetch()}
       footer={<Pager paged={paged} />}
     >
+      {p.showDispatchBatches && canDispatch ? <DispatchBatchesSection /> : null}
       <StageScanner
         stage={p.stage}
         description={p.description}
@@ -226,6 +251,8 @@ const StageScreen: React.FC<{
         printing={printing}
         showPickingButton={p.showPickingButton}
         showEmitButton={p.showEmitButton && canEmit}
+        emitPendingOnly={p.emitPendingOnly}
+        noteFor={p.noteFor}
         onOpen={setOpen}
       />
       <OrderDetailModal
@@ -257,6 +284,10 @@ export const ChatbotPostsaleAssemblyScreen: React.FC<Props> = ({ navigation }) =
   />
 );
 
+/** Los pedidos de recojo en tienda no se despachan con el escaneo suelto. */
+const pickupDispatchNote = (o: PostsaleOrder) =>
+  o.route === 'PICKUP' ? 'Se despacha con Iniciar despacho' : undefined;
+
 /** Post venta · Despacho. */
 export const ChatbotPostsaleDispatchScreen: React.FC<Props> = ({ navigation }) => (
   <StageScreen
@@ -267,10 +298,14 @@ export const ChatbotPostsaleDispatchScreen: React.FC<Props> = ({ navigation }) =
     title="Post venta · Despacho"
     subtitle="Carga los pedidos armados en el vehículo o courier"
     statLabel="Por despachar"
-    description="Escanea cada sticker al subirlo al vehículo: el pedido sale en ruta a tienda, domicilio o agencia según su despacho."
+    description="Delivery y agencia: escanea cada sticker al subirlo al vehículo. Recojo en tienda: usa Iniciar despacho para enviarlos juntos con una sola guía de remisión."
     listTitle="Armados por despachar"
     emptyText="No hay pedidos armados esperando despacho."
     groups={DISPATCH_GROUPS}
+    showDispatchBatches
+    showEmitButton
+    emitPendingOnly
+    noteFor={pickupDispatchNote}
   />
 );
 
