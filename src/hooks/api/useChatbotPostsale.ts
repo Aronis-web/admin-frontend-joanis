@@ -41,6 +41,20 @@ export const chatbotPostsaleKeys = {
   dispatchSites: () => [...chatbotPostsaleKeys.all, 'dispatch-sites'] as const,
 };
 
+/**
+ * Tras un escaneo: marca todo el módulo como desactualizado SIN recargarlo y
+ * recarga solo la lista visible (una petición). Antes cada escaneo recargaba
+ * de golpe 6-8 consultas (listas, resumen, estancados, despachos...) y el
+ * siguiente escaneo quedaba en cola detrás de ellas.
+ */
+const refreshAfterScan = (qc: ReturnType<typeof useQueryClient>, refetchLists = true) => {
+  qc.invalidateQueries({ queryKey: chatbotPostsaleKeys.all, refetchType: 'none' });
+  if (refetchLists) {
+    qc.refetchQueries({ queryKey: [...chatbotPostsaleKeys.all, 'page'], type: 'active' });
+    qc.refetchQueries({ queryKey: [...chatbotPostsaleKeys.all, 'list'], type: 'active' });
+  }
+};
+
 /** Resumen de estados de pago y post venta (dashboard). */
 export const usePostsaleOverview = () =>
   useQuery<PostsaleOverview>({
@@ -111,7 +125,7 @@ export const useScanPostsale = () => {
   return useMutation({
     mutationFn: ({ code, stage }: { code: string; stage: PostsaleScanStage }) =>
       chatbotPostsaleApi.scan(code, stage),
-    onSuccess: () => qc.invalidateQueries({ queryKey: chatbotPostsaleKeys.all }),
+    onSuccess: () => refreshAfterScan(qc),
   });
 };
 
@@ -195,8 +209,10 @@ export const useScanChatbotDispatch = () => {
     mutationFn: ({ id, code }: { id: string; code: string }) =>
       chatbotPostsaleApi.scanDispatch(id, code),
     onSuccess: (r) => {
+      // La respuesta ya trae el despacho actualizado: no hace falta recargar nada
+      // mientras se escanea; las listas se refrescan al salir o en su intervalo.
+      refreshAfterScan(qc, false);
       qc.setQueryData(chatbotPostsaleKeys.dispatch(r.dispatch.id), r.dispatch);
-      qc.invalidateQueries({ queryKey: chatbotPostsaleKeys.all });
     },
   });
 };
