@@ -294,6 +294,8 @@ export interface ChatbotOrder {
   totalCents: string;
   /** Monto ya acreditado por vouchers conciliados, en centavos (string). */
   paidCents: string;
+  /** Saldo a favor de otros pedidos aplicado a este (ya incluido en paidCents). */
+  creditCents?: string;
   /**
    * Saldo en centavos: `pagado - total` (asi lo calcula el backend). Llega
    * como número. `< 0` falta pagar; `0` cubierto; `> 0` pagó de más (a favor).

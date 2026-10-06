@@ -719,6 +719,11 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       <View style={styles.balanceCell}>
                         <Caption color={theme.color.text.muted}>Pagado</Caption>
                         <Body style={styles.amount}>{formatSolesFromCents(order.paidCents)}</Body>
+                        {Number(order.creditCents ?? 0) > 0 ? (
+                          <Caption color={theme.color.text.muted}>
+                            {`incluye ${formatSolesFromCents(String(order.creditCents))} de saldo a favor`}
+                          </Caption>
+                        ) : null}
                       </View>
                       <View style={styles.balanceCell}>
                         <Caption color={theme.color.text.muted}>
