@@ -13,7 +13,7 @@ const resultsList = el('resultsList');
 function appendLog(type, text) {
   const line = document.createElement('span');
   line.className = `line l-${type}`;
-  const prefix = { step: '▸ ', ok: '✓ ', err: '✗ ', sys: '', result: '  · ' }[type] || '';
+  const prefix = { step: '▸ ', ok: '✓ ', warn: '⚠ ', err: '✗ ', sys: '', result: '  · ' }[type] || '';
   line.textContent = prefix + text;
   logBox.appendChild(line);
   logBox.scrollTop = logBox.scrollHeight;
@@ -44,7 +44,29 @@ function applyArtifactSupport() {
   exeBox.closest('.check').classList.toggle('disabled', !proj.electron);
   if (!proj.apk) apkBox.checked = false;
   if (!proj.electron) exeBox.checked = false;
+  applyUploadSupport();
 }
+
+// Subir solo tiene sentido si algun artefacto elegido tiene destino en el servidor.
+function applyUploadSupport() {
+  const proj = currentProject();
+  if (!proj) return;
+  const targets = [];
+  if (proj.uploadApk) targets.push('APK');
+  if (proj.uploadExe) targets.push('.exe');
+  const canUpload =
+    (proj.uploadApk && el('optApk').checked) || (proj.uploadExe && el('optElectron').checked);
+  const box = el('optUpload');
+  box.disabled = !canUpload;
+  box.closest('.check').classList.toggle('disabled', !canUpload);
+  if (!canUpload) box.checked = false;
+  el('uploadHint').textContent = targets.length
+    ? `Sube el ${targets.join(' y el ')} para que las apps se actualicen solas`
+    : 'Este proyecto no se publica en el servidor';
+}
+
+el('optApk').addEventListener('change', applyUploadSupport);
+el('optElectron').addEventListener('change', applyUploadSupport);
 
 async function selectProject(key) {
   if (state.running) return;
@@ -99,6 +121,8 @@ runBtn.addEventListener('click', async () => {
     bumpType: state.bumpType,
     buildApk: el('optApk').checked,
     buildElectron: el('optElectron').checked,
+    upload: el('optUpload').checked,
+    changelog: el('changelog').value.trim(),
     commitPush: el('optCommit').checked,
   };
   if (!opts.buildApk && !opts.buildElectron && !opts.commitPush && opts.bumpType === 'none') {
@@ -164,6 +188,9 @@ function renderResults() {
     ['apkMb', 'Tamaño APK (MB)'],
     ['exe', 'Instalador .exe'],
     ['exeMb', 'Tamaño .exe (MB)'],
+    ['apkSigning', 'Firma APK'],
+    ['uploaded_android', 'Publicado (Android)'],
+    ['uploaded_windows', 'Publicado (Windows)'],
     ['outputDir', 'Carpeta'],
   ];
   const rows = map.filter(([k]) => collectedResults[k] !== undefined);

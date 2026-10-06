@@ -146,6 +146,19 @@ body {
 .log .l-step { color: var(--accent); font-weight: 700; margin-top: 6px; }
 .log .l-ok { color: var(--green); font-weight: 600; }
 .log .l-err { color: var(--red); font-weight: 600; }
+.log .l-warn { color: var(--amber); font-weight: 600; }
+.text-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, .3);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
 .log .l-result { color: var(--text-dim); }
 
 .results ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }

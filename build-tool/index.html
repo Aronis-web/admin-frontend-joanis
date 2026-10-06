@@ -59,11 +59,21 @@
     </section>
 
     <section class="panel">
-      <h2>3 · Git</h2>
+      <h2>3 · Servidor</h2>
+      <label class="check">
+        <input type="checkbox" id="optUpload" />
+        <span class="check-box"></span>
+        <span class="check-text"><strong>Subir a Versiones de App</strong><small id="uploadHint">Las apps se actualizan solas desde el servidor</small></span>
+      </label>
+      <textarea id="changelog" class="text-input" rows="2" placeholder="Cambios (opcional)"></textarea>
+    </section>
+
+    <section class="panel">
+      <h2>4 · Git</h2>
       <label class="check">
         <input type="checkbox" id="optCommit" />
         <span class="check-box"></span>
-        <span class="check-text"><strong>Commit + Push</strong><small>chore: release v{versión}</small></span>
+        <span class="check-text"><strong>Commit + Push</strong><small>Solo los archivos de versión, push a GitHub</small></span>
       </label>
     </section>
 
