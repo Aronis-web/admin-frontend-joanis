@@ -54,6 +54,7 @@ export const TransferItemsList: React.FC<TransferItemsListProps> = ({
               )}
               <Text style={styles.itemSku}>SKU: {item.product?.sku || 'N/A'}</Text>
             </View>
+            {item.variantName && <Text style={styles.itemSku}>Color: {item.variantName}</Text>}
           </View>
         </View>
 

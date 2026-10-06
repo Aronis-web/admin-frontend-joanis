@@ -48,6 +48,22 @@ const emptyForm: FormState = {
   note: '',
 };
 
+/**
+ * Mensaje del backend tal cual (p. ej. 409 de assertNoOwnStock: la variante
+ * tiene saldo propio). Los errores del apiClient son de axios.
+ */
+const getApiErrorMessage = (e: any, fallback: string): string => {
+  const message = e?.response?.data?.message;
+  if (Array.isArray(message)) return message.join('\n');
+  return message || e?.message || fallback;
+};
+
+const getErrorTitle = (e: any) => (e?.response?.status === 409 ? 'No se puede' : 'Error');
+
+const OWN_STOCK_WARNING =
+  'Solo se puede si la variante no tiene saldo propio en ningun almacen/area. ' +
+  'Si lo tiene, primero ajusta o traslada ese saldo a 0.';
+
 export const ProductVariantsModal: React.FC<Props> = ({ visible, onClose, product }) => {
   const styles = useThemedStyles(createStyles);
   const productId = product?.id ?? '';
@@ -79,12 +95,8 @@ export const ProductVariantsModal: React.FC<Props> = ({ visible, onClose, produc
     });
   };
 
-  const handleSubmit = async () => {
+  const submit = async () => {
     if (!productId) return;
-    if (!form.name.trim()) {
-      Alert.alert('Falta nombre', 'El nombre de la variante es obligatorio');
-      return;
-    }
     const payload: CreateProductVariantDto = {
       name: form.name.trim(),
       sku: form.sku.trim() || null,
@@ -101,15 +113,39 @@ export const ProductVariantsModal: React.FC<Props> = ({ visible, onClose, produc
       }
       resetForm();
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'No se pudo guardar la variante');
+      Alert.alert(getErrorTitle(e), getApiErrorMessage(e, 'No se pudo guardar la variante'));
     }
+  };
+
+  const handleSubmit = () => {
+    if (!productId) return;
+    if (!form.name.trim()) {
+      Alert.alert('Falta nombre', 'El nombre de la variante es obligatorio');
+      return;
+    }
+    const original = isEditing ? variants.find((v) => v.id === editingId) : undefined;
+    // Desactivar stock propio: el backend lo rechaza (409) si la variante tiene saldo propio.
+    if (original?.tracksStock && !form.tracksStock) {
+      Alert.alert(
+        'Desactivar stock propio',
+        `La variante "${original.name}" dejara de llevar saldo propio. ${OWN_STOCK_WARNING} Continuar?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Desactivar', style: 'destructive', onPress: () => void submit() },
+        ]
+      );
+      return;
+    }
+    void submit();
   };
 
   const handleDelete = (variant: ProductVariant) => {
     if (!productId) return;
     Alert.alert(
       'Eliminar variante',
-      `Se eliminara la variante "${variant.name}" y sus codigos alternos asociados. Continuar?`,
+      `Se eliminara la variante "${variant.name}" y sus codigos alternos asociados.` +
+        (variant.tracksStock ? ` ${OWN_STOCK_WARNING}` : '') +
+        ' Continuar?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -119,7 +155,10 @@ export const ProductVariantsModal: React.FC<Props> = ({ visible, onClose, produc
             try {
               await deleteMut.mutateAsync({ productId, variantId: variant.id });
             } catch (e: any) {
-              Alert.alert('Error', e?.message || 'No se pudo eliminar la variante');
+              Alert.alert(
+                getErrorTitle(e),
+                getApiErrorMessage(e, 'No se pudo eliminar la variante')
+              );
             }
           },
         },

@@ -312,6 +312,9 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         const saleItemId = it?.saleItemId || it?.itemId || it?.saleItem?.id;
         if (saleItemId) {
           map[String(saleItemId)] = (map[String(saleItemId)] || 0) + qty;
+          // Ya atribuido a su linea: no sumar al SKU (otra linea del mismo SKU
+          // puede ser de otra variante).
+          return;
         }
         const sku = getCnItemSku(it);
         if (sku) {
@@ -403,8 +406,9 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         }
         const unitPrice = item.unitPriceCents / 100;
         items.push({
+          saleItemId: item.id,
           sku: item.productSnapshot.sku,
-          descripcion: item.productSnapshot.title,
+          descripcion: item.productName || item.productSnapshot.title,
           cantidad: qty,
           unidadMedida: 'NIU',
           valorUnitario: unitPrice,
@@ -426,8 +430,9 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
         if (remaining <= 0) continue;
         const unitPrice = item.unitPriceCents / 100;
         items.push({
+          saleItemId: item.id,
           sku: item.productSnapshot.sku,
-          descripcion: item.productSnapshot.title,
+          descripcion: item.productName || item.productSnapshot.title,
           cantidad: remaining,
           unidadMedida: 'NIU',
           valorUnitario: unitPrice,
@@ -747,6 +752,11 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                       </Text>
                     </View>
                     <Text style={styles.productSku}>SKU: {item.productSnapshot.sku}</Text>
+                    {item.productSnapshot.variantName ? (
+                      <Text style={styles.productSku}>
+                        Color: {item.productSnapshot.variantName}
+                      </Text>
+                    ) : null}
                     <View style={styles.productDetails}>
                       <View style={styles.productDetailItem}>
                         <Text style={styles.productDetailLabel}>Cant.:</Text>
@@ -1163,6 +1173,11 @@ export const SaleDetailScreen: React.FC<SaleDetailScreenProps> = () => {
                             <Text style={styles.cnItemName} numberOfLines={2}>
                               {item.productSnapshot.title}
                             </Text>
+                            {item.productSnapshot.variantName ? (
+                              <Text style={styles.cnItemMeta}>
+                                Color: {item.productSnapshot.variantName}
+                              </Text>
+                            ) : null}
                             <Text style={styles.cnItemMeta}>
                               SKU: {item.productSnapshot.sku} · S/{' '}
                               {(item.unitPriceCents / 100).toFixed(2)}

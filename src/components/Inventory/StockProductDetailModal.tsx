@@ -166,6 +166,23 @@ export const StockProductDetailModal: React.FC<StockProductDetailModalProps> = (
               Valor {formatMoney(area.availableValueCents, currency)}
             </Caption>
           </View>
+
+          {(area.variants || []).map((variant) => (
+            <View key={variant.variantId} style={styles.inlineMetrics}>
+              <Caption color="secondary">Color: {variant.name || 'Sin nombre'}</Caption>
+              <Caption color="tertiary">Total {formatQuantity(variant.quantity)}</Caption>
+              <Caption color="tertiary">Disp. {formatQuantity(variant.available)}</Caption>
+            </View>
+          ))}
+          {(area.variants || []).length > 0 && (
+            <Caption color="tertiary">
+              Sin variante:{' '}
+              {formatQuantity(
+                area.totalStock -
+                  (area.variants || []).reduce((sum, v) => sum + Number(v.quantity || 0), 0)
+              )}
+            </Caption>
+          )}
         </View>
       ))}
     </Card>

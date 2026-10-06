@@ -168,6 +168,13 @@ export const CampaignProductDetailScreen: React.FC<CampaignProductDetailScreenPr
       if (stockData && stockData.length > 0) {
         const stockDetails: StockDetailByWarehouse[] = stockData.map((item: any) => ({
           warehouse: item.warehouse?.name || 'Almacén desconocido',
+          // Ids de ubicacion + variante: el modal arma keys unicas con ellos y
+          // solo ofrece para repartir el saldo del producto (variantId null).
+          warehouseId: item.warehouseId || item.warehouse?.id,
+          area: item.area?.name ?? null,
+          areaId: item.areaId ?? item.area?.id ?? null,
+          variantId: item.variantId ?? null,
+          variantName: item.variantName ?? null,
           total: item.quantityBase || 0,
           reserved: item.reservedQuantityBase || 0,
           available: item.availableQuantityBase || item.quantityBase || 0,

@@ -25,6 +25,7 @@ import {
 import { ProductSalePrice } from '@/types/price-profiles';
 import { useTenantStore } from '@/store/tenant';
 import logger from '@/utils/logger';
+import { splitRepartoStockRows } from '@/utils/repartos';
 import {
   DistributionMode,
   DistributionTotals,
@@ -57,6 +58,8 @@ interface UseDistributionFormV2Return {
 
   // stock
   stockBuckets: StockBucket[];
+  /** Disponible en colores (variantes con stock propio): no repartible. */
+  variantStockAvailable: number;
   stockAllocations: Record<string, number>;
   setStockAllocation: (key: string, qty: number) => void;
   toggleStockBucket: (key: string) => void;
@@ -452,6 +455,8 @@ export function useDistributionFormV2(
             siteId: it.warehouse?.siteId ?? currentSite.id,
             area: it.area?.name ?? null,
             areaId: it.areaId ?? it.area?.id ?? null,
+            variantId: it.variantId ?? null,
+            variantName: it.variantName ?? null,
             total,
             reserved,
             available,
@@ -490,7 +495,7 @@ export function useDistributionFormV2(
   //   - Si un item de `localStockData` no trae `siteId`, se descarta también:
   //     el padre debe garantizar que venga marcado (lo asigna a `currentSiteId`
   //     por defecto si la API no lo expone, ver `CampaignProductBannerModal`).
-  const stockBuckets = useMemo<StockBucket[]>(() => {
+  const stockView = useMemo<{ buckets: StockBucket[]; variantAvailable: number }>(() => {
     // Preferimos siempre el stock fresco consultado al módulo de inventario
     // por el hook (tiene `available` correcto). Si aún no cargó, falló o
     // vino vacío (caso típico: producto cuyo master todavía es PRELIMINARY
@@ -503,7 +508,7 @@ export function useDistributionFormV2(
           received: all.length,
         });
       }
-      return [];
+      return { buckets: [], variantAvailable: 0 };
     }
 
     const sameSite: StockDetailByWarehouse[] = [];
@@ -548,7 +553,14 @@ export function useDistributionFormV2(
       rejected: rejected.length,
     });
 
-    return sameSite.map((s) => ({
+    // Los repartos solo mueven el saldo del producto (fila sin variante). El
+    // stock propio de cada color se informa aparte y no se ofrece como bucket,
+    // asi la key warehouse::area queda unica.
+    const { productRows, variantAvailable } = splitRepartoStockRows(sameSite, (s) =>
+      Number(s.available)
+    );
+
+    const buckets = productRows.map((s) => ({
       key: stockKeyOf(s.warehouseId, s.areaId),
       warehouseId: s.warehouseId || 'unknown',
       warehouseName: s.warehouse,
@@ -561,7 +573,11 @@ export function useDistributionFormV2(
       reserved: Math.round(Number(s.reserved) || 0),
       allocation: undefined,
     }));
+    return { buckets, variantAvailable: Math.round(variantAvailable) };
   }, [freshStock, localStockData, currentSite?.id, siteWarehouseIds]);
+  const stockBuckets = stockView.buckets;
+  /** Disponible en filas de variante (colores) de la sede: no repartible. */
+  const variantStockAvailable = stockView.variantAvailable;
 
   const totalFromAllocations = useMemo(
     () =>
@@ -1308,6 +1324,7 @@ export function useDistributionFormV2(
     currentSite,
     currentCompany,
     stockBuckets,
+    variantStockAvailable,
     stockAllocations,
     setStockAllocation,
     toggleStockBucket,
