@@ -104,6 +104,7 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const send = () => {
+    if (create.isPending) return;
     if (!aud.promos && !aud.live) {
       Alert.alert('Público', 'Elige a quién enviar la promoción.');
       return;
@@ -369,7 +370,9 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
               <Button
                 title="Enviar promoción"
                 leftIcon="send-outline"
+                guardDoubleTap
                 onPress={send}
+                loading={create.isPending}
                 disabled={create.isPending}
               />
             </View>
