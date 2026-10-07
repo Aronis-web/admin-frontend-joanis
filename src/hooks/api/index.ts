@@ -18,6 +18,7 @@ export * from './useChatbotConversations';
 export * from './useChatbotOrders';
 export * from './useChatbotCatalog';
 export * from './useChatbotCrate';
+export * from './usePromotionPacks';
 export * from './useChatbotSync';
 export * from './useChatbotSettings';
 export * from './useChatbotMetrics';

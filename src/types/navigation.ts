@@ -380,6 +380,9 @@ export type MainStackParamList = {
   ChatbotPostsaleDelivery: { orderId?: string } | undefined;
   ChatbotPostsaleTracking: { status?: string } | undefined;
 
+  // Promociones
+  PromotionPacks: undefined;
+
   // Contaduría · Dashboard
   ContaduriaDashboard: undefined;
 

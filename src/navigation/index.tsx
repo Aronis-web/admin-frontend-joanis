@@ -676,6 +676,9 @@ const ChatbotSyncRulesScreen = lazyLoad(
 const ChatbotBroadcastsScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotBroadcastsScreen }))
 );
+const PromotionPacksScreen = lazyLoad(() =>
+  import('@/screens/Promotions').then((m) => ({ default: m.PromotionPacksScreen }))
+);
 const ChatbotPostsalePrintScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsalePrintScreen }))
 );
@@ -2613,6 +2616,15 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.complaints.manage']}>
             <ChatbotComplaintsScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+
+      {/* Promociones */}
+      <MainStackNavigator.Screen name="PromotionPacks" options={{ title: 'Packs' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['promotions.packs.read']}>
+            <PromotionPacksScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

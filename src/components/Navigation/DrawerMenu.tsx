@@ -538,6 +538,22 @@ const menuCategories: MenuCategory[] = [
       },
     ],
   },
+  // Promociones (packs de productos para caja y chatbot)
+  {
+    id: 'promociones',
+    title: 'Promociones',
+    icon: 'gift-outline',
+    requiredPermissions: ['promotions.packs.read'],
+    items: [
+      {
+        id: 'promotion-packs',
+        icon: 'pricetag-outline',
+        label: 'Packs',
+        route: MAIN_ROUTES.PROMOTION_PACKS,
+        requiredPermissions: ['promotions.packs.read'],
+      },
+    ],
+  },
   // Post venta (pedidos de redes sociales: impresión, armado, despacho, entrega)
   {
     id: 'post-venta',

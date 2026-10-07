@@ -34,6 +34,7 @@ export {
 export { chatbotOrdersApi } from './chatbot-orders';
 export { chatbotCatalogApi } from './chatbot-catalog';
 export { chatbotCrateApi } from './chatbot-crate';
+export { promotionPacksApi } from './promotion-packs';
 export { chatbotSyncApi } from './chatbot-sync';
 export { chatbotSettingsApi } from './chatbot-settings';
 export { chatbotMetricsApi } from './chatbot-metrics';

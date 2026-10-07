@@ -606,6 +606,12 @@ export const PERMISSIONS = {
     POSTSALE_EMIT: 'chatbot.postsale.emit',
   },
 
+  // ========== PROMOCIONES ==========
+  PROMOTIONS: {
+    PACKS_READ: 'promotions.packs.read',
+    PACKS_MANAGE: 'promotions.packs.manage',
+  },
+
   // ========== NOTIFICATIONS WHATSAPP ==========
   NOTIFICATIONS: {
     WHATSAPP: {

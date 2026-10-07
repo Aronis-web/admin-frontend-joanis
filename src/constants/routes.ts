@@ -275,6 +275,9 @@ export const MAIN_ROUTES = {
   CHATBOT_POSTSALE_DELIVERY: 'ChatbotPostsaleDelivery',
   CHATBOT_POSTSALE_TRACKING: 'ChatbotPostsaleTracking',
   CHATBOT_SETTINGS: 'ChatbotSettings',
+
+  // Promociones
+  PROMOTION_PACKS: 'PromotionPacks',
 } as const;
 
 /**
@@ -570,6 +573,9 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   CHATBOT_POSTSALE_RECEPTION: 'chatbot.postsale.receive',
   CHATBOT_POSTSALE_DELIVERY: 'chatbot.postsale.deliver',
   CHATBOT_POSTSALE_TRACKING: 'chatbot.postsale.read',
+
+  // Promociones
+  PROMOTION_PACKS: 'promotions.packs.read',
 };
 
 /**
