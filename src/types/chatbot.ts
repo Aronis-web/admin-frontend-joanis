@@ -729,6 +729,10 @@ export interface BotSettings {
   paymentMethods?: BotPaymentMethod[];
   /** Segundos que el bot espera ante mensajes seguidos antes de responder (0–60). */
   replyWaitSeconds?: number;
+  /** Bot y ventas por red social, con el link de cada red. */
+  channelConfig?: BotChannelConfig;
+  /** Links por defecto (solo lectura) cuando no se configuró uno. */
+  channelLinkDefaults?: Partial<Record<BotChannel, string | null>>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -799,7 +803,17 @@ export interface BotFulfillmentSite {
 }
 
 export type UpdateBotSettingsBody = Partial<
-  Omit<BotSettings, 'id' | 'companyOwnerId' | 'createdAt' | 'updatedAt' | 'deepseekAvailable'>
+  Omit<
+    BotSettings,
+    'id' | 'companyOwnerId' | 'createdAt' | 'updatedAt' | 'deepseekAvailable' | 'channelLinkDefaults'
+  >
+>;
+
+export type BotChannel = 'whatsapp' | 'messenger' | 'instagram';
+
+export type BotChannelConfig = Record<
+  BotChannel,
+  { bot: boolean; catalog: boolean; link: string | null }
 >;
 
 // ============================================

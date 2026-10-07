@@ -25,6 +25,7 @@ import type { BotEmojiLevel, BotFaqRule, BotLlmMode, UpdateBotSettingsBody } fro
 import Alert from '@/utils/alert';
 import { BotFulfillmentPanel } from './BotFulfillmentPanel';
 import { BotPaymentMethodsPanel } from './BotPaymentMethodsPanel';
+import { BotChannelsPanel } from './BotChannelsPanel';
 
 interface Props {
   visible: boolean;
@@ -33,7 +34,7 @@ interface Props {
   embedded?: boolean;
 }
 
-type Tab = 'estado' | 'personalidad' | 'faq' | 'entrega' | 'pagos' | 'terminos';
+type Tab = 'estado' | 'redes' | 'personalidad' | 'faq' | 'entrega' | 'pagos' | 'terminos';
 
 /** Fila editable de FAQ en el UI (usa string CSV de keywords). */
 interface FaqRow {
@@ -288,7 +289,7 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = 
 
       {/* Tabs */}
       <View style={styles.tabs}>
-        {(['estado', 'personalidad', 'faq', 'entrega', 'pagos', 'terminos'] as Tab[]).map((t) => (
+        {(['estado', 'redes', 'personalidad', 'faq', 'entrega', 'pagos', 'terminos'] as Tab[]).map((t) => (
           <Pressable
             key={t}
             onPress={() => setTab(t)}
@@ -300,7 +301,9 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = 
             >
               {t === 'estado'
                 ? 'Estado'
-                : t === 'personalidad'
+                : t === 'redes'
+                  ? 'Redes'
+                  : t === 'personalidad'
                   ? 'Personalidad'
                   : t === 'faq'
                     ? 'FAQ'
@@ -556,6 +559,8 @@ export const BotControlModal: React.FC<Props> = ({ visible, onClose, embedded = 
           </View>
         ) : tab === 'entrega' ? (
           <BotFulfillmentPanel visible={visible} />
+        ) : tab === 'redes' ? (
+          <BotChannelsPanel visible={visible} />
         ) : tab === 'pagos' ? (
           <BotPaymentMethodsPanel visible={visible} />
         ) : (
