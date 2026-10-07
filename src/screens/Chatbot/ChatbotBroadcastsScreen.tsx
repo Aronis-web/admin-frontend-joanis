@@ -280,8 +280,18 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
               style={[styles.input, styles.inputMultiline]}
             />
             <Caption color={theme.color.text.muted}>{body.length}/1000</Caption>
+            <Caption color={theme.color.text.muted}>Texto del botón</Caption>
+            <TextInput
+              value={linkLabel}
+              onChangeText={setLinkLabel}
+              placeholder={linkUrl.trim() ? 'Ver más' : '🛍️ Ver catálogo'}
+              placeholderTextColor={theme.color.text.muted}
+              maxLength={20}
+              style={styles.input}
+            />
             <Caption color={theme.color.text.muted}>
-              Link como botón (opcional). Sin link, el botón es "🛍️ Ver catálogo".
+              Link del botón (opcional). Sin link, el botón abre el catálogo. Máx. 20 letras en el
+              texto.
             </Caption>
             <TextInput
               value={linkUrl}
@@ -292,16 +302,6 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
               autoCorrect={false}
               style={styles.input}
             />
-            {linkUrl.trim() ? (
-              <TextInput
-                value={linkLabel}
-                onChangeText={setLinkLabel}
-                placeholder="Texto del botón (ej. Ver la transmisión)"
-                placeholderTextColor={theme.color.text.muted}
-                maxLength={20}
-                style={styles.input}
-              />
-            ) : null}
             {aud.channels.includes('instagram') ? (
               <Caption color={theme.color.text.muted}>
                 En Instagram el link va escrito en el mensaje (se puede tocar).
