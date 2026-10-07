@@ -36,6 +36,7 @@ import { ConversationList } from './components/ConversationList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ConversationPanel } from './components/ConversationPanel';
 import { WaSessionModal } from './components/WaSessionModal';
+import { ResumeMutedModal } from './components/ResumeMutedModal';
 import {
   formatRelative,
   PURCHASE_STAGES,
@@ -56,6 +57,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
   const isSplit = width >= SPLIT_BREAKPOINT;
 
   const [sessionOpen, setSessionOpen] = useState(false);
+  const [resumeOpen, setResumeOpen] = useState(false);
   const { hasPermission } = usePermissions();
   const canSettings = hasPermission('chatbot.settings.manage');
   const canSession = hasPermission('chatbot.session.manage');
@@ -374,6 +376,18 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
       </View>
       {!isSearching ? renderViewChips() : null}
       {!isSearching ? renderChannelChips() : null}
+      {!isSearching && view === 'human' && canSession ? (
+        <View style={styles.filtersRow}>
+          <Pressable
+            onPress={() => setResumeOpen(true)}
+            style={styles.stageTrigger}
+            accessibilityRole="button"
+          >
+            <Ionicons name="play-circle-outline" size={16} color={theme.color.brand.accent} />
+            <Body style={styles.stageTriggerText}>Retomar chats con el bot apagado</Body>
+          </Pressable>
+        </View>
+      ) : null}
       {!isSearching ? renderStageFilter() : null}
       {renderStagePickerModal()}
       <View style={{ flex: 1 }}>
@@ -472,6 +486,11 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <WaSessionModal visible={sessionOpen} onClose={() => setSessionOpen(false)} />
+        <ResumeMutedModal
+          visible={resumeOpen}
+          onClose={() => setResumeOpen(false)}
+          onDone={() => void refetch()}
+        />
       </SafeAreaView>
     </ScreenLayout>
   );

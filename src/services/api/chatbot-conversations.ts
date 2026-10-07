@@ -1,4 +1,27 @@
 import { apiClient } from './client';
+
+export interface ResumeMutedItem {
+  id: string;
+  name: string | null;
+  phone: string;
+  lastUserAt: string | null;
+  pending: number;
+  images: number;
+  cartItems: number;
+  cartTotalCents: number;
+  openOrder: string | null;
+  within24h: boolean;
+  action: string;
+}
+
+export interface ResumeMutedResult {
+  dryRun: boolean;
+  days: number;
+  total: number;
+  enabled?: number;
+  resumed?: number;
+  plan: ResumeMutedItem[];
+}
 import { config } from '@/utils/config';
 import { downloadWithAuth } from '@/utils/downloadWithAuth';
 import { useAuthStore } from '@/store/auth';
@@ -214,6 +237,11 @@ class ChatbotConversationsService {
 
   async handoff(id: string, body: HandoffBody): Promise<{ ok: boolean }> {
     return apiClient.post<{ ok: boolean }>(`${this.basePath}/${id}/handoff`, body);
+  }
+
+  /** Chats de Messenger/Instagram con el bot apagado: ensayo (dryRun) o retomarlos. */
+  async resumeMuted(body: { dryRun: boolean; days?: number; ids?: string[] }): Promise<ResumeMutedResult> {
+    return apiClient.post<ResumeMutedResult>(`${this.basePath}/resume-muted`, body);
   }
 
   async reply(id: string, body: SendReplyBody): Promise<{ ok: boolean }> {
