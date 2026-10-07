@@ -67,7 +67,7 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
   const escalationsQuery = useConversationEscalations(conversation?.id);
   const dismissMutation = useDismissCase();
   const queryClient = useQueryClient();
-  const [pauseOnReply, setPauseOnReply] = useState(true);
+  const [pauseOnReply, setPauseOnReply] = useState(false);
   const replyMutation = useReplyConversation();
 
   const [text, setText] = useState('');
