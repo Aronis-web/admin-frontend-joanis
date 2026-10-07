@@ -32,6 +32,8 @@ export interface BroadcastAudience {
   promos: boolean;
   live: boolean;
   channels: BroadcastChannel[];
+  /** "Preguntaron por": quienes escribieron alguna de estas palabras en 24 h. */
+  keywords?: string[];
 }
 
 export interface BroadcastPreview {
@@ -65,6 +67,8 @@ export interface CreateBroadcastPayload extends BroadcastAudience {
   productIds: string[];
   linkUrl?: string | null;
   linkLabel?: string | null;
+  /** Categoria en la que abre el boton del catalogo (p.ej. "Packs"). */
+  catalogCategory?: string | null;
 }
 
 /**

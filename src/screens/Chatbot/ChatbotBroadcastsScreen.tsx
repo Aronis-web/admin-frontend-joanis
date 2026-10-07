@@ -46,6 +46,7 @@ type Props = NativeStackScreenProps<any, 'ChatbotBroadcasts'>;
 const AUDIENCE_OPTIONS = [
   { label: '🔥 Quieren promociones', value: 'promos' },
   { label: '📣 Quieren transmisiones', value: 'live' },
+  { label: '🔎 Preguntaron por…', value: 'asked' },
 ];
 const MAX_PRODUCTS = 10;
 
@@ -75,6 +76,13 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
   const [channels, setChannels] = useState<BroadcastChannel[]>(['messenger']);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
+  const [keywordsText, setKeywordsText] = useState('');
+  const [debouncedWords, setDebouncedWords] = useState('');
+  const [catalogCategory, setCatalogCategory] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedWords(keywordsText), 500);
+    return () => clearTimeout(t);
+  }, [keywordsText]);
   const toggleChannel = (ch: BroadcastChannel, on: boolean) =>
     setChannels((prev) => (on ? [...new Set([...prev, ch])] : prev.filter((c) => c !== ch)));
 
@@ -87,6 +95,12 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
     promos: audience.includes('promos'),
     live: audience.includes('live'),
     channels: CHANNELS.map((c) => c.key).filter((k) => channels.includes(k)),
+    keywords: audience.includes('asked')
+      ? debouncedWords
+          .split(',')
+          .map((w) => w.trim())
+          .filter((w) => w.length >= 3)
+      : [],
   };
   const preview = useBroadcastPreview(aud);
   const products = useBroadcastProducts(debounced);
@@ -105,7 +119,11 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
 
   const send = () => {
     if (create.isPending) return;
-    if (!aud.promos && !aud.live) {
+    if (audience.includes('asked') && !aud.keywords.length) {
+      Alert.alert('Público', 'Escribe qué preguntaron (por ejemplo: globo).');
+      return;
+    }
+    if (!aud.promos && !aud.live && !aud.keywords.length) {
       Alert.alert('Público', 'Elige a quién enviar la promoción.');
       return;
     }
@@ -149,6 +167,7 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
                 productIds: picked.map((p) => p.id),
                 linkUrl: linkUrl.trim() || null,
                 linkLabel: linkLabel.trim() || null,
+                catalogCategory: catalogCategory.trim() || null,
                 ...aud,
               },
               {
@@ -228,6 +247,22 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
               onChange={(sel) => setAudience(sel as string[])}
               multiple
             />
+            {audience.includes('asked') ? (
+              <>
+                <TextInput
+                  value={keywordsText}
+                  onChangeText={setKeywordsText}
+                  placeholder="Palabras, separadas por coma (ej. globo, pack)"
+                  placeholderTextColor={theme.color.text.muted}
+                  autoCapitalize="none"
+                  style={styles.input}
+                />
+                <Caption color={theme.color.text.muted}>
+                  Le llega a quien escribió alguna de esas palabras en las últimas 24 h, aunque no
+                  haya aceptado promociones (es la respuesta a lo que pidió).
+                </Caption>
+              </>
+            ) : null}
             <View style={styles.block}>
               {preview.isFetching ? (
                 <ActivityIndicator color={theme.color.brand.accent} />
@@ -294,6 +329,15 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
               Link del botón (opcional). Sin link, el botón abre el catálogo. Máx. 20 letras en el
               texto.
             </Caption>
+            {!linkUrl.trim() ? (
+              <TextInput
+                value={catalogCategory}
+                onChangeText={setCatalogCategory}
+                placeholder="Abrir el catálogo en la categoría (ej. Packs)"
+                placeholderTextColor={theme.color.text.muted}
+                style={styles.input}
+              />
+            ) : null}
             <TextInput
               value={linkUrl}
               onChangeText={setLinkUrl}
