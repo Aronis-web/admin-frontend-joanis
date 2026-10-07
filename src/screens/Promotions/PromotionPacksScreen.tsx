@@ -64,6 +64,7 @@ interface PackFormState {
   price: string;
   availablePos: boolean;
   availableChatbot: boolean;
+  hideUnitsChatbot: boolean;
   isActive: boolean;
   /** YYYY-MM-DD (fecha local) o '' */
   validFrom: string;
@@ -77,6 +78,7 @@ const emptyForm: PackFormState = {
   price: '',
   availablePos: true,
   availableChatbot: false,
+  hideUnitsChatbot: false,
   isActive: true,
   validFrom: '',
   validTo: '',
@@ -131,6 +133,7 @@ const toForm = (pack: AdminPackView): PackFormState => ({
   price: (pack.priceCents / 100).toFixed(2),
   availablePos: pack.availablePos,
   availableChatbot: pack.availableChatbot,
+  hideUnitsChatbot: pack.hideUnitsChatbot ?? false,
   isActive: pack.isActive,
   validFrom: isoToLocalDate(pack.validFrom),
   validTo: isoToLocalDate(pack.validTo),
@@ -272,6 +275,7 @@ export const PromotionPacksScreen: React.FC<Props> = ({ navigation }) => {
       priceCents,
       availablePos: form.availablePos,
       availableChatbot: form.availableChatbot,
+      hideUnitsChatbot: form.availableChatbot && form.hideUnitsChatbot,
       isActive: form.isActive,
       validFrom,
       validTo,
@@ -530,6 +534,15 @@ export const PromotionPacksScreen: React.FC<Props> = ({ navigation }) => {
                     onValueChange={(v) => setForm((f) => ({ ...f, availableChatbot: v }))}
                   />
                 </View>
+                {form.availableChatbot ? (
+                  <View style={styles.switchRow}>
+                    <Body>En el chatbot vender solo en pack (no por unidad)</Body>
+                    <Switch
+                      value={form.hideUnitsChatbot}
+                      onValueChange={(v) => setForm((f) => ({ ...f, hideUnitsChatbot: v }))}
+                    />
+                  </View>
+                ) : null}
 
                 <Caption color={theme.color.text.muted} style={styles.groupLabel}>
                   Vigencia (opcional)

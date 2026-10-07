@@ -28,6 +28,7 @@ export interface AdminPackView {
   isActive: boolean;
   availablePos: boolean;
   availableChatbot: boolean;
+  hideUnitsChatbot: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -59,6 +60,7 @@ export interface CreatePackBody {
   priceCents: number;
   availablePos: boolean;
   availableChatbot: boolean;
+  hideUnitsChatbot?: boolean;
   isActive?: boolean;
   validFrom?: string | null;
   validTo?: string | null;
