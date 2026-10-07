@@ -29,7 +29,7 @@ export const useBroadcastPreview = (audience: BroadcastAudience) =>
   useQuery<BroadcastPreview>({
     queryKey: chatbotBroadcastsKeys.preview(audience),
     queryFn: () => chatbotBroadcastsApi.preview(audience),
-    enabled: audience.promos || audience.live,
+    enabled: (audience.promos || audience.live) && audience.channels.length > 0,
     staleTime: 30 * 1000,
   });
 

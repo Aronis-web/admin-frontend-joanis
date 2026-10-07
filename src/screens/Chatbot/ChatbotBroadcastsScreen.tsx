@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   View,
 } from 'react-native';
@@ -36,7 +37,7 @@ import {
   useBroadcasts,
   useCreateBroadcast,
 } from '@/hooks/api/useChatbotBroadcasts';
-import type { BroadcastProduct } from '@/services/api/chatbot-broadcasts';
+import type { BroadcastChannel, BroadcastProduct } from '@/services/api/chatbot-broadcasts';
 import Alert from '@/utils/alert';
 import { formatDateTime, formatSolesFromCents } from './utils';
 
@@ -48,6 +49,19 @@ const AUDIENCE_OPTIONS = [
 ];
 const MAX_PRODUCTS = 10;
 
+const CHANNELS: Array<{ key: BroadcastChannel; label: string }> = [
+  { key: 'whatsapp', label: 'WhatsApp' },
+  { key: 'messenger', label: 'Messenger' },
+  { key: 'instagram', label: 'Instagram' },
+];
+const CHANNEL_LABEL: Record<string, string> = {
+  whatsapp: 'WhatsApp',
+  messenger: 'Messenger',
+  instagram: 'Instagram',
+};
+const ars = (n: number) =>
+  `ARS ${n.toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
 /** Promociones masivas por Messenger a quienes aceptaron recibirlas. */
 export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
@@ -58,13 +72,22 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [picked, setPicked] = useState<BroadcastProduct[]>([]);
+  const [channels, setChannels] = useState<BroadcastChannel[]>(['messenger']);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkLabel, setLinkLabel] = useState('');
+  const toggleChannel = (ch: BroadcastChannel, on: boolean) =>
+    setChannels((prev) => (on ? [...new Set([...prev, ch])] : prev.filter((c) => c !== ch)));
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim()), 350);
     return () => clearTimeout(t);
   }, [search]);
 
-  const aud = { promos: audience.includes('promos'), live: audience.includes('live') };
+  const aud = {
+    promos: audience.includes('promos'),
+    live: audience.includes('live'),
+    channels: CHANNELS.map((c) => c.key).filter((k) => channels.includes(k)),
+  };
   const preview = useBroadcastPreview(aud);
   const products = useBroadcastProducts(debounced);
   const history = useBroadcasts();
@@ -85,8 +108,16 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Público', 'Elige a quién enviar la promoción.');
       return;
     }
+    if (!aud.channels.length) {
+      Alert.alert('Redes', 'Prende al menos una red: WhatsApp, Messenger o Instagram.');
+      return;
+    }
     if (!title.trim() || !body.trim()) {
       Alert.alert('Promoción', 'Escribe el título y el mensaje.');
+      return;
+    }
+    if (linkUrl.trim() && !/^https:\/\/\S+$/i.test(linkUrl.trim())) {
+      Alert.alert('Link', 'El link debe empezar con https://');
       return;
     }
     const reach = preview.data?.reachable ?? 0;
@@ -97,11 +128,14 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
       );
       return;
     }
+    const cost = preview.data?.cost?.totalArs ?? 0;
     Alert.alert(
       'Enviar promoción',
-      `Se enviará por Messenger a ${reach} cliente${reach === 1 ? '' : 's'}${
-        picked.length ? ` con ${picked.length} producto${picked.length === 1 ? '' : 's'}` : ''
-      }. ¿Continuar?`,
+      `Se enviará por ${aud.channels.map((c) => CHANNEL_LABEL[c]).join(', ')} a ${reach} cliente${
+        reach === 1 ? '' : 's'
+      }${picked.length ? ` con ${picked.length} producto${picked.length === 1 ? '' : 's'}` : ''}.` +
+        (cost > 0 ? ` Costo aproximado: ${ars(cost)}.` : ' Sin costo.') +
+        ' ¿Continuar?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -112,6 +146,8 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
                 title: title.trim(),
                 body: body.trim(),
                 productIds: picked.map((p) => p.id),
+                linkUrl: linkUrl.trim() || null,
+                linkLabel: linkLabel.trim() || null,
                 ...aud,
               },
               {
@@ -119,6 +155,8 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
                   setTitle('');
                   setBody('');
                   setPicked([]);
+                  setLinkUrl('');
+                  setLinkLabel('');
                   Alert.alert('Enviando', 'La promoción se está enviando. Mira el avance abajo.');
                 },
                 onError: (err: any) =>
@@ -146,7 +184,7 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.headerTitle}>Promociones</Text>
           </View>
           <Text style={styles.headerSubtitle}>
-            Por Messenger · a quienes aceptaron y escribieron en las últimas 24 h
+            Por WhatsApp, Messenger e Instagram · a quienes aceptaron y escribieron en las últimas 24 h
           </Text>
         </LinearGradient>
 
@@ -166,6 +204,22 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
         >
           <Card style={styles.card}>
             <Title>Nueva promoción</Title>
+            <Caption color={theme.color.text.muted}>Redes</Caption>
+            {CHANNELS.map((c) => {
+              const r = preview.data?.byChannel?.[c.key];
+              return (
+                <View key={c.key} style={styles.channelRow}>
+                  <Body style={{ flex: 1 }}>{c.label}</Body>
+                  {channels.includes(c.key) && r ? (
+                    <Caption color={theme.color.text.muted}>{r.reachable} hoy</Caption>
+                  ) : null}
+                  <Switch
+                    value={channels.includes(c.key)}
+                    onValueChange={(v) => toggleChannel(c.key, v)}
+                  />
+                </View>
+              );
+            })}
             <Caption color={theme.color.text.muted}>Público</Caption>
             <ChipGroup
               options={AUDIENCE_OPTIONS}
@@ -177,16 +231,32 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
               {preview.isFetching ? (
                 <ActivityIndicator color={theme.color.brand.accent} />
               ) : preview.data ? (
-                <Body>
-                  <Text style={{ fontWeight: '700' }}>{preview.data.reachable}</Text> lo recibirán
-                  hoy · {preview.data.optedIn} aceptaron en total
-                </Body>
+                <>
+                  <Body>
+                    <Text style={{ fontWeight: '700' }}>{preview.data.reachable}</Text> lo recibirán
+                    hoy · {preview.data.optedIn} aceptaron en total
+                  </Body>
+                  {preview.data.cost ? (
+                    <Body>
+                      Costo aprox.:{' '}
+                      <Text style={{ fontWeight: '700' }}>
+                        {preview.data.cost.totalArs > 0 ? ars(preview.data.cost.totalArs) : 'sin costo'}
+                      </Text>
+                      {preview.data.cost.waMessages > 0
+                        ? ` · WhatsApp: ${preview.data.cost.waMessages} mensajes, quedan ${preview.data.cost.waFreeLeft} gratis este mes (luego ${ars(preview.data.cost.waPriceArs)} c/u)`
+                        : ''}
+                    </Body>
+                  ) : null}
+                </>
               ) : (
-                <Caption color={theme.color.text.muted}>Elige al menos un público.</Caption>
+                <Caption color={theme.color.text.muted}>
+                  {aud.channels.length ? 'Elige al menos un público.' : 'Prende al menos una red.'}
+                </Caption>
               )}
               <Caption color={theme.color.text.muted}>
-                Meta solo deja escribir por Messenger hasta 24 h después del último mensaje del
-                cliente.
+                Meta solo deja escribir hasta 24 h después del último mensaje del cliente.
+                Messenger e Instagram no cobran; WhatsApp sí, pasados los 1,000 mensajes gratis del
+                mes.
               </Caption>
             </View>
 
@@ -206,12 +276,37 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
               placeholder="¡Hola! 🔥 Este fin de semana tenemos…"
               placeholderTextColor={theme.color.text.muted}
               multiline
-              maxLength={1800}
+              maxLength={1000}
               style={[styles.input, styles.inputMultiline]}
             />
+            <Caption color={theme.color.text.muted}>{body.length}/1000</Caption>
             <Caption color={theme.color.text.muted}>
-              Va con el botón "🛍️ Ver catálogo". {body.length}/1800
+              Link como botón (opcional). Sin link, el botón es "🛍️ Ver catálogo".
             </Caption>
+            <TextInput
+              value={linkUrl}
+              onChangeText={setLinkUrl}
+              placeholder="https://..."
+              placeholderTextColor={theme.color.text.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+            />
+            {linkUrl.trim() ? (
+              <TextInput
+                value={linkLabel}
+                onChangeText={setLinkLabel}
+                placeholder="Texto del botón (ej. Ver la transmisión)"
+                placeholderTextColor={theme.color.text.muted}
+                maxLength={20}
+                style={styles.input}
+              />
+            ) : null}
+            {aud.channels.includes('instagram') ? (
+              <Caption color={theme.color.text.muted}>
+                En Instagram el link va escrito en el mensaje (se puede tocar).
+              </Caption>
+            ) : null}
 
             <Caption color={theme.color.text.muted}>
               Productos destacados (opcional, hasta {MAX_PRODUCTS}) · salen en carrusel con "🛒 Lo
@@ -303,6 +398,10 @@ export const ChatbotBroadcastsScreen: React.FC<Props> = ({ navigation }) => {
                         .filter(Boolean)
                         .join(' + ')}
                       {b.productIds.length ? ` · ${b.productIds.length} productos` : ''}
+                      {` · ${(b.channels?.length ? b.channels : ['messenger'])
+                        .map((c) => CHANNEL_LABEL[c] ?? c)
+                        .join(', ')}`}
+                      {b.estCostArs ? ` · aprox. ${ars(Number(b.estCostArs))}` : ''}
                     </Caption>
                   </View>
                   <Badge
@@ -352,6 +451,11 @@ const createStyles = (theme: Theme) =>
       fontWeight: '700',
       color: theme.color.brand.onHeader,
       letterSpacing: 0.3,
+    },
+    channelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[2],
     },
     headerSubtitle: {
       fontSize: 13,

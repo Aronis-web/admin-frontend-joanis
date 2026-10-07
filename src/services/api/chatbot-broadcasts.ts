@@ -2,12 +2,20 @@ import { apiClient } from './client';
 
 export type BroadcastStatus = 'SENDING' | 'SENT' | 'FAILED';
 
-/** Promocion enviada por Messenger. */
+export type BroadcastChannel = 'whatsapp' | 'messenger' | 'instagram';
+
+/** Promocion enviada por WhatsApp, Messenger y/o Instagram. */
 export interface ChatbotBroadcast {
   id: string;
-  channel: 'messenger';
+  channel: string;
+  /** Redes a las que se envio (promociones viejas: solo Messenger). */
+  channels?: BroadcastChannel[];
   title: string;
   body: string;
+  linkUrl?: string | null;
+  linkLabel?: string | null;
+  /** Costo estimado al enviarla, en pesos argentinos (WhatsApp factura en ARS). */
+  estCostArs?: number | null;
   productIds: string[];
   audiencePromos: boolean;
   audienceLive: boolean;
@@ -23,6 +31,7 @@ export interface ChatbotBroadcast {
 export interface BroadcastAudience {
   promos: boolean;
   live: boolean;
+  channels: BroadcastChannel[];
 }
 
 export interface BroadcastPreview {
@@ -31,6 +40,16 @@ export interface BroadcastPreview {
   /** De ellos, los que escribieron en las ultimas 24 h (regla de Meta). */
   reachable: number;
   windowHours: number;
+  byChannel?: Partial<Record<BroadcastChannel, { optedIn: number; reachable: number }>>;
+  cost?: {
+    currency: 'ARS';
+    waMessages: number;
+    waUsedThisMonth: number;
+    waFreeLeft: number;
+    waPriceArs: number;
+    totalArs: number;
+    note: string;
+  };
 }
 
 export interface BroadcastProduct {
@@ -44,6 +63,8 @@ export interface CreateBroadcastPayload extends BroadcastAudience {
   title: string;
   body: string;
   productIds: string[];
+  linkUrl?: string | null;
+  linkLabel?: string | null;
 }
 
 /**
