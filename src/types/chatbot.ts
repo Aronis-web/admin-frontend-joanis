@@ -309,6 +309,10 @@ export interface ChatbotOrder {
   invoice?: ChatbotOrderInvoice;
   /** Comprobantes ya emitidos para las ventas del pedido. */
   documents?: ChatbotOrderDocument[];
+  /** Saldo a favor usado: de qué pedido salió, sus vouchers y en qué pedidos se usó. */
+  credit?: ChatbotOrderCredit | null;
+  /** Algún voucher del pedido parece repetido de otro chat. */
+  hasDuplicateVoucher?: boolean;
   rejectedReason: string | null;
   validatedBy: string | null;
   validatedAt: string | null;
@@ -404,6 +408,48 @@ export interface ConversationVoucher {
   status: VoucherStatus;
   createdAt: string;
   updatedAt: string;
+  /** Quién validó el pago y cuándo. */
+  verifiedByName?: string | null;
+  verifiedAt?: string | null;
+  /** Aviso: parece repetido de un voucher de otro chat (no se bloqueó). */
+  duplicate?: ChatbotVoucherDuplicate | null;
+}
+
+export interface ChatbotVoucherDuplicate {
+  reason: string | null;
+  original: {
+    id: string;
+    orderNo: string | null;
+    orderStatus: string | null;
+    customerName: string | null;
+    phone: string | null;
+    status: string;
+    createdAt: string;
+  } | null;
+}
+
+export interface ChatbotOrderCredit {
+  totalCents: number;
+  sources: Array<{
+    orderId: string;
+    orderNo: string;
+    appliedCents: number;
+    excessCents: number;
+    remainingCents: number;
+    validatedBy: string | null;
+    validatedAt: string | null;
+    vouchers: Array<{
+      id: string;
+      bank: string | null;
+      operationNumber: string | null;
+      amountCents: number | null;
+      status: string;
+      verifiedBy: string | null;
+      verifiedAt: string | null;
+      hasImage: boolean;
+    }>;
+    usedIn: Array<{ orderId: string; orderNo: string; amountCents: number; status: string; createdAt: string }>;
+  }>;
 }
 
 /** Body para extender la vigencia del apartado de stock de un pedido. */

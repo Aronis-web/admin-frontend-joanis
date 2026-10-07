@@ -48,6 +48,7 @@ import type {
   ChatbotOrderPaymentFilter,
   ChatbotOrderStatus,
   ConversationVoucher,
+  ChatbotOrderCredit,
   VoucherStatus,
 } from '@/types/chatbot';
 import Alert from '@/utils/alert';
@@ -709,6 +710,16 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       </View>
                       <Badge variant={badge.variant} label={badge.label} />
                     </View>
+                    {order.hasDuplicateVoucher ? (
+                      <View style={styles.dupBanner}>
+                        <Body color={theme.color.state.danger.text} style={{ fontWeight: '700' }}>
+                          ⚠ Posible voucher duplicado
+                        </Body>
+                        <Caption color={theme.color.state.danger.text}>
+                          Uno de sus pagos coincide con un voucher de otro chat. Revísalo antes de validar.
+                        </Caption>
+                      </View>
+                    ) : null}
 
                     {/* Montos en una línea */}
                     <View style={styles.balanceRow}>
@@ -772,6 +783,9 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
                       handled={handledVouchers}
                       allowActions={isActionable(order.status) && canValidate}
                     />
+                    {order.credit ? (
+                      <OrderCreditSection credit={order.credit} styles={styles} theme={theme} />
+                    ) : null}
 
                     {order.rejectedReason ? (
                       <Caption color={theme.color.text.muted}>
@@ -1017,6 +1031,54 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
 // ============================================
 // Vouchers de la conversación (por pedido)
 // ============================================
+// Saldo a favor usado en el pedido: de dónde salió y en qué pedidos se usó.
+const OrderCreditSection: React.FC<{
+  credit: ChatbotOrderCredit;
+  styles: ReturnType<typeof createStyles>;
+  theme: Theme;
+}> = ({ credit, styles, theme }) => (
+  <View style={styles.vouchersBox}>
+    <Caption color={theme.color.text.muted} style={{ fontWeight: '700' }}>
+      {`SALDO A FAVOR USADO (${formatSolesFromCents(String(credit.totalCents))})`}
+    </Caption>
+    {credit.sources.map((src) => (
+      <View key={src.orderId} style={styles.voucherItem}>
+        <Body style={{ fontWeight: '700' }}>
+          {`${formatSolesFromCents(String(src.appliedCents))} del pedido ${src.orderNo}`}
+        </Body>
+        <Caption color={theme.color.text.muted}>
+          {src.validatedBy
+            ? `Pago de ese pedido validado por ${src.validatedBy}${src.validatedAt ? ` · ${formatDateTime(src.validatedAt)}` : ''}`
+            : 'El pago de ese pedido aún no tiene validador registrado'}
+        </Caption>
+        {src.vouchers.map((v) => (
+          <View key={v.id} style={{ gap: 2 }}>
+            <Caption>
+              {`Voucher ${formatSolesFromCents(v.amountCents == null ? null : String(v.amountCents))}`}
+              {v.bank ? ` · ${v.bank}` : ''}
+              {v.operationNumber ? ` · Op. ${v.operationNumber}` : ''}
+              {v.verifiedBy ? ` · validado por ${v.verifiedBy}` : ''}
+              {v.verifiedAt ? ` · ${formatDateTime(v.verifiedAt)}` : ''}
+            </Caption>
+            {v.hasImage ? (
+              <View style={styles.voucherItemActions}>
+                <VoucherLinkButton voucherId={v.id} />
+              </View>
+            ) : null}
+          </View>
+        ))}
+        <Caption color={theme.color.text.muted}>
+          {`Ese saldo (${formatSolesFromCents(String(src.excessCents))}) se usó en: `}
+          {src.usedIn
+            .map((u) => `${u.orderNo} ${formatSolesFromCents(String(u.amountCents))}${['REJECTED', 'EXPIRED'].includes(u.status) ? ' (anulado)' : ''}`)
+            .join(' · ')}
+          {` · queda ${formatSolesFromCents(String(src.remainingCents))}`}
+        </Caption>
+      </View>
+    ))}
+  </View>
+);
+
 interface OrderVouchersSectionProps {
   order: ChatbotOrder;
   styles: ReturnType<typeof createStyles>;
@@ -1103,6 +1165,34 @@ const OrderVouchersSection: React.FC<OrderVouchersSectionProps> = ({
               </View>
               <Badge variant={vbadge.variant} label={vbadge.label} />
             </View>
+            {v.duplicate ? (
+              <View style={styles.dupBanner}>
+                <Body color={theme.color.state.danger.text} style={{ fontWeight: '700' }}>
+                  ⚠ Posible voucher duplicado
+                </Body>
+                <Caption color={theme.color.state.danger.text}>
+                  {v.duplicate.reason ?? 'Coincide con un voucher de otro chat.'}
+                </Caption>
+                {v.duplicate.original ? (
+                  <Caption color={theme.color.state.danger.text}>
+                    {`Original: ${v.duplicate.original.customerName ?? 'Cliente'}`}
+                    {v.duplicate.original.phone ? ` · ${v.duplicate.original.phone}` : ''}
+                    {v.duplicate.original.orderNo ? ` · pedido ${v.duplicate.original.orderNo}` : ' · sin pedido'}
+                    {` · ${formatDateTime(v.duplicate.original.createdAt)}`}
+                  </Caption>
+                ) : null}
+                <View style={styles.voucherItemActions}>
+                  {v.duplicate.original ? (
+                    <VoucherLinkButton voucherId={v.duplicate.original.id} title="🧾 Ver voucher original" />
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+            {status === 'VERIFIED' && v.verifiedByName ? (
+              <Caption color={theme.color.text.muted}>
+                {`Validado por ${v.verifiedByName}${v.verifiedAt ? ` · ${formatDateTime(v.verifiedAt)}` : ''}`}
+              </Caption>
+            ) : null}
             <View style={styles.voucherItemActions}>
               {hasImage ? <VoucherLinkButton voucherId={v.id} /> : null}
               {allowActions && !closed ? (
@@ -1254,6 +1344,14 @@ const createStyles = (theme: Theme) =>
     vouchersLoading: {
       paddingVertical: spacing[2],
       alignItems: 'flex-start',
+    },
+    dupBanner: {
+      gap: spacing[1],
+      backgroundColor: theme.color.state.danger.background,
+      borderColor: theme.color.state.danger.border,
+      borderWidth: 1,
+      borderRadius: borderRadius.md,
+      padding: spacing[2],
     },
     vouchersBox: {
       gap: spacing[2],
