@@ -48,6 +48,8 @@ const PendingList: React.FC<{
   showEmitButton?: boolean;
   /** Despacho: solo se muestra el botón en pedidos con la boleta/factura por emitir. */
   emitPendingOnly?: boolean;
+  /** Permiso para emitir (sin el, la boleta ya emitida igual se puede ver). */
+  canEmit?: boolean;
   /** Aviso por pedido bajo sus datos. */
   noteFor?: (o: PostsaleOrder) => string | undefined;
   onOpen: (o: PostsaleOrder) => void;
@@ -60,6 +62,7 @@ const PendingList: React.FC<{
   showPickingButton,
   showEmitButton,
   emitPendingOnly,
+  canEmit,
   noteFor,
   onOpen,
 }) => {
@@ -68,7 +71,12 @@ const PendingList: React.FC<{
   const { query, items } = paged;
 
   const renderRow = (o: PostsaleOrder) => {
-    const emit = !!showEmitButton && (!emitPendingOnly || o.emission === 'PENDING');
+    // La boleta/factura ya emitida se puede ver en TODAS las etapas; la que
+    // falta se emite desde aqui con el permiso (antes solo en Armado/Despacho
+    // y solo con permiso de emitir).
+    const emit =
+      o.emission === 'EMITTED' ||
+      (o.emission === 'PENDING' && !!canEmit && (!!showEmitButton || !emitPendingOnly));
     return (
       <OrderRow
         key={o.id}
@@ -80,7 +88,9 @@ const PendingList: React.FC<{
             <View
               style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}
             >
-              {emit ? <EmitInvoiceButton order={o} onEmitted={() => query.refetch()} /> : null}
+              {emit ? (
+                <EmitInvoiceButton order={o} canEmit={canEmit} onEmitted={() => query.refetch()} />
+              ) : null}
               {showPickingButton ? (
                 <Button
                   guardDoubleTap
@@ -253,6 +263,7 @@ const StageScreen: React.FC<{
         showPickingButton={p.showPickingButton}
         showEmitButton={p.showEmitButton && canEmit}
         emitPendingOnly={p.emitPendingOnly}
+        canEmit={canEmit}
         noteFor={p.noteFor}
         onOpen={setOpen}
       />

@@ -42,12 +42,15 @@ export const EmitInvoiceButton: React.FC<{
   order: Pick<PostsaleOrder, 'id' | 'orderNo' | 'emission' | 'invoiceType'>;
   /** Tras emitir, para refrescar la lista. */
   onEmitted?: () => void;
-}> = ({ order, onEmitted }) => {
+  /** Permiso de emitir: sin el, solo se ve (no se emite ni se regenera). */
+  canEmit?: boolean;
+}> = ({ order, onEmitted, canEmit = true }) => {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<PdfPreviewRequest | null>(null);
   // Candado sincrono: un doble toque no alcanza a ver el estado "busy".
   const running = useRef(false);
   if (order.emission !== 'PENDING' && order.emission !== 'EMITTED') return null;
+  if (order.emission === 'PENDING' && !canEmit) return null;
   const emitted = order.emission === 'EMITTED';
   const name = docName(order);
 
@@ -56,7 +59,11 @@ export const EmitInvoiceButton: React.FC<{
     running.current = true;
     setBusy(true);
     try {
-      const res = await chatbotPostsaleApi.emit(order.id);
+      // Ya emitido y sin permiso de emitir: solo se consultan sus documentos.
+      const res =
+        emitted && !canEmit
+          ? await chatbotPostsaleApi.documents(order.id)
+          : await chatbotPostsaleApi.emit(order.id);
       if (!emitted) onEmitted?.();
       const numbers = res.documents
         .map((d) => d.documentNumber)
