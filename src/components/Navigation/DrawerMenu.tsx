@@ -516,6 +516,13 @@ const menuCategories: MenuCategory[] = [
         requiredPermissions: ['chatbot.broadcasts.manage'],
       },
       {
+        id: 'chatbot-support',
+        icon: 'headset-outline',
+        label: 'Atención al cliente',
+        route: MAIN_ROUTES.CHATBOT_SUPPORT,
+        requiredPermissions: ['chatbot.support.read'],
+      },
+      {
         id: 'chatbot-complaints',
         icon: 'book-outline',
         label: 'Libro de reclamaciones',

@@ -700,6 +700,12 @@ const ChatbotPostsaleTrackingScreen = lazyLoad(() =>
 const ChatbotPostsaleRedirectScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotPostsaleRedirectScreen }))
 );
+const ChatbotSupportScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSupportScreen }))
+);
+const ChatbotSupportCustomerScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSupportCustomerScreen }))
+);
 const ChatbotComplaintsScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotComplaintsScreen }))
 );
@@ -2606,6 +2612,20 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.postsale.read']}>
             <ChatbotPostsaleTrackingScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotSupport" options={{ title: 'Atención al cliente' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.support.read']}>
+            <ChatbotSupportScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotSupportCustomer" options={{ title: 'Ficha del cliente' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.support.read']}>
+            <ChatbotSupportCustomerScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

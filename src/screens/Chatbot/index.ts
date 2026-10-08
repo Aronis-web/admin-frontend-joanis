@@ -9,6 +9,8 @@ export { ChatbotTrainingScreen } from './ChatbotTrainingScreen';
 export { ChatbotSettingsScreen } from './ChatbotSettingsScreen';
 export { ChatbotDashboardScreen } from './ChatbotDashboardScreen';
 export { ChatbotComplaintsScreen } from './ChatbotComplaintsScreen';
+export { ChatbotSupportScreen } from './ChatbotSupportScreen';
+export { ChatbotSupportCustomerScreen } from './ChatbotSupportCustomerScreen';
 export { ChatbotBroadcastsScreen } from './ChatbotBroadcastsScreen';
 export {
   ChatbotPostsalePrintScreen,
