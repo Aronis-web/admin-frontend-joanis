@@ -196,7 +196,7 @@ export interface GetConversationsParams {
 }
 
 /** Vistas rápidas de la bandeja (`GET /chatbot/conversations?view=`). */
-export type ConversationView = 'escalated' | 'unanswered' | 'human' | 'validation';
+export type ConversationView = 'escalated' | 'unanswered' | 'human' | 'validation' | 'refund';
 
 /** Conteos de cada vista rápida (`GET /chatbot/conversations/counts`). */
 export type ConversationCounts = Record<ConversationView, number>;

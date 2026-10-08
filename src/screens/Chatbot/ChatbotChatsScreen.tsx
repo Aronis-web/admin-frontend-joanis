@@ -123,6 +123,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
     { key: 'escalated', label: 'Escalados', icon: 'alert-circle-outline' },
     { key: 'unanswered', label: 'Sin responder', icon: 'mail-unread-outline' },
     { key: 'validation', label: 'Por validar', icon: 'receipt-outline' },
+    { key: 'refund', label: 'Requiere devolución', icon: 'cash-outline' },
     { key: 'human', label: 'Humano', icon: 'person-outline' },
   ];
 
@@ -136,7 +137,7 @@ export const ChatbotChatsScreen: React.FC<Props> = ({ navigation }) => {
       {VIEWS.map((v) => {
         const active = view === v.key;
         const count = v.key ? countsQuery.data?.[v.key] : undefined;
-        const alert = v.key === 'escalated' && !!count;
+        const alert = (v.key === 'escalated' || v.key === 'refund') && !!count;
         return (
           <Pressable
             key={v.label}
