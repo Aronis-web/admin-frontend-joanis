@@ -62,6 +62,23 @@ export interface PostsaleOrder {
   invoiceType?: ChatbotInvoiceType | null;
 }
 
+/** Guia de remision del despacho a tienda en el que viajo el pedido. */
+export interface PostsaleOrderGuide {
+  dispatchId: string;
+  number: string;
+  status: string;
+  isDevelopment: boolean;
+  /** null si la guia es de desarrollo o aun no tiene PDF. */
+  bizlinksDocumentId: string | null;
+}
+
+/** Respuesta de `GET /chatbot/postsale/:id/documents`. */
+export interface PostsaleOrderDocuments {
+  orderId: string;
+  documents: ChatbotOrderDocument[];
+  guide: PostsaleOrderGuide | null;
+}
+
 /** Respuesta de `POST /chatbot/postsale/:id/emit`. */
 export interface PostsaleEmitResult {
   orderId: string;
@@ -388,6 +405,11 @@ class ChatbotPostsaleService {
 
   async deliver(id: string, payload: PostsaleDeliverPayload): Promise<PostsaleDeliverResult> {
     return apiClient.post<PostsaleDeliverResult>(`${this.basePath}/${id}/deliver`, payload);
+  }
+
+  /** Boleta/factura y guia del pedido, en cualquier etapa (para ver e imprimir). */
+  async documents(id: string): Promise<PostsaleOrderDocuments> {
+    return apiClient.get<PostsaleOrderDocuments>(`${this.basePath}/${id}/documents`);
   }
 
   async picking(id: string): Promise<PostsalePicking> {

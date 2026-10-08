@@ -1,13 +1,14 @@
 /**
  * Botón de Armado que emite la boleta/factura del pedido (venta en POS por la
- * caja virtual) e imprime el comprobante. Si ya se emitió, solo reimprime.
+ * caja virtual) y abre la vista previa del comprobante para descargarlo o
+ * imprimirlo. Si ya se emitió, solo abre la vista previa.
  * El escaneo de Armado se bloquea hasta que el comprobante esté emitido.
  */
 import React, { useRef, useState } from 'react';
 
 import { Button } from '@/design-system';
 import Alert from '@/utils/alert';
-import { saveAndSharePdf } from '@/utils/fileDownload';
+import { PdfPreviewModal, type PdfPreviewRequest } from '@/components/PdfPreview/PdfPreviewModal';
 import { bizlinksApi } from '@/services/api/bizlinks';
 import {
   chatbotPostsaleApi,
@@ -19,23 +20,22 @@ import type { ChatbotOrderDocument } from '@/types/chatbot';
 const docName = (o: Pick<PostsaleOrder, 'invoiceType'>): string =>
   o.invoiceType === 'FACTURA' ? 'factura' : o.invoiceType === 'BOLETA' ? 'boleta' : 'comprobante';
 
-/** Descarga e imprime cada comprobante; devuelve los que aún no tienen PDF. */
-async function printDocuments(docs: ChatbotOrderDocument[]): Promise<string[]> {
+/** Comprobantes con PDF (para la vista previa) y los que aún no lo tienen. */
+function splitDocuments(docs: ChatbotOrderDocument[], name: string) {
+  const ready: PdfPreviewRequest[] = [];
   const missing: string[] = [];
   for (const doc of docs) {
     const label = doc.documentNumber ?? `venta ${doc.saleId.slice(0, 8)}`;
-    if (!doc.bizlinksDocumentId) {
-      missing.push(label);
-      continue;
-    }
-    try {
-      const blob = await bizlinksApi.downloadPDF(doc.bizlinksDocumentId);
-      await saveAndSharePdf(blob, label.replace(/[\\/:*?"<>|]/g, '-'), `Comprobante ${label}`);
-    } catch {
-      missing.push(label);
-    }
+    const id = doc.bizlinksDocumentId;
+    if (!id) missing.push(label);
+    else
+      ready.push({
+        title: `${name.charAt(0).toUpperCase()}${name.slice(1)} ${label}`,
+        fileName: label,
+        load: () => bizlinksApi.downloadPDF(id),
+      });
   }
-  return missing;
+  return { ready, missing };
 }
 
 export const EmitInvoiceButton: React.FC<{
@@ -44,6 +44,7 @@ export const EmitInvoiceButton: React.FC<{
   onEmitted?: () => void;
 }> = ({ order, onEmitted }) => {
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<PdfPreviewRequest | null>(null);
   // Candado sincrono: un doble toque no alcanza a ver el estado "busy".
   const running = useRef(false);
   if (order.emission !== 'PENDING' && order.emission !== 'EMITTED') return null;
@@ -61,12 +62,13 @@ export const EmitInvoiceButton: React.FC<{
         .map((d) => d.documentNumber)
         .filter(Boolean)
         .join(', ');
-      const missing = await printDocuments(res.documents);
+      const { ready, missing } = splitDocuments(res.documents, name);
+      if (ready.length) setPreview(ready[0]);
       if (missing.length) {
         Alert.alert(
           emitted ? 'PDF aún no disponible' : 'Comprobante emitido',
           `${emitted ? '' : `Pedido #${order.orderNo}: ${numbers || 'venta creada'}. `}` +
-            `El PDF de ${missing.join(', ')} aún no está listo. Vuelve a tocar "Imprimir ${name}" en unos segundos.`
+            `El PDF de ${missing.join(', ')} aún no está listo. Vuelve a tocar "Ver ${name}" en unos segundos.`
         );
       } else if (!emitted) {
         Alert.alert('Comprobante emitido', `Pedido #${order.orderNo}: ${numbers}.`);
@@ -103,15 +105,18 @@ export const EmitInvoiceButton: React.FC<{
   };
 
   return (
-    <Button
-      guardDoubleTap
-      title={emitted ? `Imprimir ${name}` : `Emitir ${name}`}
-      leftIcon={emitted ? 'print-outline' : 'receipt-outline'}
-      variant={emitted ? 'outline' : 'primary'}
-      size="small"
-      onPress={confirmAndRun}
-      disabled={busy}
-      loading={busy}
-    />
+    <>
+      <PdfPreviewModal request={preview} onClose={() => setPreview(null)} />
+      <Button
+        guardDoubleTap
+        title={emitted ? `Ver ${name}` : `Emitir ${name}`}
+        leftIcon={emitted ? 'print-outline' : 'receipt-outline'}
+        variant={emitted ? 'outline' : 'primary'}
+        size="small"
+        onPress={confirmAndRun}
+        disabled={busy}
+        loading={busy}
+      />
+    </>
   );
 };

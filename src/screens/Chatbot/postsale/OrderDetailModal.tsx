@@ -48,6 +48,7 @@ import type { PostsalePrinting, PrintResult } from './usePostsalePrinting';
 import { PackageActions } from './PackageActions';
 import { PrinterPickerModal, PrinterRow } from './PrinterPicker';
 import { usePostsalePrinterStore } from './printerStore';
+import { OrderDocuments } from './OrderDocuments';
 
 export const OrderDetailModal: React.FC<{
   orderId: string | null;
@@ -197,6 +198,8 @@ export const OrderDetailModal: React.FC<{
               />
             ) : null}
           </View>
+
+          {orderId ? <OrderDocuments orderId={orderId} /> : null}
 
           {canPrint || canPicking ? <PrinterRow /> : null}
 

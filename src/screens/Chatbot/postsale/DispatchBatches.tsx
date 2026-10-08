@@ -42,6 +42,7 @@ import {
 import { postsaleErrorMessage } from '@/services/api/chatbot-postsale';
 import { bizlinksApi } from '@/services/api/bizlinks';
 import { saveAndSharePdf } from '@/utils/fileDownload';
+import { PdfPreviewModal, type PdfPreviewRequest } from '@/components/PdfPreview/PdfPreviewModal';
 import Alert from '@/utils/alert';
 import { formatDateTime } from '../utils';
 import { OLD_STICKER_MESSAGE, isOldSticker } from './paging';
@@ -253,6 +254,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
   const [entries, setEntries] = useState<DispatchScanEntry[]>([]);
   const [transport, setTransport] = useState(false);
   const [printingGuide, setPrintingGuide] = useState(false);
+  const [guidePreview, setGuidePreview] = useState<PdfPreviewRequest | null>(null);
 
   const d = query.data;
   const incomplete = d ? d.orders.filter((o) => !o.complete).length : 0;
@@ -280,14 +282,22 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
     [scan, id]
   );
 
+  /** Vista previa de la guia; desde ahi se descarga o imprime. */
   const printGuide = async (dispatch: ChatbotDispatch) => {
     setPrintingGuide(true);
     try {
-      const ok = await printDispatchGuide(dispatch);
-      if (!ok) {
+      const g = dispatch.guide;
+      const docId = g?.bizlinksDocumentId;
+      if (g && docId) {
+        setGuidePreview({
+          title: `Guía de remisión ${g.number}`,
+          fileName: `Guia ${g.number}`,
+          load: () => bizlinksApi.downloadPDF(docId),
+        });
+      } else {
         Alert.alert(
           'PDF aún no disponible',
-          `El PDF de la guía ${dispatch.guide?.number ?? ''} aún no está listo. Vuelve a tocar "Imprimir guía" en unos segundos.`
+          `El PDF de la guía ${dispatch.guide?.number ?? ''} aún no está listo. Vuelve a tocar "Ver guía" en unos segundos.`
         );
       }
     } finally {
@@ -462,7 +472,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
               <View style={styles.actionsRow}>
                 <Button
                   guardDoubleTap
-                  title="Imprimir guía"
+                  title="Ver guía"
                   leftIcon="print-outline"
                   variant="outline"
                   size="small"
@@ -572,6 +582,7 @@ const DispatchBatchView: React.FC<{ id: string; onBack: () => void }> = ({ id, o
         ) : null}
       </View>
 
+      <PdfPreviewModal request={guidePreview} onClose={() => setGuidePreview(null)} />
       <TransportSelectionModal
         visible={transport}
         onClose={() => setTransport(false)}
