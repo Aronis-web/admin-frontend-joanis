@@ -21,6 +21,8 @@ export interface ReconciledLine {
     orderId: string | null;
     orderNo: string | null;
     orderStatus: string | null;
+    confident?: boolean;
+    validated?: boolean;
   } | null;
 }
 
@@ -58,7 +60,11 @@ export interface ReconcileResult {
     missing: number;
     missingCents: number;
     debitsCents: number;
+    /** Pedidos validados automaticamente con este cruce. */
+    validated?: number;
   };
+  /** Pedidos que quedaron validados porque el banco confirmo su pago. */
+  validated?: Array<{ orderId: string; orderNo: string; customer: string | null }>;
   errors: string[];
   /** Lo que se leyo de cada archivo (movimientos, abonos o por que fallo). */
   files?: Array<{

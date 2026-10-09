@@ -396,6 +396,24 @@ export const ChatbotReconciliationScreen: React.FC<Props> = ({ navigation }) => 
                       label={`Sin voucher: ${t.missing} · ${soles(t.missingCents)}`}
                     />
                   </View>
+                  {result?.validated?.length ? (
+                    <View style={{ gap: spacing[1] }}>
+                      <Body style={{ fontWeight: '700' }}>
+                        ✅ {result.validated.length} pedido
+                        {result.validated.length === 1 ? '' : 's'} validado
+                        {result.validated.length === 1 ? '' : 's'} con este cruce
+                      </Body>
+                      <Caption color={theme.color.text.muted}>
+                        {result.validated
+                          .map((v) => `${v.orderNo}${v.customer ? ` ${v.customer}` : ''}`)
+                          .join(' · ')}
+                      </Caption>
+                    </View>
+                  ) : (
+                    <Caption color={theme.color.text.muted}>
+                      Ningún pedido quedó validado con estos archivos.
+                    </Caption>
+                  )}
                   {t.debitsCents ? (
                     <Caption color={theme.color.text.muted}>
                       Cargos del periodo (no se cruzan): {soles(t.debitsCents)}
@@ -436,7 +454,7 @@ export const ChatbotReconciliationScreen: React.FC<Props> = ({ navigation }) => 
                           <Caption>
                             {l.voucher.customer ?? 'Sin nombre'}
                             {l.voucher.orderNo
-                              ? ` · pedido ${l.voucher.orderNo} (${l.voucher.orderStatus})`
+                              ? ` · pedido ${l.voucher.orderNo} (${l.voucher.validated ? 'validado ahora ✅' : l.voucher.orderStatus})`
                               : ` · voucher ${l.voucher.status}`}
                           </Caption>
                         ) : (
