@@ -124,5 +124,16 @@ export const usePriorityDelivery = () =>
     chatbotSupportApi.priority(orderId, note)
   );
 
+export const useChangeSite = () =>
+  useSupportMutation(
+    ({
+      orderId,
+      input,
+    }: {
+      orderId: string;
+      input: { siteId: string; reason?: string; notify?: boolean };
+    }) => chatbotSupportApi.changeSite(orderId, input)
+  );
+
 export const useVoidMoney = () =>
   useSupportMutation((id: string) => chatbotSupportApi.voidMoney(id));

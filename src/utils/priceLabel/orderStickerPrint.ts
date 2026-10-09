@@ -85,6 +85,8 @@ export interface OrderStickerData {
    */
   packageNo?: number | null;
   packages?: number | null;
+  /** Sticker de cambio de tienda: se pega encima del original. */
+  change?: { from?: string | null; to?: string | null } | null;
 }
 
 export interface OrderStickerPrintOptions {
@@ -283,6 +285,7 @@ const buildSticker = async (data: OrderStickerData): Promise<string> => {
       <div class="name">${escapeHtml(truncate(name, 70))}</div>
       ${phone ? `<div class="cel">Cel. ${escapeHtml(phone)}</div>` : ''}
       ${destinationHtml(data)}
+      ${data.change?.from ? `<div class="ref">Antes: ${escapeHtml(truncate(clean(data.change.from), 40))}</div>` : ''}
     </div>
     <div class="a qty"><div class="qty-t">CANTIDAD DE ARTÍCULOS</div><div class="qty-n">${escapeHtml(
       String(units)

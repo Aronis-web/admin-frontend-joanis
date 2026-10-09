@@ -31,7 +31,7 @@ import {
   useHandoffConversation,
   useReplyConversation,
 } from '@/hooks/api/useChatbotConversations';
-import { useDismissCase } from '@/hooks/api/useChatbotTraining';
+import { useCloseCase } from '@/hooks/api/useChatbotSupport';
 import type { ChatConversation, ChatMessage } from '@/types/chatbot';
 import { displayPhone, formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 import Alert from '@/utils/alert';
@@ -62,10 +62,14 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
   const { hasPermission } = usePermissions();
   const canReply = hasPermission('chatbot.chats.manage');
   const canSession = hasPermission('chatbot.session.manage');
-  const canResolve = hasPermission('chatbot.training.manage');
+  // Cerrar pide decir como se resolvio (antes se marcaba sin nota y el caso
+  // quedaba "cerrado" sin resolver: caso Maria 9/10/2026).
+  const canResolve = hasPermission('chatbot.support.manage');
   const handoffMutation = useHandoffConversation();
   const escalationsQuery = useConversationEscalations(conversation?.id);
-  const dismissMutation = useDismissCase();
+  const closeMutation = useCloseCase();
+  const [closingId, setClosingId] = useState<string | null>(null);
+  const [closeNote, setCloseNote] = useState('');
   const queryClient = useQueryClient();
   const [pauseOnReply, setPauseOnReply] = useState(false);
   const replyMutation = useReplyConversation();
@@ -207,19 +211,13 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
             </Caption>
             <Caption color={theme.color.text.body}>{e.summary ?? e.customerText ?? '—'}</Caption>
           </View>
-          {canResolve ? (
+          {canResolve && closingId !== e.id ? (
             <Pressable
               style={styles.escalationBtn}
-              disabled={dismissMutation.isPending}
-              onPress={() =>
-                dismissMutation.mutate(e.id, {
-                  onSuccess: () => {
-                    void queryClient.invalidateQueries({ queryKey: chatbotConversationsKeys.all });
-                  },
-                  onError: (err: any) =>
-                    Alert.alert('Error', err?.message ?? 'No se pudo marcar como resuelto'),
-                })
-              }
+              onPress={() => {
+                setClosingId(e.id);
+                setCloseNote('');
+              }}
             >
               <Ionicons name="checkmark" size={14} color={theme.color.text.onAction} />
               <Caption color={theme.color.text.onAction} style={{ fontWeight: '700' }}>
@@ -229,6 +227,58 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
           ) : null}
         </View>
       ))}
+      {closingId ? (
+        <View style={[styles.escalation, { flexDirection: 'column', alignItems: 'stretch' }]}>
+          <Caption color={theme.color.text.body} style={{ fontWeight: '700' }}>
+            ¿Cómo se resolvió? Se cierran todos los casos abiertos de este chat.
+          </Caption>
+          <TextInput
+            value={closeNote}
+            onChangeText={setCloseNote}
+            placeholder="Ej.: se cambió a SJL y se le avisó"
+            placeholderTextColor={theme.color.text.muted}
+            style={{
+              borderWidth: 1,
+              borderColor: theme.color.border.default,
+              borderRadius: borderRadius.md,
+              padding: spacing[2],
+              color: theme.color.text.body,
+              backgroundColor: theme.color.background.canvas,
+            }}
+          />
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: spacing[2] }}>
+            <Pressable onPress={() => setClosingId(null)} style={{ padding: 6 }}>
+              <Caption>Cancelar</Caption>
+            </Pressable>
+            <Pressable
+              style={styles.escalationBtn}
+              disabled={closeMutation.isPending}
+              onPress={() => {
+                if (closeNote.trim().length < 3) {
+                  Alert.alert('Nota', 'Escribe cómo se resolvió el caso.');
+                  return;
+                }
+                closeMutation.mutate(
+                  { caseId: closingId, note: closeNote.trim() },
+                  {
+                    onSuccess: () => {
+                      setClosingId(null);
+                      void queryClient.invalidateQueries({ queryKey: chatbotConversationsKeys.all });
+                    },
+                    onError: (err: any) =>
+                      Alert.alert('Error', err?.message ?? 'No se pudo cerrar el caso'),
+                  }
+                );
+              }}
+            >
+              <Ionicons name="checkmark" size={14} color={theme.color.text.onAction} />
+              <Caption color={theme.color.text.onAction} style={{ fontWeight: '700' }}>
+                Cerrar caso
+              </Caption>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       {isLoading ? (
         <View style={styles.centerBox}>

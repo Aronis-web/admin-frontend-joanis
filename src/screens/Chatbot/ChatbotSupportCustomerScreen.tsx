@@ -33,6 +33,7 @@ import { spacing, borderRadius } from '@/design-system/tokens';
 import {
   useAddNote,
   useApplyCredit,
+  useChangeSite,
   useCloseCase,
   useDirectPurchase,
   usePriorityDelivery,
@@ -50,6 +51,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { chatbotConversationsApi } from '@/services/api/chatbot-conversations';
 import type { PiiField, SupportCard, SupportProduct } from '@/services/api/chatbot-support';
 import Alert from '@/utils/alert';
+import { printOrderStickers } from '@/utils/priceLabel/orderStickerPrint';
+import { resolveStickerPrinter } from './postsale/printerStore';
+import { STATUS_LABEL } from './postsale/shared';
 import { formatDateTime } from './utils';
 import {
   CASE_TYPE_LABEL,
@@ -114,6 +118,7 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
   const [noteText, setNoteText] = useState('');
   const [showRefund, setShowRefund] = useState(false);
   const [showPurchase, setShowPurchase] = useState(false);
+  const [siteOrder, setSiteOrder] = useState<SupportCard['orders'][number] | null>(null);
   const [closing, setClosing] = useState(false);
   const [closeNote, setCloseNote] = useState('');
 
@@ -389,7 +394,9 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
                     {soles(o.paidCents)}
                     {o.creditCents ? ` · saldo usado ${soles(o.creditCents)}` : ''}
                     {o.place ? ` · ${o.place}` : ''}
-                    {o.postsaleStatus ? ` · ${o.postsaleStatus}` : ''}
+                    {o.postsaleStatus
+                      ? ` · ${STATUS_LABEL[o.postsaleStatus as keyof typeof STATUS_LABEL] ?? o.postsaleStatus}`
+                      : ''}
                   </Caption>
                 </View>
                 {canMoney &&
@@ -412,6 +419,17 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
                           })
                       )
                     }
+                  />
+                ) : null}
+                {canManage &&
+                o.fulfillment === 'PICKUP' &&
+                !['REJECTED', 'EXPIRED'].includes(o.status) &&
+                !['ENTREGADO', 'ENTREGADO_AGENCIA'].includes(o.postsaleStatus ?? '') ? (
+                  <Button
+                    title="Cambiar tienda"
+                    size="small"
+                    variant="ghost"
+                    onPress={() => setSiteOrder(o)}
                   />
                 ) : null}
                 {canMoney &&
@@ -651,6 +669,9 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
             onClose={() => setShowRefund(false)}
           />
         ) : null}
+        {siteOrder ? (
+          <ChangeSiteModal order={siteOrder} onClose={() => setSiteOrder(null)} />
+        ) : null}
         {showPurchase ? (
           <PurchaseModal
             card={card}
@@ -660,6 +681,143 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
         ) : null}
       </SafeAreaView>
     </ScreenLayout>
+  );
+};
+
+// ----------------------------------------------------------- cambio de tienda
+
+/** Imprime los stickers de cambio en la Godex (o con el diálogo del sistema). */
+const printChangeStickers = async (stickers: any[]): Promise<string> => {
+  const target = await resolveStickerPrinter().catch(() => ({ kind: 'unsupported' as const }));
+  const device = target.kind === 'ready' ? target.name : undefined;
+  await printOrderStickers(stickers, { deviceName: device });
+  const n = stickers.length;
+  return `${n === 1 ? 'Sticker de cambio enviado' : `${n} stickers de cambio enviados`}${device ? ` a ${device}` : ''}.`;
+};
+
+const ChangeSiteModal: React.FC<{
+  order: SupportCard['orders'][number];
+  onClose: () => void;
+}> = ({ order, onClose }) => {
+  const theme = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const options = usePurchaseOptions();
+  const changeSite = useChangeSite();
+  const [siteId, setSiteId] = useState<string>('');
+  const [reason, setReason] = useState('');
+  const [notify, setNotify] = useState(true);
+  const [stickers, setStickers] = useState<any[] | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const sites = (options.data?.pickupSites ?? []).filter((s) => s.name !== order.place);
+  const moving = ['EN_RUTA_TIENDA', 'EN_TIENDA'].includes(order.postsaleStatus ?? '');
+
+  const print = async (list: any[]) => {
+    try {
+      setDone(await printChangeStickers(list));
+    } catch (e: any) {
+      Alert.alert('No se pudo imprimir', e?.message ?? 'Error de impresora. Usa "Reimprimir sticker".');
+    }
+  };
+
+  const submit = () => {
+    if (!siteId) return Alert.alert('Tienda', 'Elige la tienda nueva.');
+    if (reason.trim().length < 3) return Alert.alert('Motivo', 'Escribe por qué se cambia la tienda.');
+    changeSite.mutate(
+      { orderId: order.id, input: { siteId, reason: reason.trim(), notify } },
+      {
+        onSuccess: async (r) => {
+          setStickers(r.stickers);
+          setDone(
+            `Pedido ${r.orderNo}: de ${r.from} a ${r.to}${r.statusLabel ? ` · ${r.statusLabel}` : ''}.`
+          );
+          if (r.stickers.length) await print(r.stickers);
+        },
+        onError: (e: any) => Alert.alert('Error', e?.message ?? 'No se pudo cambiar la tienda'),
+      }
+    );
+  };
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+          <ScrollView contentContainerStyle={{ gap: spacing[3] }}>
+            <Title>Cambiar tienda · {order.no}</Title>
+            {stickers ? (
+              <>
+                <Body>✅ {done}</Body>
+                {stickers.length ? (
+                  <Caption color={theme.color.text.muted}>
+                    Pega el sticker de cambio encima del original de cada bulto.
+                  </Caption>
+                ) : (
+                  <Caption color={theme.color.text.muted}>
+                    Aún no tenía sticker: saldrá con la tienda nueva al imprimirlo en Post venta.
+                  </Caption>
+                )}
+                <View style={styles.actionsRow}>
+                  {stickers.length ? (
+                    <Button title="Reimprimir sticker" variant="ghost" onPress={() => print(stickers)} />
+                  ) : null}
+                  <Button title="Listo" onPress={onClose} />
+                </View>
+              </>
+            ) : (
+              <>
+                <Caption color={theme.color.text.muted}>
+                  Ahora: {order.place ?? 'sin tienda'}
+                  {order.postsaleStatus
+                    ? ` · ${STATUS_LABEL[order.postsaleStatus as keyof typeof STATUS_LABEL] ?? order.postsaleStatus}`
+                    : ''}
+                </Caption>
+                {moving ? (
+                  <Caption color={theme.color.text.warning}>
+                    El pedido ya va o ya está en la tienda: vuelve a "En ruta a tienda" hacia la nueva y
+                    allí lo reciben con el escaneo. El código anterior deja de servir; al recibirlo le llega
+                    uno nuevo.
+                  </Caption>
+                ) : null}
+                {options.isLoading ? <ActivityIndicator /> : null}
+                <ChipGroup
+                  options={sites.map((s) => ({
+                    label: s.district ? `${s.name} (${s.district})` : s.name,
+                    value: s.id,
+                  }))}
+                  selected={siteId ? [siteId] : []}
+                  onChange={(s) => setSiteId(s[0] ?? '')}
+                  multiple={false}
+                />
+                <TextInput
+                  value={reason}
+                  onChangeText={setReason}
+                  placeholder="Motivo (vive cerca de otra tienda...)"
+                  placeholderTextColor={theme.color.text.muted}
+                  style={styles.input}
+                />
+                <ChipGroup
+                  options={[
+                    { label: 'Avisar a la clienta', value: 'yes' },
+                    { label: 'No avisar', value: 'no' },
+                  ]}
+                  selected={[notify ? 'yes' : 'no']}
+                  onChange={(s) => setNotify(s[0] !== 'no')}
+                  multiple={false}
+                />
+                <View style={styles.actionsRow}>
+                  <Button title="Cancelar" variant="ghost" onPress={onClose} />
+                  <Button
+                    title="Cambiar e imprimir sticker"
+                    onPress={submit}
+                    disabled={changeSite.isPending}
+                    loading={changeSite.isPending}
+                  />
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 };
 

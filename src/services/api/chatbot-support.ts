@@ -145,6 +145,17 @@ export interface PurchaseOptions {
   agencies: Array<{ code: string; name: string; feeCents: number }>;
 }
 
+export interface ChangeSiteResult {
+  orderId: string;
+  orderNo: string;
+  from: string;
+  to: string;
+  status: string | null;
+  statusLabel: string | null;
+  /** Sticker de cambio por bulto (vacío si el pedido aún no tenía sticker). */
+  stickers: any[];
+}
+
 export interface DirectPurchaseInput {
   items: Array<{ sellableProductId: string; qty: number }>;
   fulfillment: {
@@ -272,6 +283,10 @@ class ChatbotSupportService {
 
   priority(orderId: string, note?: string) {
     return apiClient.post<{ ok: boolean }>(`${this.basePath}/orders/${orderId}/priority`, { note });
+  }
+
+  changeSite(orderId: string, input: { siteId: string; reason?: string; notify?: boolean }) {
+    return apiClient.post<ChangeSiteResult>(`${this.basePath}/orders/${orderId}/change-site`, input);
   }
 
   voidMoney(id: string) {
