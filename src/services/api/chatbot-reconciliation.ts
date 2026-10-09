@@ -1,4 +1,6 @@
 import { apiClient } from './client';
+import { config } from '@/utils/config';
+import { downloadWithAuth } from '@/utils/downloadWithAuth';
 import type { PickedFile } from '@/components/Drive/pickFileCrossPlatform';
 
 export type ReconcileKind = 'CON_PEDIDO' | 'SIN_PEDIDO' | 'SIN_VOUCHER';
@@ -22,7 +24,29 @@ export interface ReconciledLine {
   } | null;
 }
 
+export interface StoredFile {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  credits: number;
+  error: string | null;
+}
+
+export interface ReconcileHistoryItem {
+  id: string;
+  createdAt: string;
+  createdBy: string | null;
+  fileCount: number;
+  totals: ReconcileResult['totals'];
+  files: StoredFile[];
+}
+
 export interface ReconcileResult {
+  /** Id en el historial (null si no se pudo guardar). */
+  id?: string | null;
+  createdAt?: string;
+  /** Archivos guardados (al abrir una carga del historial). */
+  storedFiles?: StoredFile[];
   lines: ReconciledLine[];
   totals: {
     credits: number;
@@ -42,6 +66,27 @@ export interface ReconcileResult {
 
 /** Cruce de estados de cuenta (Excel BBVA/BCP o fotos) con los vouchers del chatbot. */
 class ChatbotReconciliationService {
+  async history(
+    page = 1,
+    limit = 20
+  ): Promise<{
+    items: ReconcileHistoryItem[];
+    page: number;
+    pages: number;
+    total: number;
+  }> {
+    return apiClient.get('/chatbot/reconciliation', { params: { page, limit } });
+  }
+
+  async get(id: string): Promise<ReconcileResult> {
+    return apiClient.get(`/chatbot/reconciliation/${id}`);
+  }
+
+  /** Archivo original subido en una carga del historial. */
+  async downloadFile(id: string, fileId: string): Promise<Blob> {
+    return downloadWithAuth(`${config.API_URL}/chatbot/reconciliation/${id}/files/${fileId}`);
+  }
+
   async reconcile(files: PickedFile[]): Promise<ReconcileResult> {
     const fd = new FormData();
     for (const f of files) {
