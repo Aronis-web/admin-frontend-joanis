@@ -703,6 +703,9 @@ const ChatbotPostsaleRedirectScreen = lazyLoad(() =>
 const ChatbotSupportScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSupportScreen }))
 );
+const ChatbotReconciliationScreen = lazyLoad(() =>
+  import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotReconciliationScreen }))
+);
 const ChatbotSupportCustomerScreen = lazyLoad(() =>
   import('@/screens/Chatbot').then((m) => ({ default: m.ChatbotSupportCustomerScreen }))
 );
@@ -2619,6 +2622,13 @@ const MainStack = React.memo(() => {
         {(props) => (
           <ProtectedRoute requiredPermissions={['chatbot.support.read']}>
             <ChatbotSupportScreen {...props} />
+          </ProtectedRoute>
+        )}
+      </MainStackNavigator.Screen>
+      <MainStackNavigator.Screen name="ChatbotReconciliation" options={{ title: 'Conciliación de pagos' }}>
+        {(props) => (
+          <ProtectedRoute requiredPermissions={['chatbot.orders.validate']}>
+            <ChatbotReconciliationScreen {...props} />
           </ProtectedRoute>
         )}
       </MainStackNavigator.Screen>

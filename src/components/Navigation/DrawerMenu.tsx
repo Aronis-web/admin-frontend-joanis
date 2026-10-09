@@ -523,6 +523,13 @@ const menuCategories: MenuCategory[] = [
         requiredPermissions: ['chatbot.support.read'],
       },
       {
+        id: 'chatbot-reconciliation',
+        icon: 'git-compare-outline',
+        label: 'Conciliación de pagos',
+        route: MAIN_ROUTES.CHATBOT_RECONCILIATION,
+        requiredPermissions: ['chatbot.orders.validate'],
+      },
+      {
         id: 'chatbot-complaints',
         icon: 'book-outline',
         label: 'Libro de reclamaciones',
