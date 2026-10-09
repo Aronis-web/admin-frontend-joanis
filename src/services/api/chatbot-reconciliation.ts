@@ -36,6 +36,8 @@ export interface ReconcileResult {
     debitsCents: number;
   };
   errors: string[];
+  /** Lo que se leyo de cada archivo (movimientos, abonos o por que fallo). */
+  files?: Array<{ name: string; movements: number; credits: number; error: string | null }>;
 }
 
 /** Cruce de estados de cuenta (Excel BBVA/BCP o fotos) con los vouchers del chatbot. */

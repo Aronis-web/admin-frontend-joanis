@@ -169,7 +169,24 @@ export const ChatbotReconciliationScreen: React.FC<Props> = ({ navigation }) => 
             ) : null}
           </Card>
 
-          {result?.errors.length ? (
+          {result?.files?.length ? (
+            <Card style={styles.card}>
+              <Body style={{ fontWeight: '700' }}>Archivos leídos</Body>
+              {result.files.map((f) => (
+                <View key={f.name} style={styles.fileRow}>
+                  <Ionicons
+                    name={f.error ? 'alert-circle-outline' : 'checkmark-circle-outline'}
+                    size={18}
+                    color={f.error ? theme.color.text.muted : theme.color.brand.accent}
+                  />
+                  <Caption style={{ flex: 1 }} numberOfLines={2}>
+                    {f.name}:{' '}
+                    {f.error ? f.error : `${f.credits} abonos de ${f.movements} movimientos`}
+                  </Caption>
+                </View>
+              ))}
+            </Card>
+          ) : result?.errors.length ? (
             <Card style={styles.card}>
               {result.errors.map((e) => (
                 <Caption key={e} color={theme.color.text.danger ?? theme.color.text.muted}>
