@@ -29,6 +29,7 @@ import type { Theme } from '@/design-system/themes';
 import { borderRadius, spacing } from '@/design-system/tokens';
 import {
   useCancelToCredit,
+  useCatalogSearch,
   useEditOrder,
   useLinkVoucher,
   useProductStock,
@@ -596,7 +597,7 @@ export const ProductStockModal: React.FC<{ onClose: () => void }> = ({ onClose }
   const theme = useTheme();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const products = useSupportProducts(search);
+  const products = useCatalogSearch(search);
   const stock = useProductStock(selected);
   const total = useMemo(
     () => (stock.data?.stores ?? []).reduce((s, x) => s + x.units, 0),
@@ -613,17 +614,26 @@ export const ProductStockModal: React.FC<{ onClose: () => void }> = ({ onClose }
         placeholder="Buscar por nombre o código"
       />
       {!selected
-        ? (products.data ?? []).slice(0, 8).map((p) => (
-            <Pressable key={p.sellableProductId} style={rowStyle} onPress={() => setSelected(p.sellableProductId)}>
+        ? (products.data ?? []).slice(0, 10).map((p) => (
+            <Pressable
+              key={p.productId}
+              style={rowStyle}
+              onPress={() => setSelected(p.sellableProductId ?? p.productId)}
+            >
               <View style={{ flex: 1 }}>
                 <Body>{p.name}</Body>
                 <Caption color={theme.color.text.muted}>
-                  {soles(p.unitPriceCents)} · por chat quedan {p.availableQty}
+                  {[p.sku, `stock total ${p.stock}`, p.sellableProductId ? 'se vende por chat' : 'no está en venta por chat']
+                    .filter(Boolean)
+                    .join(' · ')}
                 </Caption>
               </View>
             </Pressable>
           ))
         : null}
+      {!selected && search.trim().length >= 2 && products.data && !products.data.length ? (
+        <Caption color={theme.color.text.muted}>No encontramos productos con ese nombre o código.</Caption>
+      ) : null}
       {selected && stock.isLoading ? <ActivityIndicator /> : null}
       {stock.data && selected ? (
         <View style={{ gap: spacing[2] }}>

@@ -143,6 +143,14 @@ export const useSupportOrderItems = (orderId: string | null) =>
     staleTime: 15 * 1000,
   });
 
+export const useCatalogSearch = (q: string) =>
+  useQuery({
+    queryKey: [...chatbotSupportKeys.all, 'catalog-search', q],
+    queryFn: () => chatbotSupportApi.catalogSearch(q),
+    enabled: q.trim().length >= 2,
+    staleTime: 30 * 1000,
+  });
+
 export const useProductStock = (sellableProductId: string | null) =>
   useQuery({
     queryKey: [...chatbotSupportKeys.all, 'product-stock', sellableProductId],

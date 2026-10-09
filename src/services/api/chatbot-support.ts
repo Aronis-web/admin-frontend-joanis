@@ -411,6 +411,19 @@ class ChatbotSupportService {
     );
   }
 
+  /** Busca en todo el catálogo (no solo lo que se vende por chat). */
+  catalogSearch(q: string) {
+    return apiClient.get<
+      Array<{
+        productId: string;
+        sellableProductId: string | null;
+        name: string;
+        sku: string | null;
+        stock: number;
+      }>
+    >(`${this.basePath}/catalog-search`, { params: { q } });
+  }
+
   productStock(sellableProductId: string) {
     return apiClient.get<ProductStock>(`${this.basePath}/products/${sellableProductId}/stock`);
   }
