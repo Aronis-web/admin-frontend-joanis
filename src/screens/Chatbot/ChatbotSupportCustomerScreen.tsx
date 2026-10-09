@@ -54,6 +54,13 @@ import Alert from '@/utils/alert';
 import { printOrderStickers } from '@/utils/priceLabel/orderStickerPrint';
 import { resolveStickerPrinter } from './postsale/printerStore';
 import { STATUS_LABEL } from './postsale/shared';
+import {
+  CustomerDataModal,
+  LinkVoucherModal,
+  OrderActionsModal,
+  ProductStockModal,
+  orderActions,
+} from './support/SupportOrderActions';
 import { formatDateTime } from './utils';
 import {
   CASE_TYPE_LABEL,
@@ -119,6 +126,10 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
   const [showRefund, setShowRefund] = useState(false);
   const [showPurchase, setShowPurchase] = useState(false);
   const [siteOrder, setSiteOrder] = useState<SupportCard['orders'][number] | null>(null);
+  const [actionsOrder, setActionsOrder] = useState<SupportCard['orders'][number] | null>(null);
+  const [linkVoucher, setLinkVoucher] = useState<SupportCard['vouchers'][number] | null>(null);
+  const [showData, setShowData] = useState(false);
+  const [showStock, setShowStock] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeNote, setCloseNote] = useState('');
 
@@ -254,6 +265,13 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
                 onPress={() => setShowRefund(true)}
               />
             ) : null}
+            <Button
+              title="Consultar producto"
+              size="small"
+              variant="outline"
+              leftIcon="search-outline"
+              onPress={() => setShowStock(true)}
+            />
             {canManage && openCaseId ? (
               <Button
                 title="Cerrar caso"
@@ -280,6 +298,15 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
             {piiRow('phone', card.customer.phone)}
             {piiRow('email', card.customer.email)}
             {piiRow('address', card.customer.address)}
+            {canPii ? (
+              <Button
+                title="Corregir datos"
+                size="small"
+                variant="ghost"
+                leftIcon="create-outline"
+                onPress={() => setShowData(true)}
+              />
+            ) : null}
             <View style={styles.block}>
               <Caption color={theme.color.text.muted}>Saldo a favor</Caption>
               <Body style={{ fontWeight: '700' }}>{soles(card.credit.availableCents)}</Body>
@@ -386,8 +413,9 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
               <View key={o.id} style={styles.listRow}>
                 <View style={{ flex: 1 }}>
                   <Body style={{ fontWeight: '600' }}>
-                    {o.no} · {ORDER_STATUS[o.status] ?? o.status}
+                    {o.no} · {o.cancelled ? 'Anulado (saldo a favor)' : (ORDER_STATUS[o.status] ?? o.status)}
                     {o.priority ? ' · ⚡ prioritaria' : ''}
+                    {o.replacementOf ? ` · 🔁 reposición de ${o.replacementOf}` : ''}
                   </Body>
                   <Caption color={theme.color.text.muted}>
                     {formatDateTime(o.createdAt)} · total {soles(o.totalCents)} · pagado{' '}
@@ -421,7 +449,16 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
                     }
                   />
                 ) : null}
+                {orderActions(o, { manage: canManage, money: canMoney }).length ? (
+                  <Button
+                    title="Acciones"
+                    size="small"
+                    variant="outline"
+                    onPress={() => setActionsOrder(o)}
+                  />
+                ) : null}
                 {canManage &&
+                !o.cancelled &&
                 o.fulfillment === 'PICKUP' &&
                 !['REJECTED', 'EXPIRED'].includes(o.status) &&
                 !['ENTREGADO', 'ENTREGADO_AGENCIA'].includes(o.postsaleStatus ?? '') ? (
@@ -474,6 +511,14 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
                     {v.duplicateReason ? ` · ${v.duplicateReason}` : ''}
                   </Caption>
                 </View>
+                {canMoney && !v.orderId && !['REJECTED', 'DUPLICATE'].includes(v.status) ? (
+                  <Button
+                    title="Vincular"
+                    size="small"
+                    variant="ghost"
+                    onPress={() => setLinkVoucher(v)}
+                  />
+                ) : null}
               </View>
             ))}
           </Card>
@@ -669,6 +714,24 @@ export const ChatbotSupportCustomerScreen: React.FC<Props> = ({ navigation, rout
             onClose={() => setShowRefund(false)}
           />
         ) : null}
+        {actionsOrder ? (
+          <OrderActionsModal
+            order={actionsOrder}
+            can={{ manage: canManage, money: canMoney }}
+            onClose={() => setActionsOrder(null)}
+          />
+        ) : null}
+        {linkVoucher ? (
+          <LinkVoucherModal
+            voucher={linkVoucher}
+            orders={card.orders}
+            onClose={() => setLinkVoucher(null)}
+          />
+        ) : null}
+        {showData ? (
+          <CustomerDataModal conversationId={conversationId} onClose={() => setShowData(false)} />
+        ) : null}
+        {showStock ? <ProductStockModal onClose={() => setShowStock(false)} /> : null}
         {siteOrder ? (
           <ChangeSiteModal order={siteOrder} onClose={() => setSiteOrder(null)} />
         ) : null}

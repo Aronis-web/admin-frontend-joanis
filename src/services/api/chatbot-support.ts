@@ -80,6 +80,12 @@ export interface SupportCard {
     fulfillment: string | null;
     place: string | null;
     priority: boolean;
+    /** Anulado dejando lo pagado como saldo a favor. */
+    cancelled?: boolean;
+    /** Reposicion sin cobro de este pedido (N.°). */
+    replacementOf?: string | null;
+    hasReceipt?: boolean;
+    printed?: boolean;
     invoiceType: string | null;
     createdAt: string;
     validatedAt: string | null;
@@ -116,7 +122,16 @@ export interface SupportCard {
   }>;
   money: Array<{
     id: string;
-    kind: 'REFUND' | 'CREDIT_APPLY' | 'PRIORITY_DELIVERY';
+    kind:
+      | 'REFUND'
+      | 'CREDIT_APPLY'
+      | 'PRIORITY_DELIVERY'
+      | 'REPLACEMENT'
+      | 'ORDER_EDIT'
+      | 'ORDER_CANCEL'
+      | 'VOUCHER_LINK'
+      | 'RECEIPT_RESENT'
+      | 'CODE_RESENT';
     orderNo: string | null;
     amountCents: number | null;
     fromCredit: boolean;
@@ -143,6 +158,37 @@ export interface PurchaseOptions {
   pickupSites: Array<{ id: string; name: string; district: string | null }>;
   lima: { enabled: boolean; feeCents: number | null };
   agencies: Array<{ code: string; name: string; feeCents: number }>;
+}
+
+export interface SupportOrderItem {
+  id: string;
+  sellableProductId: string | null;
+  name: string | null;
+  qty: number;
+  unitPriceCents: number;
+  editable: boolean;
+}
+
+export interface EditOrderResult {
+  ok: boolean;
+  beforeCents: number;
+  totalCents: number;
+  paidCents: number;
+  differenceCents: number;
+  lines: Array<{ sellableProductId: string; name: string; qty: number; unitPriceCents: number }>;
+}
+
+export interface ProductStock {
+  sellableProductId: string;
+  name: string;
+  sku: string | null;
+  variant: string | null;
+  description: string | null;
+  presentation: string | null;
+  unitPriceCents: number | null;
+  availableToSell: number;
+  imageUrl: string | null;
+  stores: Array<{ site: string | null; warehouse: string; units: number }>;
 }
 
 export interface ChangeSiteResult {
@@ -287,6 +333,86 @@ class ChatbotSupportService {
 
   changeSite(orderId: string, input: { siteId: string; reason?: string; notify?: boolean }) {
     return apiClient.post<ChangeSiteResult>(`${this.basePath}/orders/${orderId}/change-site`, input);
+  }
+
+  orderItems(orderId: string) {
+    return apiClient.get<SupportOrderItem[]>(`${this.basePath}/orders/${orderId}/items`);
+  }
+
+  replacement(
+    orderId: string,
+    input: {
+      items: Array<{ itemId: string; qty: number }>;
+      reason: 'FALTANTE' | 'EQUIVOCADO' | 'DANADO';
+      note?: string;
+      notify?: boolean;
+    }
+  ) {
+    return apiClient.post<{ orderId: string; orderNo: string; originalNo: string }>(
+      `${this.basePath}/orders/${orderId}/replacement`,
+      input
+    );
+  }
+
+  editOrder(
+    orderId: string,
+    input: {
+      items: Array<{ sellableProductId: string; qty: number; unitPriceCents?: number | null }>;
+      reason?: string;
+      dryRun?: boolean;
+    }
+  ) {
+    return apiClient.post<EditOrderResult>(`${this.basePath}/orders/${orderId}/edit`, input);
+  }
+
+  cancelToCredit(orderId: string, reason: string) {
+    return apiClient.post<{ ok: boolean; creditCents: number }>(
+      `${this.basePath}/orders/${orderId}/cancel-to-credit`,
+      { reason }
+    );
+  }
+
+  linkVoucher(voucherId: string, orderId: string) {
+    return apiClient.post<{ ok: boolean; paidCents: number; status: string }>(
+      `${this.basePath}/vouchers/${voucherId}/link`,
+      { orderId }
+    );
+  }
+
+  resendReceipt(orderId: string) {
+    return apiClient.post<{ ok: boolean; channel: string; documents: string[] }>(
+      `${this.basePath}/orders/${orderId}/resend-receipt`,
+      {}
+    );
+  }
+
+  /** El código va solo a la clienta: la respuesta no lo trae. */
+  resendCode(orderId: string) {
+    return apiClient.post<{ ok: boolean; channels: string[] }>(
+      `${this.basePath}/orders/${orderId}/resend-code`,
+      {}
+    );
+  }
+
+  updateCustomer(
+    conversationId: string,
+    input: {
+      phone?: string;
+      email?: string;
+      documentType?: 'DNI' | 'RUC' | 'CE';
+      documentNumber?: string;
+      fullName?: string;
+      reason: string;
+    }
+  ) {
+    return apiClient.post<{ ok: boolean; changes: string[] }>(
+      `${this.basePath}/conversations/${conversationId}/customer`,
+      input
+    );
+  }
+
+  productStock(sellableProductId: string) {
+    return apiClient.get<ProductStock>(`${this.basePath}/products/${sellableProductId}/stock`);
   }
 
   voidMoney(id: string) {

@@ -31,6 +31,12 @@ export const MONEY_KIND_LABEL: Record<string, string> = {
   REFUND: 'Devolución',
   CREDIT_APPLY: 'Saldo a favor aplicado',
   PRIORITY_DELIVERY: 'Entrega prioritaria',
+  REPLACEMENT: 'Reposición sin cobro',
+  ORDER_EDIT: 'Pedido editado',
+  ORDER_CANCEL: 'Anulado con saldo a favor',
+  VOUCHER_LINK: 'Voucher vinculado',
+  RECEIPT_RESENT: 'Boleta reenviada',
+  CODE_RESENT: 'Código reenviado',
 };
 
 export const PII_LABEL: Record<string, string> = {

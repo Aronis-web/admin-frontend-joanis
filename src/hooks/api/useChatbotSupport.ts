@@ -135,5 +135,60 @@ export const useChangeSite = () =>
     }) => chatbotSupportApi.changeSite(orderId, input)
   );
 
+export const useSupportOrderItems = (orderId: string | null) =>
+  useQuery({
+    queryKey: [...chatbotSupportKeys.all, 'order-items', orderId],
+    queryFn: () => chatbotSupportApi.orderItems(orderId as string),
+    enabled: !!orderId,
+    staleTime: 15 * 1000,
+  });
+
+export const useProductStock = (sellableProductId: string | null) =>
+  useQuery({
+    queryKey: [...chatbotSupportKeys.all, 'product-stock', sellableProductId],
+    queryFn: () => chatbotSupportApi.productStock(sellableProductId as string),
+    enabled: !!sellableProductId,
+    staleTime: 30 * 1000,
+  });
+
+export const useReplacement = () =>
+  useSupportMutation(
+    ({ orderId, input }: { orderId: string; input: Parameters<typeof chatbotSupportApi.replacement>[1] }) =>
+      chatbotSupportApi.replacement(orderId, input)
+  );
+
+export const useEditOrder = () =>
+  useSupportMutation(
+    ({ orderId, input }: { orderId: string; input: Parameters<typeof chatbotSupportApi.editOrder>[1] }) =>
+      chatbotSupportApi.editOrder(orderId, input)
+  );
+
+export const useCancelToCredit = () =>
+  useSupportMutation(({ orderId, reason }: { orderId: string; reason: string }) =>
+    chatbotSupportApi.cancelToCredit(orderId, reason)
+  );
+
+export const useLinkVoucher = () =>
+  useSupportMutation(({ voucherId, orderId }: { voucherId: string; orderId: string }) =>
+    chatbotSupportApi.linkVoucher(voucherId, orderId)
+  );
+
+export const useResendReceipt = () =>
+  useSupportMutation((orderId: string) => chatbotSupportApi.resendReceipt(orderId));
+
+export const useResendCode = () =>
+  useSupportMutation((orderId: string) => chatbotSupportApi.resendCode(orderId));
+
+export const useUpdateCustomer = () =>
+  useSupportMutation(
+    ({
+      conversationId,
+      input,
+    }: {
+      conversationId: string;
+      input: Parameters<typeof chatbotSupportApi.updateCustomer>[1];
+    }) => chatbotSupportApi.updateCustomer(conversationId, input)
+  );
+
 export const useVoidMoney = () =>
   useSupportMutation((id: string) => chatbotSupportApi.voidMoney(id));
