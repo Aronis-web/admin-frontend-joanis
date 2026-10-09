@@ -36,6 +36,7 @@ import type { ChatConversation, ChatMessage } from '@/types/chatbot';
 import { displayPhone, formatTime, PURCHASE_STAGE_LABEL, PURCHASE_STAGE_VARIANT } from '../utils';
 import Alert from '@/utils/alert';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuthStore } from '@/store';
 import { AuthedMedia, extractFileNameFromText } from './AuthedMedia';
 
 interface Props {
@@ -75,6 +76,19 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
   const replyMutation = useReplyConversation();
 
   const [text, setText] = useState('');
+  const me = useAuthStore((st) => st.user);
+
+  /** Saludo del asesor: queda en el cuadro para revisarlo antes de enviar. */
+  const greet = () => {
+    const title = (w: string) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '');
+    const client = title(String(conversation?.customerName ?? '').trim().split(/\s+/)[0] ?? '');
+    const agent = title(String(me?.name ?? '').trim().split(/\s+/)[0] ?? '');
+    setText(
+      `Hola${client ? ` ${client}` : ''} 👋 Soy ${agent || 'tu asesora'} del equipo de atención y voy a atenderte personalmente con tu caso. Dame un momento mientras lo reviso. 🙌`
+    );
+    // Si saluda un asesor, el bot deja de responder este chat.
+    setPauseOnReply(true);
+  };
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const prevCountRef = useRef(0);
 
@@ -352,6 +366,14 @@ export const ConversationPanel: React.FC<Props> = ({ conversation, onBack }) => 
             Solo lectura: no tienes permiso para responder.
           </Caption>
         </View>
+      ) : null}
+      {canReply && !text.trim() ? (
+        <Pressable style={styles.pauseRow} onPress={greet}>
+          <Ionicons name="hand-right-outline" size={16} color={theme.color.brand.accent} />
+          <Caption color={theme.color.brand.accent} style={{ fontWeight: '700' }}>
+            Saludo rápido
+          </Caption>
+        </Pressable>
       ) : null}
       {canReply ? (
         <View style={styles.inputRow}>
