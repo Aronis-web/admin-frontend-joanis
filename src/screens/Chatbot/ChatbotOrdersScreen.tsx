@@ -585,6 +585,15 @@ export const ChatbotOrdersScreen: React.FC<Props> = ({ navigation }) => {
               size="small"
               onPress={() => setShowFilters((v) => !v)}
             />
+            {canValidate ? (
+              <Button
+                title="Conciliar pagos"
+                leftIcon="git-compare-outline"
+                variant="outline"
+                size="small"
+                onPress={() => navigation.navigate('ChatbotReconciliation' as never)}
+              />
+            ) : null}
           </View>
 
           {showFilters ? (
