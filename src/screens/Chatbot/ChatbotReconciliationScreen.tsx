@@ -360,7 +360,9 @@ export const ChatbotReconciliationScreen: React.FC<Props> = ({ navigation }) => 
                       />
                       <Caption style={{ flex: 1 }} numberOfLines={2}>
                         {f.name}:{' '}
-                        {f.error ? f.error : `${f.credits} abonos de ${f.movements} movimientos`}
+                        {f.error
+                          ? f.error
+                          : `${f.credits} abonos de ${f.movements} movimientos${f.repeated ? ` (${f.repeated} ya estaban en otro archivo, no se cuentan dos veces)` : ''}`}
                       </Caption>
                     </View>
                   ))}
