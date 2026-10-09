@@ -912,9 +912,13 @@ const menuCategories: MenuCategory[] = [
           {
             id: 'notifications-whatsapp',
             icon: 'logo-whatsapp',
-            label: 'Notificaciones WhatsApp',
+            label: 'WhatsApp: notificaciones y consultas',
             route: MAIN_ROUTES.NOTIFICATIONS_WHATSAPP,
-            requiredPermissions: ['notifications.whatsapp.session.manage'],
+            requiredPermissions: [
+              'notifications.whatsapp.session.manage',
+              'consultas_wa.sesion.gestionar',
+              'consultas_wa.contactos.gestionar',
+            ],
           },
           {
             id: 'app-versions',

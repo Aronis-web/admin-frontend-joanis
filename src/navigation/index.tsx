@@ -1930,7 +1930,7 @@ const MainStack = React.memo(() => {
         name={MAIN_ROUTES.NOTIFICATIONS_WHATSAPP}
         component={NotificationsWhatsappScreen}
         options={{
-          title: 'WhatsApp de Notificaciones',
+          title: 'WhatsApp',
         }}
       />
       <MainStackNavigator.Screen

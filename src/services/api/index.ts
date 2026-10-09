@@ -45,6 +45,7 @@ export type {
   NotifWaSessionStatus,
   NotifWaQrResponse,
 } from '@/types/notifications-whatsapp';
+export { consultasWaApi } from './consultas-wa';
 
 // Re-export commonly used services
 export * from './products';

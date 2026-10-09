@@ -1,213 +1,138 @@
 /**
  * NotificationsWhatsappScreen
  *
- * Gestión de la sesión del número saliente de WhatsApp para notificaciones
- * (reparto, documentos de empleados, exports, campañas).
+ * Gestión de los números de WhatsApp de la empresa, en dos pestañas:
  *
- * Independiente del chatbot de ventas. Requiere el permiso
- * `notifications.whatsapp.session.manage`.
+ * - **Notificaciones**: sesión del número saliente para reparto, documentos de
+ *   empleados, exports y campañas. Permiso `notifications.whatsapp.session.manage`.
+ *   API: `/notifications/whatsapp/{status,qr,start,logout}`.
+ * - **Consultas**: número interno donde el personal autorizado consulta ventas
+ *   por WhatsApp. Permisos `consultas_wa.sesion.gestionar` (sesión) y
+ *   `consultas_wa.contactos.gestionar` (números autorizados). API: `/consultas-wa`.
  *
- * API: `/notifications/whatsapp/{status,qr,start,logout}`.
+ * Ambos son independientes del chatbot de ventas. La pantalla abre con
+ * cualquiera de los tres permisos y sólo muestra las pestañas permitidas.
  */
 
-import React from 'react';
-import { ScrollView, StyleSheet, View, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Badge, Body, Button, Caption, Card, Title } from '@/design-system';
-import type { BadgeVariant } from '@/design-system';
+import { Body, Label } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
-import { spacing, borderRadius } from '@/design-system/tokens';
-
-import {
-  useLogoutNotifWaSession,
-  useNotifWaQr,
-  useNotifWaStatus,
-  useStartNotifWaSession,
-} from '@/hooks/api/useNotificationsWhatsapp';
-import type { NotifWaStatus } from '@/types/notifications-whatsapp';
-import Alert from '@/utils/alert';
+import { borderRadius, spacing } from '@/design-system/tokens';
 import { GradientHeader, contentWidthStyle } from '@/design-system/components';
+import { ConsultasWaTab, NotificationsWaTab } from '@/components/NotificationsWhatsapp';
+import { PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 
-const STATUS_LABEL: Record<NotifWaStatus, string> = {
-  DISCONNECTED: 'Desconectado',
-  CONNECTING: 'Conectando…',
-  QR: 'Escanea el QR',
-  CONNECTED: 'Conectado',
-};
+type WaTab = 'notificaciones' | 'consultas';
 
-const STATUS_TONE: Record<NotifWaStatus, BadgeVariant> = {
-  DISCONNECTED: 'danger',
-  CONNECTING: 'warning',
-  QR: 'info',
-  CONNECTED: 'success',
+const TAB_META: Record<
+  WaTab,
+  {
+    label: string;
+    icon: 'notifications-outline' | 'chatbubbles-outline';
+    title: string;
+    subtitle: string;
+  }
+> = {
+  notificaciones: {
+    label: 'Notificaciones',
+    icon: 'notifications-outline',
+    title: 'WhatsApp de Notificaciones',
+    subtitle: 'Sesión del número saliente para reparto, documentos, exports y campañas.',
+  },
+  consultas: {
+    label: 'Consultas',
+    icon: 'chatbubbles-outline',
+    title: 'Número de consultas',
+    subtitle: 'El personal autorizado consulta ventas por WhatsApp y recibe respuestas.',
+  },
 };
 
 export const NotificationsWhatsappScreen: React.FC = () => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
+  const { hasPermission, loading } = usePermissions();
 
-  const statusQuery = useNotifWaStatus();
-  const status: NotifWaStatus = statusQuery.data?.status ?? 'DISCONNECTED';
-  const me = statusQuery.data?.me ?? null;
+  const canNotifications = hasPermission(PERMISSIONS.NOTIFICATIONS.WHATSAPP.SESSION_MANAGE);
+  const canConsultasSession = hasPermission(PERMISSIONS.CONSULTAS_WA.SESION_GESTIONAR);
+  const canConsultasContacts = hasPermission(PERMISSIONS.CONSULTAS_WA.CONTACTOS_GESTIONAR);
+  const canConsultas = canConsultasSession || canConsultasContacts;
 
-  const qrQuery = useNotifWaQr({ enabled: status === 'QR' });
+  const tabs: WaTab[] = [
+    ...(canNotifications ? (['notificaciones'] as const) : []),
+    ...(canConsultas ? (['consultas'] as const) : []),
+  ];
 
-  const startMutation = useStartNotifWaSession();
-  const logoutMutation = useLogoutNotifWaSession();
+  const [tab, setTab] = useState<WaTab>('notificaciones');
+  const activeTab: WaTab | undefined = tabs.includes(tab) ? tab : tabs[0];
 
-  const handleStart = () => {
-    startMutation.mutate(undefined, {
-      onError: (err: any) => {
-        Alert.alert('Error', err?.message ?? 'No se pudo iniciar la sesión');
-      },
-    });
-  };
+  useEffect(() => {
+    if (activeTab && activeTab !== tab) setTab(activeTab);
+  }, [activeTab, tab]);
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Cerrar sesión de WhatsApp',
-      'Se borrarán las credenciales del número de notificaciones y necesitarás escanear el QR de nuevo para reconectar.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desvincular',
-          style: 'destructive',
-          onPress: () =>
-            logoutMutation.mutate(undefined, {
-              onError: (err: any) => {
-                Alert.alert('Error', err?.message ?? 'No se pudo cerrar la sesión');
-              },
-            }),
-        },
-      ]
-    );
-  };
-
-  const formatMe = (jid: string | null): string | null => {
-    if (!jid) return null;
-    // Formato típico: `51999888777:12@s.whatsapp.net`
-    const raw = jid.split('@')[0]?.split(':')[0];
-    return raw ? `+${raw}` : jid;
-  };
+  const meta = TAB_META[activeTab ?? 'notificaciones'];
 
   return (
     <View style={styles.root}>
-      <GradientHeader
-        icon="logo-whatsapp"
-        title="WhatsApp de Notificaciones"
-        subtitle="Sesión del número saliente para reparto, documentos, exports y campañas."
-      />
+      <GradientHeader icon="logo-whatsapp" title={meta.title} subtitle={meta.subtitle} />
       <ScrollView
-        style={{ flex: 1 }}
+        style={styles.flex}
         contentContainerStyle={[
           styles.container,
           { paddingBottom: insets.bottom + spacing[6] },
           contentWidthStyle,
         ]}
       >
-        {/* Header card */}
-        <Card variant="elevated" padding="large" style={styles.headerCard}>
-          <View style={styles.statusRow}>
-            <Badge variant={STATUS_TONE[status]} label={STATUS_LABEL[status]} />
-            {statusQuery.isFetching ? (
-              <ActivityIndicator size="small" color={theme.color.text.muted} />
-            ) : null}
+        {tabs.length > 1 ? (
+          <View style={styles.segmented}>
+            {tabs.map((t) => {
+              const selected = t === activeTab;
+              return (
+                <Pressable
+                  key={t}
+                  onPress={() => setTab(t)}
+                  style={[styles.segment, selected && styles.segmentSelected]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                >
+                  <Ionicons
+                    name={TAB_META[t].icon}
+                    size={16}
+                    color={selected ? theme.color.text.onAction : theme.color.text.muted}
+                  />
+                  <Label color={selected ? theme.color.text.onAction : theme.color.text.muted}>
+                    {TAB_META[t].label}
+                  </Label>
+                </Pressable>
+              );
+            })}
           </View>
+        ) : null}
 
-          {me ? (
-            <View style={styles.meRow}>
-              <Ionicons name="call-outline" size={16} color={theme.color.text.muted} />
-              <Body>{formatMe(me)}</Body>
-            </View>
-          ) : null}
-        </Card>
-
-        {/* Estado / QR */}
-        <Card variant="elevated" padding="large">
-          {status === 'QR' ? (
-            <View style={styles.qrBox}>
-              {qrQuery.data?.qr ? (
-                <Image
-                  source={{ uri: qrQuery.data.qr }}
-                  style={styles.qrImage}
-                  resizeMode="contain"
-                />
-              ) : (
-                <View style={styles.qrPlaceholder}>
-                  <ActivityIndicator color={theme.color.text.muted} />
-                  <Caption color={theme.color.text.muted}>Generando QR…</Caption>
-                </View>
-              )}
-              <Body color={theme.color.text.muted} style={styles.qrHint}>
-                Abre WhatsApp en el celular del número de notificaciones → Dispositivos vinculados →
-                Vincular dispositivo.
-              </Body>
-            </View>
-          ) : status === 'CONNECTING' ? (
-            <View style={styles.stateBox}>
-              <ActivityIndicator color={theme.color.brand.accent} />
-              <Body color={theme.color.text.muted}>Iniciando conexión…</Body>
-            </View>
-          ) : status === 'CONNECTED' ? (
-            <View style={styles.stateBox}>
-              <Ionicons name="checkmark-circle" size={40} color="#10B981" />
-              <Body>La sesión está activa. Se pueden enviar notificaciones.</Body>
+        {!activeTab ? (
+          loading ? (
+            <View style={styles.center}>
+              <ActivityIndicator color={theme.color.text.muted} />
             </View>
           ) : (
-            <View style={styles.stateBox}>
-              <Ionicons name="cloud-offline-outline" size={40} color={theme.color.text.muted} />
-              <Body color={theme.color.text.muted} style={{ textAlign: 'center' }}>
-                No hay sesión iniciada. Pulsa “Conectar” para generar el QR de vinculación.
-              </Body>
-            </View>
-          )}
-
-          <View style={styles.actions}>
-            {status === 'CONNECTED' ? (
-              <Button
-                title="Desvincular"
-                variant="outline"
-                onPress={handleLogout}
-                loading={logoutMutation.isPending}
-                leftIcon="log-out-outline"
-              />
-            ) : (
-              <Button
-                title={status === 'QR' ? 'Regenerar QR' : 'Conectar'}
-                onPress={handleStart}
-                loading={startMutation.isPending}
-                leftIcon="qr-code-outline"
-              />
-            )}
-          </View>
-        </Card>
-
-        {/* Info operativa */}
-        <Card variant="outlined" padding="large" style={styles.infoCard}>
-          <View style={styles.infoHeader}>
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color={theme.color.state.info.border}
-            />
-            <Title size="small">Información</Title>
-          </View>
-          <Body color={theme.color.text.muted} style={styles.infoText}>
-            • Este número es independiente del robot de ventas (chatbot).
-          </Body>
-          <Body color={theme.color.text.muted} style={styles.infoText}>
-            • La sesión se reconecta sola ante caídas de red. Sólo hace falta volver a escanear el QR
-            tras un logout explícito o si el teléfono desvincula el dispositivo.
-          </Body>
-          <Body color={theme.color.text.muted} style={styles.infoText}>
-            • El envío de notificaciones (texto, PDF, Excel, imágenes) lo disparan los flujos
-            existentes de reparto, documentos, exports y campañas.
-          </Body>
-        </Card>
+            <Body color={theme.color.text.muted} style={styles.centerText}>
+              No tienes permisos para gestionar los números de WhatsApp.
+            </Body>
+          )
+        ) : activeTab === 'notificaciones' ? (
+          <NotificationsWaTab />
+        ) : (
+          <ConsultasWaTab
+            canManageSession={canConsultasSession}
+            canManageContacts={canConsultasContacts}
+          />
+        )}
       </ScrollView>
     </View>
   );
@@ -219,72 +144,39 @@ const createStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.color.background.subtle,
     },
+    flex: {
+      flex: 1,
+    },
     container: {
       padding: spacing[4],
       gap: spacing[4],
     },
-    headerCard: {
-      gap: spacing[3],
-    },
-    statusRow: {
+    segmented: {
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[2],
-    },
-    meRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[2],
-    },
-    qrBox: {
-      alignItems: 'center',
-      gap: spacing[3],
-      padding: spacing[3],
-      backgroundColor: theme.color.background.subtle,
+      gap: spacing[1],
+      padding: spacing[1],
       borderRadius: borderRadius.lg,
+      backgroundColor: theme.color.surface.muted,
+      alignSelf: 'flex-start',
     },
-    qrImage: {
-      width: 260,
-      height: 260,
-      backgroundColor: '#fff',
-      borderRadius: borderRadius.md,
-    },
-    qrPlaceholder: {
-      width: 260,
-      height: 260,
+    segment: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
       gap: spacing[2],
-      backgroundColor: theme.color.surface.base,
+      paddingVertical: spacing[2],
+      paddingHorizontal: spacing[4],
       borderRadius: borderRadius.md,
     },
-    qrHint: {
+    segmentSelected: {
+      backgroundColor: theme.color.action.primary.background,
+    },
+    center: {
+      alignItems: 'center',
+      padding: spacing[6],
+    },
+    centerText: {
       textAlign: 'center',
-    },
-    stateBox: {
-      alignItems: 'center',
-      gap: spacing[2],
-      padding: spacing[5],
-      backgroundColor: theme.color.background.subtle,
-      borderRadius: borderRadius.lg,
-    },
-    actions: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      gap: spacing[2],
-      marginTop: spacing[4],
-    },
-    infoCard: {
-      gap: spacing[2],
-    },
-    infoHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[2],
-      marginBottom: spacing[2],
-    },
-    infoText: {
-      lineHeight: 20,
+      padding: spacing[6],
     },
   });
 

@@ -335,7 +335,7 @@ export const MENU_TO_ROUTE: Record<string, keyof typeof MAIN_ROUTES> = {
  * Defines which permission is required to access each route
  * Based on actual permissions from the backend system
  */
-export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>> = {
+export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string | string[]>> = {
   // Dashboard
   DASHBOARD: 'dashboard.read',
 
@@ -544,7 +544,12 @@ export const ROUTE_PERMISSIONS: Partial<Record<keyof typeof MAIN_ROUTES, string>
   DRIVE_HOME: 'drive.read',
 
   // Notifications WhatsApp
-  NOTIFICATIONS_WHATSAPP: 'notifications.whatsapp.session.manage',
+  // Cualquiera de los tres: pestaña Notificaciones o pestaña Consultas
+  NOTIFICATIONS_WHATSAPP: [
+    'notifications.whatsapp.session.manage',
+    'consultas_wa.sesion.gestionar',
+    'consultas_wa.contactos.gestionar',
+  ],
 
   // Payroll (Planilla / Nomina Peru)
   PAYROLL_EMPLOYEES: 'payroll.employment.read',
@@ -606,8 +611,20 @@ export function isMainRoute(routeName: string): boolean {
 }
 
 /**
- * Helper function to get permission required for a route
+ * Helper function to get permission required for a route.
+ * Un arreglo significa "cualquiera de" (basta con tener uno).
  */
-export function getRoutePermission(routeKey: keyof typeof MAIN_ROUTES): string | undefined {
+export function getRoutePermission(
+  routeKey: keyof typeof MAIN_ROUTES
+): string | string[] | undefined {
   return ROUTE_PERMISSIONS[routeKey];
+}
+
+/**
+ * Permisos de una ruta normalizados a arreglo ("cualquiera de").
+ */
+export function getRoutePermissions(routeKey: keyof typeof MAIN_ROUTES): string[] {
+  const perm = ROUTE_PERMISSIONS[routeKey];
+  if (!perm) return [];
+  return Array.isArray(perm) ? perm : [perm];
 }

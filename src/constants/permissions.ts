@@ -623,6 +623,13 @@ export const PERMISSIONS = {
     },
   },
 
+  // ========== CONSULTAS POR WHATSAPP ==========
+  CONSULTAS_WA: {
+    SESION_GESTIONAR: 'consultas_wa.sesion.gestionar',
+    CONTACTOS_GESTIONAR: 'consultas_wa.contactos.gestionar',
+    USAR: 'consultas_wa.usar',
+  },
+
   // ========== CUENTAS POR PAGAR ==========
   ACCOUNTS_PAYABLE: {
     // Lectura
