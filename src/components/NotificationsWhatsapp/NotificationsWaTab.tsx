@@ -17,6 +17,7 @@ import {
   useLogoutNotifWaSession,
   useNotifWaQr,
   useNotifWaStatus,
+  usePairNotifWaSession,
   useStartNotifWaSession,
 } from '@/hooks/api/useNotificationsWhatsapp';
 import type { NotifWaStatus } from '@/types/notifications-whatsapp';
@@ -40,6 +41,7 @@ export const NotificationsWaTab: React.FC = () => {
   const qrQuery = useNotifWaQr({ enabled: status === 'QR' });
   const startMutation = useStartNotifWaSession();
   const logoutMutation = useLogoutNotifWaSession();
+  const pairMutation = usePairNotifWaSession();
 
   return (
     <View style={styles.container}>
@@ -51,6 +53,8 @@ export const NotificationsWaTab: React.FC = () => {
         texts={TEXTS}
         onStart={() => startMutation.mutateAsync()}
         onLogout={() => logoutMutation.mutateAsync()}
+        onPair={(phone) => pairMutation.mutateAsync(phone)}
+        pairPending={pairMutation.isPending}
         startPending={startMutation.isPending}
         logoutPending={logoutMutation.isPending}
       />

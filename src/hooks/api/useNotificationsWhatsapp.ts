@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notificationsWhatsappApi } from '@/services/api';
-import type { NotifWaQrResponse, NotifWaSessionStatus } from '@/types/notifications-whatsapp';
+import type {
+  NotifWaPairResponse,
+  NotifWaQrResponse,
+  NotifWaSessionStatus,
+} from '@/types/notifications-whatsapp';
 
 // ============================================
 // Query Keys Factory
@@ -59,6 +63,16 @@ export const useStartNotifWaSession = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationsWhatsappKeys.status() });
       queryClient.invalidateQueries({ queryKey: notificationsWhatsappKeys.qr() });
+    },
+  });
+};
+
+export const usePairNotifWaSession = () => {
+  const queryClient = useQueryClient();
+  return useMutation<NotifWaPairResponse, Error, string>({
+    mutationFn: (phone) => notificationsWhatsappApi.pair(phone),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationsWhatsappKeys.status() });
     },
   });
 };

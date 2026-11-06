@@ -18,3 +18,11 @@ export interface NotifWaSessionStatus {
 export interface NotifWaQrResponse {
   qr: string | null;
 }
+
+/** Código de emparejamiento para vincular por número (sin QR). */
+export interface NotifWaPairResponse {
+  /** Código de 8 caracteres, formateado `XXXX-XXXX`. */
+  code: string;
+  /** Número normalizado (sólo dígitos, con código de país). */
+  phone: string;
+}
