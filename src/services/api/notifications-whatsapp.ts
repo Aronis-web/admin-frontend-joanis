@@ -1,5 +1,9 @@
 import { apiClient } from './client';
-import type { NotifWaQrResponse, NotifWaSessionStatus } from '@/types/notifications-whatsapp';
+import type {
+  NotifWaPairResponse,
+  NotifWaQrResponse,
+  NotifWaSessionStatus,
+} from '@/types/notifications-whatsapp';
 
 /**
  * WhatsApp de Notificaciones · Sesión API Service
@@ -23,6 +27,11 @@ class NotificationsWhatsappService {
 
   async start(): Promise<NotifWaSessionStatus> {
     return apiClient.post<NotifWaSessionStatus>(`${this.basePath}/start`, {});
+  }
+
+  /** Pide el código para vincular el número sin QR ("Vincular con número de teléfono"). */
+  async pair(phone: string): Promise<NotifWaPairResponse> {
+    return apiClient.post<NotifWaPairResponse>(`${this.basePath}/pair`, { phone });
   }
 
   async logout(): Promise<NotifWaSessionStatus> {

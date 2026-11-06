@@ -3,14 +3,15 @@
  *
  * Tarjeta reutilizable para gestionar una sesión de WhatsApp (Baileys):
  * estado, número vinculado, QR y botones Conectar / Regenerar QR /
- * Desvincular. La usan las pestañas Notificaciones y Consultas.
+ * Desvincular. Si recibe `onPair`, también permite vincular con el número de
+ * celular (código de 8 caracteres) en vez de escanear el QR. La usan las pestañas Notificaciones y Consultas.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Badge, Body, Button, Caption, Card } from '@/design-system';
+import { Badge, Body, Button, Caption, Card, Input, Title } from '@/design-system';
 import type { BadgeVariant } from '@/design-system';
 import { useTheme, useThemedStyles } from '@/design-system/themes';
 import type { Theme } from '@/design-system/themes';
@@ -57,7 +58,18 @@ export interface WhatsappSessionCardProps {
   onLogout: () => Promise<unknown>;
   startPending: boolean;
   logoutPending: boolean;
+  /** Vincular por número: devuelve el código que se escribe en el celular. */
+  onPair?: (phone: string) => Promise<{ code: string; phone: string }>;
+  pairPending?: boolean;
 }
+
+/** 9 dígitos que empiezan en 9 = celular de Perú; si no, se toma tal cual. */
+const normalizePhone = (raw: string): string | null => {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.length === 9 && digits.startsWith('9')) digits = `51${digits}`;
+  return digits.length >= 8 && digits.length <= 15 ? digits : null;
+};
 
 export const WhatsappSessionCard: React.FC<WhatsappSessionCardProps> = ({
   status,
@@ -69,11 +81,35 @@ export const WhatsappSessionCard: React.FC<WhatsappSessionCardProps> = ({
   onLogout,
   startPending,
   logoutPending,
+  onPair,
+  pairPending = false,
 }) => {
   const theme = useTheme();
   const styles = useThemedStyles(createStyles);
   const runStart = useSingleFlight();
   const runLogout = useSingleFlight();
+  const runPair = useSingleFlight();
+  const [pairPhone, setPairPhone] = useState('');
+  const [pairCode, setPairCode] = useState<{ code: string; phone: string } | null>(null);
+  const normalizedPairPhone = normalizePhone(pairPhone);
+
+  // El código deja de servir al conectar o si la sesión se cae.
+  useEffect(() => {
+    if (status === 'CONNECTED' || status === 'DISCONNECTED') setPairCode(null);
+  }, [status]);
+
+  const handlePair = () => {
+    if (!onPair || pairPending || !normalizedPairPhone) return;
+    void runPair(async () => {
+      try {
+        setPairCode(null);
+        const res = await onPair(normalizedPairPhone);
+        setPairCode(res);
+      } catch (err) {
+        Alert.alert('Error', getErrorMessage(err, 'No se pudo generar el código'));
+      }
+    });
+  };
 
   const handleStart = () => {
     if (startPending) return;
@@ -154,6 +190,53 @@ export const WhatsappSessionCard: React.FC<WhatsappSessionCardProps> = ({
         </View>
       )}
 
+      {onPair && status !== 'CONNECTED' ? (
+        <View style={styles.pairBox}>
+          <Title size="small">Vincular con número de celular</Title>
+          <Caption color={theme.color.text.muted}>
+            Si no puedes escanear el QR: escribe el número de notificaciones, pide el código y en
+            ese celular abre WhatsApp → Dispositivos vinculados → Vincular dispositivo → “Vincular
+            con número de teléfono”.
+          </Caption>
+          <Input
+            label="Celular de notificaciones"
+            placeholder="987654321"
+            value={pairPhone}
+            onChangeText={(t) => setPairPhone(t.replace(/[^\d+\s]/g, ''))}
+            keyboardType="phone-pad"
+            leftIcon="call-outline"
+            size="small"
+            helperText={
+              normalizedPairPhone
+                ? `Se vinculará +${normalizedPairPhone}`
+                : '9 dígitos para Perú, o con código de país.'
+            }
+            editable={!pairPending}
+          />
+          <View style={styles.actions}>
+            <Button
+              title={pairCode ? 'Pedir otro código' : 'Pedir código'}
+              variant="outline"
+              onPress={handlePair}
+              loading={pairPending}
+              disabled={pairPending || !normalizedPairPhone}
+              leftIcon="keypad-outline"
+            />
+          </View>
+          {pairCode ? (
+            <View style={styles.codeBox}>
+              <Caption color={theme.color.text.muted}>Escribe este código en el celular:</Caption>
+              <Body selectable style={styles.code}>
+                {pairCode.code}
+              </Body>
+              <Caption color={theme.color.text.muted} style={styles.center}>
+                Vence en unos 2 minutos. Si vence, pide otro.
+              </Caption>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={styles.actions}>
         {status === 'CONNECTED' ? (
           <Button
@@ -227,6 +310,25 @@ const createStyles = (theme: Theme) =>
       padding: spacing[5],
       backgroundColor: theme.color.background.subtle,
       borderRadius: borderRadius.lg,
+    },
+    pairBox: {
+      gap: spacing[2],
+      padding: spacing[3],
+      backgroundColor: theme.color.background.subtle,
+      borderRadius: borderRadius.lg,
+    },
+    codeBox: {
+      alignItems: 'center',
+      gap: spacing[1],
+      padding: spacing[3],
+      backgroundColor: theme.color.surface.base,
+      borderRadius: borderRadius.md,
+    },
+    code: {
+      fontSize: 32,
+      fontWeight: '700',
+      letterSpacing: 4,
+      fontVariant: ['tabular-nums'],
     },
     actions: {
       flexDirection: 'row',
